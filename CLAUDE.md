@@ -1,60 +1,58 @@
-# Do indeksa — правила проекта
+# Do indeksa — project rules
 
-Бесплатная платформа для сербских матурантов: выбор факультета («Izaberi») + подготовка к приёмному экзамену («Spremi se»). MVP: математика FTN P1 + гид по новосадским факультетам.
+Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam preparation ("Spremi se"). MVP: FTN P1 mathematics + Novi Sad faculty guide.
 
-## Языки
+## Languages
 
-- **Общение с Claude** — русский.
-- **Код, коммиты, идентификаторы, техническая документация** — английский.
-- **Основная документация** (README и т.п.) — английский; **пользовательская дублируется на сербском** (латиница): `README.md` (EN) + `README.sr.md` (SR).
-- **Контент платформы для учеников** (задачи, решения, гид) — сербская латиница, как на реальном экзамене.
+- Communication with Claude: Russian.
+- Code, commits, identifiers, technical docs: English.
+- Main docs in English; user-facing docs duplicated in Serbian (latin script): `README.md` + `README.sr.md`.
+- Platform content for students (tasks, solutions, guide): Serbian latin script, as on the real exam.
 
 ## GitHub
 
-- Разработка **полностью публичная** — коммиты, Issues, Milestones, роадмап ведутся открыто (статистика и прозрачность — часть питча).
-- Аккаунт: **Dimitrymas**. Организация: **do-indeksa** (создаётся вручную владельцем).
-- Roadmap через Issues + Milestones: «MVP jesen 2026», «Pilot zima 2026/27», «Pun ciklus proleće 2027».
+- Fully public development: commits, issues, milestones, roadmap.
+- Account: **Dimitrymas**. Organization: **do-indeksa**.
+- Roadmap via issues + milestones.
 
-## Стек и архитектура (зафиксировано 2026-07-11)
+## Git workflow (see CONTRIBUTING.md)
 
-- **Бэкенд:** Go, один монолитный сервис (chi/echo + pgx) — аккаунты (Google OAuth), прогресс, результаты симуляций, метрики. Микросервисы не используем — не тот масштаб.
-- **Фронт:** Next.js + KaTeX для формул.
-- **БД:** Postgres (Neon/Supabase free tier на старте). В БД — **только пользовательские данные**.
-- **Контент — в git, не в БД:** задачи/решения как файлы (JSON/Markdown с LaTeX) в `content/`, review через PR (Konstantin).
-- **Деплой:** web — Vercel; api — Fly.io/Hetzner VPS (~5 €/мес).
-- **Монорепо:** `do-indeksa/platform` — `apps/web`, `apps/api`, `content/`, `tools/`.
+- GitHub Flow: `main` protected, everything via PR (`Closes #N`), branches `type/issue-slug`, branch deleted after merge.
+- Conventional Commits, atomic: `feat|fix|content|docs|chore|refactor|test|ci(scope): imperative lowercase`.
+- Rebase merge only — squash and merge commits are disabled; atomic commits must reach `main`.
+- Content PRs (`content/`): review by Konstantin required. Code PRs: self-merge on green CI.
+- Sprint end = tag `v0.X.0` + GitHub Release.
 
-## Git-процесс (см. CONTRIBUTING.md)
+## Stack and architecture (locked 2026-07-11)
 
-- GitHub Flow: `main` защищён, всё через PR (`Closes #N`), ветки `type/issue-slug` (`feat/14-variant-generator`), после merge ветка удаляется.
-- Conventional Commits: `feat|fix|content|docs|chore|refactor|test|ci(scope): imperative lowercase`. Атомарные коммиты.
-- Merge только rebase (squash/merge-commit отключены — атомарные коммиты должны попадать в main ради contribution graph).
-- Контентные PR (`content/`) — обязательное ревью Konstantin'а; кодовые — self-merge при зелёном CI.
-- Конец спринта = тег `v0.X.0` + GitHub Release с notes.
+- Backend: Go, single monolith (chi/echo + pgx + sqlc) — accounts (Google OAuth), progress, simulation results, metrics. No microservices.
+- Frontend: Next.js + KaTeX. Zustand scoped to exam runtime only.
+- DB: Postgres (Neon/Supabase free tier). User data only.
+- Content lives in git, not in the DB: tasks as Markdown + YAML frontmatter in `content/`, changed via reviewed PRs.
+- Deploy: web — Vercel; api — Fly.io/Hetzner VPS.
+- Monorepo: `apps/web`, `apps/api`, `content/`, `tools/`. Details: `docs/ENGINEERING.md`, decisions: `docs/decisions/`.
 
-## Код и документация — без шума
+## Code and docs — no noise
 
-- **Комментарии в коде запрещены.** Код должен объяснять себя именами. Линтер-правила, требующие doc-комментарии на экспортах (revive exported), отключаем.
-- **Документация — только по делу:** факты, решения, инструкции. Никаких рассуждений, воды, «почему это важно» на три абзаца. ADR — максимум 10 строк.
+- No comments in code. Disable lint rules requiring doc comments on exports (revive `exported`).
+- Docs: facts, decisions, instructions only. ADRs ≤ 10 lines.
 
-## Атрибуция Claude — ЖЁСТКИЙ ЗАПРЕТ
+## AI attribution — HARD BAN
 
-- **НИКОГДА не добавлять Claude ни в какой форме ни в какие артефакты проекта:** ни `Co-Authored-By` в коммитах, ни «Generated with Claude Code» в PR/issues, ни упоминаний в коде, документации, README. Все коммиты — только от имени владельца.
-- Это относится ко всем будущим коммитам без исключений.
+- Never add Claude in any form to any project artifact: no `Co-Authored-By`, no "Generated with", no mentions in code, docs, or PRs. All commits are authored by the owner only.
 
-## Копирайт — жёсткие запреты
+## Copyright — hard bans
 
-- **НИКОГДА не коммитить** распознанный priručnik FTN (688 задач, `06_Bonus/Ceo_prirucnik_688_zadataka.pdf`) — это копирайт FTN, только личный референс.
-- **Не коммитить оригинальные PDF приёмных FTN/ETF** — в репо только ссылки на официальный сайт + собственная разметка (год, тема, сложность).
-- Авторские задачи и решения (наши) — публикуются свободно.
+- NEVER commit the OCR'd FTN priručnik (688 tasks, `06_Bonus/Ceo_prirucnik_688_zadataka.pdf`) — FTN copyright, personal reference only.
+- Do not commit original FTN/ETF exam PDFs — links to the official site + own metadata (year, topic, difficulty) only.
+- Our authored tasks and solutions: published freely.
 
-## Лицензии
+## Licenses
 
-- Код — MIT.
-- Контент (задачи, решения, гид) — CC BY-NC-SA 4.0 (свободное использование с указанием авторства, запрещено коммерческое использование, производные под той же лицензией).
+- Code: MIT. Content (`content/`): CC BY-NC-SA 4.0.
 
-## Исходные материалы (локально, вне репо)
+## Source materials (local, outside the repo)
 
-- `~/Documents/FTN/FTN_P1_Materijali/` — банк задач, авторские пробники, тематические листы; LaTeX-исходники в `_LaTeX_izvori/`.
-- `~/Documents/FTN/Prijem_i_napravljenja/` — данные для гида: направления FTN 2026, проходные баллы, карта сайта.
-- Формат P1: 10 задач × 6 баллов = 60, 180 минут.
+- `~/Documents/FTN/FTN_P1_Materijali/` — task bank, authored variants, thematic sheets; LaTeX sources in `_LaTeX_izvori/`.
+- `~/Documents/FTN/Prijem_i_napravljenja/` — guide data: FTN programs 2026, score thresholds, site map.
+- P1 format: 10 tasks × 6 points = 60 total, 180 minutes.
