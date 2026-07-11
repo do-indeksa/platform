@@ -24,6 +24,14 @@
 - **Деплой:** web — Vercel; api — Fly.io/Hetzner VPS (~5 €/мес).
 - **Монорепо:** `do-indeksa/platform` — `apps/web`, `apps/api`, `content/`, `tools/`.
 
+## Git-процесс (см. CONTRIBUTING.md)
+
+- GitHub Flow: `main` защищён, всё через PR (`Closes #N`), ветки `type/issue-slug` (`feat/14-variant-generator`), после merge ветка удаляется.
+- Conventional Commits: `feat|fix|content|docs|chore|refactor|test|ci(scope): imperative lowercase`. Атомарные коммиты.
+- Merge только rebase (squash/merge-commit отключены — атомарные коммиты должны попадать в main ради contribution graph).
+- Контентные PR (`content/`) — обязательное ревью Konstantin'а; кодовые — self-merge при зелёном CI.
+- Конец спринта = тег `v0.X.0` + GitHub Release с notes.
+
 ## Атрибуция Claude — ЖЁСТКИЙ ЗАПРЕТ
 
 - **НИКОГДА не добавлять Claude ни в какой форме ни в какие артефакты проекта:** ни `Co-Authored-By` в коммитах, ни «Generated with Claude Code» в PR/issues, ни упоминаний в коде, документации, README. Все коммиты — только от имени владельца.
