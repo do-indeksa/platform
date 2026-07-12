@@ -16,3 +16,9 @@ export function totalScore(
 ): number {
   return schoolPoints(gradeAverages) + examPoints;
 }
+
+export const POINTS_PER_TASK = 6;
+
+export function simulationScore(marks: (boolean | null)[]): number {
+  return marks.filter(Boolean).length * POINTS_PER_TASK;
+}

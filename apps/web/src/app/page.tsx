@@ -15,6 +15,12 @@ export default function Home() {
           Zadaci za vežbanje →
         </Link>
         <Link
+          href="/simulacija"
+          className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
+        >
+          Simulacija prijemnog
+        </Link>
+        <Link
           href="/kalkulator"
           className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
         >

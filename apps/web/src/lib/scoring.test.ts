@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { schoolPoints, totalScore } from "./scoring";
+import { schoolPoints, simulationScore, totalScore } from "./scoring";
 
 describe("schoolPoints", () => {
   it.each([
@@ -20,5 +20,24 @@ describe("totalScore", () => {
     { averages: [4.5, 4.5, 4.5, 4.5], exam: 30.5, expected: 66.5 },
   ])("$averages + $exam → $expected", ({ averages, exam, expected }) => {
     expect(totalScore(averages, exam)).toBeCloseTo(expected, 10);
+  });
+});
+
+describe("simulationScore", () => {
+  it.each([
+    {
+      marks: [true, true, true, true, true, true, true, true, true, true],
+      expected: 60,
+    },
+    {
+      marks: [null, null, null, null, null, null, null, null, null, null],
+      expected: 0,
+    },
+    {
+      marks: [true, false, true, null, false, true, true, false, null, true],
+      expected: 30,
+    },
+  ])("$marks → $expected", ({ marks, expected }) => {
+    expect(simulationScore(marks)).toBe(expected);
   });
 });
