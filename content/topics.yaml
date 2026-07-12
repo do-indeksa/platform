@@ -1,0 +1,41 @@
+topics:
+  - slug: kompleksni-brojevi
+    slot: 1
+    name: Kompleksni brojevi
+    prefix: kb
+  - slug: kvadratna-jednacina
+    slot: 2
+    name: Kvadratna jednačina i Vijetove formule
+    prefix: kv
+  - slug: logaritmi
+    slot: 3
+    name: Logaritmi
+    prefix: log
+  - slug: eksponencijalne
+    slot: 4
+    name: Eksponencijalne jednačine i nejednačine
+    prefix: eks
+  - slug: trigonometrija
+    slot: 5
+    name: Trigonometrija
+    prefix: trig
+  - slug: vektori-analitika
+    slot: 6
+    name: Vektori i analitička geometrija
+    prefix: vek
+  - slug: planimetrija
+    slot: 7
+    name: Planimetrija
+    prefix: plan
+  - slug: stereometrija
+    slot: 8
+    name: Stereometrija
+    prefix: ster
+  - slug: analiza-funkcije
+    slot: 9
+    name: Analiza funkcije i integral
+    prefix: fun
+  - slug: kombinatorika
+    slot: 10
+    name: Kombinatorika
+    prefix: komb
