@@ -1,18 +1,18 @@
-import katex from "katex";
-import "katex/dist/katex.min.css";
+import Link from "next/link";
 
 export default function Home() {
-  const formula = katex.renderToString(
-    "\\int_{3}^{4} f(x)\\,dx = \\frac{11}{2} + \\ln 2",
-    { throwOnError: false },
-  );
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
       <h1 className="text-4xl font-bold">Do indeksa</h1>
-      <p className="text-lg text-zinc-600">
-        Besplatna priprema za prijemni ispit. Uskoro.
+      <p className="max-w-md text-lg text-zinc-600">
+        Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.
       </p>
-      <div dangerouslySetInnerHTML={{ __html: formula }} />
+      <Link
+        href="/zadaci"
+        className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+      >
+        Zadaci za vežbanje →
+      </Link>
     </main>
   );
 }

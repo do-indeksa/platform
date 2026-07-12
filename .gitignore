@@ -25,3 +25,4 @@ bin/
 
 # Local Claude settings
 .claude/settings.local.json
+.playwright-mcp/
