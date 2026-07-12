@@ -4,20 +4,45 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
+import { MarkButton } from "@/components/mark-button";
 import { POINTS_PER_TASK, simulationScore } from "@/lib/scoring";
-import { useSimulation, type SimulationTask } from "@/lib/simulation-store";
+import {
+  useSimulation,
+  type RunKind,
+  type SimulationTask,
+} from "@/lib/simulation-store";
 import { useRemainingSeconds } from "@/lib/use-countdown";
 import { useHydrated } from "@/lib/use-hydrated";
+
+const RUNS = {
+  simulation: {
+    home: "/simulation",
+    resumePath: "/simulation/new",
+    activeKey: "simulationActive",
+    resumeKey: "resumeSimulation",
+    abandonConfirmKey: "abandonConfirm",
+  },
+  diagnostic: {
+    home: "/diagnostic",
+    resumePath: "/diagnostic/new",
+    activeKey: "diagnosticActive",
+    resumeKey: "resumeDiagnostic",
+    abandonConfirmKey: "abandonConfirmDiagnostic",
+  },
+} as const satisfies Record<RunKind, unknown>;
 
 export function SimulationRuntime({
   variantId,
   tasks,
+  kind,
 }: {
   variantId: string;
   tasks: SimulationTask[];
+  kind: RunKind;
 }) {
   const t = useTranslations("simulation");
   const phase = useSimulation((state) => state.phase);
+  const activeKind = useSimulation((state) => state.kind);
   const start = useSimulation((state) => state.start);
   const hydrated = useHydrated();
   const startedRef = useRef<string | null>(null);
@@ -25,27 +50,56 @@ export function SimulationRuntime({
   useEffect(() => {
     if (!hydrated || startedRef.current === variantId) return;
     startedRef.current = variantId;
-    if (useSimulation.getState().phase === null) start(tasks);
-  }, [hydrated, variantId, start, tasks]);
+    const state = useSimulation.getState();
+    if (state.phase === null) {
+      start(tasks, kind);
+    } else if (state.kind !== kind && state.phase === "done") {
+      state.reset();
+      start(tasks, kind);
+    }
+  }, [hydrated, variantId, start, tasks, kind]);
 
-  if (!hydrated || phase === null) {
+  if (
+    !hydrated ||
+    phase === null ||
+    (activeKind !== kind && phase === "done")
+  ) {
     return <p className="animate-pulse text-zinc-500">{t("assembling")}</p>;
   }
+  if (activeKind !== kind) return <OtherRunNotice activeKind={activeKind} />;
   if (phase === "running") return <ExamPhase />;
   if (phase === "grading") return <GradingPhase />;
-  return <ResultPhase />;
+  return kind === "simulation" ? <ExamResult /> : <DiagnosticResult />;
+}
+
+function OtherRunNotice({ activeKind }: { activeKind: RunKind }) {
+  const t = useTranslations("simulation");
+  const run = RUNS[activeKind];
+  return (
+    <div className="space-y-4">
+      <p className="text-zinc-600">{t(run.activeKey)}</p>
+      <Link
+        href={run.resumePath}
+        className="inline-block rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+      >
+        {t(run.resumeKey)}
+      </Link>
+    </div>
+  );
 }
 
 function AbandonButton() {
   const t = useTranslations("simulation");
+  const kind = useSimulation((state) => state.kind);
   const reset = useSimulation((state) => state.reset);
   const router = useRouter();
+  const run = RUNS[kind];
   return (
     <button
       onClick={() => {
-        if (!confirm(t("abandonConfirm"))) return;
+        if (!confirm(t(run.abandonConfirmKey))) return;
         reset();
-        router.push("/simulation");
+        router.push(run.home);
       }}
       className="text-sm text-zinc-500 hover:underline"
     >
@@ -151,7 +205,7 @@ function GradingPhase() {
   );
 }
 
-function ResultPhase() {
+function ExamResult() {
   const t = useTranslations("simulation");
   const { tasks, marks, reset } = useSimulation();
   const router = useRouter();
@@ -203,6 +257,43 @@ function ResultPhase() {
   );
 }
 
+function DiagnosticResult() {
+  const t = useTranslations("diagnostic");
+  const { tasks, marks } = useSimulation();
+
+  return (
+    <div className="space-y-6">
+      <p className="rounded-lg bg-zinc-900 p-6 text-center text-white">
+        <span className="block text-3xl font-bold">{t("resultTitle")}</span>
+        <span className="mt-1 block text-zinc-300">
+          {t("correctSummary", {
+            correct: marks.filter(Boolean).length,
+            total: tasks.length,
+          })}
+        </span>
+      </p>
+      <ul className="space-y-1">
+        {tasks.map((task, i) => (
+          <li key={task.id} className="flex justify-between text-sm">
+            <span>
+              {task.slot}. {task.topicName}
+            </span>
+            <span className={marks[i] ? "text-green-700" : "text-red-600"}>
+              {marks[i] ? t("correct") : t("incorrect")}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href="/prep"
+        className="inline-block rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+      >
+        {t("mapCta")}
+      </Link>
+    </div>
+  );
+}
+
 function TaskNav({
   count,
   currentIndex,
@@ -230,30 +321,6 @@ function TaskNav({
         </button>
       ))}
     </nav>
-  );
-}
-
-function MarkButton({
-  active,
-  onClick,
-  className,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  className: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${className} ${
-        active ? "ring-2 ring-current" : "opacity-60 hover:opacity-100"
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 

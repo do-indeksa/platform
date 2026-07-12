@@ -4,11 +4,41 @@
     "description": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita."
   },
   "nav": {
+    "prep": "Priprema",
     "tasks": "Zadaci",
     "simulation": "Simulacija",
     "calculator": "Kalkulator",
     "signIn": "Prijavi se",
     "signOut": "Odjavi se"
+  },
+  "prep": {
+    "title": "Moja priprema",
+    "description": "Karta znanja i tvoj napredak kroz pripremu prijemnog P1.",
+    "mapIntro": "Savladanost svakog slota na osnovu dijagnostike, vežbanja i simulacija.",
+    "loading": "Učitavam kartu…",
+    "empty": "Karta je još prazna. Uradi dijagnostički test da vidiš gde stojiš.",
+    "diagnosticCta": "Uradi dijagnostički test →",
+    "retakeCta": "Ponovi dijagnostiku →",
+    "untested": "nije provereno",
+    "noLevel": "još malo podataka",
+    "weak": "slabo",
+    "medium": "solidno",
+    "strong": "sigurno",
+    "recentSummary": "{correct} od {total} poslednjih pokušaja tačno",
+    "practiceCta": "Vežbaj →"
+  },
+  "diagnostic": {
+    "title": "Dijagnostički test",
+    "description": "Proveri gde stojiš: 10 zadataka, po jedan iz svakog slota, 40 minuta.",
+    "inProgressTitle": "Dijagnostika u toku",
+    "intro1": "Po jedan zadatak iz svakog od 10 slotova prijemnog P1, 40 minuta.",
+    "intro2": "Rešavaj na papiru. Kad predaš, uporedi svoj rad sa rešenjima i sam oceni svaki zadatak — rezultat popunjava kartu znanja.",
+    "startCta": "Počni dijagnostiku →",
+    "resultTitle": "Rezultat dijagnostike",
+    "correctSummary": "{correct} od {total} zadataka tačno",
+    "correct": "tačno",
+    "incorrect": "netačno",
+    "mapCta": "Pogledaj kartu znanja →"
   },
   "home": {
     "tagline": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.",
@@ -25,6 +55,9 @@
     "topicDescription": "Zadaci sa rešenjima: {topic}, slot {slot} prijemnog FTN P1.",
     "taskTitle": "Zadatak {id}",
     "showSolution": "Prikaži rešenje",
+    "selfCheckPrompt": "Kako ti je išlo? Označi — rezultat puni kartu znanja.",
+    "selfCheckCorrect": "Tačno",
+    "selfCheckIncorrect": "Netačno",
     "sourceLabel": "Izvor: {source}",
     "difficulty": "Težina {level} od 5"
   },
@@ -67,6 +100,11 @@
     "submitConfirm": "Predati sve zadatke na pregled?",
     "abandon": "Odustani",
     "abandonConfirm": "Odustati od ovog pokušaja? Neće ući u istoriju.",
+    "abandonConfirmDiagnostic": "Odustati od dijagnostike? Karta znanja se neće promeniti.",
+    "simulationActive": "Već imaš simulaciju u toku.",
+    "diagnosticActive": "Već imaš dijagnostiku u toku.",
+    "resumeSimulation": "Nastavi simulaciju →",
+    "resumeDiagnostic": "Nastavi dijagnostiku →",
     "gradingIntro": "Uporedi svoj rad sa rešenjima i označi svaki zadatak.",
     "solution": "Rešenje",
     "correct": "Tačno",
