@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { topic, id } = await params;
   const task = await getTask(topic, id);
   if (!task) return {};
-  return { title: `Zadatak ${task.id} — Do indeksa` };
+  return { title: `Zadatak ${task.id}` };
 }
 
 export default async function TaskPage({ params }: Props) {

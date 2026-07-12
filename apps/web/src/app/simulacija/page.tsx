@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SimulationHistory } from "@/components/simulation-history";
 
 export const metadata: Metadata = {
-  title: "Simulacija prijemnog — Do indeksa",
+  title: "Simulacija prijemnog",
   description:
     "Probni prijemni u realnom formatu P1: 10 zadataka, 180 minuta, 60 bodova.",
 };

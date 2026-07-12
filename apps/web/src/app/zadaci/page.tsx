@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getTasks, getTopics } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "Zadaci — Do indeksa",
+  title: "Zadaci",
   description: "Baza zadataka za prijemni FTN P1, po temama sa rešenjima.",
 };
 

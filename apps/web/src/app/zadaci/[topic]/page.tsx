@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const topic = await getTopic((await params).topic);
   if (!topic) return {};
   return {
-    title: `${topic.name} — Do indeksa`,
+    title: topic.name,
     description: `Zadaci sa rešenjima: ${topic.name}, slot ${topic.slot} prijemnog FTN P1.`,
   };
 }
