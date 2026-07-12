@@ -13,7 +13,9 @@ const nextConfig: NextConfig = {
     { source: "/api/v1/:path*", destination: `${apiUrl}/v1/:path*` },
   ],
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "*.googleusercontent.com" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "*.googleusercontent.com" },
+    ],
   },
 };
 
