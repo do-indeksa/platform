@@ -63,14 +63,9 @@ paths:
           required: true
           schema:
             type: string
-        - name: redirect
-          in: query
-          schema:
-            type: string
-            default: /
       responses:
         "302":
-          description: Session cookie set, browser sent to the redirect path
+          description: Session cookie set, browser sent to the stored redirect path
           headers:
             Location:
               schema:

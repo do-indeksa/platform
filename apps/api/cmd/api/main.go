@@ -3,11 +3,14 @@ package main
 import (
 	"cmp"
 	"context"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -16,6 +19,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/do-indeksa/platform/apps/api/db"
+	"github.com/do-indeksa/platform/apps/api/internal/api"
+	"github.com/do-indeksa/platform/apps/api/internal/auth"
 )
 
 func main() {
@@ -39,9 +44,19 @@ func run() error {
 		return err
 	}
 
+	authCfg, err := authConfig()
+	if err != nil {
+		return err
+	}
+	authService := auth.NewService(pool, authCfg)
+	if err := authService.CleanupExpiredSessions(ctx); err != nil {
+		return err
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer)
 	r.Get("/healthz", handleHealth)
+	api.HandlerFromMux(auth.NewHandler(authService), r)
 
 	server := &http.Server{
 		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "8080"),
@@ -69,6 +84,33 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return server.Shutdown(shutdownCtx)
+}
+
+func authConfig() (auth.Config, error) {
+	secret, err := hex.DecodeString(os.Getenv("AUTH_SECRET"))
+	if err != nil || len(secret) != 32 {
+		return auth.Config{}, errors.New("AUTH_SECRET must be 64 hex characters")
+	}
+	cfg := auth.Config{
+		ClientID:            os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret:        os.Getenv("GOOGLE_CLIENT_SECRET"),
+		Secret:              secret,
+		CanonicalOrigin:     os.Getenv("CANONICAL_WEB_ORIGIN"),
+		PreviewOriginSuffix: os.Getenv("PREVIEW_ORIGIN_SUFFIX"),
+	}
+	if extra := os.Getenv("EXTRA_WEB_ORIGINS"); extra != "" {
+		cfg.ExtraOrigins = strings.Split(extra, ",")
+	}
+	for name, value := range map[string]string{
+		"GOOGLE_CLIENT_ID":     cfg.ClientID,
+		"GOOGLE_CLIENT_SECRET": cfg.ClientSecret,
+		"CANONICAL_WEB_ORIGIN": cfg.CanonicalOrigin,
+	} {
+		if value == "" {
+			return auth.Config{}, fmt.Errorf("%s is required", name)
+		}
+	}
+	return cfg, nil
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {
