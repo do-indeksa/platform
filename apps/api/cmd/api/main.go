@@ -49,14 +49,18 @@ func run() error {
 		return err
 	}
 	authService := auth.NewService(pool, authCfg)
-	if err := authService.CleanupExpiredSessions(ctx); err != nil {
+	if err := authService.CleanupExpired(ctx); err != nil {
 		return err
 	}
+	go cleanupLoop(ctx, authService)
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer)
+	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer, middleware.NoCache)
 	r.Get("/healthz", handleHealth)
-	api.HandlerFromMux(auth.NewHandler(authService), r)
+	api.HandlerWithOptions(auth.NewHandler(authService), api.ChiServerOptions{
+		BaseRouter:       r,
+		ErrorHandlerFunc: auth.ParamErrorHandler,
+	})
 
 	server := &http.Server{
 		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "8080"),
@@ -98,8 +102,10 @@ func authConfig() (auth.Config, error) {
 		CanonicalOrigin:     os.Getenv("CANONICAL_WEB_ORIGIN"),
 		PreviewOriginSuffix: os.Getenv("PREVIEW_ORIGIN_SUFFIX"),
 	}
-	if extra := os.Getenv("EXTRA_WEB_ORIGINS"); extra != "" {
-		cfg.ExtraOrigins = strings.Split(extra, ",")
+	for origin := range strings.SplitSeq(os.Getenv("EXTRA_WEB_ORIGINS"), ",") {
+		if origin = strings.TrimSpace(origin); origin != "" {
+			cfg.ExtraOrigins = append(cfg.ExtraOrigins, origin)
+		}
 	}
 	for name, value := range map[string]string{
 		"GOOGLE_CLIENT_ID":     cfg.ClientID,
@@ -111,6 +117,21 @@ func authConfig() (auth.Config, error) {
 		}
 	}
 	return cfg, nil
+}
+
+func cleanupLoop(ctx context.Context, service *auth.Service) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := service.CleanupExpired(ctx); err != nil {
+				slog.Error("cleanup expired auth rows", "error", err)
+			}
+		}
+	}
 }
 
 func handleHealth(w http.ResponseWriter, _ *http.Request) {

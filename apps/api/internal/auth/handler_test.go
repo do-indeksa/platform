@@ -63,6 +63,24 @@ func TestRequestOrigin(t *testing.T) {
 	}
 }
 
+func TestSecureCookieDerivation(t *testing.T) {
+	tests := []struct {
+		canonical string
+		want      bool
+	}{
+		{"https://doindeksa.rs", true},
+		{"http://localhost:3000", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.canonical, func(t *testing.T) {
+			svc := &Service{cfg: Config{CanonicalOrigin: tt.canonical}}
+			if got := svc.sessionCookie("t", 1).Secure; got != tt.want {
+				t.Fatalf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestOriginAllowed(t *testing.T) {
 	svc := &Service{cfg: Config{
 		CanonicalOrigin:     "https://doindeksa.rs",
