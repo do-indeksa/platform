@@ -33,6 +33,7 @@ type SimulationState = {
   submit: () => void;
   mark: (index: number, correct: boolean) => void;
   finish: () => void;
+  reset: () => void;
 };
 
 export const useSimulation = create<SimulationState>()(
@@ -65,23 +66,31 @@ export const useSimulation = create<SimulationState>()(
         };
         set({ phase: "done", history: [entry, ...history] });
       },
+      reset: () =>
+        set({
+          tasks: [],
+          marks: [],
+          phase: null,
+          endsAt: null,
+          currentIndex: 0,
+        }),
     }),
     {
       name: "do-indeksa-simulation",
       version: 1,
       migrate: (persisted, version) => {
-        const state = persisted as SimulationState;
         if (version === 0) {
+          const { history } = persisted as { history?: HistoryEntry[] };
           return {
-            ...state,
             tasks: [],
             marks: [],
             phase: null,
             endsAt: null,
             currentIndex: 0,
+            history: history ?? [],
           };
         }
-        return state;
+        return persisted as SimulationState;
       },
     },
   ),

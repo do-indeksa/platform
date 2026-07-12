@@ -7,6 +7,16 @@ export const metadata: Metadata = {
   description: "Baza zadataka za prijemni FTN P1, po temama sa rešenjima.",
 };
 
+const pluralRules = new Intl.PluralRules("sr-Latn");
+const TASK_NOUNS: Partial<Record<Intl.LDMLPluralRule, string>> = {
+  one: "zadatak",
+  few: "zadatka",
+};
+
+function taskNoun(count: number): string {
+  return TASK_NOUNS[pluralRules.select(count)] ?? "zadataka";
+}
+
 export default async function TopicsPage() {
   const topics = await getTopics();
   const counts = await Promise.all(
@@ -32,7 +42,7 @@ export default async function TopicsPage() {
                 <span className="font-medium">{topic.name}</span>
               </span>
               <span className="shrink-0 text-sm text-zinc-500">
-                {counts[i]} {counts[i] === 1 ? "zadatak" : "zadataka"}
+                {counts[i]} {taskNoun(counts[i])}
               </span>
             </Link>
           </li>

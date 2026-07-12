@@ -49,7 +49,7 @@ export async function getTasks(topicSlug: string): Promise<Task[]> {
       .map((file) => readTask(path.join(dir, file))),
   );
   return tasks
-    .filter((task) => task.status !== "draft")
+    .filter((task) => task.status === "review" || task.status === "verified")
     .toSorted((a, b) => a.id.localeCompare(b.id));
 }
 

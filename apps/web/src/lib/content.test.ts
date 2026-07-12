@@ -70,7 +70,12 @@ describe("task files", () => {
     expect(taskFiles.length).toBeGreaterThan(0);
     for (const { topicDir, fileName, data, content } of taskFiles) {
       for (const field of REQUIRED_FIELDS) {
+        expect(data[field], `${fileName}: ${field}`).not.toBeNull();
         expect(data[field], `${fileName}: ${field}`).toBeDefined();
+      }
+      for (const field of ["id", "topic", "source", "origin", "answer"]) {
+        expect(typeof data[field], `${fileName}: ${field}`).toBe("string");
+        expect(data[field].trim(), `${fileName}: ${field}`).not.toBe("");
       }
       expect(data.id).toBe(fileName);
       expect(ids.has(data.id), `duplicate id ${data.id}`).toBe(false);
@@ -80,7 +85,6 @@ describe("task files", () => {
       expect(data.difficulty).toBeGreaterThanOrEqual(1);
       expect(data.difficulty).toBeLessThanOrEqual(5);
       expect(STATUSES).toContain(data.status);
-      expect(String(data.answer).trim()).not.toBe("");
       expect(content).toMatch(/^## Zadatak$/m);
       expect(content).toMatch(/^## Rešenje$/m);
     }
@@ -91,6 +95,10 @@ describe("task files", () => {
     for (const { fileName, content } of taskFiles) {
       const html = await renderMarkdown(content);
       expect(html.includes("katex-error"), fileName).toBe(false);
+      expect(
+        html.includes("#cc0000"),
+        `${fileName}: undefined LaTeX command`,
+      ).toBe(false);
       expect(
         (content.match(/\$/g) ?? []).length % 2,
         `${fileName}: unbalanced $`,

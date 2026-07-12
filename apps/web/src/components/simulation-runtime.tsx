@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { POINTS_PER_TASK, simulationScore } from "@/lib/scoring";
 import { useSimulation, type SimulationTask } from "@/lib/simulation-store";
@@ -16,13 +17,30 @@ export function SimulationRuntime({ tasks }: { tasks: SimulationTask[] }) {
   useEffect(() => {
     if (!hydrated || startedRef.current) return;
     startedRef.current = true;
-    if (phase === null || phase === "done") start(tasks);
-  }, [hydrated, phase, start, tasks]);
+    if (useSimulation.getState().phase === null) start(tasks);
+  }, [hydrated, start, tasks]);
 
   if (!hydrated || phase === null) return null;
   if (phase === "running") return <ExamPhase />;
   if (phase === "grading") return <GradingPhase />;
-  return <ResultPhase />;
+  return <ResultPhase nextTasks={tasks} />;
+}
+
+function AbandonButton() {
+  const reset = useSimulation((state) => state.reset);
+  const router = useRouter();
+  return (
+    <button
+      onClick={() => {
+        if (!confirm("Odustati od ovog pokušaja? Neće ući u istoriju.")) return;
+        reset();
+        router.push("/simulacija");
+      }}
+      className="text-sm text-zinc-500 hover:underline"
+    >
+      Odustani
+    </button>
+  );
 }
 
 function ExamPhase() {
@@ -50,12 +68,15 @@ function ExamPhase() {
         {task.slot}. {task.topicName}
       </p>
       <div dangerouslySetInnerHTML={{ __html: task.statementHtml }} />
-      <button
-        onClick={() => confirm("Predati sve zadatke na pregled?") && submit()}
-        className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
-      >
-        Predaj
-      </button>
+      <div className="flex items-center gap-6">
+        <button
+          onClick={() => confirm("Predati sve zadatke na pregled?") && submit()}
+          className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+        >
+          Predaj
+        </button>
+        <AbandonButton />
+      </div>
     </div>
   );
 }
@@ -105,19 +126,22 @@ function GradingPhase() {
           </div>
         </section>
       ))}
-      <button
-        onClick={finish}
-        disabled={!allMarked}
-        className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
-      >
-        Završi i vidi rezultat
-      </button>
+      <div className="flex items-center gap-6">
+        <button
+          onClick={finish}
+          disabled={!allMarked}
+          className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
+        >
+          Završi i vidi rezultat
+        </button>
+        <AbandonButton />
+      </div>
     </div>
   );
 }
 
-function ResultPhase() {
-  const { tasks, marks } = useSimulation();
+function ResultPhase({ nextTasks }: { nextTasks: SimulationTask[] }) {
+  const { tasks, marks, start } = useSimulation();
   const score = simulationScore(marks);
 
   return (
@@ -140,12 +164,20 @@ function ResultPhase() {
           </li>
         ))}
       </ul>
-      <Link
-        href="/simulacija"
-        className="inline-block rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
-      >
-        Nazad na simulacije
-      </Link>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={() => start(nextTasks)}
+          className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+        >
+          Počni novu simulaciju
+        </button>
+        <Link
+          href="/simulacija"
+          className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
+        >
+          Nazad na simulacije
+        </Link>
+      </div>
     </div>
   );
 }
@@ -160,11 +192,12 @@ function TaskNav({
   onSelect: (index: number) => void;
 }) {
   return (
-    <nav className="flex flex-wrap gap-1">
+    <nav aria-label="Zadaci u varijanti" className="flex flex-wrap gap-1">
       {Array.from({ length: count }, (_, i) => (
         <button
           key={i}
           onClick={() => onSelect(i)}
+          aria-current={i === currentIndex ? "true" : undefined}
           className={`h-9 w-9 rounded-lg border text-sm transition-colors ${
             i === currentIndex
               ? "border-zinc-900 bg-zinc-900 text-white"
@@ -192,6 +225,7 @@ function MarkButton({
   return (
     <button
       onClick={onClick}
+      aria-pressed={active}
       className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${className} ${
         active ? "ring-2 ring-current" : "opacity-60 hover:opacity-100"
       }`}
