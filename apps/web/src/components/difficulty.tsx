@@ -1,8 +1,11 @@
+import { useTranslations } from "next-intl";
+
 export function Difficulty({ level }: { level: number }) {
+  const t = useTranslations("tasks");
   return (
     <span
       role="img"
-      aria-label={`Težina ${level} od 5`}
+      aria-label={t("difficulty", { level })}
       className="text-sm text-amber-500"
     >
       <span aria-hidden="true">{"★".repeat(level)}</span>

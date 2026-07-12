@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { SimulationRuntime } from "@/components/simulation-runtime";
 import { getTopics } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
@@ -7,9 +8,10 @@ import { generateVariant } from "@/lib/variant";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Simulacija u toku",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("simulation");
+  return { title: t("inProgressTitle") };
+}
 
 export default async function NewSimulationPage() {
   const [variant, topics] = await Promise.all([generateVariant(), getTopics()]);

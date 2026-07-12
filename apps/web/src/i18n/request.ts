@@ -1,0 +1,7 @@
+import { getRequestConfig } from "next-intl/server";
+import messages from "../../messages/sr.json";
+
+export default getRequestConfig(async () => ({
+  locale: "sr-Latn",
+  messages,
+}));

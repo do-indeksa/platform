@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { Program } from "@/lib/guide";
 import {
@@ -13,7 +14,7 @@ import {
   totalScore,
 } from "@/lib/scoring";
 
-const GRADE_LABELS = ["I razred", "II razred", "III razred", "IV razred"];
+const GRADE_KEYS = ["grade1", "grade2", "grade3", "grade4"] as const;
 
 function formatPoints(value: number): string {
   return value.toFixed(2).replace(".", ",");
@@ -43,6 +44,7 @@ function shortYear(year: number): string {
 }
 
 export function ScoreCalculator({ programs }: { programs: Program[] }) {
+  const t = useTranslations("calculator");
   const [grades, setGrades] = useState<string[]>(Array(4).fill(""));
   const [examPoints, setExamPoints] = useState("");
   const [latest, previous] = latestYears(programs);
@@ -60,16 +62,14 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
   return (
     <div className="space-y-8">
       <fieldset className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <legend className="sr-only">
-          Prosečne ocene po razredima i bodovi sa prijemnog
-        </legend>
-        {GRADE_LABELS.map((label, i) => (
-          <label key={label} className="flex flex-col gap-1 text-sm">
-            <span className="text-zinc-600">{label}</span>
+        <legend className="sr-only">{t("legend")}</legend>
+        {GRADE_KEYS.map((key, i) => (
+          <label key={key} className="flex flex-col gap-1 text-sm">
+            <span className="text-zinc-600">{t(key)}</span>
             <input
               type="text"
               inputMode="decimal"
-              placeholder="npr. 4,85"
+              placeholder={t("gradePlaceholder")}
               value={grades[i]}
               onChange={(e) => setGrades(grades.with(i, e.target.value))}
               className="rounded-lg border border-zinc-300 p-2"
@@ -77,11 +77,11 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
           </label>
         ))}
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-zinc-600">Prijemni (0–60)</span>
+          <span className="text-zinc-600">{t("examLabel")}</span>
           <input
             type="text"
             inputMode="decimal"
-            placeholder="npr. 42"
+            placeholder={t("examPlaceholder")}
             value={examPoints}
             onChange={(e) => setExamPoints(e.target.value)}
             className="rounded-lg border border-zinc-300 p-2"
@@ -91,9 +91,9 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
 
       {total !== undefined && (
         <p className="rounded-lg bg-zinc-900 p-4 text-lg text-white">
-          Uspeh iz škole:{" "}
-          <strong>{formatPoints(schoolPoints(parsedGrades))}</strong> · Ukupno:{" "}
-          <strong>{formatPoints(total)}</strong> / 100
+          {t("schoolLabel")}{" "}
+          <strong>{formatPoints(schoolPoints(parsedGrades))}</strong> ·{" "}
+          {t("totalLabel")} <strong>{formatPoints(total)}</strong> / 100
         </p>
       )}
 
@@ -101,18 +101,18 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-300 text-left text-zinc-500">
-              <th className="py-2 pr-4 font-medium">Studijski program</th>
+              <th className="py-2 pr-4 font-medium">{t("programHeader")}</th>
               <th className="py-2 pr-4 font-medium">
-                Budžet {shortYear(latest)}
+                {t("budgetHeader", { year: shortYear(latest) })}
               </th>
               <th className="py-2 pr-4 font-medium">
-                Budžet {shortYear(previous)}
+                {t("budgetHeader", { year: shortYear(previous) })}
               </th>
               <th className="py-2 pr-4 font-medium">
-                Samofin. {shortYear(latest)}
+                {t("selfFinancedHeader", { year: shortYear(latest) })}
               </th>
               {total !== undefined && (
-                <th className="py-2 font-medium">Tvoj status</th>
+                <th className="py-2 font-medium">{t("statusHeader")}</th>
               )}
             </tr>
           </thead>
@@ -165,6 +165,7 @@ function StatusBadge({
   total: number;
   year: number;
 }) {
+  const t = useTranslations("calculator");
   const cutoff = program.cutoffs.find((entry) => entry.year === year);
   if (!cutoff) return <span className="text-zinc-400">—</span>;
 
@@ -173,14 +174,24 @@ function StatusBadge({
     points >= toHundredths(cutoff.budget) &&
     points >= toHundredths(BUDGET_THRESHOLD)
   ) {
-    return <span className="font-medium text-green-700">✓ budžet</span>;
+    return (
+      <span className="font-medium text-green-700">{t("statusBudget")}</span>
+    );
   }
   const selfFinanced = cutoff.selfFinanced ?? SELF_FINANCED_THRESHOLD;
   if (
     points >= toHundredths(selfFinanced) &&
     points >= toHundredths(SELF_FINANCED_THRESHOLD)
   ) {
-    return <span className="font-medium text-amber-600">samofinansiranje</span>;
+    return (
+      <span className="font-medium text-amber-600">
+        {t("statusSelfFinanced")}
+      </span>
+    );
   }
-  return <span className="text-zinc-400">ispod praga {shortYear(year)}</span>;
+  return (
+    <span className="text-zinc-400">
+      {t("statusBelow", { year: shortYear(year) })}
+    </span>
+  );
 }

@@ -1,30 +1,30 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
-export default function Home() {
+export default async function Home() {
+  const t = await getTranslations("home");
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8 text-center">
       <h1 className="text-4xl font-bold">Do indeksa</h1>
-      <p className="max-w-md text-lg text-zinc-600">
-        Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.
-      </p>
+      <p className="max-w-md text-lg text-zinc-600">{t("tagline")}</p>
       <div className="flex flex-wrap justify-center gap-3">
         <Link
-          href="/zadaci"
+          href="/tasks"
           className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
         >
-          Zadaci za vežbanje →
+          {t("tasksCta")}
         </Link>
         <Link
-          href="/simulacija"
+          href="/simulation"
           className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
         >
-          Simulacija prijemnog
+          {t("simulationCta")}
         </Link>
         <Link
-          href="/kalkulator"
+          href="/calculator"
           className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
         >
-          Kalkulator bodova
+          {t("calculatorCta")}
         </Link>
       </div>
     </main>
