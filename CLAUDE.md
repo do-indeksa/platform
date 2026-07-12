@@ -25,7 +25,7 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 
 ## Stack and architecture (locked 2026-07-11)
 
-- Backend: Go, single monolith (echo + pgx + sqlc) — accounts (Google OAuth), progress, simulation results, metrics. No microservices.
+- Backend: Go, single monolith (chi + pgx + sqlc) — accounts (Google OAuth), progress, simulation results, metrics. No microservices.
 - Frontend: Next.js + KaTeX. Zustand scoped to exam runtime only.
 - DB: Postgres (Neon/Supabase free tier). User data only.
 - Content lives in git, not in the DB: tasks as Markdown + YAML frontmatter in `content/`, changed via reviewed PRs.
