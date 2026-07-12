@@ -35,8 +35,7 @@ type Unauthorized = Error
 
 // ExchangeAuthCodeParams defines parameters for ExchangeAuthCode.
 type ExchangeAuthCodeParams struct {
-	Code     string  `form:"code" json:"code"`
-	Redirect *string `form:"redirect,omitempty" json:"redirect,omitempty"`
+	Code string `form:"code" json:"code"`
 }
 
 // StartGoogleAuthParams defines parameters for StartGoogleAuth.
@@ -131,19 +130,6 @@ func (siw *ServerInterfaceWrapper) ExchangeAuthCode(w http.ResponseWriter, r *ht
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "code"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "code", Err: err})
-		}
-		return
-	}
-
-	// ------------- Optional query parameter "redirect" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "redirect", r.URL.Query(), &params.Redirect, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
-	if err != nil {
-		var requiredError *runtime.RequiredParameterError
-		if errors.As(err, &requiredError) {
-			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "redirect"})
-		} else {
-			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "redirect", Err: err})
 		}
 		return
 	}
