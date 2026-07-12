@@ -31,7 +31,7 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - run: npm run generate:api && git diff --exit-code
-      - run: npx prettier --check src
+      - run: npx prettier --check .
       - run: npm run lint
       - run: npm test
       - run: npm run build

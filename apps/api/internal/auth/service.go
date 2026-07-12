@@ -60,7 +60,7 @@ func (s *Service) CompleteGoogleSignIn(ctx context.Context, code, verifier strin
 	token, err := s.oauth().Exchange(ctx, code, oauth2.VerifierOption(verifier))
 	if err != nil {
 		var retrieveErr *oauth2.RetrieveError
-		if errors.As(err, &retrieveErr) && retrieveErr.Response.StatusCode < http.StatusInternalServerError {
+		if errors.As(err, &retrieveErr) && retrieveErr.Response.StatusCode == http.StatusBadRequest {
 			return User{}, fmt.Errorf("%w: %v", ErrCodeRejected, err)
 		}
 		return User{}, err

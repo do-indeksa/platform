@@ -60,9 +60,11 @@ export function HeaderUser() {
         onClick={async () => {
           setSigningOut(true);
           try {
-            await fetch("/api/v1/auth/logout", { method: "POST" });
-            setUser(null);
-            router.refresh();
+            const res = await fetch("/api/v1/auth/logout", { method: "POST" });
+            if (res.ok) {
+              setUser(null);
+              router.refresh();
+            }
           } catch {
           } finally {
             setSigningOut(false);
