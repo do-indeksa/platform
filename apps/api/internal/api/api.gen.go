@@ -30,6 +30,9 @@ type User struct {
 // BadRequest defines model for BadRequest.
 type BadRequest = Error
 
+// Internal defines model for Internal.
+type Internal = Error
+
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
 
@@ -46,8 +49,11 @@ type StartGoogleAuthParams struct {
 
 // GoogleAuthCallbackParams defines parameters for GoogleAuthCallback.
 type GoogleAuthCallbackParams struct {
-	Code  string `form:"code" json:"code"`
-	State string `form:"state" json:"state"`
+	Code  *string `form:"code,omitempty" json:"code,omitempty"`
+	State string  `form:"state" json:"state"`
+
+	// Error OAuth error from Google, e.g. access_denied on cancel
+	Error *string `form:"error,omitempty" json:"error,omitempty"`
 }
 
 // ServerInterface represents all server handlers.
@@ -187,9 +193,9 @@ func (siw *ServerInterfaceWrapper) GoogleAuthCallback(w http.ResponseWriter, r *
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GoogleAuthCallbackParams
 
-	// ------------- Required query parameter "code" -------------
+	// ------------- Optional query parameter "code" -------------
 
-	err = runtime.BindQueryParameterWithOptions("form", true, true, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "code", r.URL.Query(), &params.Code, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
 	if err != nil {
 		var requiredError *runtime.RequiredParameterError
 		if errors.As(err, &requiredError) {
@@ -209,6 +215,19 @@ func (siw *ServerInterfaceWrapper) GoogleAuthCallback(w http.ResponseWriter, r *
 			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "state"})
 		} else {
 			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "state", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "error" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "error", r.URL.Query(), &params.Error, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "error"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "error", Err: err})
 		}
 		return
 	}

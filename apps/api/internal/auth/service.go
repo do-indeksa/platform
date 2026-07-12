@@ -1,13 +1,18 @@
 package auth
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/oauth2"
 )
@@ -20,6 +25,11 @@ var googleEndpoint = oauth2.Endpoint{
 }
 
 const googleUserinfoURL = "https://openidconnect.googleapis.com/v1/userinfo"
+
+var (
+	ErrCodeRejected    = errors.New("authorization code rejected")
+	ErrInvalidUserinfo = errors.New("userinfo is missing sub or email")
+)
 
 type Config struct {
 	ClientID            string
@@ -46,8 +56,97 @@ func NewService(pool *pgxpool.Pool, cfg Config) *Service {
 	}
 }
 
-func (s *Service) CleanupExpiredSessions(ctx context.Context) error {
-	return s.queries.DeleteExpiredSessions(ctx)
+func (s *Service) CompleteGoogleSignIn(ctx context.Context, code, verifier string) (User, error) {
+	token, err := s.oauth().Exchange(ctx, code, oauth2.VerifierOption(verifier))
+	if err != nil {
+		var retrieveErr *oauth2.RetrieveError
+		if errors.As(err, &retrieveErr) && retrieveErr.Response.StatusCode < http.StatusInternalServerError {
+			return User{}, fmt.Errorf("%w: %v", ErrCodeRejected, err)
+		}
+		return User{}, err
+	}
+	info, err := s.fetchUserinfo(ctx, token)
+	if err != nil {
+		return User{}, err
+	}
+	var picture *string
+	if info.Picture != "" {
+		picture = &info.Picture
+	}
+	return s.queries.UpsertUser(ctx, UpsertUserParams{
+		GoogleSub:  info.Sub,
+		Email:      info.Email,
+		Name:       cmp.Or(info.Name, info.Email),
+		PictureUrl: picture,
+	})
+}
+
+func (s *Service) IssueSession(ctx context.Context, userID uuid.UUID) (string, error) {
+	token, tokenHash, err := newSecret()
+	if err != nil {
+		return "", err
+	}
+	err = s.queries.CreateSession(ctx, CreateSessionParams{
+		TokenHash: tokenHash,
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(sessionTTL),
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
+func (s *Service) MintHandoffCode(ctx context.Context, userID uuid.UUID, redirect string) (string, error) {
+	code, codeHash, err := newSecret()
+	if err != nil {
+		return "", err
+	}
+	err = s.queries.CreateAuthCode(ctx, CreateAuthCodeParams{
+		CodeHash:  codeHash,
+		UserID:    userID,
+		Redirect:  redirect,
+		ExpiresAt: time.Now().Add(codeTTL),
+	})
+	if err != nil {
+		return "", err
+	}
+	return code, nil
+}
+
+func (s *Service) ExchangeHandoffCode(ctx context.Context, code string) (ConsumeAuthCodeRow, error) {
+	return s.queries.ConsumeAuthCode(ctx, hashSecret(code))
+}
+
+func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, error) {
+	tokenHash := hashSecret(token)
+	row, err := s.queries.GetSessionUser(ctx, tokenHash)
+	if err != nil {
+		return User{}, false, err
+	}
+	if time.Until(row.ExpiresAt) >= sessionTTL/2 {
+		return row.User, false, nil
+	}
+	err = s.queries.ExtendSession(ctx, ExtendSessionParams{
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(sessionTTL),
+	})
+	if err != nil {
+		slog.Warn("session extension failed", "error", err)
+		return row.User, false, nil
+	}
+	return row.User, true, nil
+}
+
+func (s *Service) Logout(ctx context.Context, token string) error {
+	return s.queries.DeleteSession(ctx, hashSecret(token))
+}
+
+func (s *Service) CleanupExpired(ctx context.Context) error {
+	if err := s.queries.DeleteExpiredSessions(ctx); err != nil {
+		return err
+	}
+	return s.queries.DeleteExpiredAuthCodes(ctx)
 }
 
 func (s *Service) oauth() *oauth2.Config {
@@ -92,6 +191,9 @@ func (s *Service) fetchUserinfo(ctx context.Context, token *oauth2.Token) (useri
 	var info userinfo
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		return userinfo{}, err
+	}
+	if info.Sub == "" || info.Email == "" {
+		return userinfo{}, ErrInvalidUserinfo
 	}
 	return info, nil
 }
