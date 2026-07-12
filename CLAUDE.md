@@ -37,10 +37,6 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 - No comments in code. Disable lint rules requiring doc comments on exports (revive `exported`).
 - Docs: facts, decisions, instructions only. ADRs ≤ 10 lines.
 
-## AI attribution — HARD BAN
-
-- Never add Claude in any form to any project artifact: no `Co-Authored-By`, no "Generated with", no mentions in code, docs, or PRs. All commits are authored by the owner only.
-
 ## Copyright — hard bans
 
 - NEVER commit the OCR'd FTN priručnik (688 tasks, `06_Bonus/Ceo_prirucnik_688_zadataka.pdf`) — FTN copyright, personal reference only.
