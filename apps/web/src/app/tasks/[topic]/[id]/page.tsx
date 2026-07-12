@@ -43,7 +43,9 @@ export default async function TaskPage({ params }: Props) {
         ← {topic.name}
       </Link>
       <div className="mt-2 mb-6 flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold">{t("taskTitle", { id: task.id })}</h1>
+        <h1 className="text-2xl font-bold">
+          {t("taskTitle", { id: task.id })}
+        </h1>
         <Difficulty level={task.difficulty} />
       </div>
       <Markdown>{task.statement}</Markdown>
