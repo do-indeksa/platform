@@ -29,7 +29,7 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 - Frontend: Next.js + KaTeX. Zustand scoped to exam runtime only.
 - DB: Postgres (Neon/Supabase free tier). User data only.
 - Content lives in git, not in the DB: tasks as Markdown + YAML frontmatter in `content/`, changed via reviewed PRs.
-- Deploy: web — Vercel; api — Fly.io/Hetzner VPS.
+- Deploy: web — Vercel (prod: https://do-indeksa.vercel.app); api + Postgres — maintainer's VPS (k3s + ArgoCD), images via GitHub Actions → GHCR, manifests in `deploy/`.
 - Monorepo: `apps/web`, `apps/api`, `content/`, `tools/`. Details: `docs/ENGINEERING.md`, decisions: `docs/decisions/`.
 
 ## Code and docs — no noise
