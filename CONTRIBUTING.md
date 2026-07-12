@@ -3,6 +3,7 @@
 ## Workflow: GitHub Flow
 
 - `main` is always deployable. Direct commits and force-pushes to `main` are disabled — all changes go through pull requests.
+- Code changes (`feat`, `fix`, `refactor`, `chore`, `ci`) start from an issue and the branch carries its number; `content/` and `docs/` branches may go without.
 - Short-lived branches off `main`, named `type/issue-slug`:
   - `feat/14-variant-generator`
   - `fix/23-timer-drift`
