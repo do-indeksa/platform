@@ -26,7 +26,7 @@ content(trig): add 12 verified tasks for slot 5
 
 - Every change goes through a PR. Reference the issue: `Closes #14`.
 - Code PRs: self-merge allowed once CI is green.
-- **Content PRs (`content/`): review by the content maintainer is required before merge.**
+- **Content PRs (`content/`): the math must be verified before merge** — by a second reviewer when available, otherwise by the maintainer.
 - Merge method: **rebase only** (linear history, atomic commits preserved). Squash and merge commits are disabled repo-wide.
 
 ## Releases

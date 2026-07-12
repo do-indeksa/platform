@@ -20,7 +20,7 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 - GitHub Flow: `main` protected, everything via PR (`Closes #N`), branches `type/issue-slug`, branch deleted after merge.
 - Conventional Commits, atomic: `feat|fix|content|docs|chore|refactor|test|ci(scope): imperative lowercase`.
 - Rebase merge only — squash and merge commits are disabled; atomic commits must reach `main`.
-- Content PRs (`content/`): review by Konstantin required. Code PRs: self-merge on green CI.
+- Content PRs (`content/`): math verified by the owner before merge (no second reviewer during MVP). Code PRs: self-merge on green CI.
 - Sprint end = tag `v0.X.0` + GitHub Release.
 
 ## Stack and architecture (locked 2026-07-11)
