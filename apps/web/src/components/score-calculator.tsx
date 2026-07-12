@@ -9,6 +9,7 @@ import {
   GRADE_AVERAGE_MIN,
   SELF_FINANCED_THRESHOLD,
   schoolPoints,
+  toHundredths,
   totalScore,
 } from "@/lib/scoring";
 
@@ -47,11 +48,8 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
           <label key={label} className="flex flex-col gap-1 text-sm">
             <span className="text-zinc-600">{label}</span>
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              min={GRADE_AVERAGE_MIN}
-              max={GRADE_AVERAGE_MAX}
-              step="0.01"
               placeholder="npr. 4,85"
               value={grades[i]}
               onChange={(e) => setGrades(grades.with(i, e.target.value))}
@@ -62,11 +60,8 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-zinc-600">Prijemni (0–60)</span>
           <input
-            type="number"
+            type="text"
             inputMode="decimal"
-            min={0}
-            max={EXAM_POINTS_MAX}
-            step="0.5"
             placeholder="npr. 42"
             value={examPoints}
             onChange={(e) => setExamPoints(e.target.value)}
@@ -136,11 +131,18 @@ function StatusBadge({ program, total }: { program: Program; total: number }) {
   const latest = program.cutoffs.find((cutoff) => cutoff.year === 2025);
   if (!latest) return <span className="text-zinc-400">—</span>;
 
-  if (total >= latest.budget && total >= BUDGET_THRESHOLD) {
+  const points = toHundredths(total);
+  if (
+    points >= toHundredths(latest.budget) &&
+    points >= toHundredths(BUDGET_THRESHOLD)
+  ) {
     return <span className="font-medium text-green-700">✓ budžet</span>;
   }
   const selfFinanced = latest.selfFinanced ?? SELF_FINANCED_THRESHOLD;
-  if (total >= selfFinanced && total >= SELF_FINANCED_THRESHOLD) {
+  if (
+    points >= toHundredths(selfFinanced) &&
+    points >= toHundredths(SELF_FINANCED_THRESHOLD)
+  ) {
     return <span className="font-medium text-amber-600">samofinansiranje</span>;
   }
   return <span className="text-zinc-400">ispod praga ’25</span>;

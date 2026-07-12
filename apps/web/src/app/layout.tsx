@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Do indeksa",
+  title: { default: "Do indeksa", template: "%s — Do indeksa" },
   description:
     "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.",
 };

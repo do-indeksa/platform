@@ -48,7 +48,9 @@ export async function getTasks(topicSlug: string): Promise<Task[]> {
       .filter((file) => file.endsWith(".md"))
       .map((file) => readTask(path.join(dir, file))),
   );
-  return tasks.toSorted((a, b) => a.id.localeCompare(b.id));
+  return tasks
+    .filter((task) => task.status !== "draft")
+    .toSorted((a, b) => a.id.localeCompare(b.id));
 }
 
 export async function getTask(

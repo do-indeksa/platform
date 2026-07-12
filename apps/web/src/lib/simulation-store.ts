@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { simulationScore } from "@/lib/scoring";
 
-export const EXAM_DURATION_SECONDS = 180 * 60;
+export const EXAM_DURATION_MS = 180 * 60 * 1000;
 
 export type SimulationTask = {
   id: string;
@@ -25,16 +25,14 @@ type SimulationState = {
   tasks: SimulationTask[];
   marks: (boolean | null)[];
   phase: Phase | null;
-  remainingSeconds: number;
+  endsAt: number | null;
   currentIndex: number;
   history: HistoryEntry[];
   start: (tasks: SimulationTask[]) => void;
   goTo: (index: number) => void;
-  tick: () => void;
   submit: () => void;
   mark: (index: number, correct: boolean) => void;
   finish: () => void;
-  discard: () => void;
 };
 
 export const useSimulation = create<SimulationState>()(
@@ -43,7 +41,7 @@ export const useSimulation = create<SimulationState>()(
       tasks: [],
       marks: [],
       phase: null,
-      remainingSeconds: EXAM_DURATION_SECONDS,
+      endsAt: null,
       currentIndex: 0,
       history: [],
       start: (tasks) =>
@@ -51,24 +49,13 @@ export const useSimulation = create<SimulationState>()(
           tasks,
           marks: Array(tasks.length).fill(null),
           phase: "running",
-          remainingSeconds: EXAM_DURATION_SECONDS,
+          endsAt: Date.now() + EXAM_DURATION_MS,
           currentIndex: 0,
         }),
       goTo: (index) => set({ currentIndex: index }),
-      tick: () => {
-        const { remainingSeconds, phase } = get();
-        if (phase !== "running") return;
-        if (remainingSeconds <= 1) {
-          set({ remainingSeconds: 0, phase: "grading", currentIndex: 0 });
-          return;
-        }
-        set({ remainingSeconds: remainingSeconds - 1 });
-      },
-      submit: () => set({ phase: "grading", currentIndex: 0 }),
-      mark: (index, correct) => {
-        const marks = get().marks.with(index, correct);
-        set({ marks });
-      },
+      submit: () => set({ phase: "grading", endsAt: null, currentIndex: 0 }),
+      mark: (index, correct) =>
+        set({ marks: get().marks.with(index, correct) }),
       finish: () => {
         const { tasks, marks, history } = get();
         const entry: HistoryEntry = {
@@ -78,15 +65,24 @@ export const useSimulation = create<SimulationState>()(
         };
         set({ phase: "done", history: [entry, ...history] });
       },
-      discard: () =>
-        set({
-          tasks: [],
-          marks: [],
-          phase: null,
-          remainingSeconds: EXAM_DURATION_SECONDS,
-          currentIndex: 0,
-        }),
     }),
-    { name: "do-indeksa-simulation" },
+    {
+      name: "do-indeksa-simulation",
+      version: 1,
+      migrate: (persisted, version) => {
+        const state = persisted as SimulationState;
+        if (version === 0) {
+          return {
+            ...state,
+            tasks: [],
+            marks: [],
+            phase: null,
+            endsAt: null,
+            currentIndex: 0,
+          };
+        }
+        return state;
+      },
+    },
   ),
 );

@@ -3,7 +3,7 @@ import { ScoreCalculator } from "@/components/score-calculator";
 import { getFtnCutoffs } from "@/lib/guide";
 
 export const metadata: Metadata = {
-  title: "Kalkulator bodova za FTN — Do indeksa",
+  title: "Kalkulator bodova za FTN",
   description:
     "Izračunaj ukupan broj bodova za upis na FTN i uporedi sa prohodnim bodovima svih studijskih programa.",
 };

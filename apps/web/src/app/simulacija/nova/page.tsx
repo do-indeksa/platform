@@ -8,7 +8,7 @@ import { generateVariant } from "@/lib/variant";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Simulacija u toku — Do indeksa",
+  title: "Simulacija u toku",
 };
 
 export default async function NewSimulationPage() {

@@ -19,6 +19,10 @@ export function totalScore(
 
 export const POINTS_PER_TASK = 6;
 
+export function toHundredths(points: number): number {
+  return Math.round(points * 100);
+}
+
 export function simulationScore(marks: (boolean | null)[]): number {
   return marks.filter(Boolean).length * POINTS_PER_TASK;
 }

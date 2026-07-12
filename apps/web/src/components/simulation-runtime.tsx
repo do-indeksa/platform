@@ -1,17 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { POINTS_PER_TASK, simulationScore } from "@/lib/scoring";
 import { useSimulation, type SimulationTask } from "@/lib/simulation-store";
+import { useRemainingSeconds } from "@/lib/use-countdown";
 import { useHydrated } from "@/lib/use-hydrated";
 
 export function SimulationRuntime({ tasks }: { tasks: SimulationTask[] }) {
   const phase = useSimulation((state) => state.phase);
   const start = useSimulation((state) => state.start);
   const hydrated = useHydrated();
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    if (hydrated && phase === null) start(tasks);
+    if (!hydrated || startedRef.current) return;
+    startedRef.current = true;
+    if (phase === null || phase === "done") start(tasks);
   }, [hydrated, phase, start, tasks]);
 
   if (!hydrated || phase === null) return null;
@@ -21,14 +26,13 @@ export function SimulationRuntime({ tasks }: { tasks: SimulationTask[] }) {
 }
 
 function ExamPhase() {
-  const { tasks, currentIndex, remainingSeconds, goTo, tick, submit } =
-    useSimulation();
+  const { tasks, currentIndex, endsAt, goTo, submit } = useSimulation();
+  const remainingSeconds = useRemainingSeconds(endsAt);
   const task = tasks[currentIndex];
 
   useEffect(() => {
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [tick]);
+    if (remainingSeconds === 0) submit();
+  }, [remainingSeconds, submit]);
 
   return (
     <div className="space-y-6">
@@ -113,7 +117,7 @@ function GradingPhase() {
 }
 
 function ResultPhase() {
-  const { tasks, marks, discard } = useSimulation();
+  const { tasks, marks } = useSimulation();
   const score = simulationScore(marks);
 
   return (
@@ -136,13 +140,12 @@ function ResultPhase() {
           </li>
         ))}
       </ul>
-      <a
+      <Link
         href="/simulacija"
-        onClick={discard}
         className="inline-block rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
       >
         Nazad na simulacije
-      </a>
+      </Link>
     </div>
   );
 }
