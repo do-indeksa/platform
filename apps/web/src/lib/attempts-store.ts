@@ -2,19 +2,43 @@ import { useSyncExternalStore } from "react";
 import type { Attempt, NewAttempt } from "@/lib/knowledge";
 
 const STORAGE_KEY = "do-indeksa-attempts";
+const MAX_BATCH = 500;
+const MAX_TASK_ID = 64;
+const SOURCES = new Set(["diagnostic", "practice", "simulation"]);
 
 let localAttempts: Attempt[] | null = null;
 let serverAttempts: Attempt[] | null = null;
+let authKnown = false;
 let signedIn = false;
+let serverUnavailable = false;
+let inFlightCount = 0;
+let flushChain: Promise<void> = Promise.resolve();
 let view: Attempt[] | null = null;
 const listeners = new Set<() => void>();
+
+function isAttempt(value: unknown): value is Attempt {
+  if (typeof value !== "object" || value === null) return false;
+  const attempt = value as Record<string, unknown>;
+  return (
+    typeof attempt.taskId === "string" &&
+    attempt.taskId.length > 0 &&
+    attempt.taskId.length <= MAX_TASK_ID &&
+    typeof attempt.slot === "number" &&
+    attempt.slot >= 1 &&
+    attempt.slot <= 10 &&
+    typeof attempt.correct === "boolean" &&
+    typeof attempt.source === "string" &&
+    SOURCES.has(attempt.source) &&
+    typeof attempt.at === "string"
+  );
+}
 
 function loadLocal(): Attempt[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const { attempts } = JSON.parse(raw) as { attempts?: Attempt[] };
-    return attempts ?? [];
+    const { attempts } = JSON.parse(raw) as { attempts?: unknown[] };
+    return (attempts ?? []).filter(isAttempt);
   } catch {
     return [];
   }
@@ -22,16 +46,25 @@ function loadLocal(): Attempt[] {
 
 function saveLocal(attempts: Attempt[]): void {
   localAttempts = attempts;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, attempts }));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, attempts }));
+  } catch {}
 }
 
-function snapshot(): Attempt[] | null {
+export function attemptsView(): Attempt[] | null {
+  if (!authKnown) return null;
   localAttempts ??= loadLocal();
-  if (signedIn && serverAttempts === null) return null;
-  view ??= signedIn
-    ? [...(serverAttempts ?? []), ...localAttempts]
-    : localAttempts;
+  if (signedIn && serverAttempts === null && !serverUnavailable) return null;
+  view ??= merged();
   return view;
+}
+
+function merged(): Attempt[] {
+  const local = localAttempts ?? [];
+  if (!signedIn || serverAttempts === null) return local;
+  return [...serverAttempts, ...local].toSorted(
+    (a, b) => Date.parse(a.at) - Date.parse(b.at),
+  );
 }
 
 function subscribe(listener: () => void): () => void {
@@ -44,31 +77,54 @@ function emit(): void {
   for (const listener of listeners) listener();
 }
 
-async function flushLocal(): Promise<void> {
+async function flushAll(): Promise<void> {
   localAttempts ??= loadLocal();
-  if (localAttempts.length === 0) return;
-  const res = await fetch("/api/v1/attempts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(localAttempts),
-  });
-  if (res.ok) saveLocal([]);
+  while (localAttempts.length > 0) {
+    const chunk = localAttempts.slice(0, MAX_BATCH);
+    inFlightCount = chunk.length;
+    try {
+      const res = await fetch("/api/v1/attempts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(chunk),
+      });
+      if (!res.ok && res.status !== 400) {
+        throw new Error(`flush failed with status ${res.status}`);
+      }
+      saveLocal(localAttempts.slice(chunk.length));
+    } finally {
+      inFlightCount = 0;
+    }
+  }
+}
+
+function scheduleFlush(): Promise<void> {
+  flushChain = flushChain.then(flushAll).catch(() => {});
+  return flushChain;
 }
 
 async function fetchServer(): Promise<void> {
   const res = await fetch("/api/v1/attempts");
-  if (res.ok) serverAttempts = (await res.json()) as Attempt[];
+  if (!res.ok)
+    throw new Error(`attempts fetch failed with status ${res.status}`);
+  serverAttempts = (await res.json()) as Attempt[];
+  serverUnavailable = false;
 }
 
 export async function syncAttempts(isSignedIn: boolean): Promise<void> {
+  authKnown = true;
   signedIn = isSignedIn;
-  if (isSignedIn) {
-    try {
-      await flushLocal();
-      await fetchServer();
-    } catch {}
-  } else {
+  if (!isSignedIn) {
     serverAttempts = null;
+    serverUnavailable = false;
+    emit();
+    return;
+  }
+  await scheduleFlush();
+  try {
+    await fetchServer();
+  } catch {
+    serverUnavailable = true;
   }
   emit();
 }
@@ -80,6 +136,7 @@ export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
   for (const entry of entries) {
     const last = next.at(-1);
     if (
+      next.length > inFlightCount &&
       entry.source === "practice" &&
       last?.source === "practice" &&
       last.taskId === entry.taskId
@@ -91,13 +148,17 @@ export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
   saveLocal(next);
   emit();
   if (signedIn) {
-    void flushLocal()
-      .then(() => fetchServer())
-      .then(emit)
-      .catch(() => {});
+    void scheduleFlush()
+      .then(fetchServer)
+      .then(emit, () => emit());
   }
 }
 
+export function clearLocalAttempts(): void {
+  saveLocal([]);
+  emit();
+}
+
 export function useAttempts(): Attempt[] | null {
-  return useSyncExternalStore(subscribe, snapshot, () => null);
+  return useSyncExternalStore(subscribe, attemptsView, () => null);
 }

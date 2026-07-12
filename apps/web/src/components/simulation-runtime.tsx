@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MarkButton } from "@/components/mark-button";
 import { POINTS_PER_TASK, simulationScore } from "@/lib/scoring";
 import {
@@ -46,24 +46,19 @@ export function SimulationRuntime({
   const start = useSimulation((state) => state.start);
   const hydrated = useHydrated();
   const startedRef = useRef<string | null>(null);
+  const [startedId, setStartedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hydrated || startedRef.current === variantId) return;
     startedRef.current = variantId;
     const state = useSimulation.getState();
-    if (state.phase === null) {
-      start(tasks, kind);
-    } else if (state.kind !== kind && state.phase === "done") {
-      state.reset();
-      start(tasks, kind);
-    }
+    if (state.phase === "done") state.reset();
+    if (useSimulation.getState().phase === null) start(tasks, kind);
+    setStartedId(variantId);
   }, [hydrated, variantId, start, tasks, kind]);
 
-  if (
-    !hydrated ||
-    phase === null ||
-    (activeKind !== kind && phase === "done")
-  ) {
+  const started = startedId === variantId;
+  if (!hydrated || phase === null || (phase === "done" && !started)) {
     return <p className="animate-pulse text-zinc-500">{t("assembling")}</p>;
   }
   if (activeKind !== kind) return <OtherRunNotice activeKind={activeKind} />;
