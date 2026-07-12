@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -183,6 +185,14 @@ func TestFutureTimestampClamped(t *testing.T) {
 	}
 }
 
+func validBatch(size int) []api.NewAttempt {
+	batch := make([]api.NewAttempt, size)
+	for i := range batch {
+		batch[i] = api.NewAttempt{TaskId: "x", Slot: 1, Source: api.NewAttemptSourcePractice}
+	}
+	return batch
+}
+
 func TestRecordValidation(t *testing.T) {
 	app := newTestApp(t)
 	session := seedSession(t, "")
@@ -190,12 +200,15 @@ func TestRecordValidation(t *testing.T) {
 	tests := []struct {
 		name  string
 		batch []api.NewAttempt
+		code  string
 	}{
-		{"empty batch", []api.NewAttempt{}},
-		{"empty task id", []api.NewAttempt{{TaskId: "", Slot: 1, Source: api.NewAttemptSourcePractice}}},
-		{"slot out of range", []api.NewAttempt{{TaskId: "x", Slot: 11, Source: api.NewAttemptSourcePractice}}},
-		{"unknown source", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: "guess"}}},
-		{"oversized batch", make([]api.NewAttempt, maxBatchSize+1)},
+		{"empty batch", []api.NewAttempt{}, "invalid_batch"},
+		{"oversized batch", validBatch(maxBatchSize + 1), "invalid_batch"},
+		{"empty task id", []api.NewAttempt{{TaskId: "", Slot: 1, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
+		{"long task id", []api.NewAttempt{{TaskId: strings.Repeat("a", 65), Slot: 1, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
+		{"uppercase task id", []api.NewAttempt{{TaskId: "KB-001", Slot: 1, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
+		{"slot out of range", []api.NewAttempt{{TaskId: "x", Slot: 11, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
+		{"unknown source", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: "guess"}}, "invalid_attempt"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -203,7 +216,86 @@ func TestRecordValidation(t *testing.T) {
 			if res.StatusCode != http.StatusBadRequest {
 				t.Fatalf("got status %d", res.StatusCode)
 			}
+			var apiErr api.Error
+			if err := json.NewDecoder(res.Body).Decode(&apiErr); err != nil {
+				t.Fatal(err)
+			}
+			if apiErr.Code != tt.code {
+				t.Fatalf("got error code %q, want %q", apiErr.Code, tt.code)
+			}
 		})
+	}
+}
+
+func TestOversizedBodyRejected(t *testing.T) {
+	app := newTestApp(t)
+	session := seedSession(t, "")
+
+	batch := validBatch(3000)
+	for i := range batch {
+		batch[i].TaskId = strings.Repeat("a", 64)
+	}
+	res := do(t, app, "POST", "/v1/attempts", batch, session)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("got status %d", res.StatusCode)
+	}
+	var apiErr api.Error
+	if err := json.NewDecoder(res.Body).Decode(&apiErr); err != nil {
+		t.Fatal(err)
+	}
+	if apiErr.Code != "invalid_body" {
+		t.Fatalf("got error code %q", apiErr.Code)
+	}
+}
+
+func TestEmptyJournalIsJSONArray(t *testing.T) {
+	app := newTestApp(t)
+	session := seedSession(t, "")
+
+	res := do(t, app, "GET", "/v1/attempts", nil, session)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("got status %d", res.StatusCode)
+	}
+	raw, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(raw)) != "[]" {
+		t.Fatalf("got body %q, want []", raw)
+	}
+}
+
+func TestSameTimestampBatchKeepsOrder(t *testing.T) {
+	app := newTestApp(t)
+	session := seedSession(t, "")
+	at := time.Now().Add(-time.Minute).UTC().Truncate(time.Second)
+
+	batch := make([]api.NewAttempt, 5)
+	for i := range batch {
+		batch[i] = api.NewAttempt{
+			TaskId: fmt.Sprintf("kb-00%d", i),
+			Slot:   1,
+			Source: api.NewAttemptSourceDiagnostic,
+			At:     &at,
+		}
+	}
+	res := do(t, app, "POST", "/v1/attempts", batch, session)
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("post: got status %d", res.StatusCode)
+	}
+
+	res = do(t, app, "GET", "/v1/attempts", nil, session)
+	var attempts []api.Attempt
+	if err := json.NewDecoder(res.Body).Decode(&attempts); err != nil {
+		t.Fatal(err)
+	}
+	if len(attempts) != len(batch) {
+		t.Fatalf("got %d attempts", len(attempts))
+	}
+	for i, attempt := range attempts {
+		if attempt.TaskId != batch[i].TaskId {
+			t.Fatalf("order broken at %d: got %q", i, attempt.TaskId)
+		}
 	}
 }
 

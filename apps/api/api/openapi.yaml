@@ -104,7 +104,7 @@ paths:
       summary: Task attempt journal of the current user
       responses:
         "200":
-          description: Attempts ordered oldest first
+          description: Up to the most recent 1000 attempts, ordered oldest first
           content:
             application/json:
               schema:
@@ -169,6 +169,8 @@ components:
       properties:
         taskId:
           type: string
+          maxLength: 64
+          pattern: ^[a-z0-9-]+$
         slot:
           type: integer
           minimum: 1
@@ -194,6 +196,8 @@ components:
       properties:
         taskId:
           type: string
+          maxLength: 64
+          pattern: ^[a-z0-9-]+$
         slot:
           type: integer
           minimum: 1

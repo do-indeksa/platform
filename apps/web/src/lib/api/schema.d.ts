@@ -282,7 +282,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Attempts ordered oldest first */
+            /** @description Up to the most recent 1000 attempts, ordered oldest first */
             200: {
                 headers: {
                     [name: string]: unknown;

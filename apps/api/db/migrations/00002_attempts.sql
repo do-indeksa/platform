@@ -2,7 +2,7 @@
 create table attempts (
     id bigint generated always as identity primary key,
     user_id uuid not null references users (id) on delete cascade,
-    task_id text not null,
+    task_id text not null check (char_length(task_id) <= 64),
     slot int not null check (slot between 1 and 10),
     correct boolean not null,
     source text not null check (source in ('diagnostic', 'practice', 'simulation')),
