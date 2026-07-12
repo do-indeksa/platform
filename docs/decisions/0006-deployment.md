@@ -1,6 +1,6 @@
 # 0006 — Deployment: Vercel for web, own k3s for api
 
-**Status:** accepted · 2026-07-12
+**Status:** superseded by [0008](0008-railway-neon-deploy.md) for api/db · 2026-07-12
 
 **Context.** The frontend benefits from per-PR preview deployments. The maintainer already operates k3s + ArgoCD in production and hosts several services on his own infrastructure; managed PaaS for the API would duplicate what he runs anyway.
 
