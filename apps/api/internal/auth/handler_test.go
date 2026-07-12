@@ -48,6 +48,21 @@ func TestRequestOrigin(t *testing.T) {
 			map[string]string{"X-Forwarded-Host": "preview.vercel.app"},
 			"https://preview.vercel.app",
 		},
+		{
+			"own header wins over edge-rewritten forwarded host",
+			"api.internal",
+			map[string]string{
+				"X-Di-Forwarded-Origin": "https://do-indeksa.vercel.app",
+				"X-Forwarded-Host":      "platform-production.up.railway.app",
+			},
+			"https://do-indeksa.vercel.app",
+		},
+		{
+			"own header carries scheme verbatim",
+			"api.internal",
+			map[string]string{"X-Di-Forwarded-Origin": "http://localhost:3000"},
+			"http://localhost:3000",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
