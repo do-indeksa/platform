@@ -27,9 +27,25 @@ function isGradeValid(value: number): boolean {
   return value >= GRADE_AVERAGE_MIN && value <= GRADE_AVERAGE_MAX;
 }
 
+function latestYears(programs: Program[]): [number, number] {
+  const years = [
+    ...new Set(
+      programs.flatMap((program) =>
+        program.cutoffs.map((cutoff) => cutoff.year),
+      ),
+    ),
+  ].toSorted((a, b) => b - a);
+  return [years[0], years[1]];
+}
+
+function shortYear(year: number): string {
+  return `’${String(year).slice(2)}`;
+}
+
 export function ScoreCalculator({ programs }: { programs: Program[] }) {
   const [grades, setGrades] = useState<string[]>(Array(4).fill(""));
   const [examPoints, setExamPoints] = useState("");
+  const [latest, previous] = latestYears(programs);
 
   const parsedGrades = grades.map(parseInput);
   const parsedExam = parseInput(examPoints);
@@ -44,6 +60,9 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
   return (
     <div className="space-y-8">
       <fieldset className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+        <legend className="sr-only">
+          Prosečne ocene po razredima i bodovi sa prijemnog
+        </legend>
         {GRADE_LABELS.map((label, i) => (
           <label key={label} className="flex flex-col gap-1 text-sm">
             <span className="text-zinc-600">{label}</span>
@@ -83,9 +102,15 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
           <thead>
             <tr className="border-b border-zinc-300 text-left text-zinc-500">
               <th className="py-2 pr-4 font-medium">Studijski program</th>
-              <th className="py-2 pr-4 font-medium">Budžet ’25</th>
-              <th className="py-2 pr-4 font-medium">Budžet ’24</th>
-              <th className="py-2 pr-4 font-medium">Samofin. ’25</th>
+              <th className="py-2 pr-4 font-medium">
+                Budžet {shortYear(latest)}
+              </th>
+              <th className="py-2 pr-4 font-medium">
+                Budžet {shortYear(previous)}
+              </th>
+              <th className="py-2 pr-4 font-medium">
+                Samofin. {shortYear(latest)}
+              </th>
               {total !== undefined && (
                 <th className="py-2 font-medium">Tvoj status</th>
               )}
@@ -96,17 +121,21 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
               <tr key={program.name} className="border-b border-zinc-100">
                 <td className="py-2 pr-4">{program.name}</td>
                 <td className="py-2 pr-4">
-                  {cutoffCell(program, 2025, "budget")}
+                  {cutoffCell(program, latest, "budget")}
                 </td>
                 <td className="py-2 pr-4">
-                  {cutoffCell(program, 2024, "budget")}
+                  {cutoffCell(program, previous, "budget")}
                 </td>
                 <td className="py-2 pr-4">
-                  {cutoffCell(program, 2025, "selfFinanced")}
+                  {cutoffCell(program, latest, "selfFinanced")}
                 </td>
                 {total !== undefined && (
                   <td className="py-2">
-                    <StatusBadge program={program} total={total} />
+                    <StatusBadge
+                      program={program}
+                      total={total}
+                      year={latest}
+                    />
                   </td>
                 )}
               </tr>
@@ -127,23 +156,31 @@ function cutoffCell(
   return value === undefined ? "—" : formatPoints(value);
 }
 
-function StatusBadge({ program, total }: { program: Program; total: number }) {
-  const latest = program.cutoffs.find((cutoff) => cutoff.year === 2025);
-  if (!latest) return <span className="text-zinc-400">—</span>;
+function StatusBadge({
+  program,
+  total,
+  year,
+}: {
+  program: Program;
+  total: number;
+  year: number;
+}) {
+  const cutoff = program.cutoffs.find((entry) => entry.year === year);
+  if (!cutoff) return <span className="text-zinc-400">—</span>;
 
   const points = toHundredths(total);
   if (
-    points >= toHundredths(latest.budget) &&
+    points >= toHundredths(cutoff.budget) &&
     points >= toHundredths(BUDGET_THRESHOLD)
   ) {
     return <span className="font-medium text-green-700">✓ budžet</span>;
   }
-  const selfFinanced = latest.selfFinanced ?? SELF_FINANCED_THRESHOLD;
+  const selfFinanced = cutoff.selfFinanced ?? SELF_FINANCED_THRESHOLD;
   if (
     points >= toHundredths(selfFinanced) &&
     points >= toHundredths(SELF_FINANCED_THRESHOLD)
   ) {
     return <span className="font-medium text-amber-600">samofinansiranje</span>;
   }
-  return <span className="text-zinc-400">ispod praga ’25</span>;
+  return <span className="text-zinc-400">ispod praga {shortYear(year)}</span>;
 }
