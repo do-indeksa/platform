@@ -8,22 +8,30 @@ import { useSimulation, type SimulationTask } from "@/lib/simulation-store";
 import { useRemainingSeconds } from "@/lib/use-countdown";
 import { useHydrated } from "@/lib/use-hydrated";
 
-export function SimulationRuntime({ tasks }: { tasks: SimulationTask[] }) {
+export function SimulationRuntime({
+  variantId,
+  tasks,
+}: {
+  variantId: string;
+  tasks: SimulationTask[];
+}) {
   const phase = useSimulation((state) => state.phase);
   const start = useSimulation((state) => state.start);
   const hydrated = useHydrated();
-  const startedRef = useRef(false);
+  const startedRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!hydrated || startedRef.current) return;
-    startedRef.current = true;
+    if (!hydrated || startedRef.current === variantId) return;
+    startedRef.current = variantId;
     if (useSimulation.getState().phase === null) start(tasks);
-  }, [hydrated, start, tasks]);
+  }, [hydrated, variantId, start, tasks]);
 
-  if (!hydrated || phase === null) return null;
+  if (!hydrated || phase === null) {
+    return <p className="animate-pulse text-zinc-500">Sastavljam varijantu…</p>;
+  }
   if (phase === "running") return <ExamPhase />;
   if (phase === "grading") return <GradingPhase />;
-  return <ResultPhase nextTasks={tasks} />;
+  return <ResultPhase />;
 }
 
 function AbandonButton() {
@@ -140,8 +148,9 @@ function GradingPhase() {
   );
 }
 
-function ResultPhase({ nextTasks }: { nextTasks: SimulationTask[] }) {
-  const { tasks, marks, start } = useSimulation();
+function ResultPhase() {
+  const { tasks, marks, reset } = useSimulation();
+  const router = useRouter();
   const score = simulationScore(marks);
 
   return (
@@ -166,7 +175,10 @@ function ResultPhase({ nextTasks }: { nextTasks: SimulationTask[] }) {
       </ul>
       <div className="flex items-center gap-4">
         <button
-          onClick={() => start(nextTasks)}
+          onClick={() => {
+            reset();
+            router.refresh();
+          }}
           className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
         >
           Počni novu simulaciju
