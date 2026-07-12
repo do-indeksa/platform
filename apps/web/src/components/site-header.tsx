@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { HeaderUser } from "@/components/header-user";
 
 const sections = [
+  { href: "/prep", key: "prep" },
   { href: "/tasks", key: "tasks" },
   { href: "/simulation", key: "simulation" },
   { href: "/calculator", key: "calculator" },

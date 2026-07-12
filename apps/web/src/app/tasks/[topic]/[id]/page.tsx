@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Difficulty } from "@/components/difficulty";
 import { Markdown } from "@/components/markdown";
+import { TaskSelfCheck } from "@/components/task-self-check";
 import { getTask, getTasks, getTopic, getTopics } from "@/lib/content";
 
 type Props = { params: Promise<{ topic: string; id: string }> };
@@ -57,6 +58,7 @@ export default async function TaskPage({ params }: Props) {
           <Markdown>{task.solution}</Markdown>
         </div>
       </details>
+      <TaskSelfCheck taskId={task.id} slot={task.slot} />
       <p className="mt-6 text-sm text-zinc-500">
         {t("sourceLabel", { source: task.source })}
       </p>

@@ -9,11 +9,11 @@ import { generateVariant } from "@/lib/variant";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("simulation");
+  const t = await getTranslations("diagnostic");
   return { title: t("inProgressTitle") };
 }
 
-export default async function NewSimulationPage() {
+export default async function NewDiagnosticPage() {
   const [variant, topics] = await Promise.all([generateVariant(), getTopics()]);
   const topicNames = new Map(topics.map((topic) => [topic.slug, topic.name]));
   const tasks: SimulationTask[] = await Promise.all(
@@ -31,7 +31,7 @@ export default async function NewSimulationPage() {
       <SimulationRuntime
         variantId={crypto.randomUUID()}
         tasks={tasks}
-        kind="simulation"
+        kind="diagnostic"
       />
     </main>
   );
