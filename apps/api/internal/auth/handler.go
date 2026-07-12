@@ -162,6 +162,9 @@ func (h *Handler) serverError(w http.ResponseWriter, err error, message string) 
 }
 
 func requestOrigin(r *http.Request) string {
+	if origin := r.Header.Get("X-Di-Forwarded-Origin"); origin != "" {
+		return origin
+	}
 	host := r.Header.Get("X-Forwarded-Host")
 	if host != "" {
 		host, _, _ = strings.Cut(host, ",")
