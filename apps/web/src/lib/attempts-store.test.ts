@@ -160,7 +160,22 @@ describe("syncAttempts", () => {
     await store.syncAttempts(false);
 
     expect(store.attemptsView()).toHaveLength(1);
-    expect(map).toBeDefined();
+    expect(stored(map)).toHaveLength(4);
+  });
+
+  it("keeps flushed attempts visible when the follow-up fetch fails", async () => {
+    const map = mockStorage([attempt("kb-001"), attempt("kb-002")]);
+    mockFetch((call) =>
+      call.init?.method === "POST"
+        ? new Response(null, { status: 204 })
+        : new Response(null, { status: 502 }),
+    );
+    const store = await loadStore();
+
+    await store.syncAttempts(true);
+
+    expect(stored(map)).toHaveLength(0);
+    expect(store.attemptsView()).toHaveLength(2);
   });
 
   it("merges server and local views sorted by time", async () => {

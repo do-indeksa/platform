@@ -4,6 +4,7 @@ import type { Attempt, NewAttempt } from "@/lib/knowledge";
 const STORAGE_KEY = "do-indeksa-attempts";
 const MAX_BATCH = 500;
 const MAX_TASK_ID = 64;
+const TASK_ID_PATTERN = /^[a-z0-9-]+$/;
 const SOURCES = new Set(["diagnostic", "practice", "simulation"]);
 
 let localAttempts: Attempt[] | null = null;
@@ -21,15 +22,16 @@ function isAttempt(value: unknown): value is Attempt {
   const attempt = value as Record<string, unknown>;
   return (
     typeof attempt.taskId === "string" &&
-    attempt.taskId.length > 0 &&
     attempt.taskId.length <= MAX_TASK_ID &&
+    TASK_ID_PATTERN.test(attempt.taskId) &&
     typeof attempt.slot === "number" &&
     attempt.slot >= 1 &&
     attempt.slot <= 10 &&
     typeof attempt.correct === "boolean" &&
     typeof attempt.source === "string" &&
     SOURCES.has(attempt.source) &&
-    typeof attempt.at === "string"
+    typeof attempt.at === "string" &&
+    !Number.isNaN(Date.parse(attempt.at))
   );
 }
 
@@ -91,6 +93,9 @@ async function flushAll(): Promise<void> {
       if (!res.ok && res.status !== 400) {
         throw new Error(`flush failed with status ${res.status}`);
       }
+      if (res.ok) {
+        serverAttempts = [...(serverAttempts ?? []), ...chunk];
+      }
       saveLocal(localAttempts.slice(chunk.length));
     } finally {
       inFlightCount = 0;
@@ -103,11 +108,16 @@ function scheduleFlush(): Promise<void> {
   return flushChain;
 }
 
+let fetchSeq = 0;
+
 async function fetchServer(): Promise<void> {
+  const seq = ++fetchSeq;
   const res = await fetch("/api/v1/attempts");
   if (!res.ok)
     throw new Error(`attempts fetch failed with status ${res.status}`);
-  serverAttempts = (await res.json()) as Attempt[];
+  const attempts = (await res.json()) as Attempt[];
+  if (seq !== fetchSeq) return;
+  serverAttempts = attempts;
   serverUnavailable = false;
 }
 
