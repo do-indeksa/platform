@@ -26,3 +26,6 @@ bin/
 # Local Claude settings
 .claude/settings.local.json
 .playwright-mcp/
+
+# Go build output
+apps/api/api
