@@ -5,13 +5,20 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"regexp"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
 )
 
-const maxBatchSize = 500
+const (
+	maxBatchSize  = 500
+	maxBodyBytes  = 256 << 10
+	maxTaskIDSize = 64
+)
+
+var taskIDPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 type Handler struct {
 	auth    *auth.Service
@@ -51,6 +58,7 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body []api.NewAttempt
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_body", "body must be a json array of attempts")
 		return
@@ -61,7 +69,7 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 	}
 	params := make([]InsertAttemptsParams, len(body))
 	for i, attempt := range body {
-		if attempt.TaskId == "" || attempt.Slot < 1 || attempt.Slot > 10 || !attempt.Source.Valid() {
+		if !validTaskID(attempt.TaskId) || attempt.Slot < 1 || attempt.Slot > 10 || !attempt.Source.Valid() {
 			httpx.WriteError(w, http.StatusBadRequest, "invalid_attempt", "attempt fields are out of range")
 			return
 		}
@@ -80,6 +88,10 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func validTaskID(taskID string) bool {
+	return taskID != "" && len(taskID) <= maxTaskIDSize && taskIDPattern.MatchString(taskID)
 }
 
 func (h *Handler) requestUser(w http.ResponseWriter, r *http.Request) (auth.User, bool) {
