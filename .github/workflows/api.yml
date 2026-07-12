@@ -20,7 +20,8 @@ jobs:
         with:
           go-version-file: apps/api/go.mod
           cache-dependency-path: apps/api/go.sum
-      - run: go build ./...
+      - run: go build -o bin/ ./...
+      - run: go generate ./... && git diff --exit-code
       - run: go test ./...
       - uses: golangci/golangci-lint-action@v8
         with:

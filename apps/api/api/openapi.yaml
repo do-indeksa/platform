@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Do indeksa API
+  version: 0.1.0
+paths:
+  /v1/auth/google:
+    get:
+      operationId: startGoogleAuth
+      summary: Redirect to Google authorization
+      parameters:
+        - name: redirect
+          in: query
+          description: Relative path to return to after sign-in
+          schema:
+            type: string
+            default: /
+      responses:
+        "302":
+          description: Redirect to Google with signed state and PKCE challenge
+          headers:
+            Location:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/auth/google/callback:
+    get:
+      operationId: googleAuthCallback
+      summary: OAuth callback registered with Google
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: >-
+            Canonical origin: session cookie is set and the browser is sent to
+            the redirect path from state. Other allowed origin: the browser is
+            sent to that origin's /api/v1/auth/exchange with a one-time code.
+          headers:
+            Location:
+              schema:
+                type: string
+            Set-Cookie:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/auth/exchange:
+    get:
+      operationId: exchangeAuthCode
+      summary: Trade a one-time code for a session cookie on the current origin
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: redirect
+          in: query
+          schema:
+            type: string
+            default: /
+      responses:
+        "302":
+          description: Session cookie set, browser sent to the redirect path
+          headers:
+            Location:
+              schema:
+                type: string
+            Set-Cookie:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke the current session
+      responses:
+        "204":
+          description: Session revoked, cookie cleared
+  /v1/me:
+    get:
+      operationId: getMe
+      summary: Current user
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        pictureUrl:
+          type: string
+          format: uri
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: No valid session
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
