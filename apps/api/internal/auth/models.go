@@ -10,21 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type AuthCode struct {
-	CodeHash  []byte
-	UserID    uuid.UUID
-	Redirect  string
-	ExpiresAt time.Time
-	CreatedAt time.Time
-}
-
-type Session struct {
-	TokenHash []byte
-	UserID    uuid.UUID
-	ExpiresAt time.Time
-	CreatedAt time.Time
-}
-
 type User struct {
 	ID         uuid.UUID
 	GoogleSub  string

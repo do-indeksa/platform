@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	sessionCookieName = "di_session"
+	SessionCookieName = "di_session"
 	sessionTTL        = 30 * 24 * time.Hour
 	stateTTL          = 10 * time.Minute
 	codeTTL           = 30 * time.Second
@@ -31,7 +31,7 @@ func hashSecret(token string) []byte {
 
 func (s *Service) sessionCookie(token string, maxAge int) *http.Cookie {
 	return &http.Cookie{
-		Name:     sessionCookieName,
+		Name:     SessionCookieName,
 		Value:    token,
 		Path:     "/",
 		MaxAge:   maxAge,

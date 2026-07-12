@@ -85,6 +85,11 @@ func newFakeGoogle(t *testing.T, info userinfo) *fakeGoogle {
 	return fake
 }
 
+type testServer struct{ *Handler }
+
+func (testServer) ListAttempts(http.ResponseWriter, *http.Request)   {}
+func (testServer) RecordAttempts(http.ResponseWriter, *http.Request) {}
+
 func newTestApp(t *testing.T, google *fakeGoogle) http.Handler {
 	t.Helper()
 	service := NewService(testPool, Config{
@@ -96,7 +101,7 @@ func newTestApp(t *testing.T, google *fakeGoogle) http.Handler {
 	})
 	service.endpoint = oauth2.Endpoint{AuthURL: google.server.URL + "/auth", TokenURL: google.server.URL + "/token"}
 	service.userinfoURL = google.server.URL + "/userinfo"
-	return api.HandlerWithOptions(NewHandler(service), api.ChiServerOptions{
+	return api.HandlerWithOptions(testServer{NewHandler(service)}, api.ChiServerOptions{
 		BaseRouter:       chi.NewRouter(),
 		ErrorHandlerFunc: ParamErrorHandler,
 	})
@@ -117,7 +122,7 @@ func do(t *testing.T, app http.Handler, method, target, host string, cookies ...
 func sessionFromResponse(t *testing.T, res *http.Response) *http.Cookie {
 	t.Helper()
 	for _, cookie := range res.Cookies() {
-		if cookie.Name == sessionCookieName {
+		if cookie.Name == SessionCookieName {
 			return cookie
 		}
 	}
@@ -128,7 +133,7 @@ func sessionFromResponse(t *testing.T, res *http.Response) *http.Cookie {
 func assertNoSessionCookie(t *testing.T, res *http.Response) {
 	t.Helper()
 	for _, cookie := range res.Cookies() {
-		if cookie.Name == sessionCookieName && cookie.MaxAge >= 0 {
+		if cookie.Name == SessionCookieName && cookie.MaxAge >= 0 {
 			t.Fatal("unexpected session cookie in response")
 		}
 	}
@@ -187,7 +192,7 @@ func seedSession(t *testing.T, expiresAt time.Time) *http.Cookie {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: sessionCookieName, Value: token}
+	return &http.Cookie{Name: SessionCookieName, Value: token}
 }
 
 func TestCanonicalSignInFlow(t *testing.T) {

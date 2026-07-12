@@ -98,6 +98,45 @@ paths:
             Set-Cookie:
               schema:
                 type: string
+  /v1/attempts:
+    get:
+      operationId: listAttempts
+      summary: Task attempt journal of the current user
+      responses:
+        "200":
+          description: Attempts ordered oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attempt"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/Internal"
+    post:
+      operationId: recordAttempts
+      summary: Append attempts to the journal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              maxItems: 500
+              items:
+                $ref: "#/components/schemas/NewAttempt"
+      responses:
+        "204":
+          description: Attempts recorded
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/Internal"
   /v1/me:
     get:
       operationId: getMe
@@ -119,6 +158,57 @@ paths:
           $ref: "#/components/responses/Internal"
 components:
   schemas:
+    Attempt:
+      type: object
+      required:
+        - taskId
+        - slot
+        - correct
+        - source
+        - at
+      properties:
+        taskId:
+          type: string
+        slot:
+          type: integer
+          minimum: 1
+          maximum: 10
+        correct:
+          type: boolean
+        source:
+          type: string
+          enum:
+            - diagnostic
+            - practice
+            - simulation
+        at:
+          type: string
+          format: date-time
+    NewAttempt:
+      type: object
+      required:
+        - taskId
+        - slot
+        - correct
+        - source
+      properties:
+        taskId:
+          type: string
+        slot:
+          type: integer
+          minimum: 1
+          maximum: 10
+        correct:
+          type: boolean
+        source:
+          type: string
+          enum:
+            - diagnostic
+            - practice
+            - simulation
+        at:
+          type: string
+          format: date-time
     User:
       type: object
       required:

@@ -7,17 +7,84 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for AttemptSource.
+const (
+	AttemptSourceDiagnostic AttemptSource = "diagnostic"
+	AttemptSourcePractice   AttemptSource = "practice"
+	AttemptSourceSimulation AttemptSource = "simulation"
+)
+
+// Valid indicates whether the value is a known member of the AttemptSource enum.
+func (e AttemptSource) Valid() bool {
+	switch e {
+	case AttemptSourceDiagnostic:
+		return true
+	case AttemptSourcePractice:
+		return true
+	case AttemptSourceSimulation:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for NewAttemptSource.
+const (
+	NewAttemptSourceDiagnostic NewAttemptSource = "diagnostic"
+	NewAttemptSourcePractice   NewAttemptSource = "practice"
+	NewAttemptSourceSimulation NewAttemptSource = "simulation"
+)
+
+// Valid indicates whether the value is a known member of the NewAttemptSource enum.
+func (e NewAttemptSource) Valid() bool {
+	switch e {
+	case NewAttemptSourceDiagnostic:
+		return true
+	case NewAttemptSourcePractice:
+		return true
+	case NewAttemptSourceSimulation:
+		return true
+	default:
+		return false
+	}
+}
+
+// Attempt defines model for Attempt.
+type Attempt struct {
+	At      time.Time     `json:"at"`
+	Correct bool          `json:"correct"`
+	Slot    int           `json:"slot"`
+	Source  AttemptSource `json:"source"`
+	TaskId  string        `json:"taskId"`
+}
+
+// AttemptSource defines model for Attempt.Source.
+type AttemptSource string
+
 // Error defines model for Error.
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
+
+// NewAttempt defines model for NewAttempt.
+type NewAttempt struct {
+	At      *time.Time       `json:"at,omitempty"`
+	Correct bool             `json:"correct"`
+	Slot    int              `json:"slot"`
+	Source  NewAttemptSource `json:"source"`
+	TaskId  string           `json:"taskId"`
+}
+
+// NewAttemptSource defines model for NewAttempt.Source.
+type NewAttemptSource string
 
 // User defines model for User.
 type User struct {
@@ -35,6 +102,9 @@ type Internal = Error
 
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
+
+// RecordAttemptsJSONBody defines parameters for RecordAttempts.
+type RecordAttemptsJSONBody = []NewAttempt
 
 // ExchangeAuthCodeParams defines parameters for ExchangeAuthCode.
 type ExchangeAuthCodeParams struct {
@@ -56,8 +126,17 @@ type GoogleAuthCallbackParams struct {
 	Error *string `form:"error,omitempty" json:"error,omitempty"`
 }
 
+// RecordAttemptsJSONRequestBody defines body for RecordAttempts for application/json ContentType.
+type RecordAttemptsJSONRequestBody = RecordAttemptsJSONBody
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Task attempt journal of the current user
+	// (GET /v1/attempts)
+	ListAttempts(w http.ResponseWriter, r *http.Request)
+	// Append attempts to the journal
+	// (POST /v1/attempts)
+	RecordAttempts(w http.ResponseWriter, r *http.Request)
 	// Trade a one-time code for a session cookie on the current origin
 	// (GET /v1/auth/exchange)
 	ExchangeAuthCode(w http.ResponseWriter, r *http.Request, params ExchangeAuthCodeParams)
@@ -78,6 +157,18 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// Task attempt journal of the current user
+// (GET /v1/attempts)
+func (_ Unimplemented) ListAttempts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Append attempts to the journal
+// (POST /v1/attempts)
+func (_ Unimplemented) RecordAttempts(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Trade a one-time code for a session cookie on the current origin
 // (GET /v1/auth/exchange)
@@ -117,6 +208,34 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAttempts operation middleware
+func (siw *ServerInterfaceWrapper) ListAttempts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAttempts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RecordAttempts operation middleware
+func (siw *ServerInterfaceWrapper) RecordAttempts(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RecordAttempts(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ExchangeAuthCode operation middleware
 func (siw *ServerInterfaceWrapper) ExchangeAuthCode(w http.ResponseWriter, r *http.Request) {
@@ -384,6 +503,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/attempts", wrapper.ListAttempts)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/v1/attempts", wrapper.RecordAttempts)
+	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/auth/exchange", wrapper.ExchangeAuthCode)
 	})
