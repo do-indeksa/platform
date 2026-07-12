@@ -126,6 +126,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Unexpected server failure */
+        Internal: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
     parameters: never;
     requestBodies: never;
@@ -155,13 +164,16 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+            500: components["responses"]["Internal"];
         };
     };
     googleAuthCallback: {
         parameters: {
             query: {
-                code: string;
+                code?: string;
                 state: string;
+                /** @description OAuth error from Google, e.g. access_denied on cancel */
+                error?: string;
             };
             header?: never;
             path?: never;
@@ -169,7 +181,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Canonical origin: session cookie is set and the browser is sent to the redirect path from state. Other allowed origin: the browser is sent to that origin's /api/v1/auth/exchange with a one-time code. */
+            /** @description Canonical origin: session cookie is set and the browser is sent to the redirect path from state. Other allowed origin: the browser is sent to that origin's /api/v1/auth/exchange with a one-time code. Google errors (cancelled consent) return to the initiating page without a session. */
             302: {
                 headers: {
                     Location?: string;
@@ -179,6 +191,7 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+            500: components["responses"]["Internal"];
         };
     };
     exchangeAuthCode: {
@@ -202,6 +215,7 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["BadRequest"];
+            500: components["responses"]["Internal"];
         };
     };
     logout: {
@@ -216,6 +230,7 @@ export interface operations {
             /** @description Session revoked, cookie cleared */
             204: {
                 headers: {
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -231,9 +246,10 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Authenticated user */
+            /** @description Authenticated user; session cookie is refreshed when the TTL slides */
             200: {
                 headers: {
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -241,6 +257,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            500: components["responses"]["Internal"];
         };
     };
 }
