@@ -2,10 +2,10 @@ name: web
 
 on:
   pull_request:
-    paths: ["apps/web/**", ".github/workflows/web.yml"]
+    paths: ["apps/web/**", "content/**", ".github/workflows/web.yml"]
   push:
     branches: [main]
-    paths: ["apps/web/**", ".github/workflows/web.yml"]
+    paths: ["apps/web/**", "content/**", ".github/workflows/web.yml"]
 
 defaults:
   run:
