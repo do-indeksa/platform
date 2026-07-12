@@ -185,7 +185,6 @@ export interface operations {
         parameters: {
             query: {
                 code: string;
-                redirect?: string;
             };
             header?: never;
             path?: never;
@@ -193,7 +192,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Session cookie set, browser sent to the redirect path */
+            /** @description Session cookie set, browser sent to the stored redirect path */
             302: {
                 headers: {
                     Location?: string;

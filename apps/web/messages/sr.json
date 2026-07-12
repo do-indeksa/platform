@@ -3,6 +3,13 @@
     "title": "Do indeksa",
     "description": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita."
   },
+  "nav": {
+    "tasks": "Zadaci",
+    "simulation": "Simulacija",
+    "calculator": "Kalkulator",
+    "signIn": "Prijavi se",
+    "signOut": "Odjavi se"
+  },
   "home": {
     "tagline": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.",
     "tasksCta": "Zadaci za vežbanje →",
