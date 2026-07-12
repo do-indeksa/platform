@@ -5,7 +5,8 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 ## Languages
 
 - Communication with Claude: Russian.
-- Code, commits, identifiers, technical docs: English.
+- Code, commits, identifiers, route segments, URLs: English — no Serbian naming anywhere (ADR-0007).
+- UI strings are never hardcoded: next-intl catalogs in `apps/web/messages/`, sr-Latn default locale.
 - Main docs in English; user-facing docs duplicated in Serbian (latin script): `README.md` + `README.sr.md`.
 - Platform content for students (tasks, solutions, guide): Serbian latin script, as on the real exam.
 

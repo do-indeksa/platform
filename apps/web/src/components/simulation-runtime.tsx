@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import { POINTS_PER_TASK, simulationScore } from "@/lib/scoring";
 import { useSimulation, type SimulationTask } from "@/lib/simulation-store";
@@ -15,6 +16,7 @@ export function SimulationRuntime({
   variantId: string;
   tasks: SimulationTask[];
 }) {
+  const t = useTranslations("simulation");
   const phase = useSimulation((state) => state.phase);
   const start = useSimulation((state) => state.start);
   const hydrated = useHydrated();
@@ -27,7 +29,7 @@ export function SimulationRuntime({
   }, [hydrated, variantId, start, tasks]);
 
   if (!hydrated || phase === null) {
-    return <p className="animate-pulse text-zinc-500">Sastavljam varijantu…</p>;
+    return <p className="animate-pulse text-zinc-500">{t("assembling")}</p>;
   }
   if (phase === "running") return <ExamPhase />;
   if (phase === "grading") return <GradingPhase />;
@@ -35,23 +37,25 @@ export function SimulationRuntime({
 }
 
 function AbandonButton() {
+  const t = useTranslations("simulation");
   const reset = useSimulation((state) => state.reset);
   const router = useRouter();
   return (
     <button
       onClick={() => {
-        if (!confirm("Odustati od ovog pokušaja? Neće ući u istoriju.")) return;
+        if (!confirm(t("abandonConfirm"))) return;
         reset();
-        router.push("/simulacija");
+        router.push("/simulation");
       }}
       className="text-sm text-zinc-500 hover:underline"
     >
-      Odustani
+      {t("abandon")}
     </button>
   );
 }
 
 function ExamPhase() {
+  const t = useTranslations("simulation");
   const { tasks, currentIndex, endsAt, goTo, submit } = useSimulation();
   const remainingSeconds = useRemainingSeconds(endsAt);
   const task = tasks[currentIndex];
@@ -78,10 +82,10 @@ function ExamPhase() {
       <div dangerouslySetInnerHTML={{ __html: task.statementHtml }} />
       <div className="flex items-center gap-6">
         <button
-          onClick={() => confirm("Predati sve zadatke na pregled?") && submit()}
+          onClick={() => confirm(t("submitConfirm")) && submit()}
           className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
         >
-          Predaj
+          {t("submit")}
         </button>
         <AbandonButton />
       </div>
@@ -90,14 +94,13 @@ function ExamPhase() {
 }
 
 function GradingPhase() {
+  const t = useTranslations("simulation");
   const { tasks, marks, mark, finish } = useSimulation();
   const allMarked = marks.every((value) => value !== null);
 
   return (
     <div className="space-y-10">
-      <p className="text-zinc-600">
-        Uporedi svoj rad sa rešenjima i označi svaki zadatak.
-      </p>
+      <p className="text-zinc-600">{t("gradingIntro")}</p>
       {tasks.map((task, i) => (
         <section
           key={task.id}
@@ -109,7 +112,7 @@ function GradingPhase() {
           <div dangerouslySetInnerHTML={{ __html: task.statementHtml }} />
           <details className="rounded-lg border border-zinc-200 p-4">
             <summary className="cursor-pointer select-none font-medium">
-              Rešenje
+              {t("solution")}
             </summary>
             <div
               className="mt-3"
@@ -122,14 +125,14 @@ function GradingPhase() {
               onClick={() => mark(i, true)}
               className="border-green-600 text-green-700"
             >
-              Tačno
+              {t("correct")}
             </MarkButton>
             <MarkButton
               active={marks[i] === false}
               onClick={() => mark(i, false)}
               className="border-red-500 text-red-600"
             >
-              Netačno
+              {t("incorrect")}
             </MarkButton>
           </div>
         </section>
@@ -140,7 +143,7 @@ function GradingPhase() {
           disabled={!allMarked}
           className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
         >
-          Završi i vidi rezultat
+          {t("finish")}
         </button>
         <AbandonButton />
       </div>
@@ -149,6 +152,7 @@ function GradingPhase() {
 }
 
 function ResultPhase() {
+  const t = useTranslations("simulation");
   const { tasks, marks, reset } = useSimulation();
   const router = useRouter();
   const score = simulationScore(marks);
@@ -156,9 +160,14 @@ function ResultPhase() {
   return (
     <div className="space-y-6">
       <p className="rounded-lg bg-zinc-900 p-6 text-center text-white">
-        <span className="block text-5xl font-bold">{score} / 60</span>
+        <span className="block text-5xl font-bold">
+          {t("scoreOf", { score })}
+        </span>
         <span className="mt-1 block text-zinc-300">
-          {marks.filter(Boolean).length} od {tasks.length} zadataka tačno
+          {t("correctSummary", {
+            correct: marks.filter(Boolean).length,
+            total: tasks.length,
+          })}
         </span>
       </p>
       <ul className="space-y-1">
@@ -181,13 +190,13 @@ function ResultPhase() {
           }}
           className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
         >
-          Počni novu simulaciju
+          {t("restart")}
         </button>
         <Link
-          href="/simulacija"
+          href="/simulation"
           className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
         >
-          Nazad na simulacije
+          {t("back")}
         </Link>
       </div>
     </div>
@@ -203,8 +212,9 @@ function TaskNav({
   currentIndex: number;
   onSelect: (index: number) => void;
 }) {
+  const t = useTranslations("simulation");
   return (
-    <nav aria-label="Zadaci u varijanti" className="flex flex-wrap gap-1">
+    <nav aria-label={t("taskNav")} className="flex flex-wrap gap-1">
       {Array.from({ length: count }, (_, i) => (
         <button
           key={i}

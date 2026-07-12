@@ -1,0 +1,73 @@
+{
+  "metadata": {
+    "title": "Do indeksa",
+    "description": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita."
+  },
+  "home": {
+    "tagline": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.",
+    "tasksCta": "Zadaci za vežbanje →",
+    "simulationCta": "Simulacija prijemnog",
+    "calculatorCta": "Kalkulator bodova"
+  },
+  "tasks": {
+    "title": "Zadaci",
+    "description": "Baza zadataka za prijemni FTN P1, po temama sa rešenjima.",
+    "intro": "Deset slotova prijemnog P1 — svaki zadatak na ispitu ima svoj tip.",
+    "count": "{count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+    "allSlots": "← Svi slotovi",
+    "topicDescription": "Zadaci sa rešenjima: {topic}, slot {slot} prijemnog FTN P1.",
+    "taskTitle": "Zadatak {id}",
+    "showSolution": "Prikaži rešenje",
+    "sourceLabel": "Izvor: {source}",
+    "difficulty": "Težina {level} od 5"
+  },
+  "calculator": {
+    "title": "Kalkulator bodova za FTN",
+    "description": "Izračunaj ukupan broj bodova za upis na FTN i uporedi sa prohodnim bodovima svih studijskih programa.",
+    "heading": "Kalkulator bodova — FTN",
+    "formula": "Ukupno = uspeh iz srednje škole (zbir proseka sva četiri razreda × 2, najviše 40) + prijemni ispit (najviše 60).",
+    "minimums": "Zakonski minimum: budžet od 50,01 · samofinansiranje od 30,01.",
+    "legend": "Prosečne ocene po razredima i bodovi sa prijemnog",
+    "grade1": "I razred",
+    "grade2": "II razred",
+    "grade3": "III razred",
+    "grade4": "IV razred",
+    "gradePlaceholder": "npr. 4,85",
+    "examLabel": "Prijemni (0–60)",
+    "examPlaceholder": "npr. 42",
+    "schoolLabel": "Uspeh iz škole:",
+    "totalLabel": "Ukupno:",
+    "programHeader": "Studijski program",
+    "budgetHeader": "Budžet {year}",
+    "selfFinancedHeader": "Samofin. {year}",
+    "statusHeader": "Tvoj status",
+    "statusBudget": "✓ budžet",
+    "statusSelfFinanced": "samofinansiranje",
+    "statusBelow": "ispod praga {year}",
+    "disclaimer": "Prohodni bodovi su „poslednji upisani“ iz zvanične <link>statistike upisa FTN</link>. Menjaju se iz godine u godinu — posle reforme prijemnog 2024. kao orijentir koristi samo 2024. i 2025."
+  },
+  "simulation": {
+    "title": "Simulacija prijemnog",
+    "description": "Probni prijemni u realnom formatu P1: 10 zadataka, 180 minuta, 60 bodova.",
+    "inProgressTitle": "Simulacija u toku",
+    "intro1": "Realan format P1: 10 zadataka (po jedan iz svakog slota), 180 minuta, svaki zadatak nosi 6 bodova — ukupno 60.",
+    "intro2": "Rešavaj na papiru. Kad predaš, uporedi svoj rad sa rešenjima i sam oceni svaki zadatak — kao na pravom ispitu, samo si ti komisija.",
+    "startCta": "Počni novu simulaciju →",
+    "historyTitle": "Tvoji pokušaji",
+    "assembling": "Sastavljam varijantu…",
+    "taskNav": "Zadaci u varijanti",
+    "submit": "Predaj",
+    "submitConfirm": "Predati sve zadatke na pregled?",
+    "abandon": "Odustani",
+    "abandonConfirm": "Odustati od ovog pokušaja? Neće ući u istoriju.",
+    "gradingIntro": "Uporedi svoj rad sa rešenjima i označi svaki zadatak.",
+    "solution": "Rešenje",
+    "correct": "Tačno",
+    "incorrect": "Netačno",
+    "finish": "Završi i vidi rezultat",
+    "scoreOf": "{score} / 60",
+    "correctSummary": "{correct} od {total} zadataka tačno",
+    "restart": "Počni novu simulaciju",
+    "back": "Nazad na simulacije"
+  }
+}
