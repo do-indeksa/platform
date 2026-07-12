@@ -1,0 +1,142 @@
+source: https://ftn.uns.ac.rs/statistika-upisa/
+note: 'Poslednji upisani (prohodni) bodovi. Posle reforme prijemnog 2024. relevantni su samo 2024/2025.'
+programs:
+  - name: Softversko inženjerstvo i informacione tehnologije (SIIT)
+    cutoffs:
+      - { year: 2025, budget: 98.10, selfFinanced: 94.20 }
+      - { year: 2024, budget: 92.20 }
+      - { year: 2023, budget: 95.50 }
+  - name: Inženjerski menadžment
+    cutoffs:
+      - { year: 2025, budget: 87.62, selfFinanced: 40.08 }
+      - { year: 2024, budget: 86.50 }
+      - { year: 2023, budget: 79.58 }
+  - name: Arhitektura
+    cutoffs:
+      - { year: 2025, budget: 86.80, selfFinanced: 73.72 }
+      - { year: 2024, budget: 85.06 }
+      - { year: 2023, budget: 84.56 }
+  - name: Animacija u inženjerstvu
+    cutoffs:
+      - { year: 2025, budget: 86.14, selfFinanced: 67.42 }
+      - { year: 2024, budget: 72.30 }
+      - { year: 2023, budget: 81.36 }
+  - name: Inženjerstvo informacionih sistema (IIS)
+    cutoffs:
+      - { year: 2025, budget: 85.60, selfFinanced: 30.32 }
+      - { year: 2024, budget: 71.40 }
+      - { year: 2023, budget: 83.90 }
+  - name: Grafičko inženjerstvo i dizajn (GRID)
+    cutoffs:
+      - { year: 2025, budget: 84.10, selfFinanced: 69.06 }
+      - { year: 2024, budget: 80.54 }
+      - { year: 2023, budget: 79.02 }
+  - name: Scenska arhitektura, tehnika i dizajn
+    cutoffs:
+      - { year: 2025, budget: 76.28, selfFinanced: 54.40 }
+      - { year: 2024, budget: 77.78 }
+      - { year: 2023, budget: 83.04 }
+  - name: Softverske i informacione tehnologije (SIT, strukovne)
+    cutoffs:
+      - { year: 2025, budget: 70.56, selfFinanced: 41.50 }
+      - { year: 2024, budget: 79.28 }
+      - { year: 2023, budget: 76.18 }
+  - name: Mehatronika
+    cutoffs:
+      - { year: 2025, budget: 69.56, selfFinanced: 32.66 }
+      - { year: 2024, budget: 61.80 }
+      - { year: 2023, budget: 72.50 }
+  - name: Informacioni inženjering
+    cutoffs:
+      - { year: 2025, budget: 68.60, selfFinanced: 63.40 }
+      - { year: 2024, budget: 65.20 }
+      - { year: 2023, budget: 86.32 }
+  - name: Računarstvo i automatika (RA)
+    cutoffs:
+      - { year: 2025, budget: 63.48, selfFinanced: 32.82 }
+      - { year: 2024, budget: 65.36 }
+      - { year: 2023, budget: 81.92 }
+  - name: Tehnička mehanika i dizajn u tehnici
+    cutoffs:
+      - { year: 2025, budget: 63.02, selfFinanced: 40.48 }
+  - name: Geodezija i geoinformatika
+    cutoffs:
+      - { year: 2025, budget: 62.96, selfFinanced: 41.10 }
+      - { year: 2024, budget: 66.46 }
+      - { year: 2023, budget: 60.60 }
+  - name: Biomedicinsko inženjerstvo
+    cutoffs:
+      - { year: 2025, budget: 62.62, selfFinanced: 32.40 }
+      - { year: 2024, budget: 77.70 }
+      - { year: 2023, budget: 78.72 }
+  - name: Industrijsko inženjerstvo
+    cutoffs:
+      - { year: 2025, budget: 62.10, selfFinanced: 35.34 }
+      - { year: 2024, budget: 76.14 }
+      - { year: 2023, budget: 70.54 }
+  - name: Inženjerstvo zaštite na radu
+    cutoffs:
+      - { year: 2025, budget: 56.14, selfFinanced: 43.20 }
+      - { year: 2024, budget: 52.86 }
+      - { year: 2023, budget: 63.72 }
+  - name: Primenjeno softversko inženjerstvo (PSI)
+    cutoffs:
+      - { year: 2025, budget: 55.22, selfFinanced: 32.80 }
+      - { year: 2024, budget: 55.72 }
+      - { year: 2023, budget: 76.50 }
+  - name: Proizvodno mašinstvo
+    cutoffs:
+      - { year: 2025, budget: 54.18, selfFinanced: 42.54 }
+      - { year: 2024, budget: 59.62 }
+      - { year: 2023, budget: 51.86 }
+  - name: Energetika i procesna tehnika
+    cutoffs:
+      - { year: 2025, budget: 54.16 }
+      - { year: 2024, budget: 50.36 }
+  - name: Građevinarstvo
+    cutoffs:
+      - { year: 2025, budget: 53.64, selfFinanced: 47.76 }
+      - { year: 2024, budget: 74.48 }
+      - { year: 2023, budget: 69.26 }
+  - name: Saobraćaj i transport
+    cutoffs:
+      - { year: 2025, budget: 53.18, selfFinanced: 37.48 }
+      - { year: 2024, budget: 56.24 }
+      - { year: 2023, budget: 65.04 }
+  - name: Čiste energetske tehnologije
+    cutoffs:
+      - { year: 2025, budget: 52.72 }
+      - { year: 2024, budget: 59.10 }
+      - { year: 2023, budget: 70.20 }
+  - name: Inženjerstvo zaštite životne sredine
+    cutoffs:
+      - { year: 2025, budget: 52.72 }
+      - { year: 2024, budget: 50.24 }
+  - name: Elektrotehnika
+    cutoffs:
+      - { year: 2025, budget: 51.66, selfFinanced: 31.66 }
+      - { year: 2024, budget: 52.20 }
+  - name: Upravljanje rizikom od katastrofalnih događaja i požara
+    cutoffs:
+      - { year: 2025, budget: 51.62 }
+      - { year: 2024, budget: 50.44 }
+  - name: Mehanizacija i konstrukciono mašinstvo
+    cutoffs:
+      - { year: 2025, budget: 50.78, selfFinanced: 43.88 }
+      - { year: 2024, budget: 60.68 }
+      - { year: 2023, budget: 57.08 }
+  - name: Merenje i regulacija
+    cutoffs:
+      - { year: 2025, budget: 50.72, selfFinanced: 40.70 }
+      - { year: 2024, budget: 55.60 }
+      - { year: 2023, budget: 67.20 }
+  - name: Poštanski saobraćaj i telekomunikacije
+    cutoffs:
+      - { year: 2025, budget: 50.46, selfFinanced: 48.50 }
+      - { year: 2024, budget: 50.48 }
+      - { year: 2023, budget: 53.62 }
+  - name: Energetika, elektronika i telekomunikacije (EET)
+    cutoffs:
+      - { year: 2025, budget: 50.24, selfFinanced: 30.44 }
+      - { year: 2024, budget: 50.12 }
+      - { year: 2023, budget: 62.28 }
