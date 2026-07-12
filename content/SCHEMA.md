@@ -31,4 +31,4 @@ Full worked solution in Serbian.
 
 - Serbian latin script only, matching the real exam.
 - Multi-part tasks keep their a) b) v) structure inside the statement; `answer` lists parts separated by `;`.
-- A task enters the platform only with `status: verified` (reviewed via PR).
+- `draft` tasks never reach the platform. `review` and `verified` are published; `review` marks a task awaiting final maintainer verification.
