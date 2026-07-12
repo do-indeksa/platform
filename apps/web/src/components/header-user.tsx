@@ -1,28 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import type { components } from "@/lib/api/schema";
-
-type User = components["schemas"]["User"];
+import { useUser } from "@/components/user-provider";
 
 export function HeaderUser() {
   const t = useTranslations("nav");
   const pathname = usePathname();
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [signingOut, setSigningOut] = useState(false);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/v1/me", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: User | null) => setUser(data))
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
+  const { user, signingOut, signOut } = useUser();
 
   if (user === null) {
     return (
@@ -57,19 +43,7 @@ export function HeaderUser() {
         </>
       )}
       <button
-        onClick={async () => {
-          setSigningOut(true);
-          try {
-            const res = await fetch("/api/v1/auth/logout", { method: "POST" });
-            if (res.ok) {
-              setUser(null);
-              router.refresh();
-            }
-          } catch {
-          } finally {
-            setSigningOut(false);
-          }
-        }}
+        onClick={signOut}
         disabled={signingOut}
         className="text-sm text-zinc-500 hover:underline disabled:opacity-50"
       >
