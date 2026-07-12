@@ -7,12 +7,20 @@ export default function Home() {
       <p className="max-w-md text-lg text-zinc-600">
         Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.
       </p>
-      <Link
-        href="/zadaci"
-        className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
-      >
-        Zadaci za vežbanje →
-      </Link>
+      <div className="flex flex-wrap justify-center gap-3">
+        <Link
+          href="/zadaci"
+          className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+        >
+          Zadaci za vežbanje →
+        </Link>
+        <Link
+          href="/kalkulator"
+          className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
+        >
+          Kalkulator bodova
+        </Link>
+      </div>
     </main>
   );
 }
