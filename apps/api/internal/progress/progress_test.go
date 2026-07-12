@@ -299,6 +299,52 @@ func TestSameTimestampBatchKeepsOrder(t *testing.T) {
 	}
 }
 
+func TestListCapsAtMostRecentThousand(t *testing.T) {
+	app := newTestApp(t)
+	ctx := context.Background()
+	user, err := auth.New(testPool).UpsertUser(ctx, auth.UpsertUserParams{
+		GoogleSub: "seed-" + t.Name(),
+		Email:     strings.ToLower(t.Name()) + "@example.com",
+		Name:      "Seed",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, err := authSvc.IssueSession(ctx, user.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := &http.Cookie{Name: auth.SessionCookieName, Value: token}
+
+	base := time.Now().Add(-2 * time.Hour).UTC()
+	params := make([]InsertAttemptsParams, 1001)
+	for i := range params {
+		params[i] = InsertAttemptsParams{
+			UserID:    user.ID,
+			TaskID:    fmt.Sprintf("t-%04d", i),
+			Slot:      1,
+			Correct:   true,
+			Source:    "practice",
+			CreatedAt: base.Add(time.Duration(i) * time.Second),
+		}
+	}
+	if _, err := New(testPool).InsertAttempts(ctx, params); err != nil {
+		t.Fatal(err)
+	}
+
+	res := do(t, app, "GET", "/v1/attempts", nil, session)
+	var attempts []api.Attempt
+	if err := json.NewDecoder(res.Body).Decode(&attempts); err != nil {
+		t.Fatal(err)
+	}
+	if len(attempts) != 1000 {
+		t.Fatalf("got %d attempts, want 1000", len(attempts))
+	}
+	if attempts[0].TaskId != "t-0001" || attempts[999].TaskId != "t-1000" {
+		t.Fatalf("cap kept wrong window: first %q last %q", attempts[0].TaskId, attempts[999].TaskId)
+	}
+}
+
 func TestAttemptsAreScopedToUser(t *testing.T) {
 	app := newTestApp(t)
 	owner := seedSession(t, "-owner")
