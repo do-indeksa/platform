@@ -21,7 +21,19 @@ import (
 	"github.com/do-indeksa/platform/apps/api/db"
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
+	"github.com/do-indeksa/platform/apps/api/internal/progress"
 )
+
+type authHandler = auth.Handler
+
+type progressHandler = progress.Handler
+
+type apiServer struct {
+	*authHandler
+	*progressHandler
+}
+
+var _ api.ServerInterface = apiServer{}
 
 func main() {
 	if err := run(); err != nil {
@@ -54,10 +66,15 @@ func run() error {
 	}
 	go cleanupLoop(ctx, authService)
 
+	srv := apiServer{
+		authHandler:     auth.NewHandler(authService),
+		progressHandler: progress.NewHandler(authService, progress.NewService(pool)),
+	}
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer, middleware.NoCache)
 	r.Get("/healthz", handleHealth)
-	api.HandlerWithOptions(auth.NewHandler(authService), api.ChiServerOptions{
+	api.HandlerWithOptions(srv, api.ChiServerOptions{
 		BaseRouter:       r,
 		ErrorHandlerFunc: auth.ParamErrorHandler,
 	})

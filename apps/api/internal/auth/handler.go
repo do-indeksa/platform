@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,26 +13,25 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
+	"github.com/do-indeksa/platform/apps/api/internal/httpx"
 )
 
 type Handler struct {
 	service *Service
 }
 
-var _ api.ServerInterface = (*Handler)(nil)
-
 func NewHandler(service *Service) *Handler {
 	return &Handler{service: service}
 }
 
 func ParamErrorHandler(w http.ResponseWriter, _ *http.Request, err error) {
-	writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+	httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 }
 
 func (h *Handler) StartGoogleAuth(w http.ResponseWriter, r *http.Request, params api.StartGoogleAuthParams) {
 	origin := requestOrigin(r)
 	if !h.service.originAllowed(origin) {
-		writeError(w, http.StatusBadRequest, "origin_not_allowed", "sign-in must start from a known origin")
+		httpx.WriteError(w, http.StatusBadRequest, "origin_not_allowed", "sign-in must start from a known origin")
 		return
 	}
 	verifier := oauth2.GenerateVerifier()
@@ -55,7 +53,7 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 	ctx := r.Context()
 	st, err := openState(h.service.cfg.Secret, params.State, time.Now())
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
 		return
 	}
 	if params.Error != nil && *params.Error != "" {
@@ -63,16 +61,16 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 	if params.Code == nil || *params.Code == "" {
-		writeError(w, http.StatusBadRequest, "missing_code", "authorization code is missing")
+		httpx.WriteError(w, http.StatusBadRequest, "missing_code", "authorization code is missing")
 		return
 	}
 	user, err := h.service.CompleteGoogleSignIn(ctx, *params.Code, st.Verifier)
 	switch {
 	case errors.Is(err, ErrCodeRejected):
-		writeError(w, http.StatusBadRequest, "invalid_code", "authorization code was rejected")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_code", "authorization code was rejected")
 		return
 	case errors.Is(err, ErrInvalidUserinfo):
-		writeError(w, http.StatusBadRequest, "userinfo_failed", "google profile is incomplete")
+		httpx.WriteError(w, http.StatusBadRequest, "userinfo_failed", "google profile is incomplete")
 		return
 	case err != nil:
 		h.serverError(w, err, "failed to complete sign-in")
@@ -97,7 +95,7 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 func (h *Handler) ExchangeAuthCode(w http.ResponseWriter, r *http.Request, params api.ExchangeAuthCodeParams) {
 	row, err := h.service.ExchangeHandoffCode(r.Context(), params.Code)
 	if errors.Is(err, pgx.ErrNoRows) {
-		writeError(w, http.StatusBadRequest, "invalid_code", "code is invalid, expired or already used")
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_code", "code is invalid, expired or already used")
 		return
 	}
 	if err != nil {
@@ -112,7 +110,7 @@ func (h *Handler) ExchangeAuthCode(w http.ResponseWriter, r *http.Request, param
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie(sessionCookieName); err == nil {
+	if cookie, err := r.Cookie(SessionCookieName); err == nil {
 		if err := h.service.Logout(r.Context(), cookie.Value); err != nil {
 			slog.Warn("logout session delete failed", "error", err)
 		}
@@ -122,14 +120,14 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(sessionCookieName)
+	cookie, err := r.Cookie(SessionCookieName)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
+		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
 		return
 	}
 	user, refreshed, err := h.service.SessionUser(r.Context(), cookie.Value)
 	if errors.Is(err, pgx.ErrNoRows) {
-		writeError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
+		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
 		return
 	}
 	if err != nil {
@@ -139,7 +137,7 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 	if refreshed {
 		http.SetCookie(w, h.service.sessionCookie(cookie.Value, int(sessionTTL.Seconds())))
 	}
-	writeJSON(w, http.StatusOK, api.User{
+	httpx.WriteJSON(w, http.StatusOK, api.User{
 		Id:         user.ID,
 		Email:      types.Email(user.Email),
 		Name:       user.Name,
@@ -158,7 +156,7 @@ func (h *Handler) setSessionCookie(w http.ResponseWriter, r *http.Request, user 
 
 func (h *Handler) serverError(w http.ResponseWriter, err error, message string) {
 	slog.Error(message, "error", err)
-	writeError(w, http.StatusInternalServerError, "internal", message)
+	httpx.WriteError(w, http.StatusInternalServerError, "internal", message)
 }
 
 func requestOrigin(r *http.Request) string {
@@ -187,14 +185,4 @@ func sanitizeRedirect(redirect *string) string {
 		return "/"
 	}
 	return *redirect
-}
-
-func writeError(w http.ResponseWriter, status int, code, message string) {
-	writeJSON(w, status, api.Error{Code: code, Message: message})
-}
-
-func writeJSON(w http.ResponseWriter, status int, body any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(body)
 }

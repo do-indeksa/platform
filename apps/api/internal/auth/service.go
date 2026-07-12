@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/oauth2"
 )
@@ -29,6 +30,7 @@ const googleUserinfoURL = "https://openidconnect.googleapis.com/v1/userinfo"
 var (
 	ErrCodeRejected    = errors.New("authorization code rejected")
 	ErrInvalidUserinfo = errors.New("userinfo is missing sub or email")
+	ErrNoSession       = errors.New("no valid session")
 )
 
 type Config struct {
@@ -136,6 +138,18 @@ func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, er
 		return row.User, false, nil
 	}
 	return row.User, true, nil
+}
+
+func (s *Service) RequestUser(r *http.Request) (User, error) {
+	cookie, err := r.Cookie(SessionCookieName)
+	if err != nil {
+		return User{}, ErrNoSession
+	}
+	user, _, err := s.SessionUser(r.Context(), cookie.Value)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, ErrNoSession
+	}
+	return user, err
 }
 
 func (s *Service) Logout(ctx context.Context, token string) error {
