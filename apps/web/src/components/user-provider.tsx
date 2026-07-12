@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import type { components } from "@/lib/api/schema";
-import { syncAttempts } from "@/lib/attempts-store";
+import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
 
 type User = components["schemas"]["User"];
 
@@ -31,7 +31,7 @@ export function useUser(): UserContextValue {
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>();
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -39,12 +39,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     fetch("/api/v1/me", { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: User | null) => setUser(data))
-      .catch(() => {});
+      .catch((err: unknown) => {
+        if (!(err instanceof DOMException && err.name === "AbortError")) {
+          setUser(null);
+        }
+      });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    void syncAttempts(user !== null);
+    if (user !== undefined) void syncAttempts(user !== null);
   }, [user]);
 
   const signOut = useCallback(async () => {
@@ -52,6 +56,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch("/api/v1/auth/logout", { method: "POST" });
       if (res.ok) {
+        clearLocalAttempts();
         setUser(null);
         router.refresh();
       }
@@ -62,6 +67,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <UserContext value={{ user, signingOut, signOut }}>{children}</UserContext>
+    <UserContext value={{ user: user ?? null, signingOut, signOut }}>
+      {children}
+    </UserContext>
   );
 }

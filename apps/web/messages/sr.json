@@ -24,7 +24,7 @@
     "weak": "slabo",
     "medium": "solidno",
     "strong": "sigurno",
-    "recentSummary": "{correct} od {total} poslednjih pokušaja tačno",
+    "recentSummary": "{total, plural, one {{correct} od poslednjeg pokušaja tačno} few {{correct} od poslednja {total} pokušaja tačno} other {{correct} od poslednjih {total} pokušaja tačno}}",
     "practiceCta": "Vežbaj →"
   },
   "diagnostic": {
