@@ -12,18 +12,17 @@ export function HeaderUser() {
   const t = useTranslations("nav");
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>();
+  const [user, setUser] = useState<User | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/v1/me", { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : null))
-      .then(setUser)
+      .then((data: User | null) => setUser(data))
       .catch(() => {});
     return () => controller.abort();
   }, []);
-
-  if (user === undefined) return <span className="block h-8 w-8" />;
 
   if (user === null) {
     return (
@@ -47,20 +46,30 @@ export function HeaderUser() {
           className="rounded-full"
         />
       ) : (
-        <span
-          aria-hidden
-          className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-sm font-medium text-white"
-        >
-          {user.name[0]}
-        </span>
+        <>
+          <span
+            aria-hidden
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-sm font-medium text-white"
+          >
+            {user.name[0]}
+          </span>
+          <span className="sr-only">{user.name}</span>
+        </>
       )}
       <button
         onClick={async () => {
-          await fetch("/api/v1/auth/logout", { method: "POST" });
-          setUser(null);
-          router.refresh();
+          setSigningOut(true);
+          try {
+            await fetch("/api/v1/auth/logout", { method: "POST" });
+            setUser(null);
+            router.refresh();
+          } catch {
+          } finally {
+            setSigningOut(false);
+          }
         }}
-        className="text-sm text-zinc-500 hover:underline"
+        disabled={signingOut}
+        className="text-sm text-zinc-500 hover:underline disabled:opacity-50"
       >
         {t("signOut")}
       </button>
