@@ -2,11 +2,27 @@
 
 **Free platform helping Serbian maturanti (final-year high-school students) choose a faculty and prepare for university entrance exams.**
 
+[![web CI](https://github.com/do-indeksa/platform/actions/workflows/web.yml/badge.svg)](https://github.com/do-indeksa/platform/actions/workflows/web.yml)
+[![container CI](https://github.com/do-indeksa/platform/actions/workflows/images.yml/badge.svg)](https://github.com/do-indeksa/platform/actions/workflows/images.yml)
+
 > Srpska verzija: [README.sr.md](README.sr.md)
 
 ## Mission
 
 Equal chances for admission — regardless of city or income. Quality preparation currently costs 20–30 € per private lesson, and the free alternatives are outdated collections and scattered PDFs. Do indeksa is the free, modern alternative.
+
+## Current MVP
+
+- Unified FTN P1 task bank with search, filters, selected practice, exact answer checking, two-level hints, and worked solutions.
+- Resumable diagnostic, deterministic prep plan, task of the day and streak, four-hour blueprint-based mock exam, and detailed local history.
+- Current FTN entrance-exam catalog covering 29 programs and the official P1/P3-P8 groups; there is no fictional P2 or physics exam.
+- 30 independently authored tasks across all ten P1 areas. The first three complete topic packs (9 tasks) have versioned mathematical verification records; the remaining 21 stay explicitly in review.
+- Responsive `sr-Latn`, English, and Russian interface. Canonical educational content remains Serbian Latin, matching the exam.
+- Go API with Google OAuth, secure cookie sessions, Postgres migrations, and a gqlgen run/attempt lifecycle.
+
+Production release preparation is in progress. The canonical VMCore deployment
+still requires freshly issued Google OAuth credentials; analytics remains
+disabled fail-closed until a vulnerability-clean self-hosted image is available.
 
 ## Two pillars
 
@@ -34,6 +50,20 @@ Long term: a platform ready for the state matura (2028/29) — before the system
 
 User data lives in Postgres; educational content lives in git.
 
+## Run locally
+
+Node.js 22.13 or newer is required for the web application:
+
+```bash
+cd apps/web
+npm ci
+npm run dev
+```
+
+Open <http://localhost:3000>. Guest learning flows work without an account. For
+the full stack, including Postgres, OAuth, and GraphQL, follow
+[apps/api/README.md](apps/api/README.md).
+
 ## Licensing
 
 - Code — [MIT](LICENSE)
@@ -41,4 +71,4 @@ User data lives in Postgres; educational content lives in git.
 
 ## Languages
 
-Canonical educational content is in Serbian (Latin script), matching the real exam. Serbian is the current interface language; English and Russian are in the active localization roadmap. Code and primary technical documentation are in English.
+Canonical educational content is in Serbian (Latin script), matching the real exam. The complete interface is available in Serbian, English, and Russian. Code and primary technical documentation are in English.
