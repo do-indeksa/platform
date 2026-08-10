@@ -1,10 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { recordAttempts } from "@/lib/attempts-store";
-import { simulationScore } from "@/lib/scoring";
+import { recordAttempts } from "./attempts-store";
+import { binaryTrainerEstimate } from "./scoring";
 
-export const EXAM_DURATION_MS = 180 * 60 * 1000;
+export const EXAM_DURATION_MS = 240 * 60 * 1000;
 export const DIAGNOSTIC_DURATION_MS = 40 * 60 * 1000;
+
+const LEGACY_EXAM_EXTENSION_MS = 60 * 60 * 1000;
 
 export type RunKind = "simulation" | "diagnostic";
 
@@ -16,6 +18,8 @@ const RUN_DURATION_MS: Record<RunKind, number> = {
 export type SimulationTask = {
   id: string;
   slot: number;
+  examPosition: number;
+  maxPoints: number;
   topicName: string;
   statementHtml: string;
   solutionHtml: string;
@@ -45,6 +49,11 @@ type SimulationState = {
   finish: () => void;
   reset: () => void;
 };
+
+type PersistedSimulationState = Pick<
+  SimulationState,
+  "kind" | "tasks" | "marks" | "phase" | "endsAt" | "currentIndex" | "history"
+>;
 
 export const useSimulation = create<SimulationState>()(
   persist(
@@ -85,7 +94,10 @@ export const useSimulation = create<SimulationState>()(
         }
         const entry: HistoryEntry = {
           finishedAt: Date.now(),
-          score: simulationScore(marks),
+          score: binaryTrainerEstimate(
+            marks,
+            tasks.map((task) => task.maxPoints),
+          ),
           taskIds: tasks.map((task) => task.id),
         };
         set({ phase: "done", history: [entry, ...history] });
@@ -102,28 +114,71 @@ export const useSimulation = create<SimulationState>()(
     }),
     {
       name: "do-indeksa-simulation",
-      version: 2,
-      migrate: (persisted, version) => {
-        if (version === 0) {
-          const { history } = persisted as { history?: HistoryEntry[] };
-          return {
-            kind: "simulation" as const,
-            tasks: [],
-            marks: [],
-            phase: null,
-            endsAt: null,
-            currentIndex: 0,
-            history: history ?? [],
-          };
-        }
-        if (version === 1) {
-          return {
-            ...(persisted as Omit<SimulationState, "kind">),
-            kind: "simulation" as const,
-          };
-        }
-        return persisted as SimulationState;
-      },
+      version: 3,
+      migrate: migrateSimulationState,
     },
   ),
 );
+
+export function migrateSimulationState(
+  persisted: unknown,
+  version: number,
+): PersistedSimulationState {
+  if (version === 0) {
+    const history =
+      isRecord(persisted) && Array.isArray(persisted.history)
+        ? (persisted.history as HistoryEntry[])
+        : [];
+    return emptyPersistedState(history);
+  }
+
+  if (!isRecord(persisted)) return emptyPersistedState();
+
+  const legacy = persisted as Partial<PersistedSimulationState>;
+  const kind = version === 1 ? "simulation" : legacy.kind;
+  const tasks = Array.isArray(legacy.tasks)
+    ? legacy.tasks.map((task) => ({
+        ...task,
+        examPosition:
+          typeof task.examPosition === "number" ? task.examPosition : task.slot,
+        maxPoints: typeof task.maxPoints === "number" ? task.maxPoints : 6,
+      }))
+    : [];
+  const shouldExtendDeadline =
+    version < 3 &&
+    kind === "simulation" &&
+    legacy.phase === "running" &&
+    typeof legacy.endsAt === "number" &&
+    Number.isFinite(legacy.endsAt);
+
+  return {
+    kind: kind ?? "simulation",
+    tasks,
+    marks: Array.isArray(legacy.marks) ? legacy.marks : [],
+    phase: legacy.phase ?? null,
+    endsAt: shouldExtendDeadline
+      ? (legacy.endsAt as number) + LEGACY_EXAM_EXTENSION_MS
+      : (legacy.endsAt ?? null),
+    currentIndex:
+      typeof legacy.currentIndex === "number" ? legacy.currentIndex : 0,
+    history: Array.isArray(legacy.history) ? legacy.history : [],
+  };
+}
+
+function emptyPersistedState(
+  history: HistoryEntry[] = [],
+): PersistedSimulationState {
+  return {
+    kind: "simulation",
+    tasks: [],
+    marks: [],
+    phase: null,
+    endsAt: null,
+    currentIndex: 0,
+    history,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

@@ -17,12 +17,20 @@ export function totalScore(
   return schoolPoints(gradeAverages) + examPoints;
 }
 
-export const POINTS_PER_TASK = 6;
-
 export function toHundredths(points: number): number {
   return Math.round(points * 100);
 }
 
-export function simulationScore(marks: (boolean | null)[]): number {
-  return marks.filter(Boolean).length * POINTS_PER_TASK;
+export function binaryTrainerEstimate(
+  marks: (boolean | null)[],
+  maxPointsByTask: number[],
+): number {
+  if (marks.length !== maxPointsByTask.length) {
+    throw new Error("marks and task points must have equal lengths");
+  }
+  return marks.reduce(
+    (total, mark, index) =>
+      total + (mark === true ? maxPointsByTask[index] : 0),
+    0,
+  );
 }

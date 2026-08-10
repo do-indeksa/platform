@@ -18,26 +18,21 @@ export default async function TopicsPage() {
     <main className="mx-auto max-w-2xl p-8">
       <h1 className="mb-2 text-3xl font-bold">{t("title")}</h1>
       <p className="mb-8 text-zinc-600">{t("intro")}</p>
-      <ol className="space-y-2">
+      <ul className="space-y-2">
         {topics.map((topic, i) => (
           <li key={topic.slug}>
             <Link
               href={`/tasks/${topic.slug}`}
               className="flex items-baseline justify-between gap-4 rounded-lg border border-zinc-200 p-4 transition-colors hover:border-zinc-400"
             >
-              <span>
-                <span className="mr-3 font-mono text-sm text-zinc-400">
-                  {topic.slot}.
-                </span>
-                <span className="font-medium">{topic.name}</span>
-              </span>
+              <span className="font-medium">{topic.name}</span>
               <span className="shrink-0 text-sm text-zinc-500">
                 {t("count", { count: counts[i] })}
               </span>
             </Link>
           </li>
         ))}
-      </ol>
+      </ul>
     </main>
   );
 }

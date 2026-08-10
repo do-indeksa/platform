@@ -30,7 +30,7 @@ export function SimulationHistory() {
               })}
             </span>
             <span className="font-mono font-medium">
-              {t("scoreOf", { score: entry.score })}
+              {t("estimateHistory", { score: entry.score })}
             </span>
           </li>
         ))}

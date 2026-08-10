@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { schoolPoints, simulationScore, totalScore } from "./scoring";
+import { binaryTrainerEstimate, schoolPoints, totalScore } from "./scoring";
 
 describe("schoolPoints", () => {
   it.each([
@@ -23,7 +23,7 @@ describe("totalScore", () => {
   });
 });
 
-describe("simulationScore", () => {
+describe("binaryTrainerEstimate", () => {
   it.each([
     {
       marks: [true, true, true, true, true, true, true, true, true, true],
@@ -38,6 +38,16 @@ describe("simulationScore", () => {
       expected: 30,
     },
   ])("$marks → $expected", ({ marks, expected }) => {
-    expect(simulationScore(marks)).toBe(expected);
+    expect(binaryTrainerEstimate(marks, Array(10).fill(6))).toBe(expected);
+  });
+
+  it("uses the maximum points attached to each blueprint position", () => {
+    expect(binaryTrainerEstimate([true, false, true], [4, 7, 9])).toBe(13);
+  });
+
+  it("rejects mismatched marks and point values", () => {
+    expect(() => binaryTrainerEstimate([true], [4, 6])).toThrow(
+      "marks and task points must have equal lengths",
+    );
   });
 });
