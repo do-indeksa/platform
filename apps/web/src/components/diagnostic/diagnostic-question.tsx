@@ -7,11 +7,20 @@ import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { AnswerField } from "@/components/task-check/answer-field";
 import { Link, useRouter } from "@/i18n/navigation";
 import { trackTaskSolved } from "@/lib/analytics";
+import { persistCompletedDiagnosticRun } from "@/lib/diagnostic-progress";
 import { useDiagnostic } from "@/lib/diagnostic-store";
 import { recordTaskHistory } from "@/lib/task-history-store";
 import type { DiagnosticTaskView } from "./types";
 
-export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
+export function DiagnosticQuestion({
+  tasks,
+  blueprintVersion,
+  contentRevision,
+}: {
+  tasks: DiagnosticTaskView[];
+  blueprintVersion: string;
+  contentRevision: string;
+}) {
   const t = useTranslations("diagnostic");
   const router = useRouter();
   const currentIndex = useDiagnostic((state) => state.currentIndex);
@@ -67,11 +76,24 @@ export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
           position: task.examPosition,
         });
       }
-      completeCurrent(task.id, result.outcome);
+      complete(result.outcome);
     } catch {
       setError(t("checkUnavailable"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const complete = (outcome: "correct" | "incorrect" | "skipped") => {
+    completeCurrent(task.id, outcome);
+    const state = useDiagnostic.getState();
+    if (state.phase === "done") {
+      persistCompletedDiagnosticRun(
+        state,
+        tasks,
+        blueprintVersion,
+        contentRevision,
+      );
     }
   };
 
@@ -198,7 +220,7 @@ export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
                     helpLevel: 0,
                   },
                 ]);
-                completeCurrent(task.id, "skipped");
+                complete("skipped");
               }}
               className="inline-flex min-h-12 items-center justify-center gap-2 px-4 py-3 font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"
             >

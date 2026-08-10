@@ -5,7 +5,7 @@ import {
   type DiagnosticResultTask,
 } from "@/components/diagnostic";
 import { redirect } from "@/i18n/navigation";
-import { getTaskReferences } from "@/lib/content";
+import { getTaskReferences, taskSetRevision } from "@/lib/content";
 import {
   DIAGNOSTIC_TASK_COUNT,
   parseDiagnosticRunQuery,
@@ -46,6 +46,7 @@ export default async function DiagnosticResultPage({
       );
       return {
         id: task.id,
+        revision: task.revision,
         slot: task.slot,
         examPosition,
         topic: task.topic,
@@ -57,5 +58,12 @@ export default async function DiagnosticResultPage({
     },
   );
 
-  return <DiagnosticResult runId={run.runId} tasks={tasks} />;
+  return (
+    <DiagnosticResult
+      runId={run.runId}
+      tasks={tasks}
+      blueprintVersion={`${variant.blueprint.examId}:${variant.blueprint.version}`}
+      contentRevision={taskSetRevision(variant.tasks.map(({ task }) => task))}
+    />
+  );
 }

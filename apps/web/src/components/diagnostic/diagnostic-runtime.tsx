@@ -14,9 +14,13 @@ import type { DiagnosticTaskView } from "./types";
 export function DiagnosticRuntime({
   runId,
   tasks,
+  blueprintVersion,
+  contentRevision,
 }: {
   runId: string;
   tasks: DiagnosticTaskView[];
+  blueprintVersion: string;
+  contentRevision: string;
 }) {
   const t = useTranslations("diagnostic");
   const hydrated = useHydrated();
@@ -95,7 +99,13 @@ export function DiagnosticRuntime({
   if (activeRunId !== runId || phase !== "running") {
     return <LoadingState label={t("redirecting")} />;
   }
-  return <DiagnosticQuestion tasks={tasks} />;
+  return (
+    <DiagnosticQuestion
+      tasks={tasks}
+      blueprintVersion={blueprintVersion}
+      contentRevision={contentRevision}
+    />
+  );
 }
 
 function sameValues<T>(left: readonly T[], right: readonly T[]): boolean {

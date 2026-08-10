@@ -6,8 +6,10 @@ import {
 } from "./progress-run";
 
 const STORAGE_KEY = "do-indeksa-progress-outbox";
+const RECEIPT_STORAGE_KEY = "do-indeksa-progress-receipts";
 const STORAGE_VERSION = 1;
 const MAX_PENDING_RUNS = 20;
+const MAX_SYNCED_RUNS = 50;
 const MAX_STORAGE_CHARACTERS = 4_000_000;
 
 type PendingProgressRun = {
@@ -49,6 +51,10 @@ export async function queueCompletedProgressRun(
   if (run === null) return false;
 
   const pending = loadOutbox();
+  if (isProgressRunSynced(run.id)) {
+    saveOutbox(pending.filter((entry) => entry.run.id !== run.id));
+    return true;
+  }
   const existing = pending.find((entry) => entry.run.id === run.id);
   const ownerId = activeOwnerId ?? null;
   if (existing) {
@@ -93,6 +99,10 @@ export function clearProgressSync(): void {
   saveOutbox(guestRuns);
 }
 
+export function isProgressRunSynced(runId: string): boolean {
+  return isUuid(runId) && loadReceipts().includes(runId);
+}
+
 function scheduleFlush(userId: string, generation: number): Promise<void> {
   flushChain = flushChain
     .then(() => flushOwner(userId, generation))
@@ -106,6 +116,17 @@ async function flushOwner(userId: string, generation: number): Promise<void> {
       (candidate) => candidate.ownerId === userId,
     );
     if (!entry) return;
+    if (isProgressRunSynced(entry.run.id)) {
+      const pending = loadOutbox();
+      if (
+        !saveOutbox(
+          pending.filter((candidate) => candidate.run.id !== entry.run.id),
+        )
+      ) {
+        return;
+      }
+      continue;
+    }
     try {
       await sendRun(entry.run, () => isCurrentOwner(userId, generation));
     } catch {
@@ -115,6 +136,7 @@ async function flushOwner(userId: string, generation: number): Promise<void> {
 
     const acknowledged = await acknowledgeGraphQLRun(entry.run.id);
     if (!acknowledged || !isCurrentOwner(userId, generation)) return;
+    if (!recordReceipt(entry.run.id)) return;
 
     const pending = loadOutbox();
     const current = pending.find(
@@ -285,6 +307,48 @@ function saveOutbox(pending: PendingProgressRun[]): boolean {
     const raw = JSON.stringify({ version: STORAGE_VERSION, pending });
     if (raw.length > MAX_STORAGE_CHARACTERS) return false;
     localStorage.setItem(STORAGE_KEY, raw);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function loadReceipts(): string[] {
+  try {
+    const raw = localStorage.getItem(RECEIPT_STORAGE_KEY);
+    if (!raw || raw.length > 4_000) return [];
+    const value: unknown = JSON.parse(raw);
+    const runIds = isRecord(value) ? value.runIds : undefined;
+    if (
+      !isRecord(value) ||
+      value.version !== STORAGE_VERSION ||
+      !Array.isArray(runIds) ||
+      runIds.length > MAX_SYNCED_RUNS
+    ) {
+      return [];
+    }
+    return runIds.filter(
+      (runId, index): runId is string =>
+        typeof runId === "string" &&
+        isUuid(runId) &&
+        runIds.indexOf(runId) === index,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function recordReceipt(runId: string): boolean {
+  try {
+    const runIds = loadReceipts().filter((candidate) => candidate !== runId);
+    runIds.push(runId);
+    localStorage.setItem(
+      RECEIPT_STORAGE_KEY,
+      JSON.stringify({
+        version: STORAGE_VERSION,
+        runIds: runIds.slice(-MAX_SYNCED_RUNS),
+      }),
+    );
     return true;
   } catch {
     return false;
