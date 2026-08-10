@@ -152,8 +152,8 @@
   "home": {
     "metadataTitle": "Prepare for the FTN P1 exam",
     "metadataDescription": "Practice tasks, check your level and build a preparation plan for the FTN P1 mathematics entrance exam.",
-    "context": "FTN Novi Sad · P1 · Mathematics",
-    "verifiedFormat": "Verified format {version}",
+    "context": "FTN Novi Sad · P1",
+    "verifiedFormat": "Verified · {version}",
     "title": "Prepare for the P1 mathematics exam",
     "intro": "The current exam has {tasks} tasks, lasts {hours} hours and carries up to {points} points.",
     "facts": {

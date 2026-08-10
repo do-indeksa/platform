@@ -152,8 +152,8 @@
   "home": {
     "metadataTitle": "Подготовка к экзамену FTN P1",
     "metadataDescription": "Решайте задания, проверяйте уровень и составляйте план подготовки к вступительному экзамену FTN P1 по математике.",
-    "context": "FTN Novi Sad · P1 · Математика",
-    "verifiedFormat": "Подтверждённый формат {version}",
+    "context": "FTN Novi Sad · P1",
+    "verifiedFormat": "Подтверждено · {version}",
     "title": "Подготовка к P1 по математике",
     "intro": "Актуальный экзамен состоит из {tasks} заданий, длится {hours} часа и оценивается максимум в {points} баллов.",
     "facts": {
