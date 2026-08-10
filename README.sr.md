@@ -10,18 +10,18 @@ Jednake šanse za upis — bez obzira na mesto i prihode. Kvalitetna priprema da
 
 ## Dva stuba platforme
 
-| Stub | Šta radi |
-|---|---|
-| **Izaberi** | Vodič kroz fakultete: programi objašnjeni ljudskim jezikom, bodovanje i kvote, iskustva studenata |
-| **Spremi se** | Baza zadataka sa detaljnim rešenjima, napredak po temama, simulacije sa tajmerom (180 min, realan format P1) |
+| Stub          | Šta radi                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| **Izaberi**   | Vodič kroz fakultete: programi objašnjeni ljudskim jezikom, bodovanje i kvote, iskustva studenata |
+| **Spremi se** | Baza zadataka sa detaljnim rešenjima, napredak po temama i četvoročasovne simulacije FTN P1       |
 
 ## Roadmap
 
-| Kada | Faza | Obim |
-|---|---|---|
-| jesen 2026 | **MVP** | Matematika za prijemni FTN (P1) + vodič kroz novosadske fakultete |
-| zima 2026/27 | **Pilot** | 2–3 škole, povratne informacije maturanata, novi sadržaj |
-| proleće 2027 | **Pun ciklus** | Kompletna priprema pred junski prijemni; širenje na ETF i FON |
+| Kada         | Faza           | Obim                                                              |
+| ------------ | -------------- | ----------------------------------------------------------------- |
+| jesen 2026   | **MVP**        | Matematika za prijemni FTN (P1) + vodič kroz novosadske fakultete |
+| zima 2026/27 | **Pilot**      | 2–3 škole, povratne informacije maturanata, novi sadržaj          |
+| proleće 2027 | **Pun ciklus** | Kompletna priprema pred junski prijemni; širenje na ETF i FON     |
 
 Dugoročno: platforma spremna za državnu maturu (2028/29) — pre nego što sistem stigne.
 
@@ -41,4 +41,4 @@ Korisnički podaci žive u Postgres-u; obrazovni sadržaj živi u git-u.
 
 ## Jezici
 
-Sadržaj platforme je na srpskom (latinica), kao na pravom ispitu. Kod i tehnička dokumentacija su na engleskom.
+Kanonski obrazovni sadržaj je na srpskom (latinica), kao na pravom ispitu. Trenutni interfejs je na srpskom; engleski i ruski su u aktivnom planu lokalizacije. Kod i glavna tehnička dokumentacija su na engleskom.

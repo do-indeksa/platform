@@ -26,17 +26,18 @@ apps/api/
   db/migrations/           goose
 ```
 
-- Thin handler → service → **sqlc** (type-safe SQL, no ORM)
+- Thin gqlgen resolver or HTTP handler → service → **sqlc** (type-safe SQL, no ORM)
 - Postgres via pgx; migrations via goose
 - No interfaces until a second implementation exists
-- Ubiquitous language everywhere: slot, task, variant, attempt, knowledge map
+- Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
+- GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints
 
 ## Frontend (Next.js)
 
 - App Router, Server Components by default (content pages are server-rendered — SEO)
 - Client components only for interactive islands: timer, solver, charts
 - TypeScript strict, no `any`
-- State: **Zustand scoped to the exam/solver runtime** (timer, answers, current task) with `persist` middleware — a page refresh must not kill a 180-minute attempt. Everything else is server state.
+- State: **Zustand scoped to the exam/solver runtime** (timer, answers, current task) with `persist` middleware — a page refresh must not kill a four-hour attempt. Everything else is server state.
 - Content from `content/` is loaded at build time
 
 ## Linting (blocking in CI)
@@ -46,13 +47,13 @@ apps/api/
 
 ## Testing policy
 
-| Kind | Covers | Rule |
-|---|---|---|
-| Unit (table-driven) | Domain core: P1 scoring, variant generator, knowledge-map calc, score-calculator formula | Mandatory, ~80%+ — a wrong score destroys user trust |
-| Integration | API endpoints against real Postgres (testcontainers) | Golden path per endpoint |
-| Component | Timer, solution reveal, answer submission (Vitest + Testing Library) | Critical interactions only |
-| Content validation | Every content file: frontmatter schema, answer present, LaTeX compiles | **Blocking CI check** — broken content breaks the product |
-| E2E (Playwright) | Smoke: open → solve → see progress | Post-MVP, 2–3 scenarios |
+| Kind                | Covers                                                                                   | Rule                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Unit (table-driven) | Domain core: P1 scoring, variant generator, knowledge-map calc, score-calculator formula | Mandatory, ~80%+ — a wrong score destroys user trust      |
+| Integration         | API endpoints against real Postgres (testcontainers)                                     | Golden path per endpoint                                  |
+| Component           | Timer, solution reveal, answer submission (Vitest + Testing Library)                     | Critical interactions only                                |
+| Content validation  | Every content file: frontmatter schema, answer present, LaTeX compiles                   | **Blocking CI check** — broken content breaks the product |
+| E2E (Playwright)    | Smoke: open → solve → see progress                                                       | Post-MVP, 2–3 scenarios                                   |
 
 ## Coverage
 

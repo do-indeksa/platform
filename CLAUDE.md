@@ -26,11 +26,11 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 
 ## Stack and architecture (locked 2026-07-11)
 
-- Backend: Go, single monolith (chi + pgx + sqlc) — accounts (Google OAuth), progress, simulation results, metrics. No microservices.
+- Backend: Go monolith (gqlgen product API + HTTP OAuth/session/health endpoints, pgx + sqlc). No microservices.
 - Frontend: Next.js + KaTeX. Zustand scoped to exam runtime only.
 - DB: Postgres (Neon free tier). User data only.
 - Content lives in git, not in the DB: tasks as Markdown + YAML frontmatter in `content/`, changed via reviewed PRs.
-- Deploy: web — Vercel (prod: https://do-indeksa.vercel.app); api — Railway (Free now, Hobby at public launch); Postgres — Neon (ADR-0008).
+- Target deploy: the owner's Kubernetes platform with direct Gateway routing to web and API. Audit the current VMCore/Coverflow state before changing infrastructure; Vercel remains a preview until migration is verified.
 - Monorepo: `apps/web`, `apps/api`, `content/`, `tools/`. Details: `docs/ENGINEERING.md`, decisions: `docs/decisions/`.
 
 ## Code and docs — no noise
@@ -52,4 +52,4 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 
 - `~/Documents/FTN/FTN_P1_Materijali/` — task bank, authored variants, thematic sheets; LaTeX sources in `_LaTeX_izvori/`.
 - `~/Documents/FTN/Prijem_i_napravljenja/` — guide data: FTN programs 2026, score thresholds, site map.
-- P1 format: 10 tasks × 6 points = 60 total, 180 minutes.
+- Current P1 format: 10 tasks, 4 hours, at most 60 points. FTN grades the shown method and can award partial credit; binary answer checks are trainer feedback, not official scoring.

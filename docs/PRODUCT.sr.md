@@ -11,18 +11,18 @@ Svaki maturant u Srbiji koji se sprema za prijemni na državnim univerzitetima. 
 UX uzor je model „banke zadataka" dokazan na velikim platformama za pripremu ispita: zvanične PDF zbirke imaju više sadržaja, ali učenici biraju platformu zbog četiri stvari:
 
 1. **Trenutna provera** — rešavaš u browseru, odmah proveriš, bez traženja rešenja po knjigama
-2. **Navigacija po slotovima ispita** — ispit ima fiksnu strukturu, pa je vežbanje organizovano „po broju zadatka"
+2. **Navigacija po oblastima i pozicijama** — vežbanje prati proverenu strukturu konkretne godišnje verzije ispita
 3. **Generator varijanti** — neograničeni probni ispiti sastavljeni iz banke
 4. **Statistika** — vidljiv lični napredak kroz vreme
 
-P1 se savršeno uklapa: uvek ima 10 zadataka fiksnih tipova (slot 3 = logaritmi, slot 10 = kombinatorika, …). Struktura slotova JESTE navigacija.
+P1 ima deset pozicija, ali tema nije trajno vezana za jednu poziciju: logaritamski i eksponencijalni zadaci zamenili su pozicije 3 i 4 između zvaničnih varijanti iz 2025. i 2026. Vežbanje se organizuje po stabilnim matematičkim oblastima, a probni ispiti po verzionisanom godišnjem blueprint-u.
 
 ## Osnovna petlja
 
 ```
-Dijagnostički test (10 zadataka, po jedan iz svakog slota, ~40 min)
+Dijagnostički test (kratka provera oblasti P1, ~40 min)
         ↓
-Karta znanja: slabi slotovi istaknuti → lični plan pripreme do juna
+Karta znanja: slabe oblasti istaknute → lični plan pripreme do juna
         ↓
 Dnevno vežbanje: tema iz plana / zadatak dana
         ↓
@@ -33,15 +33,15 @@ Karta znanja se ažurira → plan se preračunava → ponovi
 
 ## Mehanike zadržavanja
 
-| Mehanika | Cena | Efekat | Kada |
-|---|---|---|---|
-| Karta znanja: % savladanosti po slotu | niska | jezgro | MVP |
-| Generator varijanti: nasumičan zadatak po slotu | niska | ~300 zadataka → neograničeni probni | MVP |
-| Plan pripreme: nedeljni checklist do ispita | srednja | razlog br. 1 za povratak | MVP (pojednostavljen) |
-| Grafik rasta bodova kroz pokušaje | niska | „napredak koji se meri" | MVP |
-| Zadatak dana + streak | niska | dnevna kuka | MVP ako stignemo |
-| Email pregled „tvoja nedelja" | srednja | reaktivacija | jesen |
-| Nalozi za nastavnike (zadavanje domaćih) | visoka | glavni kanal rasta referentnog modela | pilot, zima |
+| Mehanika                                    | Cena    | Efekat                                             | Kada                  |
+| ------------------------------------------- | ------- | -------------------------------------------------- | --------------------- |
+| Karta znanja: % savladanosti po oblasti     | niska   | jezgro                                             | MVP                   |
+| Generator po blueprint-u                    | niska   | od proverene banke pravi godišnje probne varijante | MVP                   |
+| Plan pripreme: nedeljni checklist do ispita | srednja | razlog br. 1 za povratak                           | MVP (pojednostavljen) |
+| Grafik rasta bodova kroz pokušaje           | niska   | „napredak koji se meri"                            | MVP                   |
+| Zadatak dana + streak                       | niska   | dnevna kuka                                        | MVP ako stignemo      |
+| Email pregled „tvoja nedelja"               | srednja | reaktivacija                                       | jesen                 |
+| Nalozi za nastavnike (zadavanje domaćih)    | visoka  | glavni kanal rasta referentnog modela              | pilot, zima           |
 
 ## Privlačenje korisnika (nula budžeta)
 
@@ -52,10 +52,10 @@ Karta znanja se ažurira → plan se preračunava → ponovi
 
 ## Obim MVP-a (kraj jula 2026)
 
-- Katalog zadataka po slotu/temi sa težinom i brojačima
+- Katalog zadataka po oblasti sa težinom i brojačima
 - Stranica zadatka: tekst (KaTeX), prikaz rešenja, samoprovera
 - Dijagnostički test → karta znanja
-- Simulacija: tajmer 180 min, bodovanje P1 (10 × 6 = 60), istorija pokušaja
+- Simulacija: tajmer 4 sata, samoprovera postupka, jasno označena procena trenažera i istorija pokušaja
 - Generator varijanti
 - Pojednostavljen plan pripreme (nedeljni checklist)
 - Kalkulator bodova + vodič kroz FTN smerove
