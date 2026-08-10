@@ -8,7 +8,9 @@ import {
   Target,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect } from "react";
 import { Link } from "@/i18n/navigation";
+import { persistCompletedDiagnosticRun } from "@/lib/diagnostic-progress";
 import { diagnosticPracticeSet } from "@/lib/diagnostic-result";
 import { useDiagnostic, type DiagnosticOutcome } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -18,9 +20,13 @@ import type { DiagnosticResultTask } from "./types";
 export function DiagnosticResult({
   runId,
   tasks,
+  blueprintVersion,
+  contentRevision,
 }: {
   runId: string;
   tasks: DiagnosticResultTask[];
+  blueprintVersion: string;
+  contentRevision: string;
 }) {
   const t = useTranslations("diagnostic");
   const hydrated = useHydrated();
@@ -29,6 +35,17 @@ export function DiagnosticResult({
     state.runId === runId &&
     state.taskIds.length === tasks.length &&
     state.taskIds.every((taskId, index) => taskId === tasks[index].id);
+
+  useEffect(() => {
+    if (hydrated && matchingRun && state.phase === "done") {
+      persistCompletedDiagnosticRun(
+        state,
+        tasks,
+        blueprintVersion,
+        contentRevision,
+      );
+    }
+  }, [blueprintVersion, contentRevision, hydrated, matchingRun, state, tasks]);
 
   if (!hydrated) {
     return (

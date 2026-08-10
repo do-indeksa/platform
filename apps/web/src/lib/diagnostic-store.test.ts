@@ -28,6 +28,7 @@ function persisted(overrides: Record<string, unknown> = {}) {
     slots,
     answers: answerPartCounts.map((count) => Array(count).fill("")),
     outcomes: Array(10).fill(null),
+    completedAt: Array(10).fill(null),
     phase: "running",
     currentIndex: 0,
     startedAt: Date.UTC(2026, 7, 10),
@@ -49,6 +50,7 @@ describe("diagnostic persistence", () => {
       answers: [["1", ""], ...answerPartCounts.slice(1).map(() => [""])],
       phase: "running",
       currentIndex: 0,
+      completedAt: Array(10).fill(null),
     });
     expect(useDiagnostic.getState()).not.toHaveProperty("tasks");
   });
@@ -89,6 +91,9 @@ describe("diagnostic persistence", () => {
         "skipped",
       ],
     });
+    expect(useDiagnostic.getState().completedAt.every(Number.isInteger)).toBe(
+      true,
+    );
 
     useDiagnostic.getState().start({ runId, taskIds, slots, answerPartCounts });
     expect(useDiagnostic.getState().phase).toBe("done");
@@ -126,6 +131,42 @@ describe("diagnostic persistence", () => {
         answers,
       },
     );
+  });
+
+  it("migrates completion times missing from a legacy active run", () => {
+    const value = persisted({
+      outcomes: ["correct", ...Array(9).fill(null)],
+      currentIndex: 1,
+    });
+    const legacy = Object.fromEntries(
+      Object.entries(value).filter(([key]) => key !== "completedAt"),
+    );
+
+    expect(parsePersistedDiagnosticState(legacy).completedAt).toEqual([
+      value.startedAt,
+      ...Array(9).fill(null),
+    ]);
+  });
+
+  it("rejects mismatched or decreasing completion times", () => {
+    const startedAt = Date.UTC(2026, 7, 10);
+    const active = persisted({
+      outcomes: ["correct", "incorrect", ...Array(8).fill(null)],
+      currentIndex: 2,
+    });
+
+    expect(
+      parsePersistedDiagnosticState({
+        ...active,
+        completedAt: [startedAt + 1, null, ...Array(8).fill(null)],
+      }).phase,
+    ).toBeNull();
+    expect(
+      parsePersistedDiagnosticState({
+        ...active,
+        completedAt: [startedAt + 2, startedAt + 1, ...Array(8).fill(null)],
+      }).phase,
+    ).toBeNull();
   });
 
   it("rejects a task above the shared answer-part limit", () => {

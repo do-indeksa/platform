@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
@@ -86,6 +86,7 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
   const persisted = await page.evaluate(() => ({
     diagnostic: localStorage.getItem("do-indeksa-diagnostic"),
     attempts: localStorage.getItem("do-indeksa-attempts"),
+    progress: localStorage.getItem("do-indeksa-progress-outbox"),
   }));
   expect(persisted.diagnostic).not.toContain("statementHtml");
   expect(persisted.diagnostic).not.toContain("solution");
@@ -101,6 +102,16 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
     { taskId: "kb-001", correct: true },
     { taskId: "kv-001", correct: false },
   ]);
+  const guestProgress = JSON.parse(persisted.progress as string) as {
+    pending: { ownerId: string | null; run: { items: unknown[] } }[];
+  };
+  expect(guestProgress.pending).toHaveLength(1);
+  expect(guestProgress.pending[0]).toMatchObject({
+    ownerId: null,
+    run: { id: runId, kind: "DIAGNOSTIC" },
+  });
+  expect(guestProgress.pending[0].run.items).toHaveLength(10);
+  expect(persisted.progress).not.toMatch(/expected|solution/i);
 
   await page.getByRole("link", { name: "Start short practice" }).click();
   await expect(page).toHaveURL(/\/en\/tasks\/kvadratna-jednacina\/kv-002\?/);
@@ -109,6 +120,105 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
     "href",
     "/en/prep",
   );
+});
+
+test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", async ({
+  page,
+}) => {
+  type GraphQLCall = {
+    operationName: string;
+    variables: { input: Record<string, unknown> };
+  };
+  const graphQLCalls: GraphQLCall[] = [];
+  const attemptMethods: string[] = [];
+  let submitted = false;
+
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/api/v1/attempts", (route) => {
+    attemptMethods.push(route.request().method());
+    return route.fulfill({
+      json: submitted
+        ? [legacyAttempt("kb-001", 1, true), legacyAttempt("kv-001", 2, false)]
+        : [],
+    });
+  });
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as GraphQLCall;
+    graphQLCalls.push(call);
+    const input = call.variables.input;
+    const field =
+      call.operationName === "StartRun"
+        ? "startRun"
+        : call.operationName === "RecordAttempt"
+          ? "recordAttempt"
+          : "submitRun";
+    if (field === "submitRun") submitted = true;
+    await route.fulfill({
+      json: {
+        data: {
+          [field]: {
+            id: input.id,
+            ...(field === "submitRun" ? { status: "SUBMITTED" } : {}),
+          },
+        },
+      },
+    });
+  });
+
+  await page.goto(runUrl);
+  await answerFirstTask(page);
+  await page.getByRole("textbox", { name: "m", exact: true }).fill("0");
+  await page.getByRole("button", { name: "Submit answer" }).click();
+  for (let position = 3; position <= 10; position++) {
+    await page.getByRole("button", { name: "Skip this task" }).click();
+  }
+
+  await expect(page).toHaveURL(/\/en\/diagnostic\/result\?/);
+  await expect.poll(() => graphQLCalls.length).toBe(12);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("do-indeksa-progress-outbox");
+        return raw ? JSON.parse(raw).pending.length : 0;
+      }),
+    )
+    .toBe(0);
+
+  expect(graphQLCalls.map((call) => call.operationName)).toEqual([
+    "StartRun",
+    ...Array(10).fill("RecordAttempt"),
+    "SubmitRun",
+  ]);
+  expect(graphQLCalls[0].variables.input).toMatchObject({
+    id: runId,
+    kind: "DIAGNOSTIC",
+    blueprintVersion: expect.stringMatching(/^ftn-p1:\d{4}\.\d+$/),
+    contentRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+  });
+  expect(
+    graphQLCalls.slice(1, 11).map((call) => call.variables.input.outcome),
+  ).toEqual(["CORRECT", "INCORRECT", ...Array(8).fill("SKIPPED")]);
+  expect(
+    (graphQLCalls[0].variables.input.items as { taskRevision: string }[]).every(
+      (item) => /^sha256:[a-f0-9]{64}$/.test(item.taskRevision),
+    ),
+  ).toBe(true);
+  expect(JSON.stringify(graphQLCalls)).not.toMatch(/expected|solution/i);
+  expect(attemptMethods.every((method) => method === "GET")).toBe(true);
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(
+    page.getByRole("heading", { name: "Your starting level" }),
+  ).toBeVisible();
+  expect(graphQLCalls).toHaveLength(12);
 });
 
 test("diagnostic checker bounds request bodies and disables caching", async ({
@@ -151,3 +261,27 @@ test("a fresh diagnostic request redirects to a canonical resumable URL", async 
     page.getByText("Diagnostic · 1 of 10", { exact: true }),
   ).toBeVisible();
 });
+
+async function answerFirstTask(page: Page): Promise<void> {
+  await page.getByRole("textbox", { name: "t", exact: true }).fill("1");
+  await page
+    .getByRole("textbox", { name: "|z|", exact: true })
+    .fill("3sqrt(2)");
+  await page.getByRole("textbox", { name: "Re z", exact: true }).fill("3");
+  await page.getByRole("textbox", { name: "Im z", exact: true }).fill("-3");
+  await page.getByRole("button", { name: "Submit answer" }).click();
+  await expect(
+    page.getByText("Diagnostic · 2 of 10", { exact: true }),
+  ).toBeVisible();
+}
+
+function legacyAttempt(taskId: string, slot: number, correct: boolean) {
+  return {
+    taskId,
+    slot,
+    correct,
+    source: "diagnostic",
+    helpLevel: 0,
+    at: "2026-08-10T10:10:00.000Z",
+  };
+}

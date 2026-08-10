@@ -14,6 +14,7 @@ vi.mock("./attempts-store", () => ({
 }));
 
 const STORAGE_KEY = "do-indeksa-progress-outbox";
+const RECEIPT_STORAGE_KEY = "do-indeksa-progress-receipts";
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const userId = "39ec4650-762d-437f-9917-c31ab167cb99";
 
@@ -167,6 +168,11 @@ describe("progress outbox", () => {
     expect(JSON.stringify(calls)).not.toMatch(/expected|solution/i);
     expect(mocks.acknowledgeGraphQLRun).toHaveBeenCalledWith(runId);
     expect(pending(map)).toHaveLength(0);
+    expect(sync.isProgressRunSynced(runId)).toBe(true);
+
+    await sync.queueCompletedProgressRun(run);
+    expect(calls).toHaveLength(12);
+    expect(pending(map)).toHaveLength(0);
   });
 
   it("retains a failed run and retries it idempotently", async () => {
@@ -248,6 +254,20 @@ describe("progress outbox", () => {
     sync.clearProgressSync();
 
     expect(pending(map)).toHaveLength(0);
+  });
+
+  it("ignores malformed sync receipts", async () => {
+    const map = mockStorage();
+    map.set(
+      RECEIPT_STORAGE_KEY,
+      JSON.stringify({ version: 1, runIds: ["not-a-uuid"] }),
+    );
+    mockGraphQL();
+    const sync = await loadSync();
+
+    expect(sync.isProgressRunSynced(runId)).toBe(false);
+    expect(await sync.queueCompletedProgressRun(completedRun())).toBe(true);
+    expect(pending(map)).toHaveLength(1);
   });
 
   it("stops an in-flight lifecycle when the authenticated owner changes", async () => {

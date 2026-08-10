@@ -5,6 +5,7 @@ import {
   type DiagnosticTaskView,
 } from "@/components/diagnostic";
 import { redirect } from "@/i18n/navigation";
+import { taskSetRevision } from "@/lib/content";
 import {
   DIAGNOSTIC_TASK_COUNT,
   parseDiagnosticRunQuery,
@@ -49,6 +50,7 @@ export default async function NewDiagnosticPage({
   const tasks: DiagnosticTaskView[] = await Promise.all(
     variant.tasks.map(async ({ examPosition, task }) => ({
       id: task.id,
+      revision: task.revision,
       slot: task.slot,
       examPosition,
       topic: task.topic,
@@ -58,5 +60,12 @@ export default async function NewDiagnosticPage({
     })),
   );
 
-  return <DiagnosticRuntime runId={run.runId} tasks={tasks} />;
+  return (
+    <DiagnosticRuntime
+      runId={run.runId}
+      tasks={tasks}
+      blueprintVersion={`${variant.blueprint.examId}:${variant.blueprint.version}`}
+      contentRevision={taskSetRevision(variant.tasks.map(({ task }) => task))}
+    />
+  );
 }
