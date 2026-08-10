@@ -3,8 +3,8 @@
 import { ChevronDown, Languages } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Suspense, useTransition } from "react";
-import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { Suspense } from "react";
+import { usePathname } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 
 const localeLabels: Record<AppLocale, string> = {
@@ -25,17 +25,20 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
   const locale = useLocale() as AppLocale;
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const t = useTranslations("nav");
-  const [pending, startTransition] = useTransition();
   const query = searchParams.toString();
-  const href = query ? `${pathname}?${query}` : pathname;
+
+  const localeHref = (nextLocale: AppLocale) => {
+    const suffix = pathname === "/" ? "" : pathname;
+    const localizedPath =
+      nextLocale === routing.defaultLocale
+        ? pathname
+        : `/${nextLocale}${suffix}`;
+    return query ? `${localizedPath}?${query}` : localizedPath;
+  };
 
   const replaceLocale = (nextLocale: AppLocale) => {
-    const suffix = `${window.location.search}${window.location.hash}`;
-    startTransition(() =>
-      router.replace(`${pathname}${suffix}`, { locale: nextLocale }),
-    );
+    window.location.assign(`${localeHref(nextLocale)}${window.location.hash}`);
   };
 
   if (compact) {
@@ -46,9 +49,8 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
         <select
           aria-label={t("language")}
           value={locale}
-          disabled={pending}
           onChange={(event) => replaceLocale(event.target.value as AppLocale)}
-          className="h-full cursor-pointer appearance-none bg-transparent pr-7 pl-2 font-semibold text-ink outline-none disabled:opacity-50"
+          className="h-full cursor-pointer appearance-none bg-transparent pr-7 pl-2 font-semibold text-ink outline-none"
         >
           {routing.locales.map((item) => (
             <option key={item} value={item}>
@@ -75,12 +77,10 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
       {routing.locales.map((item) => {
         const active = item === locale;
         return (
-          <Link
+          <a
             key={item}
-            href={href}
-            locale={item}
+            href={localeHref(item)}
             onClick={(event) => {
-              if (!window.location.hash) return;
               event.preventDefault();
               replaceLocale(item);
             }}
@@ -92,7 +92,7 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
             }`}
           >
             {localeLabels[item]}
-          </Link>
+          </a>
         );
       })}
     </div>
