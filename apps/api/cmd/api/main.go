@@ -21,6 +21,7 @@ import (
 	"github.com/do-indeksa/platform/apps/api/db"
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
+	"github.com/do-indeksa/platform/apps/api/internal/graph"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
 )
 
@@ -61,6 +62,7 @@ func run() error {
 		return err
 	}
 	authService := auth.NewService(pool, authCfg)
+	progressService := progress.NewService(pool)
 	if err := authService.CleanupExpired(ctx); err != nil {
 		return err
 	}
@@ -68,12 +70,16 @@ func run() error {
 
 	srv := apiServer{
 		authHandler:     auth.NewHandler(authService),
-		progressHandler: progress.NewHandler(authService, progress.NewService(pool)),
+		progressHandler: progress.NewHandler(authService, progressService),
 	}
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer, middleware.NoCache)
 	r.Get("/healthz", handleHealth)
+	r.With(auth.RequestUserMiddleware(authService)).Handle(
+		"/graphql",
+		graph.NewHandler(graph.NewResolver(progressService)),
+	)
 	api.HandlerWithOptions(srv, api.ChiServerOptions{
 		BaseRouter:       r,
 		ErrorHandlerFunc: auth.ParamErrorHandler,

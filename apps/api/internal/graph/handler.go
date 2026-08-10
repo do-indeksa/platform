@@ -1,0 +1,52 @@
+package graph
+
+import (
+	"net/http"
+
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/vektah/gqlparser/v2/ast"
+)
+
+const (
+	maxGraphQLBodyBytes  = 256 << 10
+	maxGraphQLComplexity = 2000
+)
+
+func NewHandler(resolver *Resolver) http.Handler {
+	config := Config{Resolvers: resolver}
+	config.Complexity.Query.Runs = func(childComplexity int, limit int32) int {
+		if limit < 1 {
+			return childComplexity
+		}
+		if limit > 100 {
+			limit = 100
+		}
+		return int(limit) * childComplexity
+	}
+	config.Complexity.Run.Items = func(childComplexity int) int {
+		return 10 * childComplexity
+	}
+	config.Complexity.RunItem.Attempts = func(childComplexity int) int {
+		return 5 * childComplexity
+	}
+
+	server := handler.New(NewExecutableSchema(config))
+	server.AddTransport(transport.Options{})
+	server.AddTransport(transport.POST{})
+	server.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+	server.SetErrorPresenter(errorPresenter)
+	server.SetRecoverFunc(recoverError)
+	server.Use(extension.FixedComplexityLimit(maxGraphQLComplexity))
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ContentLength > maxGraphQLBodyBytes {
+			http.Error(w, "request body is too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, maxGraphQLBodyBytes)
+		server.ServeHTTP(w, r)
+	})
+}
