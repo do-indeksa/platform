@@ -2,39 +2,9 @@
 
 import { ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { PROGRESS_STATUS_STYLES } from "@/components/progress-status";
 import { Link } from "@/i18n/navigation";
-import type { PrepPositionProgress, PrepPositionStatus } from "@/lib/prep-plan";
-
-const STATUS_STYLES: Record<
-  PrepPositionStatus,
-  { badge: string; bar: string; number: string }
-> = {
-  untested: {
-    badge: "bg-zinc-100 text-zinc-600",
-    bar: "bg-zinc-300",
-    number: "bg-zinc-100 text-zinc-600",
-  },
-  starting: {
-    badge: "bg-amber-50 text-amber-800",
-    bar: "bg-amber-400",
-    number: "bg-amber-50 text-amber-800",
-  },
-  needsWork: {
-    badge: "bg-red-50 text-red-700",
-    bar: "bg-red-500",
-    number: "bg-red-50 text-red-700",
-  },
-  progressing: {
-    badge: "bg-cyan-50 text-cyan-800",
-    bar: "bg-cyan-500",
-    number: "bg-cyan-50 text-cyan-800",
-  },
-  confident: {
-    badge: "bg-emerald-50 text-emerald-700",
-    bar: "bg-emerald-500",
-    number: "bg-emerald-50 text-emerald-700",
-  },
-};
+import type { PrepPositionProgress } from "@/lib/prep-plan";
 
 export function PrepPositionList({
   positions,
@@ -64,7 +34,7 @@ export function PrepPositionList({
 
 function PositionRow({ position }: { position: PrepPositionProgress }) {
   const t = useTranslations("prep");
-  const styles = STATUS_STYLES[position.status];
+  const styles = PROGRESS_STATUS_STYLES[position.status];
   const query = new URLSearchParams();
   for (const topic of position.topicSlugs) query.append("topic", topic);
   const href = `/tasks?${query}`;
