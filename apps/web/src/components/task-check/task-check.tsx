@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import type { CheckPart } from "@/lib/answer";
 import { recordAttempts } from "@/lib/attempts-store";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
+import { Link } from "@/i18n/navigation";
 import { AnswerField } from "./answer-field";
 import { CardButton, FeedbackCard } from "./feedback-card";
 import { useTaskCheckState } from "./use-task-check-state";
