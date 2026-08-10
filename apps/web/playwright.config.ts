@@ -20,8 +20,8 @@ export default defineConfig({
   ],
   webServer: {
     command: process.env.CI
-      ? "npm start -- -p 3100"
-      : "npm run build && npm start -- -p 3100",
+      ? "PORT=3100 npm start"
+      : "npm run build && PORT=3100 npm start",
     url: "http://localhost:3100",
     reuseExistingServer: false,
     timeout: 120_000,

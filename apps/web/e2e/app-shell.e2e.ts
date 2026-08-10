@@ -13,6 +13,14 @@ const viewports = [
   { name: "desktop", width: 1440, height: 900 },
 ] as const;
 
+test("health check bypasses locale routing", async ({ request }) => {
+  const response = await request.get("/healthz", { maxRedirects: 0 });
+
+  expect(response.status()).toBe(200);
+  expect(await response.text()).toBe("ok");
+  expect(response.headers()["cache-control"]).toContain("no-store");
+});
+
 for (const locale of locales) {
   for (const viewport of viewports) {
     test(`${locale.htmlLang} shell fits ${viewport.name}`, async ({ page }) => {
