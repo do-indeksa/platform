@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { checkAnswer, type CheckPart } from "@/lib/answer";
+import { useState } from "react";
+import type { CheckPart } from "@/lib/answer";
 import { recordAttempts } from "@/lib/attempts-store";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { AnswerField } from "./answer-field";
@@ -32,6 +33,8 @@ export function TaskCheck({
     t("unsavedExit"),
   );
   const locked = state.solved || state.burned;
+  const [checking, setChecking] = useState(false);
+  const [checkerUnavailable, setCheckerUnavailable] = useState(false);
 
   const recordHelp = (helpLevel: number) => {
     recordAttempts([
@@ -39,33 +42,43 @@ export function TaskCheck({
     ]);
   };
 
-  const verify = () => {
-    const results = check.map((part, index) =>
-      checkAnswer(part, state.answers[index]),
-    );
-    if (results.some((result) => result === "invalid")) {
-      setState((current) => ({ ...current, results }));
-      return;
-    }
+  const verify = async () => {
+    if (checking) return;
+    setChecking(true);
+    setCheckerUnavailable(false);
+    try {
+      const { checkAnswer } = await import("@/lib/answer");
+      const results = check.map((part, index) =>
+        checkAnswer(part, state.answers[index]),
+      );
+      if (results.some((result) => result === "invalid")) {
+        setState((current) => ({ ...current, results }));
+        return;
+      }
 
-    const correct = results.every((result) => result === "correct");
-    recordAttempts([
-      {
-        taskId,
-        slot,
-        correct,
-        source: "practice",
-        helpLevel: state.hintsShown,
-      },
-    ]);
-    setState((current) => ({
-      ...current,
-      results,
-      attempted: true,
-      solved: correct,
-      dirty: false,
-      view: correct ? "correct" : "incorrect",
-    }));
+      const correct = results.every((result) => result === "correct");
+      recordAttempts([
+        {
+          taskId,
+          slot,
+          correct,
+          source: "practice",
+          helpLevel: state.hintsShown,
+        },
+      ]);
+      setState((current) => ({
+        ...current,
+        results,
+        attempted: true,
+        solved: correct,
+        dirty: false,
+        view: correct ? "correct" : "incorrect",
+      }));
+    } catch {
+      setCheckerUnavailable(true);
+    } finally {
+      setChecking(false);
+    }
   };
 
   const showHint = () => {
@@ -111,8 +124,9 @@ export function TaskCheck({
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          verify();
+          void verify();
         }}
+        aria-busy={checking}
         className="space-y-3"
       >
         {check.map((part, index) => (
@@ -122,7 +136,7 @@ export function TaskCheck({
             index={index}
             value={state.answers[index]}
             result={state.results?.[index] ?? null}
-            disabled={locked}
+            disabled={locked || checking}
             onChange={(value) => {
               setState((current) => ({
                 ...current,
@@ -137,10 +151,10 @@ export function TaskCheck({
         <div className="flex flex-wrap items-center gap-4">
           <button
             type="submit"
-            disabled={locked}
+            disabled={locked || checking}
             className="rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
           >
-            {t("checkCta")}
+            {checking ? t("checkingCta") : t("checkCta")}
           </button>
           {!locked &&
             hintsHtml.length > 0 &&
@@ -158,6 +172,11 @@ export function TaskCheck({
               <p className="text-sm text-zinc-500">{t("hintLockedNote")}</p>
             ))}
         </div>
+        {checkerUnavailable && (
+          <p role="alert" className="text-sm text-red-700">
+            {t("checkerUnavailable")}
+          </p>
+        )}
       </form>
 
       <div aria-live="polite">
