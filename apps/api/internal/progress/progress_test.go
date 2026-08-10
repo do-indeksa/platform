@@ -199,6 +199,7 @@ func TestRecordValidation(t *testing.T) {
 	app := newTestApp(t)
 	session := seedSession(t, "")
 	invalidHelpLevel := 4
+	negativeHelpLevel := -1
 
 	tests := []struct {
 		name  string
@@ -213,6 +214,7 @@ func TestRecordValidation(t *testing.T) {
 		{"slot out of range", []api.NewAttempt{{TaskId: "x", Slot: 11, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
 		{"unknown source", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: "guess"}}, "invalid_attempt"},
 		{"help level out of range", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: api.NewAttemptSourcePractice, HelpLevel: &invalidHelpLevel}}, "invalid_attempt"},
+		{"help level negative", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: api.NewAttemptSourcePractice, HelpLevel: &negativeHelpLevel}}, "invalid_attempt"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -80,6 +80,39 @@ describe("recordAttempts", () => {
     expect(journal[0].correct).toBe(false);
   });
 
+  it("keeps a non-zero helpLevel through the dedup replacement", async () => {
+    const map = mockStorage();
+    mockFetch(() => new Response(null, { status: 204 }));
+    const store = await loadStore();
+
+    store.recordAttempts([
+      { taskId: "kb-001", slot: 1, correct: false, source: "practice" },
+    ]);
+    store.recordAttempts([
+      {
+        taskId: "kb-001",
+        slot: 1,
+        correct: true,
+        source: "practice",
+        helpLevel: 2,
+      },
+    ]);
+
+    const journal = stored(map);
+    expect(journal).toHaveLength(1);
+    expect(journal[0].helpLevel).toBe(2);
+  });
+
+  it("rejects a fractional helpLevel from storage", async () => {
+    mockStorage([attempt("kb-001", { helpLevel: 1.5 })]);
+    mockFetch(() => Response.json([]));
+    const store = await loadStore();
+
+    await store.syncAttempts(false);
+
+    expect(store.attemptsView()).toHaveLength(0);
+  });
+
   it("appends across different tasks and sources", async () => {
     const map = mockStorage();
     mockFetch(() => new Response(null, { status: 204 }));
