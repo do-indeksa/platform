@@ -107,7 +107,8 @@ jobs:
             fi
             sleep 1
           done
-          curl --fail --silent http://127.0.0.1:3000/tasks | grep --quiet Zadaci
+          curl --fail --silent --output /tmp/tasks.html http://127.0.0.1:3000/tasks
+          grep --quiet Zadaci /tmp/tasks.html
 
       - name: Smoke test API image
         if: matrix.image == 'api'
