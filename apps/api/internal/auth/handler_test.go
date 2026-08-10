@@ -53,7 +53,7 @@ func TestRequestOrigin(t *testing.T) {
 			"api.internal",
 			map[string]string{
 				"X-Di-Forwarded-Origin": "https://do-indeksa.vercel.app",
-				"X-Forwarded-Host":      "platform-production.up.railway.app",
+				"X-Forwarded-Host":      "api.edge.example",
 			},
 			"https://do-indeksa.vercel.app",
 		},
