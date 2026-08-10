@@ -3,6 +3,8 @@ import { isImmersivePath, isNavigationItemActive } from "./app-routes";
 
 describe("app routes", () => {
   it("marks a section and its descendants as active", () => {
+    expect(isNavigationItemActive("/", "/")).toBe(true);
+    expect(isNavigationItemActive("/tasks", "/")).toBe(false);
     expect(isNavigationItemActive("/tasks", "/tasks")).toBe(true);
     expect(isNavigationItemActive("/tasks/algebra", "/tasks")).toBe(true);
     expect(isNavigationItemActive("/prep", "/tasks")).toBe(false);

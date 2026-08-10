@@ -5,6 +5,7 @@ import {
   Calculator,
   ClipboardList,
   History,
+  LayoutDashboard,
   Map,
   MoreHorizontal,
   type LucideIcon,
@@ -16,13 +17,14 @@ import { isNavigationItemActive } from "@/lib/app-routes";
 
 type NavigationItem = {
   href: string;
-  key: "prep" | "tasks" | "simulation" | "history" | "calculator";
+  key: "overview" | "prep" | "tasks" | "simulation" | "history" | "calculator";
   icon: LucideIcon;
 };
 
 const primaryItems: NavigationItem[] = [
-  { href: "/prep", key: "prep", icon: Map },
+  { href: "/", key: "overview", icon: LayoutDashboard },
   { href: "/tasks", key: "tasks", icon: ClipboardList },
+  { href: "/prep", key: "prep", icon: Map },
   { href: "/simulation", key: "simulation", icon: BookOpenCheck },
 ];
 
@@ -38,7 +40,7 @@ const secondaryItems: NavigationItem[] = [
 ];
 
 const allItems = [...primaryItems, ...secondaryItems];
-const mobileItems = [...primaryItems, historyItem];
+const mobileItems = primaryItems;
 
 export function DesktopNavigation() {
   const pathname = usePathname();
