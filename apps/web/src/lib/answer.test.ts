@@ -57,6 +57,10 @@ describe("value answers", () => {
     expect(checkAnswer(value(expected), input)).toBe("incorrect");
   });
 
+  it("does not accept a calculator decimal hidden inside arithmetic", () => {
+    expect(checkAnswer(value("sqrt(2)"), "1.414213562+0")).toBe("incorrect");
+  });
+
   it.each([
     ["6", ""],
     ["6", "abc("],
@@ -73,6 +77,13 @@ describe("value answers", () => {
   it("caps input length", () => {
     expect(checkAnswer(value("6"), "1+".repeat(200) + "1")).toBe("invalid");
   });
+
+  it.each(["random()", "factorial(10)", "10!", "[6]", "x=x=6"])(
+    "rejects unsupported expression %s",
+    (input) => {
+      expect(checkAnswer(value("6"), input)).toBe("invalid");
+    },
+  );
 });
 
 describe("expression answers in x", () => {
@@ -149,6 +160,7 @@ describe("interval answers", () => {
     ["(-1,3]", "-1<x<=3"],
     ["(-1,3]", "-1 < x ≤ 3"],
     ["(2,Infinity)", "x>2"],
+    ["(sqrt(2),Infinity)", "x>sqrt(2)"],
     ["[1,Infinity)", "x>=1"],
     ["(-Infinity,0)u(2,Infinity)", "x<0 u x>2"],
     ["(1.5,3)", "(1,5;3)"],
@@ -166,6 +178,12 @@ describe("interval answers", () => {
     ["(2,Infinity)", "x>=2"],
   ])("rejects %s vs %s", (expected, input) => {
     expect(checkAnswer(interval(expected), input)).toBe("incorrect");
+  });
+
+  it("does not accept a decimal approximation hidden in an interval bound", () => {
+    expect(checkAnswer(interval("(sqrt(2),Infinity)"), "x>1.414213562+0")).toBe(
+      "incorrect",
+    );
   });
 
   it.each([
