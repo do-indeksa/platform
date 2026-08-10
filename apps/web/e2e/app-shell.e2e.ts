@@ -21,6 +21,19 @@ test("health check bypasses locale routing", async ({ request }) => {
   expect(response.headers()["cache-control"]).toContain("no-store");
 });
 
+test("analytics bootstrap fails closed without runtime config", async ({
+  request,
+}) => {
+  const response = await request.get("/analytics/bootstrap.js");
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toContain("no-store");
+  expect(response.headers()["content-type"]).toContain(
+    "application/javascript",
+  );
+  expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+});
+
 for (const locale of locales) {
   for (const viewport of viewports) {
     test(`${locale.htmlLang} shell fits ${viewport.name}`, async ({ page }) => {
