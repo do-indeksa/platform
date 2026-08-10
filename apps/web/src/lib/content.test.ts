@@ -2,12 +2,14 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
 import { describe, expect, it } from "vitest";
+import { checkAnswer, type CheckPart } from "./answer";
 import { getTasks, getTopics } from "./content";
 import { renderMarkdown } from "./markdown";
 
 const tasksDir = path.join(process.cwd(), "..", "..", "content", "tasks");
 
 const STATUSES = ["draft", "review", "verified"];
+const CHECK_KINDS = ["value", "values", "interval", "text"];
 const REQUIRED_FIELDS = [
   "id",
   "slot",
@@ -17,6 +19,7 @@ const REQUIRED_FIELDS = [
   "origin",
   "status",
   "answer",
+  "check",
 ];
 
 async function readAllTaskFiles() {
@@ -87,6 +90,27 @@ describe("task files", () => {
       expect(STATUSES).toContain(data.status);
       expect(content).toMatch(/^## Zadatak$/m);
       expect(content).toMatch(/^## Rešenje$/m);
+
+      expect(Array.isArray(data.check), `${fileName}: check`).toBe(true);
+      expect(data.check.length, `${fileName}: check`).toBeGreaterThan(0);
+      for (const part of data.check as CheckPart[]) {
+        const partName = `${fileName}: check ${part.label ?? part.expected}`;
+        if (part.label !== undefined) {
+          expect(typeof part.label, partName).toBe("string");
+          expect(part.label.trim(), partName).not.toBe("");
+        }
+        expect(CHECK_KINDS, partName).toContain(part.kind);
+        expect(typeof part.expected, partName).toBe("string");
+        expect(checkAnswer(part, part.expected), partName).toBe("correct");
+      }
+
+      const hintCount = (content.match(/^## Nagoveštaj [12]$/gm) ?? []).length;
+      expect(hintCount, `${fileName}: hints`).toBeLessThanOrEqual(2);
+      if (hintCount === 2) {
+        expect(content, `${fileName}: hints order`).toMatch(
+          /^## Nagoveštaj 1$[\s\S]*^## Nagoveštaj 2$/m,
+        );
+      }
     }
   });
 

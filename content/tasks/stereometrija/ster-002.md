@@ -7,6 +7,19 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 8, zadatak 1'
 status: review
 answer: 'a) $H=4$, $s=5$, $V=12\pi$, $P=24\pi$; b) $\rho=\frac{3}{2}$; v) $\frac{3}{8}$'
+check:
+  - label: 'a) V'
+    kind: value
+    expected: '12pi'
+  - label: 'a) P'
+    kind: value
+    expected: '24pi'
+  - label: 'b)'
+    kind: value
+    expected: '3/2'
+  - label: 'v)'
+    kind: value
+    expected: '3/8'
 ---
 
 ## Zadatak
@@ -18,6 +31,14 @@ Data je prava kružna kupa, kod koje poluprečnik osnove $r$, visina $H$ i izvod
 **b)** U kupu je upisana lopta (dodiruje osnovu i omotač). Naći poluprečnik $\rho$ te lopte.
 
 **v)** Izračunati odnos zapremine upisane lopte prema zapremini kupe.
+
+## Nagoveštaj 1
+
+Tri veličine čine aritmetičku progresiju kada je srednja jednaka polovini zbira susednih. Druga veza između $r$, $H$ i $s$ je Pitagorina teorema iz osnog preseka. Za b) posmatraj osni presek: upisana lopta u njemu postaje upisana kružnica trougla.
+
+## Nagoveštaj 2
+
+Iz uslova progresije $2H=r+s$ i $s^2=r^2+H^2$ sa $r=3$: zameni $s=2H-3$ i reši kvadratnu jednačinu po $H$. Za b): osni presek je jednakokraki trougao sa osnovicom $2r=6$, pa je $\rho=\dfrac{S}{p}$. Za v): $V_{\text{lopta}}=\dfrac{4}{3}\pi\rho^3$.
 
 ## Rešenje
 

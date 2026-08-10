@@ -31,6 +31,7 @@ describe("value answers", () => {
     ["log2(8)", "3"],
     ["ln(5)/ln(2)", "log2(5)"],
     ["-8", "−8"],
+    ["60", "60°"],
   ])("accepts %s ≡ %s", (expected, input) => {
     expect(checkAnswer(value(expected), input)).toBe("correct");
   });

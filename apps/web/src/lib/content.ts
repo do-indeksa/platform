@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
 import { parse } from "yaml";
+import type { CheckPart } from "@/lib/answer";
 
 const contentDir = path.join(process.cwd(), "..", "..", "content");
 
@@ -20,7 +21,9 @@ export type Task = {
   source: string;
   status: "draft" | "review" | "verified";
   answer: string;
+  check: CheckPart[];
   statement: string;
+  hints: string[];
   solution: string;
 };
 
@@ -64,12 +67,24 @@ export async function getTask(
 async function readTask(filePath: string): Promise<Task> {
   const raw = await fs.readFile(filePath, "utf8");
   const { data, content } = matter(raw);
-  const [, statement = "", solution = ""] = content.split(
-    /^## (?:Zadatak|Rešenje)$/m,
-  );
+  const sections = parseSections(content);
   return {
-    ...(data as Omit<Task, "statement" | "solution">),
-    statement: statement.trim(),
-    solution: solution.trim(),
+    ...(data as Omit<Task, "statement" | "hints" | "solution">),
+    statement: sections.get("Zadatak") ?? "",
+    hints: [sections.get("Nagoveštaj 1"), sections.get("Nagoveštaj 2")].filter(
+      (hint) => hint !== undefined,
+    ),
+    solution: sections.get("Rešenje") ?? "",
   };
+}
+
+function parseSections(content: string): Map<string, string> {
+  const parts = content.split(
+    /^## (Zadatak|Nagoveštaj 1|Nagoveštaj 2|Rešenje)$/m,
+  );
+  const sections = new Map<string, string>();
+  for (let i = 1; i < parts.length; i += 2) {
+    sections.set(parts[i], parts[i + 1].trim());
+  }
+  return sections;
 }
