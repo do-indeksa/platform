@@ -34,6 +34,7 @@ func (r iteratorForInsertAttempts) Values() ([]interface{}, error) {
 		r.rows[0].Slot,
 		r.rows[0].Correct,
 		r.rows[0].Source,
+		r.rows[0].HelpLevel,
 		r.rows[0].CreatedAt,
 	}, nil
 }
@@ -43,5 +44,5 @@ func (r iteratorForInsertAttempts) Err() error {
 }
 
 func (q *Queries) InsertAttempts(ctx context.Context, arg []InsertAttemptsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"attempts"}, []string{"user_id", "task_id", "slot", "correct", "source", "created_at"}, &iteratorForInsertAttempts{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"attempts"}, []string{"user_id", "task_id", "slot", "correct", "source", "help_level", "created_at"}, &iteratorForInsertAttempts{rows: arg})
 }

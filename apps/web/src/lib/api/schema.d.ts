@@ -117,6 +117,8 @@ export interface components {
             correct: boolean;
             /** @enum {string} */
             source: "diagnostic" | "practice" | "simulation";
+            /** @description Highest help used before the attempt: 0 none, 1-2 hint level, 3 full solution */
+            helpLevel: number;
             /** Format: date-time */
             at: string;
         };
@@ -126,6 +128,8 @@ export interface components {
             correct: boolean;
             /** @enum {string} */
             source: "diagnostic" | "practice" | "simulation";
+            /** @description Highest help used before the attempt: 0 none, 1-2 hint level, 3 full solution */
+            helpLevel?: number;
             /** Format: date-time */
             at?: string;
         };

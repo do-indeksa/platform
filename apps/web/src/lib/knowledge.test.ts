@@ -13,6 +13,7 @@ function attempt(slot: number, correct: boolean, i = 0): Attempt {
     slot,
     correct,
     source: "practice",
+    helpLevel: 0,
     at: new Date(2026, 0, 1, 0, i).toISOString(),
   };
 }

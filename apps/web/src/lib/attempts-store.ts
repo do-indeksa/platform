@@ -30,6 +30,9 @@ function isAttempt(value: unknown): value is Attempt {
     typeof attempt.correct === "boolean" &&
     typeof attempt.source === "string" &&
     SOURCES.has(attempt.source) &&
+    typeof attempt.helpLevel === "number" &&
+    attempt.helpLevel >= 0 &&
+    attempt.helpLevel <= 3 &&
     typeof attempt.at === "string" &&
     !Number.isNaN(Date.parse(attempt.at))
   );
@@ -40,7 +43,13 @@ function loadLocal(): Attempt[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const { attempts } = JSON.parse(raw) as { attempts?: unknown[] };
-    return (attempts ?? []).filter(isAttempt);
+    return (attempts ?? [])
+      .map((value) =>
+        typeof value === "object" && value !== null
+          ? { helpLevel: 0, ...value }
+          : value,
+      )
+      .filter(isAttempt);
   } catch {
     return [];
   }
@@ -143,7 +152,7 @@ export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
   localAttempts ??= loadLocal();
   const at = new Date().toISOString();
   const next = [...localAttempts];
-  for (const entry of entries) {
+  for (const { helpLevel = 0, ...entry } of entries) {
     const last = next.at(-1);
     if (
       next.length > inFlightCount &&
@@ -153,7 +162,7 @@ export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
     ) {
       next.pop();
     }
-    next.push({ ...entry, at });
+    next.push({ ...entry, helpLevel, at });
   }
   saveLocal(next);
   emit();

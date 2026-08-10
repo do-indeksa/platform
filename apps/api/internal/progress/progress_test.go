@@ -130,8 +130,9 @@ func TestRecordAndListRoundtrip(t *testing.T) {
 	session := seedSession(t, "")
 	past := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
 
+	helpLevel := 2
 	batch := []api.NewAttempt{
-		{TaskId: "log-001", Slot: 3, Correct: true, Source: api.NewAttemptSourceDiagnostic, At: &past},
+		{TaskId: "log-001", Slot: 3, Correct: true, Source: api.NewAttemptSourceDiagnostic, HelpLevel: &helpLevel, At: &past},
 		{TaskId: "kb-002", Slot: 1, Correct: false, Source: api.NewAttemptSourcePractice},
 	}
 	res := do(t, app, "POST", "/v1/attempts", batch, session)
@@ -152,10 +153,11 @@ func TestRecordAndListRoundtrip(t *testing.T) {
 	}
 	first, second := attempts[0], attempts[1]
 	if first.TaskId != "log-001" || first.Slot != 3 || !first.Correct ||
-		first.Source != api.AttemptSourceDiagnostic || !first.At.Equal(past) {
+		first.Source != api.AttemptSourceDiagnostic || first.HelpLevel != 2 || !first.At.Equal(past) {
 		t.Fatalf("first attempt mismatch: %+v", first)
 	}
-	if second.TaskId != "kb-002" || second.Correct || second.Source != api.AttemptSourcePractice {
+	if second.TaskId != "kb-002" || second.Correct || second.Source != api.AttemptSourcePractice ||
+		second.HelpLevel != 0 {
 		t.Fatalf("second attempt mismatch: %+v", second)
 	}
 	if second.At.IsZero() || time.Since(second.At) > time.Minute {
@@ -196,6 +198,7 @@ func validBatch(size int) []api.NewAttempt {
 func TestRecordValidation(t *testing.T) {
 	app := newTestApp(t)
 	session := seedSession(t, "")
+	invalidHelpLevel := 4
 
 	tests := []struct {
 		name  string
@@ -209,6 +212,7 @@ func TestRecordValidation(t *testing.T) {
 		{"uppercase task id", []api.NewAttempt{{TaskId: "KB-001", Slot: 1, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
 		{"slot out of range", []api.NewAttempt{{TaskId: "x", Slot: 11, Source: api.NewAttemptSourcePractice}}, "invalid_attempt"},
 		{"unknown source", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: "guess"}}, "invalid_attempt"},
+		{"help level out of range", []api.NewAttempt{{TaskId: "x", Slot: 1, Source: api.NewAttemptSourcePractice, HelpLevel: &invalidHelpLevel}}, "invalid_attempt"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

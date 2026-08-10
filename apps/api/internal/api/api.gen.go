@@ -58,11 +58,14 @@ func (e NewAttemptSource) Valid() bool {
 
 // Attempt defines model for Attempt.
 type Attempt struct {
-	At      time.Time     `json:"at"`
-	Correct bool          `json:"correct"`
-	Slot    int           `json:"slot"`
-	Source  AttemptSource `json:"source"`
-	TaskId  string        `json:"taskId"`
+	At      time.Time `json:"at"`
+	Correct bool      `json:"correct"`
+
+	// HelpLevel Highest help used before the attempt: 0 none, 1-2 hint level, 3 full solution
+	HelpLevel int           `json:"helpLevel"`
+	Slot      int           `json:"slot"`
+	Source    AttemptSource `json:"source"`
+	TaskId    string        `json:"taskId"`
 }
 
 // AttemptSource defines model for Attempt.Source.
@@ -76,11 +79,14 @@ type Error struct {
 
 // NewAttempt defines model for NewAttempt.
 type NewAttempt struct {
-	At      *time.Time       `json:"at,omitempty"`
-	Correct bool             `json:"correct"`
-	Slot    int              `json:"slot"`
-	Source  NewAttemptSource `json:"source"`
-	TaskId  string           `json:"taskId"`
+	At      *time.Time `json:"at,omitempty"`
+	Correct bool       `json:"correct"`
+
+	// HelpLevel Highest help used before the attempt: 0 none, 1-2 hint level, 3 full solution
+	HelpLevel *int             `json:"helpLevel,omitempty"`
+	Slot      int              `json:"slot"`
+	Source    NewAttemptSource `json:"source"`
+	TaskId    string           `json:"taskId"`
 }
 
 // NewAttemptSource defines model for NewAttempt.Source.
