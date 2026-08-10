@@ -1,0 +1,145 @@
+scalar Time
+scalar Int64
+
+enum RunKind {
+  PRACTICE
+  DIAGNOSTIC
+  SIMULATION
+}
+
+enum RunStatus {
+  ACTIVE
+  SUBMITTED
+  ABANDONED
+}
+
+enum AttemptOutcome {
+  CORRECT
+  INCORRECT
+  PARTIAL
+  SKIPPED
+  UNGRADED
+}
+
+enum GradingKind {
+  AUTO
+  RUBRIC_SELF
+  AI_ASSISTED
+  HUMAN
+}
+
+enum ClientGradingKind {
+  AUTO
+  RUBRIC_SELF
+}
+
+type Attempt {
+  id: ID!
+  runItemId: ID
+  taskId: ID!
+  examPosition: Int!
+  mode: RunKind!
+  startedAt: Time!
+  submittedAt: Time!
+  activeDurationMs: Int64
+  answer: String
+  outcome: AttemptOutcome!
+  helpLevel: Int!
+  gradingKind: GradingKind!
+  earnedPoints: Int
+  maxPoints: Int
+  taskRevision: String!
+}
+
+type RunItem {
+  id: ID!
+  taskId: ID!
+  ordinal: Int!
+  examPosition: Int!
+  topic: ID!
+  maxPoints: Int
+  taskRevision: String!
+  attempts: [Attempt!]!
+}
+
+type Run {
+  id: ID!
+  kind: RunKind!
+  status: RunStatus!
+  blueprintVersion: String!
+  contentRevision: String!
+  startedAt: Time!
+  deadlineAt: Time
+  submittedAt: Time
+  activeDurationMs: Int64
+  items: [RunItem!]!
+}
+
+type RunSummary {
+  id: ID!
+  kind: RunKind!
+  status: RunStatus!
+  blueprintVersion: String!
+  contentRevision: String!
+  startedAt: Time!
+  deadlineAt: Time
+  submittedAt: Time
+  activeDurationMs: Int64
+}
+
+input NewRunItemInput {
+  id: ID!
+  taskId: ID!
+  examPosition: Int!
+  topic: ID!
+  maxPoints: Int
+  taskRevision: String!
+}
+
+input StartRunInput {
+  id: ID!
+  kind: RunKind!
+  blueprintVersion: String!
+  contentRevision: String!
+  startedAt: Time!
+  deadlineAt: Time
+  items: [NewRunItemInput!]!
+}
+
+input StandaloneAttemptTargetInput {
+  taskId: ID!
+  examPosition: Int!
+  taskRevision: String!
+  maxPoints: Int
+}
+
+input RecordAttemptInput {
+  id: ID!
+  runItemId: ID
+  standalone: StandaloneAttemptTargetInput
+  startedAt: Time!
+  submittedAt: Time!
+  activeDurationMs: Int64
+  answer: String
+  outcome: AttemptOutcome!
+  helpLevel: Int! = 0
+  gradingKind: ClientGradingKind!
+  earnedPoints: Int
+}
+
+input SubmitRunInput {
+  id: ID!
+  submittedAt: Time!
+  activeDurationMs: Int64
+}
+
+type Query {
+  run(id: ID!): Run
+  runs(limit: Int! = 20): [RunSummary!]!
+}
+
+type Mutation {
+  startRun(input: StartRunInput!): Run!
+  recordAttempt(input: RecordAttemptInput!): Attempt!
+  submitRun(input: SubmitRunInput!): Run!
+}
