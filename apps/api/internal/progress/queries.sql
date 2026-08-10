@@ -126,10 +126,21 @@ from attempts
 where public_id = $1 and user_id = $2;
 
 -- name: ListRunAttempts :many
+with ranked_attempt_ids as (
+    select
+        a.id,
+        row_number() over (
+            partition by a.run_item_id
+            order by coalesce(a.submitted_at, a.created_at) desc, a.id desc
+        ) as attempt_rank
+    from attempts a
+    join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+    where i.run_id = sqlc.arg(run_id) and a.user_id = sqlc.arg(user_id)
+)
 select a.*
 from attempts a
-join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
-where i.run_id = $1 and a.user_id = $2
+join ranked_attempt_ids recent on recent.id = a.id
+where recent.attempt_rank <= sqlc.arg(max_attempts)::integer
 order by coalesce(a.submitted_at, a.created_at), a.id;
 
 -- name: SubmitRun :one

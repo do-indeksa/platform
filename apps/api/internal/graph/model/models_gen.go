@@ -71,14 +71,15 @@ type Run struct {
 }
 
 type RunItem struct {
-	ID           string    `json:"id"`
-	TaskID       string    `json:"taskId"`
-	Ordinal      int32     `json:"ordinal"`
-	ExamPosition int32     `json:"examPosition"`
-	Topic        string    `json:"topic"`
-	MaxPoints    *int32    `json:"maxPoints,omitempty"`
-	TaskRevision string    `json:"taskRevision"`
-	Attempts     []Attempt `json:"attempts"`
+	ID           string `json:"id"`
+	TaskID       string `json:"taskId"`
+	Ordinal      int32  `json:"ordinal"`
+	ExamPosition int32  `json:"examPosition"`
+	Topic        string `json:"topic"`
+	MaxPoints    *int32 `json:"maxPoints,omitempty"`
+	TaskRevision string `json:"taskRevision"`
+	// Returns the latest attempts in chronological order, up to a limit of 20.
+	RecentAttempts []Attempt `json:"recentAttempts"`
 }
 
 type RunSummary struct {

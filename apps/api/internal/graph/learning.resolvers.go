@@ -120,13 +120,28 @@ func (r *queryResolver) Runs(ctx context.Context, limit int32) ([]model.RunSumma
 	return result, nil
 }
 
+// RecentAttempts is the resolver for the recentAttempts field.
+func (r *runItemResolver) RecentAttempts(ctx context.Context, obj *model.RunItem, limit int32) ([]model.Attempt, error) {
+	if limit < 1 || limit > progress.MaxRecentRunItemAttempts {
+		return nil, presentError(ctx, invalidGraphInput("limit"))
+	}
+	if len(obj.RecentAttempts) <= int(limit) {
+		return obj.RecentAttempts, nil
+	}
+	return obj.RecentAttempts[len(obj.RecentAttempts)-int(limit):], nil
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// RunItem returns RunItemResolver implementation.
+func (r *Resolver) RunItem() RunItemResolver { return &runItemResolver{r} }
+
 type (
 	mutationResolver struct{ *Resolver }
 	queryResolver    struct{ *Resolver }
+	runItemResolver  struct{ *Resolver }
 )

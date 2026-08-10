@@ -427,20 +427,32 @@ func (q *Queries) ListAttempts(ctx context.Context, userID uuid.UUID) ([]ListAtt
 }
 
 const listRunAttempts = `-- name: ListRunAttempts :many
+with ranked_attempt_ids as (
+    select
+        a.id,
+        row_number() over (
+            partition by a.run_item_id
+            order by coalesce(a.submitted_at, a.created_at) desc, a.id desc
+        ) as attempt_rank
+    from attempts a
+    join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+    where i.run_id = $2 and a.user_id = $3
+)
 select a.id, a.user_id, a.task_id, a.slot, a.correct, a.source, a.created_at, a.help_level, a.public_id, a.run_item_id, a.started_at, a.submitted_at, a.active_duration_ms, a.answer, a.outcome, a.grading_kind, a.earned_points, a.max_points, a.task_revision
 from attempts a
-join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
-where i.run_id = $1 and a.user_id = $2
+join ranked_attempt_ids recent on recent.id = a.id
+where recent.attempt_rank <= $1::integer
 order by coalesce(a.submitted_at, a.created_at), a.id
 `
 
 type ListRunAttemptsParams struct {
-	RunID  uuid.UUID
-	UserID uuid.UUID
+	MaxAttempts int32
+	RunID       uuid.UUID
+	UserID      uuid.UUID
 }
 
 func (q *Queries) ListRunAttempts(ctx context.Context, arg ListRunAttemptsParams) ([]Attempt, error) {
-	rows, err := q.db.Query(ctx, listRunAttempts, arg.RunID, arg.UserID)
+	rows, err := q.db.Query(ctx, listRunAttempts, arg.MaxAttempts, arg.RunID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
