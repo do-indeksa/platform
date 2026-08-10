@@ -11,18 +11,18 @@ Any maturant (final-year high-school student) in Serbia preparing for state univ
 The UX benchmark is the "task bank" model proven by large exam-prep platforms (e.g. Reshu EGE in Russia): the official PDF banks have more content, yet students prefer the platform because of four things:
 
 1. **Instant feedback** — solve in the browser, check immediately, no digging through answer keys
-2. **Navigation by exam slot** — the exam has a fixed structure, so practice is organized "by task number"
+2. **Navigation by area and exam position** — practice follows the observed structure of a specific annual format
 3. **Variant generator** — unlimited mock exams assembled from the bank
 4. **Statistics** — visible personal growth over time
 
-P1 maps perfectly onto this model: it always has 10 tasks with fixed types (slot 3 = logarithms, slot 10 = combinatorics, …). The slot structure IS the navigation.
+P1 has ten positions, but a topic does not own one position forever: logarithmic and exponential tasks swapped positions 3 and 4 between the official 2025 and 2026 variants. Practice is organized by stable mathematical areas; generated mocks use a versioned annual blueprint.
 
 ## Core loop
 
 ```
-Diagnostic test (10 tasks, one per slot, ~40 min)
+Diagnostic test (short coverage across P1 areas, ~40 min)
         ↓
-Knowledge map: weak slots highlighted → personal prep plan until June
+Knowledge map: weak areas highlighted → personal prep plan until June
         ↓
 Daily practice: topic of the plan / task of the day
         ↓
@@ -33,15 +33,15 @@ Knowledge map updates → plan recalculates → repeat
 
 ## Retention mechanics
 
-| Mechanic | Cost | Effect | When |
-|---|---|---|---|
-| Knowledge map: mastery % per slot | low | core | MVP |
-| Variant generator: random task per slot | low | turns ~300 tasks into unlimited mocks | MVP |
-| Prep plan: weekly checklist until the exam | medium | reason #1 to come back | MVP (simplified) |
-| Score growth chart across attempts | low | "progress you can measure" | MVP |
-| Task of the day + streak | low | daily hook | MVP if time allows |
-| Email digest "your week" | medium | reactivation | autumn |
-| Teacher accounts (assign homework) | high | main growth channel of the reference model | pilot, winter |
+| Mechanic                                   | Cost   | Effect                                         | When               |
+| ------------------------------------------ | ------ | ---------------------------------------------- | ------------------ |
+| Knowledge map: mastery % per area          | low    | core                                           | MVP                |
+| Blueprint variant generator                | low    | turns a reviewed bank into annual-format mocks | MVP                |
+| Prep plan: weekly checklist until the exam | medium | reason #1 to come back                         | MVP (simplified)   |
+| Score growth chart across attempts         | low    | "progress you can measure"                     | MVP                |
+| Task of the day + streak                   | low    | daily hook                                     | MVP if time allows |
+| Email digest "your week"                   | medium | reactivation                                   | autumn             |
+| Teacher accounts (assign homework)         | high   | main growth channel of the reference model     | pilot, winter      |
 
 ## Acquisition (zero budget)
 
@@ -52,10 +52,10 @@ Knowledge map updates → plan recalculates → repeat
 
 ## MVP scope (end of July 2026)
 
-- Task catalog by slot/topic with difficulty and counters
+- Task catalog by area with difficulty and counters
 - Task page: statement (KaTeX), solution reveal, self-check
 - Diagnostic test → knowledge map
-- Simulation engine: 180-min timer, P1 scoring (10 × 6 = 60), attempt history
+- Simulation engine: four-hour timer, method-aware self-review, clearly labelled trainer estimate, attempt history
 - Variant generator
 - Simplified prep plan (weekly checklist)
 - Score calculator (kalkulator bodova) + FTN programs guide
