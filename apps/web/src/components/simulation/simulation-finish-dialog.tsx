@@ -76,7 +76,7 @@ export function SimulationFinishDialog({
               dialogRef.current?.close();
               onFinish();
             }}
-            className="min-h-11 rounded-lg bg-brand px-5 font-semibold text-on-brand hover:bg-brand-ink"
+            className="min-h-11 rounded-lg bg-brand px-5 font-semibold text-on-brand hover:bg-brand-hover"
           >
             {t("confirmFinish")}
           </button>

@@ -25,7 +25,7 @@ export function SiteHeader() {
           <Link
             href="/"
             aria-label={t("brandHome")}
-            className="shrink-0 text-xl font-bold text-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+            className="inline-flex min-h-11 shrink-0 items-center text-xl font-bold text-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
           >
             do indeksa
           </Link>

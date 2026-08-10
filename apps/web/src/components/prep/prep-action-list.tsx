@@ -31,7 +31,7 @@ export function NextActionCard({
 
   if (!action) {
     return (
-      <section className="overflow-hidden rounded-lg bg-ink px-5 py-6 text-white sm:px-7 sm:py-7">
+      <section className="overflow-hidden rounded-lg bg-emphasis px-5 py-6 text-white sm:px-7 sm:py-7">
         <CheckCircle2 aria-hidden className="h-7 w-7 text-emerald-400" />
         <p className="mt-4 text-sm font-semibold text-emerald-300">
           {t("nextEyebrow")}
@@ -42,7 +42,7 @@ export function NextActionCard({
         </p>
         <Link
           href="/tasks"
-          className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-[#7b55f5]"
+          className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
         >
           {t("browseTasks")}
           <ArrowRight aria-hidden className="h-4 w-4" />
@@ -61,7 +61,7 @@ export function NextActionCard({
   return (
     <section
       data-testid="next-action"
-      className="overflow-hidden rounded-lg bg-ink px-5 py-6 text-white sm:px-7 sm:py-7"
+      className="overflow-hidden rounded-lg bg-emphasis px-5 py-6 text-white sm:px-7 sm:py-7"
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-cyan-300">
         <Sparkles aria-hidden className="h-4 w-4" />
@@ -84,14 +84,14 @@ export function NextActionCard({
           <button
             type="button"
             onClick={onOpenSettings}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-[#7b55f5]"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
           >
             {content}
           </button>
         ) : (
           <Link
             href={href}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-[#7b55f5]"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
           >
             {content}
           </Link>

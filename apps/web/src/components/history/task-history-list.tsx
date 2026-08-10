@@ -82,7 +82,7 @@ export function TaskHistoryList({
         {practiceHref ? (
           <Link
             href={practiceHref}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
           >
             <RotateCcw aria-hidden className="h-4 w-4" />
             {t("retryErrorsCta")}

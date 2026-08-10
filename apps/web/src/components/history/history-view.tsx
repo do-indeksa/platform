@@ -130,7 +130,7 @@ function HistoryTabLink({
       role="tab"
       aria-selected={active}
       href={href}
-      className={`inline-flex min-h-10 items-center rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+      className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
         active
           ? "bg-brand text-on-brand"
           : "border border-line bg-surface text-ink hover:border-brand hover:text-brand-ink"

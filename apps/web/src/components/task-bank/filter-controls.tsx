@@ -64,7 +64,7 @@ export function FilterControls({
           {availableTopics.map((topic) => (
             <label
               key={topic.slug}
-              className="flex min-h-9 cursor-pointer items-start gap-2.5 rounded-md px-2 py-1.5 text-sm text-ink transition-colors hover:bg-page"
+              className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2.5 text-sm text-ink transition-colors hover:bg-page"
             >
               <input
                 type="checkbox"
@@ -93,7 +93,7 @@ export function FilterControls({
           {difficultyBands.map((band) => (
             <label
               key={band}
-              className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-ink transition-colors hover:bg-page"
+              className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md px-2 py-2.5 text-sm text-ink transition-colors hover:bg-page"
             >
               <input
                 type="checkbox"
@@ -117,7 +117,7 @@ export function FilterControls({
           {progressFilters.map((progress) => (
             <label
               key={progress}
-              className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-ink transition-colors hover:bg-page"
+              className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md px-2 py-2.5 text-sm text-ink transition-colors hover:bg-page"
             >
               <input
                 type="radio"
@@ -137,7 +137,7 @@ export function FilterControls({
         <button
           type="button"
           onClick={() => onChange({ ...defaultTaskBankFilters })}
-          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold text-muted transition-colors hover:border-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold text-muted transition-colors hover:border-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           <RotateCcw aria-hidden size={16} />
           {t("resetFilters")}
@@ -175,7 +175,7 @@ function CheckTile({
 }) {
   return (
     <label
-      className={`relative flex aspect-square min-h-9 cursor-pointer items-center justify-center rounded-md border text-sm font-semibold transition-colors ${
+      className={`relative flex aspect-square min-h-11 cursor-pointer items-center justify-center rounded-md border text-sm font-semibold transition-colors ${
         checked
           ? "border-brand bg-subtle text-brand-ink"
           : "border-line bg-surface text-muted hover:border-brand"

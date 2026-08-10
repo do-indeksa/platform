@@ -66,7 +66,7 @@ export function DiagnosticEntry({
             ) : activeMock ? (
               <Link
                 href="/simulation/new"
-                className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+                className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
                 <Play aria-hidden="true" className="h-5 w-5" />
                 {t("resumeMock")}
@@ -74,7 +74,7 @@ export function DiagnosticEntry({
             ) : resumeHref && diagnostic.phase ? (
               <Link
                 href={resumeHref}
-                className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+                className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
                 {diagnostic.phase === "done" ? (
                   <CheckCircle2 aria-hidden="true" className="h-5 w-5" />
@@ -88,7 +88,7 @@ export function DiagnosticEntry({
             ) : (
               <Link
                 href={freshStartHref}
-                className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+                className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
                 <Play aria-hidden="true" className="h-5 w-5" />
                 {t("startCta")}

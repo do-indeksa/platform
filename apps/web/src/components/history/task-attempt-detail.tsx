@@ -161,7 +161,7 @@ export function TaskAttemptDetail({
       <section className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Link
           href={solveAgainHref}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
         >
           <RotateCcw aria-hidden className="h-4 w-4" />
           {t("solveAgain")}
@@ -214,7 +214,7 @@ function UnavailableAttempt() {
       </p>
       <Link
         href="/history?tab=tasks"
-        className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-on-brand hover:bg-brand-ink"
+        className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-on-brand hover:bg-brand-hover"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />
         {t("backToHistory")}

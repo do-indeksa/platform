@@ -133,7 +133,7 @@ export function SimulationResult({
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <Link
             href={summary.practiceTaskIds.length > 0 ? practiceHref : "/tasks"}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
           >
             {hasErrors
               ? t("practiceWeak")
@@ -253,7 +253,7 @@ function ResultUnavailable() {
       </p>
       <Link
         href="/simulation"
-        className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+        className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
       >
         {t("back")}
       </Link>

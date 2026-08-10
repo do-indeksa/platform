@@ -53,7 +53,7 @@ export function DiagnosticResult({
         </p>
         <Link
           href="/diagnostic"
-          className="mt-7 inline-flex min-h-12 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+          className="mt-7 inline-flex min-h-12 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
         >
           {t("back")}
         </Link>
@@ -117,7 +117,7 @@ export function DiagnosticResult({
         <div className="mt-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
           <Link
             href={practiceHref}
-            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
           >
             {t("startPractice")}
             <ArrowRight aria-hidden="true" className="h-5 w-5" />
