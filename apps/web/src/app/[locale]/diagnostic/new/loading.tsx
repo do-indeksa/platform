@@ -1,10 +1,10 @@
 import { useTranslations } from "next-intl";
 
 export default function Loading() {
-  const t = useTranslations("simulation");
+  const t = useTranslations("diagnostic");
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <p className="animate-pulse text-zinc-500">{t("assembling")}</p>
+    <main className="flex min-h-dvh items-center justify-center px-5">
+      <p className="animate-pulse text-muted">{t("loading")}</p>
     </main>
   );
 }

@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { DiagnosticEntry } from "@/components/diagnostic";
+import { diagnosticRunHref } from "@/lib/diagnostic-run";
+import { generateVariant } from "@/lib/variant";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("diagnostic");
@@ -8,18 +12,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DiagnosticPage() {
-  const t = await getTranslations("diagnostic");
-  return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-3xl font-bold">{t("title")}</h1>
-      <p className="mb-1 text-zinc-600">{t("intro1")}</p>
-      <p className="mb-8 text-zinc-600">{t("intro2")}</p>
-      <Link
-        href="/diagnostic/new"
-        className="inline-block rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
-      >
-        {t("startCta")}
-      </Link>
-    </main>
+  const variant = await generateVariant();
+  const freshStartHref = diagnosticRunHref(
+    "/diagnostic/new",
+    crypto.randomUUID(),
+    variant.tasks.map(({ task }) => task.id),
   );
+
+  return <DiagnosticEntry freshStartHref={freshStartHref} />;
 }

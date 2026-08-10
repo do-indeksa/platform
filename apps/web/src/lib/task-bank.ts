@@ -246,7 +246,11 @@ export function safeTaskBankReturnPath(
   try {
     const base = new URL("https://do-indeksa.invalid");
     const target = new URL(value, base);
-    if (target.origin !== base.origin || target.pathname !== TASK_BANK_PATH) {
+    if (
+      target.origin !== base.origin ||
+      (target.pathname !== TASK_BANK_PATH && target.pathname !== "/prep") ||
+      (target.pathname === "/prep" && (target.search || target.hash))
+    ) {
       return null;
     }
     return `${target.pathname}${target.search}`;

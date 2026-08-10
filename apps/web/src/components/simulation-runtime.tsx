@@ -4,79 +4,90 @@ import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { MarkButton } from "@/components/mark-button";
 import { Link, useRouter } from "@/i18n/navigation";
+import { diagnosticRunHref } from "@/lib/diagnostic-run";
+import { useDiagnostic } from "@/lib/diagnostic-store";
 import { binaryTrainerEstimate } from "@/lib/scoring";
-import {
-  useSimulation,
-  type RunKind,
-  type SimulationTask,
-} from "@/lib/simulation-store";
+import { useSimulation, type SimulationTask } from "@/lib/simulation-store";
 import { useRemainingSeconds } from "@/lib/use-countdown";
 import { useHydrated } from "@/lib/use-hydrated";
-
-const RUNS = {
-  simulation: {
-    home: "/simulation",
-    resumePath: "/simulation/new",
-    activeKey: "simulationActive",
-    resumeKey: "resumeSimulation",
-    abandonConfirmKey: "abandonConfirm",
-  },
-  diagnostic: {
-    home: "/diagnostic",
-    resumePath: "/diagnostic/new",
-    activeKey: "diagnosticActive",
-    resumeKey: "resumeDiagnostic",
-    abandonConfirmKey: "abandonConfirmDiagnostic",
-  },
-} as const satisfies Record<RunKind, unknown>;
 
 export function SimulationRuntime({
   variantId,
   tasks,
-  kind,
 }: {
   variantId: string;
   tasks: SimulationTask[];
-  kind: RunKind;
 }) {
   const t = useTranslations("simulation");
   const phase = useSimulation((state) => state.phase);
-  const activeKind = useSimulation((state) => state.kind);
   const start = useSimulation((state) => state.start);
+  const diagnosticPhase = useDiagnostic((state) => state.phase);
+  const diagnosticRunId = useDiagnostic((state) => state.runId);
+  const diagnosticTaskIds = useDiagnostic((state) => state.taskIds);
   const hydrated = useHydrated();
   const startedRef = useRef<string | null>(null);
   const [startedId, setStartedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!hydrated || startedRef.current === variantId) return;
+    if (
+      diagnosticPhase === "running" &&
+      useSimulation.getState().phase === null
+    ) {
+      return;
+    }
+    let cancelled = false;
     startedRef.current = variantId;
     const state = useSimulation.getState();
     if (state.phase === "done") state.reset();
-    if (useSimulation.getState().phase === null) start(tasks, kind);
-    setStartedId(variantId);
-  }, [hydrated, variantId, start, tasks, kind]);
+    if (useSimulation.getState().phase === null) start(tasks);
+    queueMicrotask(() => {
+      if (!cancelled) setStartedId(variantId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [diagnosticPhase, hydrated, start, tasks, variantId]);
 
-  const started = startedId === variantId;
-  if (!hydrated || phase === null || (phase === "done" && !started)) {
+  if (
+    hydrated &&
+    phase === null &&
+    diagnosticPhase === "running" &&
+    diagnosticRunId
+  ) {
+    return (
+      <OtherRunNotice
+        href={diagnosticRunHref(
+          "/diagnostic/new",
+          diagnosticRunId,
+          diagnosticTaskIds,
+        )}
+      />
+    );
+  }
+
+  if (
+    !hydrated ||
+    phase === null ||
+    (phase === "done" && startedId !== variantId)
+  ) {
     return <p className="animate-pulse text-zinc-500">{t("assembling")}</p>;
   }
-  if (activeKind !== kind) return <OtherRunNotice activeKind={activeKind} />;
   if (phase === "running") return <ExamPhase />;
   if (phase === "grading") return <GradingPhase />;
-  return kind === "simulation" ? <ExamResult /> : <DiagnosticResult />;
+  return <ExamResult />;
 }
 
-function OtherRunNotice({ activeKind }: { activeKind: RunKind }) {
+function OtherRunNotice({ href }: { href: string }) {
   const t = useTranslations("simulation");
-  const run = RUNS[activeKind];
   return (
     <div className="space-y-4">
-      <p className="text-zinc-600">{t(run.activeKey)}</p>
+      <p className="text-zinc-600">{t("diagnosticActive")}</p>
       <Link
-        href={run.resumePath}
+        href={href}
         className="inline-block rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
       >
-        {t(run.resumeKey)}
+        {t("resumeDiagnostic")}
       </Link>
     </div>
   );
@@ -84,16 +95,14 @@ function OtherRunNotice({ activeKind }: { activeKind: RunKind }) {
 
 function AbandonButton() {
   const t = useTranslations("simulation");
-  const kind = useSimulation((state) => state.kind);
   const reset = useSimulation((state) => state.reset);
   const router = useRouter();
-  const run = RUNS[kind];
   return (
     <button
       onClick={() => {
-        if (!confirm(t(run.abandonConfirmKey))) return;
+        if (!confirm(t("abandonConfirm"))) return;
         reset();
-        router.push(run.home);
+        router.push("/simulation");
       }}
       className="text-sm text-zinc-500 hover:underline"
     >
@@ -254,43 +263,6 @@ function ExamResult() {
           {t("back")}
         </Link>
       </div>
-    </div>
-  );
-}
-
-function DiagnosticResult() {
-  const t = useTranslations("diagnostic");
-  const { tasks, marks } = useSimulation();
-
-  return (
-    <div className="space-y-6">
-      <p className="rounded-lg bg-zinc-900 p-6 text-center text-white">
-        <span className="block text-3xl font-bold">{t("resultTitle")}</span>
-        <span className="mt-1 block text-zinc-300">
-          {t("correctSummary", {
-            correct: marks.filter(Boolean).length,
-            total: tasks.length,
-          })}
-        </span>
-      </p>
-      <ul className="space-y-1">
-        {tasks.map((task, i) => (
-          <li key={task.id} className="flex justify-between text-sm">
-            <span>
-              {task.examPosition}. {task.topicName}
-            </span>
-            <span className={marks[i] ? "text-green-700" : "text-red-600"}>
-              {marks[i] ? t("correct") : t("incorrect")}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <Link
-        href="/prep"
-        className="inline-block rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
-      >
-        {t("mapCta")}
-      </Link>
     </div>
   );
 }

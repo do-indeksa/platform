@@ -30,11 +30,7 @@ export default async function NewSimulationPage() {
   );
   return (
     <main className="mx-auto max-w-2xl p-8">
-      <SimulationRuntime
-        variantId={crypto.randomUUID()}
-        tasks={tasks}
-        kind="simulation"
-      />
+      <SimulationRuntime variantId={crypto.randomUUID()} tasks={tasks} />
     </main>
   );
 }

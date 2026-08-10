@@ -1,40 +1,62 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { SimulationRuntime } from "@/components/simulation-runtime";
-import { getTopics } from "@/lib/content";
+import {
+  DiagnosticRuntime,
+  type DiagnosticTaskView,
+} from "@/components/diagnostic";
+import { redirect } from "@/i18n/navigation";
+import {
+  DIAGNOSTIC_TASK_COUNT,
+  parseDiagnosticRunQuery,
+} from "@/lib/diagnostic-run";
 import { renderMarkdown } from "@/lib/markdown";
-import type { SimulationTask } from "@/lib/simulation-store";
-import { generateVariant } from "@/lib/variant";
+import { generateVariant, resolveVariantTaskIds } from "@/lib/variant";
 
 export const dynamic = "force-dynamic";
+
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("diagnostic");
   return { title: t("inProgressTitle") };
 }
 
-export default async function NewDiagnosticPage() {
-  const [variant, topics] = await Promise.all([generateVariant(), getTopics()]);
-  const topicNames = new Map(topics.map((topic) => [topic.slug, topic.name]));
-  const tasks: SimulationTask[] = await Promise.all(
-    variant.tasks.map(async ({ examPosition, maxPoints, task }) => ({
+export default async function NewDiagnosticPage({
+  params,
+  searchParams,
+}: Props) {
+  const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const run = parseDiagnosticRunQuery(query, DIAGNOSTIC_TASK_COUNT);
+  const variant = run ? await resolveVariantTaskIds(run.taskIds) : null;
+  if (!run || !variant) {
+    const fresh = await generateVariant();
+    return redirect({
+      href: {
+        pathname: "/diagnostic/new",
+        query: {
+          run: crypto.randomUUID(),
+          set: fresh.tasks.map(({ task }) => task.id).join(","),
+        },
+      },
+      locale,
+    });
+  }
+
+  const topicT = await getTranslations({ locale, namespace: "topics" });
+  const tasks: DiagnosticTaskView[] = await Promise.all(
+    variant.tasks.map(async ({ examPosition, task }) => ({
       id: task.id,
       slot: task.slot,
       examPosition,
-      maxPoints,
-      topicName: topicNames.get(task.topic) ?? task.topic,
+      topic: task.topic,
+      topicName: topicT(task.topic),
       statementHtml: await renderMarkdown(task.statement),
-      solutionHtml: await renderMarkdown(task.solution),
-      answer: task.answer,
+      fields: task.check.map(({ label, kind }) => ({ label, kind })),
     })),
   );
-  return (
-    <main className="mx-auto max-w-2xl p-8">
-      <SimulationRuntime
-        variantId={crypto.randomUUID()}
-        tasks={tasks}
-        kind="diagnostic"
-      />
-    </main>
-  );
+
+  return <DiagnosticRuntime runId={run.runId} tasks={tasks} />;
 }
