@@ -3,6 +3,7 @@ import { Geist_Mono, Onest } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { AnalyticsScript } from "@/components/analytics-script";
 import { SiteHeader } from "@/components/site-header";
 import { SiteChrome } from "@/components/site-chrome";
 import { UserProvider } from "@/components/user-provider";
@@ -61,6 +62,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
             {children}
           </UserProvider>
         </NextIntlClientProvider>
+        <AnalyticsScript />
       </body>
     </html>
   );
