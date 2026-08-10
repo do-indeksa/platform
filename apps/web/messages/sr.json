@@ -164,6 +164,19 @@
       "positions": "ispitnih pozicija",
       "duration": "trajanje ispita"
     },
+    "daily": {
+      "kicker": "Danas",
+      "title": "Zadatak dana",
+      "loading": "Učitavanje zadatka dana",
+      "meta": "Pozicija {position} · {topic} · Težina {difficulty}/5",
+      "statusLabel": "Današnji status",
+      "completed": "Rešen danas",
+      "notCompleted": "Čeka rešenje",
+      "streakLabel": "Niz tačnih dana",
+      "streak": "{count, plural, one {# dan} few {# dana} other {# dana}}",
+      "solve": "Reši zadatak",
+      "repeat": "Reši ponovo"
+    },
     "startPractice": "Počni vežbanje",
     "checkLevel": "Proveri nivo",
     "builder": {

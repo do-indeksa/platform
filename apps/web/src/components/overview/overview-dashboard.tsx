@@ -14,6 +14,7 @@ import {
 import type { PrepTopicSlot } from "@/lib/prep-plan";
 import { useHydrated } from "@/lib/use-hydrated";
 import { ContinueRun } from "./continue-run";
+import { DailyTask, type DailyTaskCandidate } from "./daily-task";
 import { ExamResources } from "./exam-resources";
 import { OverviewHero } from "./overview-hero";
 import { P1Programs } from "./p1-programs";
@@ -30,7 +31,7 @@ export function OverviewDashboard({
 }: {
   exam: OverviewExam;
   positions: OverviewPosition[];
-  tasks: OverviewTask[];
+  tasks: (OverviewTask & DailyTaskCandidate)[];
   topicSlots: PrepTopicSlot[];
   programs: string[];
   programSource: string;
@@ -56,6 +57,7 @@ export function OverviewDashboard({
   return (
     <main className="w-full">
       <OverviewHero exam={exam} publishedTaskCount={tasks.length} />
+      <DailyTask tasks={tasks} />
       <PracticeBuilder
         positions={positions}
         tasks={tasks}
