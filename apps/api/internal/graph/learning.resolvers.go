@@ -7,34 +7,117 @@ package graph
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/do-indeksa/platform/apps/api/internal/graph/model"
+	"github.com/do-indeksa/platform/apps/api/internal/progress"
 )
 
 // StartRun is the resolver for the startRun field.
 func (r *mutationResolver) StartRun(ctx context.Context, input model.StartRunInput) (*model.Run, error) {
-	panic(fmt.Errorf("not implemented: StartRun - startRun"))
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainInput, err := progressStartRunInput(input)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	aggregate, err := r.progress.StartRun(ctx, user.ID, domainInput)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphRun(aggregate)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return result, nil
 }
 
 // RecordAttempt is the resolver for the recordAttempt field.
 func (r *mutationResolver) RecordAttempt(ctx context.Context, input model.RecordAttemptInput) (*model.Attempt, error) {
-	panic(fmt.Errorf("not implemented: RecordAttempt - recordAttempt"))
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainInput, err := progressRecordAttemptInput(input)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	attempt, err := r.progress.RecordAttempt(ctx, user.ID, domainInput)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphAttempt(attempt, nil)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return &result, nil
 }
 
 // SubmitRun is the resolver for the submitRun field.
 func (r *mutationResolver) SubmitRun(ctx context.Context, input model.SubmitRunInput) (*model.Run, error) {
-	panic(fmt.Errorf("not implemented: SubmitRun - submitRun"))
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainInput, err := progressSubmitRunInput(input)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	aggregate, err := r.progress.SubmitRun(ctx, user.ID, domainInput)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphRun(aggregate)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return result, nil
 }
 
 // Run is the resolver for the run field.
 func (r *queryResolver) Run(ctx context.Context, id string) (*model.Run, error) {
-	panic(fmt.Errorf("not implemented: Run - run"))
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	runID, err := inputID(id, "id")
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	aggregate, err := r.progress.GetRun(ctx, user.ID, runID)
+	if errors.Is(err, progress.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphRun(aggregate)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return result, nil
 }
 
 // Runs is the resolver for the runs field.
 func (r *queryResolver) Runs(ctx context.Context, limit int32) ([]model.RunSummary, error) {
-	panic(fmt.Errorf("not implemented: Runs - runs"))
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	runs, err := r.progress.ListRuns(ctx, user.ID, limit)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result := make([]model.RunSummary, len(runs))
+	for i, run := range runs {
+		result[i], err = graphRunSummary(run)
+		if err != nil {
+			return nil, presentError(ctx, err)
+		}
+	}
+	return result, nil
 }
 
 // Mutation returns MutationResolver implementation.
