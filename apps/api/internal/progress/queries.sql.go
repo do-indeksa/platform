@@ -10,16 +10,372 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createAttempt = `-- name: CreateAttempt :one
+insert into attempts (
+    public_id,
+    user_id,
+    run_item_id,
+    task_id,
+    slot,
+    correct,
+    source,
+    help_level,
+    started_at,
+    submitted_at,
+    active_duration_ms,
+    answer,
+    outcome,
+    grading_kind,
+    earned_points,
+    max_points,
+    task_revision
+)
+values (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9,
+    $10, $11, $12, $13, $14, $15, $16, $17
+)
+on conflict (public_id) do nothing
+returning id, user_id, task_id, slot, correct, source, created_at, help_level, public_id, run_item_id, started_at, submitted_at, active_duration_ms, answer, outcome, grading_kind, earned_points, max_points, task_revision
+`
+
+type CreateAttemptParams struct {
+	PublicID         uuid.UUID
+	UserID           uuid.UUID
+	RunItemID        pgtype.UUID
+	TaskID           string
+	Slot             int32
+	Correct          bool
+	Source           string
+	HelpLevel        int16
+	StartedAt        pgtype.Timestamptz
+	SubmittedAt      pgtype.Timestamptz
+	ActiveDurationMs *int64
+	Answer           *string
+	Outcome          *string
+	GradingKind      *string
+	EarnedPoints     *int16
+	MaxPoints        *int16
+	TaskRevision     *string
+}
+
+func (q *Queries) CreateAttempt(ctx context.Context, arg CreateAttemptParams) (Attempt, error) {
+	row := q.db.QueryRow(ctx, createAttempt,
+		arg.PublicID,
+		arg.UserID,
+		arg.RunItemID,
+		arg.TaskID,
+		arg.Slot,
+		arg.Correct,
+		arg.Source,
+		arg.HelpLevel,
+		arg.StartedAt,
+		arg.SubmittedAt,
+		arg.ActiveDurationMs,
+		arg.Answer,
+		arg.Outcome,
+		arg.GradingKind,
+		arg.EarnedPoints,
+		arg.MaxPoints,
+		arg.TaskRevision,
+	)
+	var i Attempt
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TaskID,
+		&i.Slot,
+		&i.Correct,
+		&i.Source,
+		&i.CreatedAt,
+		&i.HelpLevel,
+		&i.PublicID,
+		&i.RunItemID,
+		&i.StartedAt,
+		&i.SubmittedAt,
+		&i.ActiveDurationMs,
+		&i.Answer,
+		&i.Outcome,
+		&i.GradingKind,
+		&i.EarnedPoints,
+		&i.MaxPoints,
+		&i.TaskRevision,
+	)
+	return i, err
+}
+
+const createRun = `-- name: CreateRun :one
+insert into runs (
+    id,
+    user_id,
+    kind,
+    blueprint_version,
+    content_revision,
+    started_at,
+    deadline_at
+)
+values ($1, $2, $3, $4, $5, $6, $7)
+on conflict (id) do nothing
+returning id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+`
+
+type CreateRunParams struct {
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	Kind             string
+	BlueprintVersion string
+	ContentRevision  string
+	StartedAt        time.Time
+	DeadlineAt       pgtype.Timestamptz
+}
+
+func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, error) {
+	row := q.db.QueryRow(ctx, createRun,
+		arg.ID,
+		arg.UserID,
+		arg.Kind,
+		arg.BlueprintVersion,
+		arg.ContentRevision,
+		arg.StartedAt,
+		arg.DeadlineAt,
+	)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createRunItem = `-- name: CreateRunItem :one
+insert into run_items (
+    id,
+    run_id,
+    user_id,
+    task_id,
+    ordinal,
+    exam_position,
+    topic,
+    max_points,
+    task_revision
+)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+returning id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
+`
+
+type CreateRunItemParams struct {
+	ID           uuid.UUID
+	RunID        uuid.UUID
+	UserID       uuid.UUID
+	TaskID       string
+	Ordinal      int16
+	ExamPosition int16
+	Topic        string
+	MaxPoints    *int16
+	TaskRevision string
+}
+
+func (q *Queries) CreateRunItem(ctx context.Context, arg CreateRunItemParams) (RunItem, error) {
+	row := q.db.QueryRow(ctx, createRunItem,
+		arg.ID,
+		arg.RunID,
+		arg.UserID,
+		arg.TaskID,
+		arg.Ordinal,
+		arg.ExamPosition,
+		arg.Topic,
+		arg.MaxPoints,
+		arg.TaskRevision,
+	)
+	var i RunItem
+	err := row.Scan(
+		&i.ID,
+		&i.RunID,
+		&i.UserID,
+		&i.TaskID,
+		&i.Ordinal,
+		&i.ExamPosition,
+		&i.Topic,
+		&i.MaxPoints,
+		&i.TaskRevision,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getAttempt = `-- name: GetAttempt :one
+select id, user_id, task_id, slot, correct, source, created_at, help_level, public_id, run_item_id, started_at, submitted_at, active_duration_ms, answer, outcome, grading_kind, earned_points, max_points, task_revision
+from attempts
+where public_id = $1 and user_id = $2
+`
+
+type GetAttemptParams struct {
+	PublicID uuid.UUID
+	UserID   uuid.UUID
+}
+
+func (q *Queries) GetAttempt(ctx context.Context, arg GetAttemptParams) (Attempt, error) {
+	row := q.db.QueryRow(ctx, getAttempt, arg.PublicID, arg.UserID)
+	var i Attempt
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TaskID,
+		&i.Slot,
+		&i.Correct,
+		&i.Source,
+		&i.CreatedAt,
+		&i.HelpLevel,
+		&i.PublicID,
+		&i.RunItemID,
+		&i.StartedAt,
+		&i.SubmittedAt,
+		&i.ActiveDurationMs,
+		&i.Answer,
+		&i.Outcome,
+		&i.GradingKind,
+		&i.EarnedPoints,
+		&i.MaxPoints,
+		&i.TaskRevision,
+	)
+	return i, err
+}
+
+const getRun = `-- name: GetRun :one
+select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+from runs
+where id = $1 and user_id = $2
+`
+
+type GetRunParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetRun(ctx context.Context, arg GetRunParams) (Run, error) {
+	row := q.db.QueryRow(ctx, getRun, arg.ID, arg.UserID)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRunForUpdate = `-- name: GetRunForUpdate :one
+select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+from runs
+where id = $1 and user_id = $2
+for update
+`
+
+type GetRunForUpdateParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetRunForUpdate(ctx context.Context, arg GetRunForUpdateParams) (Run, error) {
+	row := q.db.QueryRow(ctx, getRunForUpdate, arg.ID, arg.UserID)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRunItemTarget = `-- name: GetRunItemTarget :one
+select
+    i.id,
+    i.run_id,
+    i.task_id,
+    i.exam_position,
+    i.max_points as item_max_points,
+    i.task_revision,
+    r.kind as run_kind,
+    r.status as run_status
+from run_items i
+join runs r on r.id = i.run_id and r.user_id = i.user_id
+where i.id = $1 and i.user_id = $2
+for share of r
+`
+
+type GetRunItemTargetParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+type GetRunItemTargetRow struct {
+	ID            uuid.UUID
+	RunID         uuid.UUID
+	TaskID        string
+	ExamPosition  int16
+	ItemMaxPoints *int16
+	TaskRevision  string
+	RunKind       string
+	RunStatus     string
+}
+
+func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetParams) (GetRunItemTargetRow, error) {
+	row := q.db.QueryRow(ctx, getRunItemTarget, arg.ID, arg.UserID)
+	var i GetRunItemTargetRow
+	err := row.Scan(
+		&i.ID,
+		&i.RunID,
+		&i.TaskID,
+		&i.ExamPosition,
+		&i.ItemMaxPoints,
+		&i.TaskRevision,
+		&i.RunKind,
+		&i.RunStatus,
+	)
+	return i, err
+}
+
 type InsertAttemptsParams struct {
-	UserID    uuid.UUID
-	TaskID    string
-	Slot      int32
-	Correct   bool
-	Source    string
-	HelpLevel int16
-	CreatedAt time.Time
+	UserID      uuid.UUID
+	TaskID      string
+	Slot        int32
+	Correct     bool
+	Source      string
+	HelpLevel   int16
+	CreatedAt   time.Time
+	StartedAt   pgtype.Timestamptz
+	SubmittedAt pgtype.Timestamptz
+	Outcome     *string
+	GradingKind *string
 }
 
 const listAttempts = `-- name: ListAttempts :many
@@ -68,4 +424,188 @@ func (q *Queries) ListAttempts(ctx context.Context, userID uuid.UUID) ([]ListAtt
 		return nil, err
 	}
 	return items, nil
+}
+
+const listRunAttempts = `-- name: ListRunAttempts :many
+select a.id, a.user_id, a.task_id, a.slot, a.correct, a.source, a.created_at, a.help_level, a.public_id, a.run_item_id, a.started_at, a.submitted_at, a.active_duration_ms, a.answer, a.outcome, a.grading_kind, a.earned_points, a.max_points, a.task_revision
+from attempts a
+join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+where i.run_id = $1 and a.user_id = $2
+order by coalesce(a.submitted_at, a.created_at), a.id
+`
+
+type ListRunAttemptsParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) ListRunAttempts(ctx context.Context, arg ListRunAttemptsParams) ([]Attempt, error) {
+	rows, err := q.db.Query(ctx, listRunAttempts, arg.RunID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Attempt
+	for rows.Next() {
+		var i Attempt
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TaskID,
+			&i.Slot,
+			&i.Correct,
+			&i.Source,
+			&i.CreatedAt,
+			&i.HelpLevel,
+			&i.PublicID,
+			&i.RunItemID,
+			&i.StartedAt,
+			&i.SubmittedAt,
+			&i.ActiveDurationMs,
+			&i.Answer,
+			&i.Outcome,
+			&i.GradingKind,
+			&i.EarnedPoints,
+			&i.MaxPoints,
+			&i.TaskRevision,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRunItems = `-- name: ListRunItems :many
+select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
+from run_items
+where run_id = $1 and user_id = $2
+order by ordinal
+`
+
+type ListRunItemsParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) ListRunItems(ctx context.Context, arg ListRunItemsParams) ([]RunItem, error) {
+	rows, err := q.db.Query(ctx, listRunItems, arg.RunID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunItem
+	for rows.Next() {
+		var i RunItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.RunID,
+			&i.UserID,
+			&i.TaskID,
+			&i.Ordinal,
+			&i.ExamPosition,
+			&i.Topic,
+			&i.MaxPoints,
+			&i.TaskRevision,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRuns = `-- name: ListRuns :many
+select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+from runs
+where user_id = $1
+order by started_at desc, id
+limit $2
+`
+
+type ListRunsParams struct {
+	UserID uuid.UUID
+	Limit  int32
+}
+
+func (q *Queries) ListRuns(ctx context.Context, arg ListRunsParams) ([]Run, error) {
+	rows, err := q.db.Query(ctx, listRuns, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Run
+	for rows.Next() {
+		var i Run
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Kind,
+			&i.Status,
+			&i.BlueprintVersion,
+			&i.ContentRevision,
+			&i.StartedAt,
+			&i.DeadlineAt,
+			&i.SubmittedAt,
+			&i.DurationMs,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const submitRun = `-- name: SubmitRun :one
+update runs
+set status = 'submitted',
+    submitted_at = $3,
+    duration_ms = $4,
+    updated_at = now()
+where id = $1 and user_id = $2 and status = 'active'
+returning id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+`
+
+type SubmitRunParams struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	SubmittedAt pgtype.Timestamptz
+	DurationMs  *int64
+}
+
+func (q *Queries) SubmitRun(ctx context.Context, arg SubmitRunParams) (Run, error) {
+	row := q.db.QueryRow(ctx, submitRun,
+		arg.ID,
+		arg.UserID,
+		arg.SubmittedAt,
+		arg.DurationMs,
+	)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }

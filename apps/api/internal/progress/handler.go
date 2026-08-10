@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"regexp"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
@@ -13,12 +12,9 @@ import (
 )
 
 const (
-	maxBatchSize  = 500
-	maxBodyBytes  = 256 << 10
-	maxTaskIDSize = 64
+	maxBatchSize = 500
+	maxBodyBytes = 256 << 10
 )
-
-var taskIDPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 type Handler struct {
 	auth    *auth.Service
@@ -96,10 +92,6 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func validTaskID(taskID string) bool {
-	return taskID != "" && len(taskID) <= maxTaskIDSize && taskIDPattern.MatchString(taskID)
 }
 
 func (h *Handler) requestUser(w http.ResponseWriter, r *http.Request) (auth.User, bool) {
