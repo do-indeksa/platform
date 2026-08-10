@@ -1,32 +1,65 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
+import { OverviewDashboard } from "@/components/overview";
+import { getTaskSummaries, getTopics } from "@/lib/content";
+import { getP1Blueprint } from "@/lib/exam-blueprint";
+import { getFtnP1Programs } from "@/lib/guide";
 
-export default async function Home() {
-  const t = await getTranslations("home");
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "home" });
+  return { title: t("metadataTitle"), description: t("metadataDescription") };
+}
+
+export default async function Home({ params }: Props) {
+  const { locale } = await params;
+  const [topics, tasks, blueprint, programGuide, topicT] = await Promise.all([
+    getTopics(),
+    getTaskSummaries(),
+    getP1Blueprint(),
+    getFtnP1Programs(),
+    getTranslations({ locale, namespace: "topics" }),
+  ]);
+  const officialVariant = blueprint.sources.find(
+    (source) => source.role === "officialVariant",
+  );
+  if (!officialVariant) {
+    throw new Error(
+      `P1 blueprint ${blueprint.version} has no official variant`,
+    );
+  }
+
+  const positions = blueprint.positions.map((position) => ({
+    number: position.number,
+    topicSlugs: position.topicSlugs,
+    name: position.topicSlugs.map((topic) => topicT(topic)).join(" / "),
+    taskCount: tasks.filter((task) => position.topicSlugs.includes(task.topic))
+      .length,
+  }));
+
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
-      <h1 className="text-4xl font-bold">Do indeksa</h1>
-      <p className="max-w-md text-lg text-zinc-600">{t("tagline")}</p>
-      <div className="flex flex-wrap justify-center gap-3">
-        <Link
-          href="/tasks"
-          className="rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
-        >
-          {t("tasksCta")}
-        </Link>
-        <Link
-          href="/simulation"
-          className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
-        >
-          {t("simulationCta")}
-        </Link>
-        <Link
-          href="/calculator"
-          className="rounded-full border border-zinc-300 px-6 py-3 font-medium transition-colors hover:border-zinc-500"
-        >
-          {t("calculatorCta")}
-        </Link>
-      </div>
-    </main>
+    <OverviewDashboard
+      exam={{
+        version: blueprint.version,
+        taskCount: blueprint.taskCount,
+        durationMinutes: blueprint.durationMinutes,
+        maxPoints: blueprint.maxPoints,
+        officialVariantUrl: officialVariant.url,
+      }}
+      positions={positions}
+      tasks={tasks.map(({ id, slot, topic, difficulty }) => ({
+        id,
+        slot,
+        topic,
+        difficulty,
+      }))}
+      topicSlots={topics.map(({ slug, slot }) => ({ slug, slot }))}
+      programs={programGuide.programs}
+      programSource={programGuide.source}
+    />
   );
 }

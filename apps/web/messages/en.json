@@ -150,10 +150,70 @@
     "missingResultBody": "The run may belong to another browser or may not be finished yet. Return to the diagnostic to continue or start again."
   },
   "home": {
-    "tagline": "A free platform for choosing a degree program and preparing for the entrance exam.",
-    "tasksCta": "Practice tasks →",
-    "simulationCta": "Mock entrance exam",
-    "calculatorCta": "Score calculator"
+    "metadataTitle": "Prepare for the FTN P1 exam",
+    "metadataDescription": "Practice tasks, check your level and build a preparation plan for the FTN P1 mathematics entrance exam.",
+    "context": "FTN Novi Sad · P1 · Mathematics",
+    "verifiedFormat": "Verified format {version}",
+    "title": "Prepare for the P1 mathematics exam",
+    "intro": "The current exam has {tasks} tasks, lasts {hours} hours and carries up to {points} points.",
+    "facts": {
+      "publishedTasks": "published tasks",
+      "positions": "exam positions",
+      "duration": "exam duration"
+    },
+    "startPractice": "Start practice",
+    "checkLevel": "Check your level",
+    "builder": {
+      "kicker": "Quick start",
+      "title": "Build a short practice set",
+      "positionsLegend": "Choose positions",
+      "positionOption": "Position {position}: {topic}",
+      "difficultyLabel": "Difficulty",
+      "difficulty": {
+        "all": "All difficulties",
+        "foundation": "Foundation",
+        "exam": "Exam level",
+        "advanced": "Advanced"
+      },
+      "countLabel": "Number of tasks",
+      "countOption": "{count, plural, one {# task} other {# tasks}}",
+      "startSet": "Start {count, plural, one {# task} other {# tasks}}",
+      "selectToStart": "Choose a position",
+      "noMatchingTasks": "There are no published tasks for this selection yet. Change the difficulty or position."
+    },
+    "continue": {
+      "kicker": "Continue where you left off",
+      "kind": {
+        "diagnostic": "Unfinished level check",
+        "mock": "Unfinished mock exam"
+      },
+      "progress": "Task {current} of {total}",
+      "resume": "Continue"
+    },
+    "positions": {
+      "title": "Positions in the current P1",
+      "intro": "Practice follows stable topics while position order comes from the verified annual format.",
+      "taskCount": "{count, plural, one {# published task} other {# published tasks}}",
+      "loadingProgress": "Loading progress",
+      "openPosition": "Open position {position}: {topic}",
+      "progressAria": "Progress for position {position}"
+    },
+    "resources": {
+      "title": "Exam modes",
+      "intro": "Practise in the complete format or inspect an official example at the FTN source.",
+      "mockTitle": "New P1 mock exam",
+      "mockDescription": "A generated {tasks}-task set with a {minutes}-minute timer and answer review.",
+      "mockMeta": "Format {version} · trainer estimate",
+      "officialTitle": "Official P1 with solutions",
+      "officialDescription": "Open the published exam and solutions directly on the official FTN website.",
+      "officialMeta": "Source for format {version}"
+    },
+    "programs": {
+      "title": "Degree programs using P1",
+      "intro": "FTN currently groups {count} degree programs under the P1 mathematics entrance exam.",
+      "officialSource": "Official program group",
+      "calculatorCta": "Calculate admission points"
+    }
   },
   "tasks": {
     "title": "Tasks",
