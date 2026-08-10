@@ -17,9 +17,11 @@ export default async function NewSimulationPage() {
   const [variant, topics] = await Promise.all([generateVariant(), getTopics()]);
   const topicNames = new Map(topics.map((topic) => [topic.slug, topic.name]));
   const tasks: SimulationTask[] = await Promise.all(
-    variant.map(async (task) => ({
+    variant.tasks.map(async ({ examPosition, maxPoints, task }) => ({
       id: task.id,
       slot: task.slot,
+      examPosition,
+      maxPoints,
       topicName: topicNames.get(task.topic) ?? task.topic,
       statementHtml: await renderMarkdown(task.statement),
       solutionHtml: await renderMarkdown(task.solution),

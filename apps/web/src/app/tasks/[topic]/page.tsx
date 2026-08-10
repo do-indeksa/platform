@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const t = await getTranslations("tasks");
   return {
     title: topic.name,
-    description: t("topicDescription", { topic: topic.name, slot: topic.slot }),
+    description: t("topicDescription", { topic: topic.name }),
   };
 }
 
@@ -32,9 +32,7 @@ export default async function TopicPage({ params }: Props) {
       <Link href="/tasks" className="text-sm text-zinc-500 hover:underline">
         {t("allSlots")}
       </Link>
-      <h1 className="mt-2 mb-8 text-3xl font-bold">
-        {topic.slot}. {topic.name}
-      </h1>
+      <h1 className="mt-2 mb-8 text-3xl font-bold">{topic.name}</h1>
       <ul className="space-y-2">
         {tasks.map((task) => (
           <li key={task.id}>

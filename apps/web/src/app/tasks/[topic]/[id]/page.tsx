@@ -60,7 +60,7 @@ export default async function TaskPage({ params }: Props) {
       <div className="mb-6 flex items-start justify-between gap-4">
         <div className="space-y-1">
           <p className="text-sm text-zinc-500">
-            {t("taskContext", { slot: task.slot, topic: topic.name })}
+            {t("taskContext", { topic: topic.name })}
           </p>
           <h1 className="text-2xl font-bold">
             {t("taskTitle", { id: task.id })}

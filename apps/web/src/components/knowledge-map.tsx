@@ -41,7 +41,7 @@ export function KnowledgeMap({ topics }: { topics: Topic[] }) {
     <div className="space-y-6">
       <ul className="space-y-3">
         {topics.map((topic) => (
-          <SlotRow key={topic.slug} topic={topic} attempts={attempts} />
+          <TopicRow key={topic.slug} topic={topic} attempts={attempts} />
         ))}
       </ul>
       <Link
@@ -54,7 +54,7 @@ export function KnowledgeMap({ topics }: { topics: Topic[] }) {
   );
 }
 
-function SlotRow({ topic, attempts }: { topic: Topic; attempts: Attempt[] }) {
+function TopicRow({ topic, attempts }: { topic: Topic; attempts: Attempt[] }) {
   const t = useTranslations("prep");
   const mastery = slotMastery(attempts, topic.slot);
 
@@ -62,7 +62,7 @@ function SlotRow({ topic, attempts }: { topic: Topic; attempts: Attempt[] }) {
     return (
       <li className="flex items-baseline justify-between rounded-lg border border-zinc-200 p-4">
         <Link href={`/tasks/${topic.slug}`} className="hover:underline">
-          {topic.slot}. {topic.name}
+          {topic.name}
         </Link>
         <span className="text-sm text-zinc-400">{t("untested")}</span>
       </li>
@@ -78,7 +78,7 @@ function SlotRow({ topic, attempts }: { topic: Topic; attempts: Attempt[] }) {
           href={`/tasks/${topic.slug}`}
           className="font-medium hover:underline"
         >
-          {topic.slot}. {topic.name}
+          {topic.name}
         </Link>
         <span className={`text-sm ${styles?.text ?? "text-zinc-500"}`}>
           {t(level ?? "noLevel")}

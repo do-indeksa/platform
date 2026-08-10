@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { MarkButton } from "@/components/mark-button";
-import { POINTS_PER_TASK, simulationScore } from "@/lib/scoring";
+import { binaryTrainerEstimate } from "@/lib/scoring";
 import {
   useSimulation,
   type RunKind,
@@ -126,7 +126,7 @@ function ExamPhase() {
         </span>
       </div>
       <p className="text-sm text-zinc-500">
-        {task.slot}. {task.topicName}
+        {task.examPosition}. {task.topicName}
       </p>
       <div dangerouslySetInnerHTML={{ __html: task.statementHtml }} />
       <div className="flex items-center gap-6">
@@ -156,7 +156,7 @@ function GradingPhase() {
           className="space-y-3 border-b border-zinc-200 pb-8"
         >
           <h2 className="font-bold">
-            {task.slot}. {task.topicName}
+            {task.examPosition}. {task.topicName}
           </h2>
           <div dangerouslySetInnerHTML={{ __html: task.statementHtml }} />
           <details className="rounded-lg border border-zinc-200 p-4">
@@ -204,11 +204,17 @@ function ExamResult() {
   const t = useTranslations("simulation");
   const { tasks, marks, reset } = useSimulation();
   const router = useRouter();
-  const score = simulationScore(marks);
+  const score = binaryTrainerEstimate(
+    marks,
+    tasks.map((task) => task.maxPoints),
+  );
 
   return (
     <div className="space-y-6">
       <p className="rounded-lg bg-zinc-900 p-6 text-center text-white">
+        <span className="block text-sm font-medium text-zinc-300">
+          {t("estimateLabel")}
+        </span>
         <span className="block text-5xl font-bold">
           {t("scoreOf", { score })}
         </span>
@@ -223,14 +229,15 @@ function ExamResult() {
         {tasks.map((task, i) => (
           <li key={task.id} className="flex justify-between text-sm">
             <span>
-              {task.slot}. {task.topicName}
+              {task.examPosition}. {task.topicName}
             </span>
             <span className={marks[i] ? "text-green-700" : "text-red-600"}>
-              {marks[i] ? `+${POINTS_PER_TASK}` : "0"}
+              {marks[i] ? `+${task.maxPoints}` : "0"}
             </span>
           </li>
         ))}
       </ul>
+      <p className="text-sm text-zinc-600">{t("estimateDisclaimer")}</p>
       <div className="flex items-center gap-4">
         <button
           onClick={() => {
@@ -271,7 +278,7 @@ function DiagnosticResult() {
         {tasks.map((task, i) => (
           <li key={task.id} className="flex justify-between text-sm">
             <span>
-              {task.slot}. {task.topicName}
+              {task.examPosition}. {task.topicName}
             </span>
             <span className={marks[i] ? "text-green-700" : "text-red-600"}>
               {marks[i] ? t("correct") : t("incorrect")}
