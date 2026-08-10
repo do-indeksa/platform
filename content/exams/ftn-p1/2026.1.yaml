@@ -1,0 +1,50 @@
+examId: ftn-p1
+version: "2026.1"
+year: 2026
+status: current
+durationMinutes: 240
+taskCount: 10
+maxPoints: 60
+grading:
+  methodGraded: true
+  partialCredit: true
+  binaryTrainerEstimateOfficial: false
+sources:
+  - role: format
+    url: https://ftn.uns.ac.rs/nacin-polaganja/
+    retrievedAt: "2026-08-10"
+  - role: officialVariant
+    url: https://prijemni.ftn.uns.ac.rs/php/getResenjaTesta.php?VRT_SIFRA=P1
+    retrievedAt: "2026-08-10"
+    sha256: fe6e8751840ae6ef9d2618b3702b1bee45be085b7c903aa1070c767af4f6842c
+positions:
+  - number: 1
+    topicSlugs: [kompleksni-brojevi]
+    maxPoints: 6
+  - number: 2
+    topicSlugs: [kvadratna-jednacina]
+    maxPoints: 6
+  - number: 3
+    topicSlugs: [eksponencijalne]
+    maxPoints: 6
+  - number: 4
+    topicSlugs: [logaritmi]
+    maxPoints: 6
+  - number: 5
+    topicSlugs: [trigonometrija]
+    maxPoints: 6
+  - number: 6
+    topicSlugs: [vektori-analitika]
+    maxPoints: 6
+  - number: 7
+    topicSlugs: [planimetrija]
+    maxPoints: 6
+  - number: 8
+    topicSlugs: [stereometrija]
+    maxPoints: 6
+  - number: 9
+    topicSlugs: [analiza-funkcije]
+    maxPoints: 6
+  - number: 10
+    topicSlugs: [kombinatorika]
+    maxPoints: 6
