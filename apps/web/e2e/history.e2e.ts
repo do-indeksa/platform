@@ -124,10 +124,9 @@ test("empty mobile history has a recovery action and active navigation", async (
   await expect(
     page.getByRole("link", { name: "Выбрать задание" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Меню" }).click();
   await expect(
-    page
-      .getByTestId("mobile-navigation")
-      .getByRole("link", { name: "История" }),
+    page.locator("#mobile-app-menu").getByRole("link", { name: "История" }),
   ).toHaveAttribute("aria-current", "page");
   expect(
     await page.evaluate(
