@@ -15,12 +15,14 @@ type User = components["schemas"]["User"];
 
 type UserContextValue = {
   user: User | null;
+  loading: boolean;
   signingOut: boolean;
   signOut: () => Promise<void>;
 };
 
 const UserContext = createContext<UserContextValue>({
   user: null,
+  loading: true,
   signingOut: false,
   signOut: async () => {},
 });
@@ -67,7 +69,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   return (
-    <UserContext value={{ user: user ?? null, signingOut, signOut }}>
+    <UserContext
+      value={{
+        user: user ?? null,
+        loading: user === undefined,
+        signingOut,
+        signOut,
+      }}
+    >
       {children}
     </UserContext>
   );

@@ -1,22 +1,38 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { KnowledgeMap } from "@/components/knowledge-map";
-import { SimulationHistory } from "@/components/simulation-history";
-import { getTopics } from "@/lib/content";
+import { PrepPlanView } from "@/components/prep";
+import { getTaskReferences, getTopics } from "@/lib/content";
+import { getP1Blueprint } from "@/lib/exam-blueprint";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("prep");
   return { title: t("title"), description: t("description") };
 }
 
-export default async function PrepPage() {
-  const [topics, t] = await Promise.all([getTopics(), getTranslations("prep")]);
+export default async function PrepPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const [topics, taskReferences, blueprint, topicT] = await Promise.all([
+    getTopics(),
+    getTaskReferences(),
+    getP1Blueprint(),
+    getTranslations({ locale, namespace: "topics" }),
+  ]);
+  const positions = blueprint.positions.map((position) => ({
+    number: position.number,
+    topicSlugs: position.topicSlugs,
+    name: position.topicSlugs.map((topic) => topicT(topic)).join(" / "),
+  }));
+
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-3xl font-bold">{t("title")}</h1>
-      <p className="mb-8 text-zinc-600">{t("mapIntro")}</p>
-      <KnowledgeMap topics={topics} />
-      <SimulationHistory />
-    </main>
+    <PrepPlanView
+      positions={positions}
+      topicSlots={topics.map(({ slug, slot }) => ({ slug, slot }))}
+      taskReferences={taskReferences}
+      maxPoints={blueprint.maxPoints}
+    />
   );
 }
