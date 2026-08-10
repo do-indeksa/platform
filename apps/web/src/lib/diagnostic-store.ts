@@ -8,7 +8,7 @@ import {
   isDiagnosticRunId,
   isDiagnosticTaskId,
 } from "./diagnostic-run";
-import { MAX_ANSWER_LENGTH } from "./task-draft";
+import { MAX_ANSWER_LENGTH, MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
 export type DiagnosticOutcome = "correct" | "incorrect" | "skipped";
 export type DiagnosticPhase = "running" | "done";
@@ -214,7 +214,7 @@ function isAnswers(value: unknown): value is string[][] {
       (answers) =>
         Array.isArray(answers) &&
         answers.length >= 1 &&
-        answers.length <= 5 &&
+        answers.length <= MAX_TASK_ANSWER_PARTS &&
         answers.every(
           (answer) =>
             typeof answer === "string" && answer.length <= MAX_ANSWER_LENGTH,
