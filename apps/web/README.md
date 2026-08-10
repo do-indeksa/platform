@@ -6,7 +6,22 @@ Next.js frontend. KaTeX for math rendering.
 npm run dev      # local dev server
 npm run lint     # eslint
 npm run build    # production build
+npm start        # standalone production server
 ```
+
+## Container
+
+Build from the repository root so the image includes the versioned content:
+
+```sh
+docker build -f apps/web/Dockerfile -t do-indeksa-web .
+docker run --rm -p 3000:3000 do-indeksa-web
+```
+
+The distroless standalone server runs as the fixed non-root UID/GID
+`65532:65532`.
+`GET /healthz` checks the web process without locale redirects; a request to
+`/tasks` also proves that runtime content is present.
 
 ## Analytics
 
