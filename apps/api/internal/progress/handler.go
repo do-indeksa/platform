@@ -42,11 +42,12 @@ func (h *Handler) ListAttempts(w http.ResponseWriter, r *http.Request) {
 	attempts := make([]api.Attempt, len(rows))
 	for i, row := range rows {
 		attempts[i] = api.Attempt{
-			TaskId:  row.TaskID,
-			Slot:    int(row.Slot),
-			Correct: row.Correct,
-			Source:  api.AttemptSource(row.Source),
-			At:      row.CreatedAt,
+			TaskId:    row.TaskID,
+			Slot:      int(row.Slot),
+			Correct:   row.Correct,
+			Source:    api.AttemptSource(row.Source),
+			HelpLevel: int(row.HelpLevel),
+			At:        row.CreatedAt,
 		}
 	}
 	httpx.WriteJSON(w, http.StatusOK, attempts)
@@ -78,6 +79,13 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 			Slot:    int32(attempt.Slot),
 			Correct: attempt.Correct,
 			Source:  string(attempt.Source),
+		}
+		if attempt.HelpLevel != nil {
+			if *attempt.HelpLevel < 0 || *attempt.HelpLevel > 3 {
+				httpx.WriteError(w, http.StatusBadRequest, "invalid_attempt", "attempt fields are out of range")
+				return
+			}
+			params[i].HelpLevel = int16(*attempt.HelpLevel)
 		}
 		if attempt.At != nil {
 			params[i].CreatedAt = *attempt.At

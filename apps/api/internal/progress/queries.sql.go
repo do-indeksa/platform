@@ -18,13 +18,14 @@ type InsertAttemptsParams struct {
 	Slot      int32
 	Correct   bool
 	Source    string
+	HelpLevel int16
 	CreatedAt time.Time
 }
 
 const listAttempts = `-- name: ListAttempts :many
-select task_id, slot, correct, source, created_at
+select task_id, slot, correct, source, help_level, created_at
 from (
-    select id, task_id, slot, correct, source, created_at
+    select id, task_id, slot, correct, source, help_level, created_at
     from attempts
     where user_id = $1
     order by created_at desc, id desc
@@ -38,6 +39,7 @@ type ListAttemptsRow struct {
 	Slot      int32
 	Correct   bool
 	Source    string
+	HelpLevel int16
 	CreatedAt time.Time
 }
 
@@ -55,6 +57,7 @@ func (q *Queries) ListAttempts(ctx context.Context, userID uuid.UUID) ([]ListAtt
 			&i.Slot,
 			&i.Correct,
 			&i.Source,
+			&i.HelpLevel,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

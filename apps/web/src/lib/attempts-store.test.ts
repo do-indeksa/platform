@@ -47,6 +47,7 @@ function attempt(taskId: string, overrides: Partial<Attempt> = {}): Attempt {
     slot: 1,
     correct: true,
     source: "practice",
+    helpLevel: 0,
     at: "2026-07-12T10:00:00.000Z",
     ...overrides,
   };
@@ -145,6 +146,19 @@ describe("syncAttempts", () => {
     await store.syncAttempts(true);
 
     expect(stored(map)).toHaveLength(0);
+  });
+
+  it("defaults helpLevel for entries stored before the field existed", async () => {
+    const legacy = Object.fromEntries(
+      Object.entries(attempt("kb-001")).filter(([key]) => key !== "helpLevel"),
+    );
+    mockStorage([legacy]);
+    mockFetch(() => Response.json([]));
+    const store = await loadStore();
+
+    await store.syncAttempts(false);
+
+    expect(store.attemptsView()).toEqual([{ ...legacy, helpLevel: 0 }]);
   });
 
   it("filters corrupt localStorage entries", async () => {
