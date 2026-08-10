@@ -150,10 +150,70 @@
     "missingResultBody": "Pokušaj možda pripada drugom pregledaču ili još nije završen. Vrati se na dijagnostiku da nastaviš ili počneš ponovo."
   },
   "home": {
-    "tagline": "Besplatna platforma za izbor fakulteta i pripremu prijemnog ispita.",
-    "tasksCta": "Zadaci za vežbanje →",
-    "simulationCta": "Probni prijemni",
-    "calculatorCta": "Kalkulator bodova"
+    "metadataTitle": "Priprema za FTN P1",
+    "metadataDescription": "Vežbaj zadatke, proveri nivo i napravi plan pripreme za prijemni ispit FTN P1 iz matematike.",
+    "context": "FTN Novi Sad · P1 · Matematika",
+    "verifiedFormat": "Potvrđen format {version}",
+    "title": "Priprema za P1 iz matematike",
+    "intro": "Aktuelni ispit ima {tasks} zadataka, traje {hours} sata i nosi najviše {points} bodova.",
+    "facts": {
+      "publishedTasks": "objavljenih zadataka",
+      "positions": "ispitnih pozicija",
+      "duration": "trajanje ispita"
+    },
+    "startPractice": "Počni vežbanje",
+    "checkLevel": "Proveri nivo",
+    "builder": {
+      "kicker": "Brzi početak",
+      "title": "Sastavi kratko vežbanje",
+      "positionsLegend": "Izaberi pozicije",
+      "positionOption": "Pozicija {position}: {topic}",
+      "difficultyLabel": "Težina",
+      "difficulty": {
+        "all": "Sve težine",
+        "foundation": "Osnovni nivo",
+        "exam": "Ispitni nivo",
+        "advanced": "Napredni nivo"
+      },
+      "countLabel": "Broj zadataka",
+      "countOption": "{count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+      "startSet": "Počni {count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+      "selectToStart": "Izaberi poziciju",
+      "noMatchingTasks": "Za ovaj izbor trenutno nema objavljenih zadataka. Promeni težinu ili poziciju."
+    },
+    "continue": {
+      "kicker": "Nastavi gde si stao",
+      "kind": {
+        "diagnostic": "Nedovršena provera nivoa",
+        "mock": "Nedovršen probni ispit"
+      },
+      "progress": "Zadatak {current} od {total}",
+      "resume": "Nastavi"
+    },
+    "positions": {
+      "title": "Pozicije aktuelnog P1",
+      "intro": "Vežbanje prati oblasti, dok se redosled pozicija uzima iz potvrđenog godišnjeg formata.",
+      "taskCount": "{count, plural, one {# objavljen zadatak} few {# objavljena zadatka} other {# objavljenih zadataka}}",
+      "loadingProgress": "Učitavanje napretka",
+      "openPosition": "Otvori poziciju {position}: {topic}",
+      "progressAria": "Napredak za poziciju {position}"
+    },
+    "resources": {
+      "title": "Ispitni režimi",
+      "intro": "Vežbaj u punom formatu ili proveri zvanični primer na izvoru FTN-a.",
+      "mockTitle": "Novi probni P1",
+      "mockDescription": "Generisan set od {tasks} zadataka sa tajmerom od {minutes} minuta i pregledom odgovora.",
+      "mockMeta": "Format {version} · procena trenažera",
+      "officialTitle": "Zvanični P1 sa rešenjima",
+      "officialDescription": "Otvori objavljeni ispit i rešenja direktno na zvaničnom sajtu FTN-a.",
+      "officialMeta": "Izvor za format {version}"
+    },
+    "programs": {
+      "title": "Studijski programi za P1",
+      "intro": "FTN trenutno grupiše {count} studijskih programa uz prijemni ispit P1 iz matematike.",
+      "officialSource": "Zvanična grupa programa",
+      "calculatorCta": "Izračunaj bodove za upis"
+    }
   },
   "tasks": {
     "title": "Zadaci",
