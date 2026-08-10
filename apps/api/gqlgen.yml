@@ -28,3 +28,7 @@ models:
   Int64:
     model:
       - github.com/99designs/gqlgen/graphql.Int64
+  RunItem:
+    fields:
+      recentAttempts:
+        resolver: true

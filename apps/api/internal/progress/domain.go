@@ -30,6 +30,8 @@ const (
 	RunStatusAbandoned RunStatus = "abandoned"
 )
 
+const MaxRecentRunItemAttempts int32 = 20
+
 type AttemptOutcome string
 
 const (

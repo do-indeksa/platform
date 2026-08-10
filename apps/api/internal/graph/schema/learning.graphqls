@@ -59,7 +59,8 @@ type RunItem {
   topic: ID!
   maxPoints: Int
   taskRevision: String!
-  attempts: [Attempt!]!
+  """Returns the latest attempts in chronological order, up to a limit of 20."""
+  recentAttempts(limit: Int! = 5): [Attempt!]!
 }
 
 type Run {

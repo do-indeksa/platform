@@ -40,14 +40,14 @@ func graphRun(aggregate progress.RunAggregate) (*model.Run, error) {
 			mappedAttempts[j] = mapped
 		}
 		items[i] = model.RunItem{
-			ID:           item.ID.String(),
-			TaskID:       item.TaskID,
-			Ordinal:      int32(item.Ordinal),
-			ExamPosition: int32(item.ExamPosition),
-			Topic:        item.Topic,
-			MaxPoints:    graphInt16(item.MaxPoints),
-			TaskRevision: item.TaskRevision,
-			Attempts:     mappedAttempts,
+			ID:             item.ID.String(),
+			TaskID:         item.TaskID,
+			Ordinal:        int32(item.Ordinal),
+			ExamPosition:   int32(item.ExamPosition),
+			Topic:          item.Topic,
+			MaxPoints:      graphInt16(item.MaxPoints),
+			TaskRevision:   item.TaskRevision,
+			RecentAttempts: mappedAttempts,
 		}
 	}
 	return &model.Run{

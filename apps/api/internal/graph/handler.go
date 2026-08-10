@@ -8,6 +8,8 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/vektah/gqlparser/v2/ast"
+
+	"github.com/do-indeksa/platform/apps/api/internal/progress"
 )
 
 const (
@@ -29,8 +31,14 @@ func NewHandler(resolver *Resolver) http.Handler {
 	config.Complexity.Run.Items = func(childComplexity int) int {
 		return 10 * childComplexity
 	}
-	config.Complexity.RunItem.Attempts = func(childComplexity int) int {
-		return 5 * childComplexity
+	config.Complexity.RunItem.RecentAttempts = func(childComplexity int, limit int32) int {
+		if limit < 1 {
+			return childComplexity
+		}
+		if limit > progress.MaxRecentRunItemAttempts {
+			limit = progress.MaxRecentRunItemAttempts
+		}
+		return int(limit) * childComplexity
 	}
 
 	server := handler.New(NewExecutableSchema(config))

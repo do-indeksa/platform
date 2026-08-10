@@ -32,6 +32,7 @@ type Config = graphql.Config[ResolverRoot, DirectiveRoot, ComplexityRoot]
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	RunItem() RunItemResolver
 }
 
 type DirectiveRoot struct {
@@ -81,14 +82,14 @@ type ComplexityRoot struct {
 	}
 
 	RunItem struct {
-		Attempts     func(childComplexity int) int
-		ExamPosition func(childComplexity int) int
-		ID           func(childComplexity int) int
-		MaxPoints    func(childComplexity int) int
-		Ordinal      func(childComplexity int) int
-		TaskID       func(childComplexity int) int
-		TaskRevision func(childComplexity int) int
-		Topic        func(childComplexity int) int
+		ExamPosition   func(childComplexity int) int
+		ID             func(childComplexity int) int
+		MaxPoints      func(childComplexity int) int
+		Ordinal        func(childComplexity int) int
+		RecentAttempts func(childComplexity int, limit int32) int
+		TaskID         func(childComplexity int) int
+		TaskRevision   func(childComplexity int) int
+		Topic          func(childComplexity int) int
 	}
 
 	RunSummary struct {
@@ -116,6 +117,9 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
 	Runs(ctx context.Context, limit int32) ([]model.RunSummary, error)
+}
+type RunItemResolver interface {
+	RecentAttempts(ctx context.Context, obj *model.RunItem, limit int32) ([]model.Attempt, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -345,12 +349,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Run.SubmittedAt(childComplexity), true
 
-	case "RunItem.attempts":
-		if e.ComplexityRoot.RunItem.Attempts == nil {
-			break
-		}
-
-		return e.ComplexityRoot.RunItem.Attempts(childComplexity), true
 	case "RunItem.examPosition":
 		if e.ComplexityRoot.RunItem.ExamPosition == nil {
 			break
@@ -375,6 +373,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RunItem.Ordinal(childComplexity), true
+	case "RunItem.recentAttempts":
+		if e.ComplexityRoot.RunItem.RecentAttempts == nil {
+			break
+		}
+
+		args, err := ec.field_RunItem_recentAttempts_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.RunItem.RecentAttempts(childComplexity, args["limit"].(int32)), true
 	case "RunItem.taskId":
 		if e.ComplexityRoot.RunItem.TaskID == nil {
 			break
@@ -634,8 +643,8 @@ func (ec *executionContext) childFields_RunItem(ctx context.Context, field graph
 		return ec.fieldContext_RunItem_maxPoints(ctx, field)
 	case "taskRevision":
 		return ec.fieldContext_RunItem_taskRevision(ctx, field)
-	case "attempts":
-		return ec.fieldContext_RunItem_attempts(ctx, field)
+	case "recentAttempts":
+		return ec.fieldContext_RunItem_recentAttempts(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type RunItem", field.Name)
 }
@@ -851,6 +860,20 @@ func (ec *executionContext) field_Query_run_args(ctx context.Context, rawArgs ma
 }
 
 func (ec *executionContext) field_Query_runs_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (int32, error) {
+			return ec.unmarshalNInt2int32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_RunItem_recentAttempts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
@@ -1965,16 +1988,17 @@ func (ec *executionContext) fieldContext_RunItem_taskRevision(_ context.Context,
 	return graphql.NewScalarFieldContext("RunItem", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
-func (ec *executionContext) _RunItem_attempts(ctx context.Context, field graphql.CollectedField, obj *model.RunItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _RunItem_recentAttempts(ctx context.Context, field graphql.CollectedField, obj *model.RunItem) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
 		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return ec.fieldContext_RunItem_attempts(ctx, field)
+			return ec.fieldContext_RunItem_recentAttempts(ctx, field)
 		},
 		func(ctx context.Context) (any, error) {
-			return obj.Attempts, nil
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.RunItem().RecentAttempts(ctx, obj, fc.Args["limit"].(int32))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []model.Attempt) graphql.Marshaler {
@@ -1984,15 +2008,26 @@ func (ec *executionContext) _RunItem_attempts(ctx context.Context, field graphql
 		true,
 	)
 }
-func (ec *executionContext) fieldContext_RunItem_attempts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_RunItem_recentAttempts(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RunItem",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Attempt(ctx, field)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_RunItem_recentAttempts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -3974,43 +4009,76 @@ func (ec *executionContext) _RunItem(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._RunItem_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "taskId":
 			out.Values[i] = ec._RunItem_taskId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "ordinal":
 			out.Values[i] = ec._RunItem_ordinal(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "examPosition":
 			out.Values[i] = ec._RunItem_examPosition(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "topic":
 			out.Values[i] = ec._RunItem_topic(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "maxPoints":
 			out.Values[i] = ec._RunItem_maxPoints(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "taskRevision":
 			out.Values[i] = ec._RunItem_taskRevision(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "attempts":
-			out.Values[i] = ec._RunItem_attempts(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+		case "recentAttempts":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._RunItem_recentAttempts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.IsDeferred() {
+				deferredFieldSet.AddField(field)
+				fieldIndex := len(deferredFieldSet.Values) - 1
+				deferredFieldSet.Concurrently(fieldIndex, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, deferredFieldSet)
+				})
+
+				for _, deferrable := range field.Deferrables {
+					view, ok := deferLabelToView[deferrable.Label]
+					if !ok {
+						view = deferredFieldSet.NewView()
+						deferLabelToView[deferrable.Label] = view
+					}
+					view.AddIndices(fieldIndex)
+				}
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

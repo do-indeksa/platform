@@ -14,7 +14,7 @@ mutation StartRun($input: StartRunInput!) {
     id
     kind
     status
-    items { id taskId examPosition attempts { id } }
+    items { id taskId examPosition recentAttempts { id } }
   }
 }`
 
@@ -36,7 +36,7 @@ mutation SubmitRun($input: SubmitRunInput!) {
     id
     status
     activeDurationMs
-    items { id attempts { id outcome } }
+    items { id recentAttempts { id outcome } }
   }
 }`
 
@@ -69,7 +69,7 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 			Status string `json:"status"`
 			Items  []struct {
 				ID       string `json:"id"`
-				Attempts []any  `json:"attempts"`
+				Attempts []any  `json:"recentAttempts"`
 			} `json:"items"`
 		} `json:"startRun"`
 	}
@@ -114,7 +114,7 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 	}
 
 	_, payload = graphRequest(t, `query Run($id: ID!) {
-    run(id: $id) { id status items { id attempts { id outcome } } }
+    run(id: $id) { id status items { id recentAttempts { id outcome } } }
     runs { id status }
   }`, map[string]any{"id": runID}, session)
 	requireGraphSuccess(t, payload)
@@ -124,7 +124,7 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 			Items []struct {
 				Attempts []struct {
 					ID string `json:"id"`
-				} `json:"attempts"`
+				} `json:"recentAttempts"`
 			} `json:"items"`
 		} `json:"run"`
 		Runs []struct {
@@ -165,6 +165,11 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 	requireGraphSuccess(t, payload)
 	_, payload = graphRequest(t, submitRunMutation, submitVariables, session)
 	requireGraphSuccess(t, payload)
+
+	_, payload = graphRequest(t, `query($id: ID!) {
+    run(id: $id) { items { recentAttempts(limit: 21) { id } } }
+  }`, map[string]any{"id": runID}, session)
+	requireGraphCode(t, payload, "BAD_USER_INPUT")
 }
 
 func TestGraphQLRunOwnershipIsNotDisclosed(t *testing.T) {

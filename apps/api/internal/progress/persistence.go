@@ -24,7 +24,11 @@ func loadRun(ctx context.Context, queries *Queries, userID, runID uuid.UUID) (Ru
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	attempts, err := queries.ListRunAttempts(ctx, ListRunAttemptsParams{RunID: runID, UserID: userID})
+	attempts, err := queries.ListRunAttempts(ctx, ListRunAttemptsParams{
+		RunID:       runID,
+		UserID:      userID,
+		MaxAttempts: MaxRecentRunItemAttempts,
+	})
 	if err != nil {
 		return RunAggregate{}, err
 	}

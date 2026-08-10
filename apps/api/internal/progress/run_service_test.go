@@ -3,6 +3,7 @@ package progress
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -166,6 +167,40 @@ func TestAttemptClientIDRejectsDifferentPayload(t *testing.T) {
 	}
 	if len(loaded.Attempts) != 1 || loaded.Attempts[0].Answer == nil || *loaded.Attempts[0].Answer != "42" {
 		t.Fatalf("conflict changed stored attempt: %+v", loaded.Attempts)
+	}
+}
+
+func TestGetRunLimitsRecentAttemptsPerItem(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := sampleRunInput(RunKindPractice)
+	if _, err := service.StartRun(ctx, userID, run); err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < int(MaxRecentRunItemAttempts)+5; i++ {
+		attempt := sampleAttemptInput(run.Items[0].ID, run.StartedAt)
+		answer := fmt.Sprintf("answer-%02d", i)
+		attempt.Answer = &answer
+		attempt.StartedAt = run.StartedAt.Add(time.Duration(i+1) * time.Minute)
+		attempt.SubmittedAt = attempt.StartedAt.Add(time.Second)
+		if _, err := service.RecordAttempt(ctx, userID, attempt); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	loaded, err := service.GetRun(ctx, userID, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(loaded.Attempts) != int(MaxRecentRunItemAttempts) {
+		t.Fatalf("got %d attempts", len(loaded.Attempts))
+	}
+	first := loaded.Attempts[0].Answer
+	last := loaded.Attempts[len(loaded.Attempts)-1].Answer
+	if first == nil || last == nil || *first != "answer-05" || *last != "answer-24" {
+		t.Fatalf("unexpected recent window: first=%v last=%v", first, last)
 	}
 }
 
