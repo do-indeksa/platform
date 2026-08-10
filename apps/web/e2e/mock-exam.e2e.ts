@@ -179,6 +179,18 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
   expect(completedPayload.state.review).toHaveLength(10);
+  const taskHistory = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("do-indeksa-task-history") as string),
+  );
+  expect(taskHistory.entries).toHaveLength(10);
+  expect(taskHistory.entries[0]).toEqual(
+    expect.objectContaining({
+      taskId: activePayload.state.tasks[0].id,
+      outcome: "incorrect",
+      source: "simulation",
+      answers: activePayload.state.answers[0],
+    }),
+  );
 });
 
 test("mock checker bounds bodies and returns only grading outcomes", async ({

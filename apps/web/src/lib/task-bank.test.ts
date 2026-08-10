@@ -5,6 +5,7 @@ import {
   defaultTaskBankFilters,
   filterTaskSummaries,
   parsePracticeSet,
+  parsePracticeId,
   parseTaskBankState,
   safeTaskBankReturnPath,
   serializeTaskBankState,
@@ -193,5 +194,18 @@ describe("practice navigation input", () => {
     expect(safeTaskBankReturnPath("//example.com/tasks")).toBeNull();
     expect(safeTaskBankReturnPath("/prep")).toBe("/prep");
     expect(safeTaskBankReturnPath("/prep?redirect=bad")).toBeNull();
+    expect(safeTaskBankReturnPath("/history?tab=tasks")).toBe(
+      "/history?tab=tasks",
+    );
+    expect(safeTaskBankReturnPath("/history?redirect=bad")).toBeNull();
+  });
+
+  it("keeps a valid isolated practice identifier", () => {
+    const practiceId = "00000000-0000-4000-8000-000000000001";
+    expect(parsePracticeId(practiceId)).toBe(practiceId);
+    expect(parsePracticeId("not-a-uuid")).toBeNull();
+    expect(
+      taskPracticeHref(tasks[0], "/history?tab=tasks", [], practiceId),
+    ).toContain(`practice=${practiceId}`);
   });
 });

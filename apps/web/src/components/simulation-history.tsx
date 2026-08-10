@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useSimulation } from "@/lib/simulation-store";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -42,6 +44,13 @@ export function SimulationHistory() {
           </li>
         ))}
       </ul>
+      <Link
+        href="/history?tab=variants"
+        className="mt-4 inline-flex min-h-10 items-center font-semibold text-brand-ink hover:text-brand"
+      >
+        {t("viewHistory")}
+        <ArrowRight aria-hidden className="ml-1.5 h-4 w-4" />
+      </Link>
     </section>
   );
 }

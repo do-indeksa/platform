@@ -15,6 +15,7 @@ import {
 } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
 import {
+  parsePracticeId,
   parsePracticeSet,
   safeTaskBankReturnPath,
   taskBankHref,
@@ -71,6 +72,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
     firstQueryValue(query.set),
     new Set(referenceById.keys()),
   );
+  const practiceId = parsePracticeId(firstQueryValue(query.practice));
   const selectedSequence = practiceSet
     .map((taskId) => referenceById.get(taskId))
     .filter((reference): reference is TaskReference => reference !== undefined);
@@ -98,6 +100,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
           next,
           returnTo,
           practiceSet.includes(task.id) ? practiceSet : [],
+          practiceId,
         )
       : null;
   return (
@@ -140,6 +143,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
         hintsHtml={hintsHtml}
         solutionHtml={solutionHtml}
         nextTaskHref={nextTaskHref}
+        practiceId={practiceId}
       />
       <p className="mt-6 text-sm text-zinc-500">
         {t("sourceLabel", { source: task.source })}
@@ -158,8 +162,10 @@ function taskHref(
   task: TaskReference,
   returnTo: string,
   practiceSet: readonly string[],
+  practiceId: string | null,
 ): string {
   const params = new URLSearchParams({ returnTo });
   if (practiceSet.length > 0) params.set("set", practiceSet.join(","));
+  if (practiceId) params.set("practice", practiceId);
   return `/tasks/${task.topic}/${task.id}?${params}`;
 }
