@@ -96,6 +96,13 @@ describe("task files", () => {
     );
   });
 
+  it("does not pass raw HTML into rendered task previews", async () => {
+    const html = await renderMarkdown("<script>alert(1)</script>\n\nSafe");
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain("alert(1)");
+    expect(html).toContain("<p>Safe</p>");
+  });
+
   it("frontmatter matches the schema", async () => {
     const taskFiles = await readAllTaskFiles();
     const topics = await getTopics();
