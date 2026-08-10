@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
+import { trackTaskSolved } from "@/lib/analytics";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic } from "@/lib/diagnostic-store";
 import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
@@ -121,6 +122,14 @@ export function SimulationRuntime({
       const review = parseSimulationReviewItems(payload.review, state.tasks);
       if (!results || !review || !state.finish(results, review, Date.now())) {
         throw new Error("invalid grade response");
+      }
+      for (const [index, result] of results.entries()) {
+        if (result.outcome === "correct") {
+          trackTaskSolved({
+            source: "mock",
+            position: state.tasks[index].examPosition,
+          });
+        }
       }
       router.replace(resultHref);
     } catch {

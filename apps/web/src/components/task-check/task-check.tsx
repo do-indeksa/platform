@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import type { CheckPart } from "@/lib/answer";
+import { trackTaskSolved } from "@/lib/analytics";
 import { recordAttempts } from "@/lib/attempts-store";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { Link } from "@/i18n/navigation";
@@ -85,6 +86,13 @@ export function TaskCheck({
             helpLevel: state.hintsShown,
           },
         ])[0]?.id ?? null;
+      if (correct) {
+        trackTaskSolved({
+          source: "practice",
+          position: slot,
+          helpLevel: state.hintsShown,
+        });
+      }
       setState((current) => ({
         ...current,
         results,

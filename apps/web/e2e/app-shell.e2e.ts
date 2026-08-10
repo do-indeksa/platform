@@ -1,4 +1,5 @@
 import { expect, test, type Locator } from "@playwright/test";
+import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const locales = [
   { path: "/tasks", heading: "Zadaci", htmlLang: "sr-Latn" },
@@ -155,6 +156,7 @@ test("task-bank filters are shareable and expose an honest empty state", async (
 test("selected tasks form a bounded practice sequence and return intact", async ({
   page,
 }) => {
+  await installAnalyticsSpy(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/ru/tasks");
   await page.getByRole("checkbox", { name: "Выбрать задание kb-001" }).check();
@@ -176,6 +178,10 @@ test("selected tasks form a bounded practice sequence and return intact", async 
     .fill("3sqrt(2)");
   await page.getByRole("button", { name: "Проверить" }).click();
   await expect(page.getByText("Верно!", { exact: true })).toBeVisible();
+  expect(await analyticsEvents(page)).toContainEqual({
+    event: "task-solved",
+    data: { source: "practice", position: 1, helpLevel: 0 },
+  });
   await page.getByRole("link", { name: "Следующее задание" }).click();
   await expect(page).toHaveURL(/\/kvadratna-jednacina\/kv-001\?/);
   await expect(page.getByText("Задание 2 из 2", { exact: true })).toBeVisible();

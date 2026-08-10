@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const taskIds = [
@@ -18,6 +19,7 @@ const runUrl = `/en/diagnostic/new?run=${runId}&set=${taskIds.join("%2C")}`;
 test("mobile diagnostic keeps skipped positions separate and starts focused practice", async ({
   page,
 }) => {
+  await installAnalyticsSpy(page);
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto(runUrl);
 
@@ -40,6 +42,12 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
   await expect(
     page.getByText("Diagnostic · 2 of 10", { exact: true }),
   ).toBeVisible();
+  expect(await analyticsEvents(page)).toEqual([
+    {
+      event: "task-solved",
+      data: { source: "diagnostic", position: 1 },
+    },
+  ]);
   await expect(page.getByText("Correct!", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Not quite", { exact: true })).toHaveCount(0);
 
