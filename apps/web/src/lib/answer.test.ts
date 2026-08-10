@@ -32,6 +32,7 @@ describe("value answers", () => {
     ["ln(5)/ln(2)", "log2(5)"],
     ["-8", "−8"],
     ["60", "60°"],
+    ["3/8", "0.375"],
   ])("accepts %s ≡ %s", (expected, input) => {
     expect(checkAnswer(value(expected), input)).toBe("correct");
   });
@@ -42,7 +43,17 @@ describe("value answers", () => {
     ["2sqrt(3)", "3sqrt(2)"],
     ["2sqrt(3)", "3.46"],
     ["pi/3", "pi/4"],
+    ["2", "1/0"],
   ])("rejects %s vs %s", (expected, input) => {
+    expect(checkAnswer(value(expected), input)).toBe("incorrect");
+  });
+
+  it.each([
+    ["2sqrt(3)", "3.464101615"],
+    ["sqrt(2)", "1.414213562"],
+    ["pi/3", "1.047197551"],
+    ["1/3", "0,3333333333"],
+  ])("rejects the calculator decimal %s vs %s", (expected, input) => {
     expect(checkAnswer(value(expected), input)).toBe("incorrect");
   });
 
@@ -51,6 +62,10 @@ describe("value answers", () => {
     ["6", "abc("],
     ["6", "2+"],
     ["6", "šest"],
+    ["log(25)", "log25"],
+    ["log2(5)", "log25"],
+    ["log(100)", "log100"],
+    ["5", "log100"],
   ])("flags %s vs %j as invalid", (expected, input) => {
     expect(checkAnswer(value(expected), input)).toBe("invalid");
   });
@@ -67,6 +82,11 @@ describe("expression answers in x", () => {
     ["-2x+2", "y = -2*x + 2"],
     ["x/2+2", "0.5x+2"],
     ["x+2", "f(x)=x+2"],
+    ["2sqrt(x)", "2√x"],
+    ["sqrt(x)+1", "√x + 1"],
+    ["sqrt(x-3)", "sqrt(x-3)"],
+    ["ln(x-3)", "ln(x-3)"],
+    ["1/(2sqrt(x-3))", "1/(2*koren(x-3))"],
   ])("accepts %s ≡ %s", (expected, input) => {
     expect(checkAnswer(value(expected), input)).toBe("correct");
   });
@@ -75,6 +95,7 @@ describe("expression answers in x", () => {
     ["-2x+2", "2x+2"],
     ["-2x+2", "-2x-2"],
     ["x+2", "2"],
+    ["sqrt(x-3)", "sqrt(x-2)"],
   ])("rejects %s vs %s", (expected, input) => {
     expect(checkAnswer(value(expected), input)).toBe("incorrect");
   });
@@ -95,6 +116,8 @@ describe("values answers", () => {
     ["0,2", "2;0"],
     ["-pi/2,0,pi/2", "{-π/2, 0, π/2}"],
     ["2pi/3,pi,4pi/3", "pi, 2pi/3, 4pi/3"],
+    ["-3,3", "x∈{-3, 3}"],
+    ["1.5, 2", "1,5;2"],
   ])("accepts %s ≡ %s", (expected, input) => {
     expect(checkAnswer(values(expected), input)).toBe("correct");
   });
@@ -104,6 +127,7 @@ describe("values answers", () => {
     ["-3,3", "3,3"],
     ["-3,3", "-3,3,0"],
     ["0,2", "0,3"],
+    ["-sqrt(2),sqrt(2)", "±1.414213562"],
   ])("rejects %s vs %s", (expected, input) => {
     expect(checkAnswer(values(expected), input)).toBe("incorrect");
   });
@@ -122,6 +146,13 @@ describe("interval answers", () => {
     ["(-Infinity,0)u(2,Infinity)", "(-beskonacno,0)u(2,beskonačno)"],
     ["(-pi,-pi/2)u(pi/2,pi]", "(-π,-π/2) U (π/2,π]"],
     ["[-1,3]", "[-1,3]"],
+    ["(-1,3]", "-1<x<=3"],
+    ["(-1,3]", "-1 < x ≤ 3"],
+    ["(2,Infinity)", "x>2"],
+    ["[1,Infinity)", "x>=1"],
+    ["(-Infinity,0)u(2,Infinity)", "x<0 u x>2"],
+    ["(1.5,3)", "(1,5;3)"],
+    ["(-1,3]", "(-1;3]"],
   ])("accepts %s ≡ %s", (expected, input) => {
     expect(checkAnswer(interval(expected), input)).toBe("correct");
   });
@@ -131,6 +162,8 @@ describe("interval answers", () => {
     ["(-1,3]", "(-1,3)"],
     ["(-1,3]", "(-1,2]"],
     ["(-Infinity,0)u(2,Infinity)", "(-inf,0)"],
+    ["(0,pi/3]", "(0,1.047197551]"],
+    ["(2,Infinity)", "x>=2"],
   ])("rejects %s vs %s", (expected, input) => {
     expect(checkAnswer(interval(expected), input)).toBe("incorrect");
   });

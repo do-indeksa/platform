@@ -1,5 +1,5 @@
 import { all, create } from "mathjs/number";
-import type { MathNode } from "mathjs";
+import type { EvalFunction, MathNode } from "mathjs";
 
 const math = create(all);
 
@@ -15,8 +15,11 @@ export type CheckResult = "correct" | "incorrect" | "invalid";
 
 const MAX_INPUT_LENGTH = 200;
 const EPSILON = 1e-9;
-const SAMPLE_POINTS = [-1.55, 0.35, 1.35, 2.7];
-const MIN_SAMPLE_MATCHES = 2;
+const SAMPLE_GRID = [
+  -8.35, -5.05, -3.15, -1.55, -0.45, 0.35, 1.35, 2.7, 4.15, 5.85, 7.45, 9.05,
+  11.65,
+];
+const MIN_SAMPLE_MATCHES = 3;
 
 export function checkAnswer(part: CheckPart, input: string): CheckResult {
   if (input.length > MAX_INPUT_LENGTH) return "invalid";
@@ -37,6 +40,8 @@ function normalize(raw: string, kind: CheckKind): string {
     .replace(/[×·]/g, "*")
     .replace(/÷/g, "/")
     .replace(/°/g, "")
+    .replace(/≤/g, "<=")
+    .replace(/≥/g, ">=")
     .replace(/√/g, "sqrt")
     .replace(/π/g, "pi")
     .replace(/∞/g, "inf")
@@ -47,9 +52,10 @@ function normalize(raw: string, kind: CheckKind): string {
     .replace(/beskona[cč]no/g, "inf")
     .replace(/infinity/g, "inf");
   if (kind === "value") s = s.replace(/,/g, ".");
+  s = s.replace(/\s+/g, "");
+  if (kind !== "value" && s.includes(";")) s = s.replace(/,/g, ".");
   s = s
-    .replace(/\s+/g, "")
-    .replace(/(sqrt|log10|log2|log|ln)(\d+(?:\.\d+)?)(?![\d(])/g, "$1($2)")
+    .replace(/(sqrt|ln)(x|\d+(?:\.\d+)?)(?![\da-z(])/g, "$1($2)")
     .replace(/log(?!10|2)/g, "log10")
     .replace(/ln/g, "log");
   return s.replace(/inf/g, "Infinity");
@@ -75,13 +81,25 @@ function stripLead(s: string): string {
   return s.replace(/^[a-z][a-z0-9]{0,3}(\(x\))?=/, "");
 }
 
+function isDecimalLiteral(s: string): boolean {
+  return /^[+-]?\d+(\.\d+)?$/.test(s);
+}
+
+function matches(expected: number, given: number, literal: boolean): boolean {
+  return literal ? expected === given : near(expected, given);
+}
+
 function valueEquals(expected: string, given: string): boolean {
   const expectedNode = math.parse(expected);
   const givenNode = math.parse(given);
   if (usesX(expectedNode) || usesX(givenNode)) {
     return sampledEquals(expectedNode, givenNode);
   }
-  return near(toNumber(expectedNode), toNumber(givenNode));
+  return matches(
+    toNumber(expectedNode),
+    toNumber(givenNode),
+    isDecimalLiteral(given),
+  );
 }
 
 function usesX(node: MathNode): boolean {
@@ -94,20 +112,24 @@ function usesX(node: MathNode): boolean {
 function sampledEquals(expected: MathNode, given: MathNode): boolean {
   const expectedFn = expected.compile();
   const givenFn = given.compile();
-  let matches = 0;
-  for (const x of SAMPLE_POINTS) {
-    const want = expectedFn.evaluate({ x }) as unknown;
-    const got = givenFn.evaluate({ x }) as unknown;
-    if (typeof want !== "number" || typeof got !== "number") {
-      throw new Error("expression is not numeric");
-    }
-    if (Number.isNaN(want) && Number.isNaN(got)) continue;
-    if (Number.isNaN(want) || Number.isNaN(got)) return false;
-    if (!near(want, got)) return false;
-    matches++;
+  let compared = 0;
+  for (const x of SAMPLE_GRID) {
+    const want = numberAt(expectedFn, x);
+    if (want === null || !Number.isFinite(want)) continue;
+    const got = numberAt(givenFn, x);
+    if (got === null || !near(want, got)) return false;
+    compared++;
   }
-  if (matches < MIN_SAMPLE_MATCHES) throw new Error("domains barely overlap");
+  if (compared < MIN_SAMPLE_MATCHES) {
+    throw new Error("expected expression undefined on the sample grid");
+  }
   return true;
+}
+
+function numberAt(fn: EvalFunction, x: number): number | null {
+  const value = fn.evaluate({ x }) as unknown;
+  if (typeof value !== "number") throw new Error("expression is not numeric");
+  return Number.isNaN(value) ? null : value;
 }
 
 function toNumber(node: MathNode): number {
@@ -119,18 +141,29 @@ function toNumber(node: MathNode): number {
 }
 
 function near(a: number, b: number): boolean {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return a === b;
   if (a === b) return true;
   return Math.abs(a - b) <= EPSILON * Math.max(1, Math.abs(a), Math.abs(b));
 }
 
-function valueList(s: string): number[] {
-  return splitTop(unwrapBraces(s), ",;").flatMap((element) => {
+type ListedValue = { value: number; literal: boolean };
+
+function valueList(s: string): ListedValue[] {
+  const inner = unwrapBraces(stripLead(s));
+  return splitTop(inner, ",;").flatMap((element) => {
     const bare = stripLead(element);
     if (bare.startsWith("±")) {
-      const value = toNumber(math.parse(bare.slice(1)));
-      return [value, -value];
+      const body = bare.slice(1);
+      const value = toNumber(math.parse(body));
+      const literal = isDecimalLiteral(body);
+      return [
+        { value, literal },
+        { value: -value, literal },
+      ];
     }
-    return [toNumber(math.parse(bare))];
+    return [
+      { value: toNumber(math.parse(bare)), literal: isDecimalLiteral(bare) },
+    ];
   });
 }
 
@@ -138,48 +171,90 @@ function unwrapBraces(s: string): string {
   return s.startsWith("{") && s.endsWith("}") ? s.slice(1, -1) : s;
 }
 
-function multisetEquals(want: number[], got: number[]): boolean {
+function multisetEquals(want: ListedValue[], got: ListedValue[]): boolean {
   if (want.length !== got.length) return false;
   const used = Array<boolean>(got.length).fill(false);
-  return want.every((value) => {
-    const i = got.findIndex((g, j) => !used[j] && near(value, g));
+  return want.every((w) => {
+    const i = got.findIndex(
+      (g, j) => !used[j] && matches(w.value, g.value, g.literal),
+    );
     if (i === -1) return false;
     used[i] = true;
     return true;
   });
 }
 
-type Interval = { lo: number; hi: number; loOpen: boolean; hiOpen: boolean };
+type Bound = { value: number; open: boolean; literal: boolean };
+
+type Interval = { lo: Bound; hi: Bound };
 
 function intervalList(s: string): Interval[] {
   return splitTop(s, "u;").map(parseInterval);
 }
 
 function parseInterval(s: string): Interval {
+  const interval = inequalityInterval(s) ?? bracketInterval(s);
+  if (!(interval.lo.value < interval.hi.value)) {
+    throw new Error("empty interval");
+  }
+  return interval;
+}
+
+function bracketInterval(s: string): Interval {
   const match = /^([([])(.+)([)\]])$/.exec(s);
   if (!match) throw new Error("not an interval");
-  const bounds = splitTop(match[2], ",");
+  const bounds = splitTop(match[2], ",;");
   if (bounds.length !== 2) throw new Error("interval needs two bounds");
-  const lo = toNumber(math.parse(bounds[0]));
-  const hi = toNumber(math.parse(bounds[1]));
-  if (!(lo < hi)) throw new Error("empty interval");
-  return { lo, hi, loOpen: match[1] === "(", hiOpen: match[3] === ")" };
+  return {
+    lo: bound(bounds[0], match[1] === "("),
+    hi: bound(bounds[1], match[3] === ")"),
+  };
+}
+
+function inequalityInterval(s: string): Interval | null {
+  let match = /^(.+?)(<=|<)x(<=|<)(.+)$/.exec(s);
+  if (match) {
+    return {
+      lo: bound(match[1], match[2] === "<"),
+      hi: bound(match[4], match[3] === "<"),
+    };
+  }
+  match = /^x(<=|<)(.+)$/.exec(s);
+  if (match) {
+    return { lo: infinite(-1), hi: bound(match[2], match[1] === "<") };
+  }
+  match = /^x(>=|>)(.+)$/.exec(s);
+  if (match) {
+    return { lo: bound(match[2], match[1] === ">"), hi: infinite(1) };
+  }
+  return null;
+}
+
+function bound(expr: string, open: boolean): Bound {
+  return {
+    value: toNumber(math.parse(expr)),
+    open,
+    literal: isDecimalLiteral(expr),
+  };
+}
+
+function infinite(sign: 1 | -1): Bound {
+  return { value: sign * Infinity, open: true, literal: false };
 }
 
 function unionEquals(want: Interval[], got: Interval[]): boolean {
   if (want.length !== got.length) return false;
-  const byLo = (a: Interval, b: Interval) => a.lo - b.lo;
+  const byLo = (a: Interval, b: Interval) => a.lo.value - b.lo.value;
   const sortedWant = want.toSorted(byLo);
   const sortedGot = got.toSorted(byLo);
   return sortedWant.every((w, i) => {
     const g = sortedGot[i];
-    return (
-      near(w.lo, g.lo) &&
-      near(w.hi, g.hi) &&
-      w.loOpen === g.loOpen &&
-      w.hiOpen === g.hiOpen
-    );
+    return sameBound(w.lo, g.lo) && sameBound(w.hi, g.hi);
   });
+}
+
+function sameBound(want: Bound, got: Bound): boolean {
+  return want.open === got.open && matches(want.value, got.value, got.literal);
 }
 
 function splitTop(s: string, separators: string): string[] {
