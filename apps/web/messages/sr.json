@@ -59,6 +59,8 @@
     "exitPractice": "← Izađi iz zadatka",
     "answerLabel": "Tvoj odgovor",
     "checkCta": "Proveri",
+    "checkingCta": "Proveravam...",
+    "checkerUnavailable": "Provera trenutno nije dostupna. Pokušaj ponovo.",
     "hintLockedNote": "Treba ti pomoć? Nagoveštaj se otključava posle prvog pokušaja.",
     "showHint": "Prikaži nagoveštaj",
     "nextHint": "Sledeći korak",
