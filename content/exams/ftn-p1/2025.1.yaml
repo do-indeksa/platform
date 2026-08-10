@@ -1,0 +1,51 @@
+examId: ftn-p1
+version: "2025.1"
+year: 2025
+status: historical
+durationMinutes: 240
+taskCount: 10
+maxPoints: 60
+grading:
+  methodGraded: true
+  partialCredit: true
+  binaryTrainerEstimateOfficial: false
+sources:
+  - role: format
+    url: https://ftn.uns.ac.rs/wp-content/uploads/2024/12/Osnovne-studije-2025-web.pdf
+    retrievedAt: "2026-08-10"
+    sha256: 3ec908609ccd0c9fa4917c2497d51cb9028940c8d752be90456a4d79d7f4459b
+  - role: officialVariant
+    url: https://ftn.uns.ac.rs/wp-content/uploads/2025/08/Prijemni25.pdf
+    retrievedAt: "2026-08-10"
+    sha256: 13b045f254acea708d85420108c17037dcf93f684a9827b2da1737b5cb06fc71
+positions:
+  - number: 1
+    topicSlugs: [kompleksni-brojevi]
+    maxPoints: 6
+  - number: 2
+    topicSlugs: [kvadratna-jednacina]
+    maxPoints: 6
+  - number: 3
+    topicSlugs: [logaritmi]
+    maxPoints: 6
+  - number: 4
+    topicSlugs: [eksponencijalne]
+    maxPoints: 6
+  - number: 5
+    topicSlugs: [trigonometrija]
+    maxPoints: 6
+  - number: 6
+    topicSlugs: [vektori-analitika]
+    maxPoints: 6
+  - number: 7
+    topicSlugs: [planimetrija]
+    maxPoints: 6
+  - number: 8
+    topicSlugs: [stereometrija]
+    maxPoints: 6
+  - number: 9
+    topicSlugs: [analiza-funkcije]
+    maxPoints: 6
+  - number: 10
+    topicSlugs: [kombinatorika]
+    maxPoints: 6
