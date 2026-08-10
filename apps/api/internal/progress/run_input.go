@@ -46,7 +46,7 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			return StartRunInput{}, invalidInput("items")
 		}
 		if item.MaxPoints != nil {
-			if *item.MaxPoints < 0 || *item.MaxPoints > 60 {
+			if *item.MaxPoints < 1 || *item.MaxPoints > 60 {
 				return StartRunInput{}, invalidInput("items.maxPoints")
 			}
 			totalPoints += *item.MaxPoints

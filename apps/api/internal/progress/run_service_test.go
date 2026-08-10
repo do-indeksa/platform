@@ -203,6 +203,10 @@ func TestRunInputValidation(t *testing.T) {
 		{"duplicate task", func(input *StartRunInput) { input.Items[1].TaskID = input.Items[0].TaskID }},
 		{"duplicate position", func(input *StartRunInput) { input.Items[1].ExamPosition = input.Items[0].ExamPosition }},
 		{"missing simulation points", func(input *StartRunInput) { input.Items[0].MaxPoints = nil }},
+		{"zero point ceiling", func(input *StartRunInput) {
+			zero := int16(0)
+			input.Items[0].MaxPoints = &zero
+		}},
 		{"future start", func(input *StartRunInput) { input.StartedAt = time.Now().Add(time.Hour) }},
 	}
 	for _, test := range tests {

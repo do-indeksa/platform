@@ -3,6 +3,7 @@ package progress
 import (
 	"fmt"
 	"regexp"
+	"time"
 	"unicode/utf8"
 )
 
@@ -30,9 +31,8 @@ func validOutcome(outcome AttemptOutcome) bool {
 		outcome == AttemptOutcomeUngraded
 }
 
-func validGradingKind(kind GradingKind) bool {
-	return kind == GradingKindAuto || kind == GradingKindRubricSelf ||
-		kind == GradingKindAIAssisted || kind == GradingKindHuman
+func validClientGradingKind(kind GradingKind) bool {
+	return kind == GradingKindAuto || kind == GradingKindRubricSelf
 }
 
 func validRevision(revision string) bool {
@@ -45,4 +45,9 @@ func invalidInput(field string) error {
 
 func validAnswer(answer *string) bool {
 	return answer == nil || utf8.RuneCountInString(*answer) <= maxAnswerCharacters
+}
+
+func validActiveDuration(activeDurationMs *int64, elapsed time.Duration) bool {
+	return activeDurationMs == nil ||
+		(*activeDurationMs >= 0 && *activeDurationMs <= elapsed.Milliseconds()+clientClockSkew.Milliseconds())
 }

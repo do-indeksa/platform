@@ -129,7 +129,7 @@ func resolveAttemptTarget(
 		target.ExamPosition > 10 || !validRevision(target.TaskRevision) {
 		return attemptTarget{}, invalidInput("standalone")
 	}
-	if target.MaxPoints != nil && (*target.MaxPoints < 0 || *target.MaxPoints > 60) {
+	if target.MaxPoints != nil && (*target.MaxPoints < 1 || *target.MaxPoints > 60) {
 		return attemptTarget{}, invalidInput("standalone.maxPoints")
 	}
 	return attemptTarget{
