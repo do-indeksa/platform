@@ -4,25 +4,25 @@ One file = one task: `content/tasks/<topic-slug>/<id>.md`
 
 ## Frontmatter
 
-| Field | Type | Values |
-|---|---|---|
-| `id` | string | `<prefix>-NNN`, unique repo-wide |
-| `slot` | int | 1–10, position in the P1 exam |
-| `topic` | string | topic slug from `topics.yaml` |
-| `difficulty` | int | 1–5 |
-| `source` | string | e.g. `FTN 2019`, `ETF 2024, br. 2`, `Do indeksa (autorski)` |
-| `origin` | string | traceability to the LaTeX source file |
-| `status` | string | `draft` → `review` → `verified` |
-| `answer` | string | final answer for display, LaTeX inline math allowed |
-| `check` | list | machine-checkable answer parts, see below |
+| Field        | Type   | Values                                                      |
+| ------------ | ------ | ----------------------------------------------------------- |
+| `id`         | string | `<prefix>-NNN`, unique repo-wide                            |
+| `slot`       | int    | 1–10, position in the P1 exam                               |
+| `topic`      | string | topic slug from `topics.yaml`                               |
+| `difficulty` | int    | 1–5                                                         |
+| `source`     | string | e.g. `FTN 2019`, `ETF 2024, br. 2`, `Do indeksa (autorski)` |
+| `origin`     | string | traceability to the LaTeX source file                       |
+| `status`     | string | `draft` → `review` → `verified`                             |
+| `answer`     | string | final answer for display, LaTeX inline math allowed         |
+| `check`      | list   | machine-checkable answer parts, see below                   |
 
 ## Check
 
 ```yaml
 check:
-  - label: 'b)'      # optional when the task has a single checked part
-    kind: value      # value | values | interval | text
-    expected: '2sqrt(3)'
+  - label: "b)" # optional when the task has a single checked part
+    kind: value # value | values | interval | text
+    expected: "2sqrt(3)"
 ```
 
 `expected` uses input syntax, not LaTeX: `sqrt(3)`, `pi`, `e`, `inf`,
@@ -54,6 +54,15 @@ Full worked solution in Serbian.
 ```
 
 Hint sections are optional, at most two, in order, before `## Rešenje`.
+
+## Import provenance
+
+Imported authored tasks use an origin in the form
+`<statement-file>.tex, slot <1-10>, zadatak <selector>`, where a selector is a
+task number (`3`) or a subtask (`3a`). The content pipeline resolves the same
+selector in both the statement and solution workbooks. Its manifest must supply
+exactly two hints and at least one machine-check part, and it can emit only
+`draft` or `review` status.
 
 ## Rules
 

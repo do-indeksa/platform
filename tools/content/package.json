@@ -1,0 +1,22 @@
+{
+  "name": "@do-indeksa/content-pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "check": "node src/cli.mjs check",
+    "format:check": "prettier --check .",
+    "generate": "node src/cli.mjs generate",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@unified-latex/unified-latex": "1.8.4",
+    "gray-matter": "4.0.3"
+  },
+  "devDependencies": {
+    "prettier": "3.9.5"
+  }
+}

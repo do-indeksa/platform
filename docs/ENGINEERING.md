@@ -52,7 +52,7 @@ apps/api/
 | Unit (table-driven) | Domain core: P1 scoring, variant generator, knowledge-map calc, score-calculator formula | Mandatory, ~80%+ — a wrong score destroys user trust      |
 | Integration         | API endpoints against real Postgres (testcontainers)                                     | Golden path per endpoint                                  |
 | Component           | Timer, solution reveal, answer submission (Vitest + Testing Library)                     | Critical interactions only                                |
-| Content validation  | Every content file: frontmatter schema, answer present, LaTeX compiles                   | **Blocking CI check** — broken content breaks the product |
+| Content validation  | Frontmatter, checks, LaTeX render, source hashes, statement/solution provenance          | **Blocking CI check** — broken content breaks the product |
 | E2E (Playwright)    | Smoke: open → solve → see progress                                                       | Post-MVP, 2–3 scenarios                                   |
 
 ## Coverage
