@@ -25,12 +25,14 @@ function isAttempt(value: unknown): value is Attempt {
     attempt.taskId.length <= MAX_TASK_ID &&
     TASK_ID_PATTERN.test(attempt.taskId) &&
     typeof attempt.slot === "number" &&
+    Number.isInteger(attempt.slot) &&
     attempt.slot >= 1 &&
     attempt.slot <= 10 &&
     typeof attempt.correct === "boolean" &&
     typeof attempt.source === "string" &&
     SOURCES.has(attempt.source) &&
     typeof attempt.helpLevel === "number" &&
+    Number.isInteger(attempt.helpLevel) &&
     attempt.helpLevel >= 0 &&
     attempt.helpLevel <= 3 &&
     typeof attempt.at === "string" &&
