@@ -8,6 +8,7 @@ import {
   getTaskSummaries,
   getTasks,
   getTopics,
+  taskSetRevision,
 } from "./content";
 import { markdownToPlainText, renderMarkdown } from "./markdown";
 import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
@@ -70,6 +71,20 @@ describe("topics.yaml", () => {
 });
 
 describe("task files", () => {
+  it("derives stable revisions from canonical task files", async () => {
+    const tasks = await getTasks("kompleksni-brojevi");
+    expect(tasks.length).toBeGreaterThan(0);
+    for (const task of tasks) {
+      expect(task.revision).toMatch(/^sha256:[a-f0-9]{64}$/);
+    }
+    expect(new Set(tasks.map((task) => task.revision)).size).toBe(tasks.length);
+
+    const revision = taskSetRevision(tasks);
+    expect(revision).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(taskSetRevision(tasks)).toBe(revision);
+    expect(taskSetRevision(tasks.toReversed())).not.toBe(revision);
+  });
+
   it("exposes searchable summaries without grading data", async () => {
     const summaries = await getTaskSummaries();
     expect(summaries).toHaveLength(30);

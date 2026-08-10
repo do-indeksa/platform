@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Attempt } from "./knowledge";
 
 const STORAGE_KEY = "do-indeksa-attempts";
+const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+
+type StoredAttempt = Attempt & {
+  transport?: "graphql";
+  runId?: string;
+};
 
 function mockStorage(initial: unknown[] = []) {
   const map = new Map<string, string>();
@@ -35,10 +41,10 @@ function posts(calls: FetchCall[]): FetchCall[] {
   return calls.filter((call) => call.init?.method === "POST");
 }
 
-function stored(map: Map<string, string>): Attempt[] {
+function stored(map: Map<string, string>): StoredAttempt[] {
   const raw = map.get(STORAGE_KEY);
   if (!raw) return [];
-  return (JSON.parse(raw) as { attempts: Attempt[] }).attempts;
+  return (JSON.parse(raw) as { attempts: StoredAttempt[] }).attempts;
 }
 
 function attempt(taskId: string, overrides: Partial<Attempt> = {}): Attempt {
@@ -223,6 +229,98 @@ describe("syncAttempts", () => {
 
     expect(stored(map)).toHaveLength(0);
     expect(store.attemptsView()).toHaveLength(2);
+  });
+
+  it("flushes REST attempts without duplicating GraphQL-owned attempts", async () => {
+    const map = mockStorage();
+    const calls = mockFetch((call) =>
+      call.init?.method === "POST"
+        ? new Response(null, { status: 204 })
+        : Response.json([]),
+    );
+    const store = await loadStore();
+
+    expect(
+      store.recordGraphQLAttempts(runId, [
+        attempt("kb-001", { source: "diagnostic" }),
+      ]),
+    ).toBe(true);
+    store.recordAttempts([
+      { taskId: "kb-002", slot: 1, correct: true, source: "practice" },
+    ]);
+    await store.syncAttempts(true);
+
+    expect(posts(calls)).toHaveLength(1);
+    expect(JSON.parse(posts(calls)[0].init?.body as string)).toEqual([
+      expect.objectContaining({ taskId: "kb-002" }),
+    ]);
+    expect(stored(map)).toEqual([
+      expect.objectContaining({
+        taskId: "kb-001",
+        transport: "graphql",
+        runId,
+      }),
+    ]);
+    expect(store.attemptsView()).toEqual([
+      expect.not.objectContaining({ transport: expect.anything() }),
+    ]);
+  });
+
+  it("removes a GraphQL fallback only after refreshing the server view", async () => {
+    const map = mockStorage();
+    let reads = 0;
+    mockFetch(() => {
+      reads += 1;
+      return Response.json(
+        reads === 1 ? [] : [attempt("kb-001", { source: "diagnostic" })],
+      );
+    });
+    const store = await loadStore();
+
+    await store.syncAttempts(true);
+    store.recordGraphQLAttempts(runId, [
+      attempt("kb-001", { source: "diagnostic" }),
+    ]);
+
+    expect(await store.acknowledgeGraphQLRun(runId)).toBe(true);
+    expect(stored(map)).toHaveLength(0);
+    expect(store.attemptsView()).toEqual([
+      attempt("kb-001", { source: "diagnostic" }),
+    ]);
+  });
+
+  it("retains a GraphQL fallback when the server view cannot refresh", async () => {
+    const map = mockStorage();
+    let reads = 0;
+    mockFetch(() =>
+      ++reads === 1 ? Response.json([]) : new Response(null, { status: 502 }),
+    );
+    const store = await loadStore();
+
+    await store.syncAttempts(true);
+    store.recordGraphQLAttempts(runId, [
+      attempt("kb-001", { source: "diagnostic" }),
+    ]);
+
+    expect(await store.acknowledgeGraphQLRun(runId)).toBe(false);
+    expect(stored(map)).toHaveLength(1);
+    expect(store.attemptsView()).toHaveLength(1);
+  });
+
+  it("filters malformed GraphQL ownership metadata", async () => {
+    mockStorage([
+      {
+        ...attempt("kb-001", { source: "diagnostic" }),
+        transport: "graphql",
+        runId: "not-a-uuid",
+      },
+    ]);
+    mockFetch(() => Response.json([]));
+    const store = await loadStore();
+
+    await store.syncAttempts(false);
+
+    expect(store.attemptsView()).toHaveLength(0);
   });
 
   it("merges server and local views sorted by time", async () => {

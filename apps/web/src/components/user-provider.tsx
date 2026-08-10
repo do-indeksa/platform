@@ -10,6 +10,7 @@ import {
 import { useRouter } from "@/i18n/navigation";
 import type { components } from "@/lib/api/schema";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
+import { clearProgressSync, syncProgress } from "@/lib/progress-sync";
 
 type User = components["schemas"]["User"];
 
@@ -50,7 +51,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user !== undefined) void syncAttempts(user !== null);
+    if (user === undefined) return;
+    let current = true;
+    void syncAttempts(user !== null).then(() => {
+      if (current) return syncProgress(user?.id ?? null);
+    });
+    return () => {
+      current = false;
+    };
   }, [user]);
 
   const signOut = useCallback(async () => {
@@ -59,6 +67,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch("/api/v1/auth/logout", { method: "POST" });
       if (res.ok) {
         clearLocalAttempts();
+        clearProgressSync();
         setUser(null);
         router.refresh();
       }

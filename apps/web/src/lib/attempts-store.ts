@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { validate as isUuid } from "uuid";
 import type { Attempt, NewAttempt } from "@/lib/knowledge";
 
 const STORAGE_KEY = "do-indeksa-attempts";
@@ -7,17 +8,22 @@ const MAX_TASK_ID = 64;
 const TASK_ID_PATTERN = /^[a-z0-9-]+$/;
 const SOURCES = new Set(["diagnostic", "practice", "simulation"]);
 
-let localAttempts: Attempt[] | null = null;
+type StoredAttempt = Attempt & {
+  transport?: "graphql";
+  runId?: string;
+};
+
+let localAttempts: StoredAttempt[] | null = null;
 let serverAttempts: Attempt[] | null = null;
 let authKnown = false;
 let signedIn = false;
 let serverUnavailable = false;
-let inFlightCount = 0;
+let inFlightAttempts = new Set<StoredAttempt>();
 let flushChain: Promise<void> = Promise.resolve();
 let view: Attempt[] | null = null;
 const listeners = new Set<() => void>();
 
-function isAttempt(value: unknown): value is Attempt {
+function isAttempt(value: unknown): value is StoredAttempt {
   if (typeof value !== "object" || value === null) return false;
   const attempt = value as Record<string, unknown>;
   return (
@@ -36,11 +42,15 @@ function isAttempt(value: unknown): value is Attempt {
     attempt.helpLevel >= 0 &&
     attempt.helpLevel <= 3 &&
     typeof attempt.at === "string" &&
-    !Number.isNaN(Date.parse(attempt.at))
+    !Number.isNaN(Date.parse(attempt.at)) &&
+    ((attempt.transport === undefined && attempt.runId === undefined) ||
+      (attempt.transport === "graphql" &&
+        typeof attempt.runId === "string" &&
+        isUuid(attempt.runId)))
   );
 }
 
-function loadLocal(): Attempt[] {
+function loadLocal(): StoredAttempt[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -57,7 +67,7 @@ function loadLocal(): Attempt[] {
   }
 }
 
-function saveLocal(attempts: Attempt[]): void {
+function saveLocal(attempts: StoredAttempt[]): void {
   localAttempts = attempts;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, attempts }));
@@ -73,7 +83,7 @@ export function attemptsView(): Attempt[] | null {
 }
 
 function merged(): Attempt[] {
-  const local = localAttempts ?? [];
+  const local = (localAttempts ?? []).map(toPublicAttempt);
   if (!signedIn || serverAttempts === null) return local;
   return [...serverAttempts, ...local].toSorted(
     (a, b) => Date.parse(a.at) - Date.parse(b.at),
@@ -92,24 +102,32 @@ function emit(): void {
 
 async function flushAll(): Promise<void> {
   localAttempts ??= loadLocal();
-  while (localAttempts.length > 0) {
-    const chunk = localAttempts.slice(0, MAX_BATCH);
-    inFlightCount = chunk.length;
+  while (true) {
+    const chunk = localAttempts
+      .filter((attempt) => attempt.transport !== "graphql")
+      .slice(0, MAX_BATCH);
+    if (chunk.length === 0) return;
+    inFlightAttempts = new Set(chunk);
     try {
       const res = await fetch("/api/v1/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(chunk),
+        body: JSON.stringify(chunk.map(toPublicAttempt)),
       });
       if (!res.ok && res.status !== 400) {
         throw new Error(`flush failed with status ${res.status}`);
       }
       if (res.ok) {
-        serverAttempts = [...(serverAttempts ?? []), ...chunk];
+        serverAttempts = [
+          ...(serverAttempts ?? []),
+          ...chunk.map(toPublicAttempt),
+        ];
       }
-      saveLocal(localAttempts.slice(chunk.length));
+      saveLocal(
+        localAttempts.filter((attempt) => !inFlightAttempts.has(attempt)),
+      );
     } finally {
-      inFlightCount = 0;
+      inFlightAttempts = new Set();
     }
   }
 }
@@ -126,7 +144,11 @@ async function fetchServer(): Promise<void> {
   const res = await fetch("/api/v1/attempts");
   if (!res.ok)
     throw new Error(`attempts fetch failed with status ${res.status}`);
-  const attempts = (await res.json()) as Attempt[];
+  const value: unknown = await res.json();
+  if (!Array.isArray(value) || !value.every(isAttempt)) {
+    throw new Error("attempts fetch returned an invalid response");
+  }
+  const attempts = value.map(toPublicAttempt);
   if (seq !== fetchSeq) return;
   serverAttempts = attempts;
   serverUnavailable = false;
@@ -157,10 +179,10 @@ export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
   for (const { helpLevel = 0, ...entry } of entries) {
     const last = next.at(-1);
     if (
-      next.length > inFlightCount &&
       entry.source === "practice" &&
       last?.source === "practice" &&
-      last.taskId === entry.taskId
+      last.taskId === entry.taskId &&
+      !inFlightAttempts.has(last)
     ) {
       next.pop();
     }
@@ -175,6 +197,46 @@ export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
   }
 }
 
+export function recordGraphQLAttempts(
+  runId: string,
+  entries: Attempt[],
+): boolean {
+  if (!isUuid(runId) || !entries.every(isAttempt)) return false;
+  localAttempts ??= loadLocal();
+  const next = localAttempts.filter(
+    (attempt) => attempt.transport !== "graphql" || attempt.runId !== runId,
+  );
+  next.push(
+    ...entries.map((entry) => ({
+      ...toPublicAttempt(entry),
+      transport: "graphql" as const,
+      runId,
+    })),
+  );
+  saveLocal(next);
+  emit();
+  return true;
+}
+
+export async function acknowledgeGraphQLRun(runId: string): Promise<boolean> {
+  if (!signedIn || !isUuid(runId)) return false;
+  try {
+    await fetchServer();
+  } catch {
+    serverUnavailable = true;
+    emit();
+    return false;
+  }
+  localAttempts ??= loadLocal();
+  saveLocal(
+    localAttempts.filter(
+      (attempt) => attempt.transport !== "graphql" || attempt.runId !== runId,
+    ),
+  );
+  emit();
+  return true;
+}
+
 export function clearLocalAttempts(): void {
   saveLocal([]);
   emit();
@@ -182,4 +244,15 @@ export function clearLocalAttempts(): void {
 
 export function useAttempts(): Attempt[] | null {
   return useSyncExternalStore(subscribe, attemptsView, () => null);
+}
+
+function toPublicAttempt(attempt: StoredAttempt): Attempt {
+  return {
+    taskId: attempt.taskId,
+    slot: attempt.slot,
+    correct: attempt.correct,
+    source: attempt.source,
+    helpLevel: attempt.helpLevel,
+    at: attempt.at,
+  };
 }
