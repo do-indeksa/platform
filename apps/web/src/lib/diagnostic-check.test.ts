@@ -27,6 +27,11 @@ describe("diagnostic answer checks", () => {
     {
       taskId: "kb-001",
       topic: "kompleksni-brojevi",
+      answers: ["1", "2", "3", "4", "5", "6", "7"],
+    },
+    {
+      taskId: "kb-001",
+      topic: "kompleksni-brojevi",
       answers: ["x".repeat(201)],
     },
   ])("rejects a malformed payload", (payload) => {

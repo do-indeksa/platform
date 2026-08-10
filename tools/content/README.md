@@ -3,7 +3,8 @@
 The pipeline has two independent gates:
 
 1. `npm run check` verifies source SHA-256 values and proves that every current
-   task origin resolves to a real statement and solution selector.
+   task origin resolves to a real statement and solution selector. It also
+   enforces complete, versioned review records for every `verified` task.
 2. `npm run generate -- --manifest FILE --output DIR` parses a reviewer
    manifest and creates a new directory of structured task files atomically.
 

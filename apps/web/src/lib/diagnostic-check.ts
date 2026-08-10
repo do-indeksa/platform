@@ -1,6 +1,6 @@
 import { checkAnswer, type CheckPart } from "./answer";
 import { isDiagnosticTaskId } from "./diagnostic-run";
-import { MAX_ANSWER_LENGTH } from "./task-draft";
+import { MAX_ANSWER_LENGTH, MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
 export type DiagnosticCheckRequest = {
   taskId: string;
@@ -22,7 +22,7 @@ export function parseDiagnosticCheckRequest(
     !TOPIC_PATTERN.test(value.topic) ||
     !Array.isArray(value.answers) ||
     value.answers.length < 1 ||
-    value.answers.length > 5 ||
+    value.answers.length > MAX_TASK_ANSWER_PARTS ||
     !value.answers.every(
       (answer) =>
         typeof answer === "string" && answer.length <= MAX_ANSWER_LENGTH,

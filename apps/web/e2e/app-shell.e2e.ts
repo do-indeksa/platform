@@ -197,6 +197,8 @@ test("selected tasks form a bounded practice sequence and return intact", async 
   await page
     .getByRole("textbox", { name: "|z|", exact: true })
     .fill("3sqrt(2)");
+  await page.getByRole("textbox", { name: "Re z", exact: true }).fill("3");
+  await page.getByRole("textbox", { name: "Im z", exact: true }).fill("-3");
   await page.getByRole("button", { name: "Проверить" }).click();
   await expect(page.getByText("Верно!", { exact: true })).toBeVisible();
   expect(await analyticsEvents(page)).toContainEqual({
@@ -215,6 +217,31 @@ test("selected tasks form a bounded practice sequence and return intact", async 
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
     .toBeGreaterThan(500);
+});
+
+test("the maximum multipart task remains usable on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/en/tasks/kvadratna-jednacina/kv-003");
+
+  const fields = page.getByRole("textbox");
+  await expect(fields).toHaveCount(6);
+  await fields.last().scrollIntoViewIfNeeded();
+  const lastField = await fields.last().boundingBox();
+  expect(lastField).not.toBeNull();
+  expect(lastField?.x).toBeGreaterThanOrEqual(0);
+  expect((lastField?.x ?? 0) + (lastField?.width ?? 0)).toBeLessThanOrEqual(
+    360,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "Check", exact: true }),
+  ).toBeVisible();
 });
 
 test("legacy topic links enter the unified task bank", async ({ page }) => {

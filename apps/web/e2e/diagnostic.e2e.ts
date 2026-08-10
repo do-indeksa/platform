@@ -37,6 +37,8 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
   await page
     .getByRole("textbox", { name: "|z|", exact: true })
     .fill("3sqrt(2)");
+  await page.getByRole("textbox", { name: "Re z", exact: true }).fill("3");
+  await page.getByRole("textbox", { name: "Im z", exact: true }).fill("-3");
   await page.getByRole("button", { name: "Submit answer" }).click();
 
   await expect(
@@ -116,7 +118,7 @@ test("diagnostic checker bounds request bodies and disables caching", async ({
     data: {
       taskId: "kb-001",
       topic: "kompleksni-brojevi",
-      answers: ["1", "3sqrt(2)"],
+      answers: ["1", "3sqrt(2)", "3", "-3"],
     },
   });
   expect(checked.status()).toBe(200);

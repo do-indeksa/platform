@@ -12,7 +12,11 @@ Independently authored LaTeX snapshots live in `sources/` with SHA-256 values.
 The importer under `tools/content/` extracts structural task selectors, creates
 isolated drafts from reviewer manifests, and checks that every current `origin`
 still resolves to a statement and solution. Generated material is never marked
-`verified`; that status remains a human content-review decision.
+`verified`; that status remains an explicit maintainer review decision.
+
+Versioned evidence for manually promoted topic packs lives in `reviews/`. CI
+requires every `verified` task to appear in exactly one record, and each listed
+topic must be reviewed in full.
 
 ## Faculty guide
 

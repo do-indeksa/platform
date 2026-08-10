@@ -12,7 +12,7 @@ const taskIds = [
   "fun-001",
   "komb-001",
 ];
-const answerPartCounts = [2, 1, 1, 1, 2, 1, 2, 3, 5, 3];
+const answerPartCounts = [4, 1, 1, 1, 2, 1, 2, 3, 5, 3];
 
 test("a practice mistake survives reload and opens with its full context", async ({
   page,
@@ -21,6 +21,8 @@ test("a practice mistake survives reload and opens with its full context", async
   await page.goto("/en/tasks/kompleksni-brojevi/kb-001");
   await page.getByRole("textbox", { name: "t", exact: true }).fill("0");
   await page.getByRole("textbox", { name: "|z|", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "Re z", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "Im z", exact: true }).fill("0");
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.getByText("Not quite", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Show hint", exact: true }).click();

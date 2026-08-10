@@ -14,7 +14,7 @@ const currentTaskIds = [
   "komb-001",
 ];
 
-const answerPartCounts = [2, 1, 1, 1, 2, 1, 2, 3, 5, 3];
+const answerPartCounts = [4, 1, 1, 1, 2, 1, 2, 3, 5, 3];
 const taskCandidates = [
   ["kb-001", "kb-002", "kb-003"],
   ["kv-001", "kv-002", "kv-003"],

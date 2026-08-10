@@ -10,6 +10,7 @@ import {
   getTopics,
 } from "./content";
 import { markdownToPlainText, renderMarkdown } from "./markdown";
+import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
 const tasksDir = path.join(process.cwd(), "..", "..", "content", "tasks");
 
@@ -132,6 +133,9 @@ describe("task files", () => {
 
       expect(Array.isArray(data.check), `${fileName}: check`).toBe(true);
       expect(data.check.length, `${fileName}: check`).toBeGreaterThan(0);
+      expect(data.check.length, `${fileName}: check`).toBeLessThanOrEqual(
+        MAX_TASK_ANSWER_PARTS,
+      );
       for (const part of data.check as CheckPart[]) {
         const partName = `${fileName}: check ${part.label ?? part.expected}`;
         if (part.label !== undefined) {
