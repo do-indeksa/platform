@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   DesktopNavigation,
@@ -9,11 +10,17 @@ import { HeaderUser } from "@/components/header-user";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { MobileMenu } from "@/components/mobile-menu";
 import { Link, usePathname } from "@/i18n/navigation";
+import { examCodeFromPathname } from "@/lib/app-routes";
 
 export function SiteHeader() {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const examT = useTranslations("examCatalog");
+  const contextualExamCode = examCodeFromPathname(pathname);
+  const examLabel = contextualExamCode
+    ? `${contextualExamCode} · ${examT(`names.${contextualExamCode}`)}`
+    : t("exam");
 
   return (
     <>
@@ -29,9 +36,14 @@ export function SiteHeader() {
           >
             do indeksa
           </Link>
-          <span className="hidden min-h-9 shrink-0 items-center rounded-lg bg-subtle px-3 text-xs font-semibold text-brand-ink xl:flex">
-            {t("exam")}
-          </span>
+          <Link
+            href="/exams"
+            aria-label={t("exams")}
+            className="hidden min-h-11 shrink-0 items-center gap-1.5 rounded-lg bg-subtle px-3 text-xs font-semibold text-brand-ink transition-colors hover:bg-subtle-hover xl:flex"
+          >
+            {examLabel}
+            <ChevronDown aria-hidden size={14} strokeWidth={1.8} />
+          </Link>
           <DesktopNavigation />
           <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex lg:gap-3">
             <div className="lg:hidden">
@@ -42,9 +54,14 @@ export function SiteHeader() {
             </div>
             <HeaderUser />
           </div>
-          <span className="ml-auto flex min-h-9 min-w-0 items-center rounded-lg bg-subtle px-2.5 text-xs font-semibold text-brand-ink md:hidden">
-            <span className="truncate">{t("exam")}</span>
-          </span>
+          <Link
+            href="/exams"
+            aria-label={t("exams")}
+            className="ml-auto flex min-h-11 min-w-0 max-w-40 items-center gap-1 rounded-lg bg-subtle px-2.5 text-xs font-semibold text-brand-ink md:hidden"
+          >
+            <span className="truncate">{examLabel}</span>
+            <ChevronDown aria-hidden size={14} className="shrink-0" />
+          </Link>
           <MobileMenu key={`${locale}:${pathname}`} />
         </div>
       </header>

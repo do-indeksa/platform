@@ -6,8 +6,10 @@ import {
   ClipboardList,
   History,
   LayoutDashboard,
+  LibraryBig,
   Map,
   MoreHorizontal,
+  University,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -17,7 +19,15 @@ import { isNavigationItemActive } from "@/lib/app-routes";
 
 type NavigationItem = {
   href: string;
-  key: "overview" | "prep" | "tasks" | "simulation" | "history" | "calculator";
+  key:
+    | "overview"
+    | "prep"
+    | "tasks"
+    | "simulation"
+    | "history"
+    | "exams"
+    | "faculties"
+    | "calculator";
   icon: LucideIcon;
 };
 
@@ -36,6 +46,8 @@ const historyItem: NavigationItem = {
 
 const secondaryItems: NavigationItem[] = [
   historyItem,
+  { href: "/exams", key: "exams", icon: LibraryBig },
+  { href: "/faculties/ftn", key: "faculties", icon: University },
   { href: "/calculator", key: "calculator", icon: Calculator },
 ];
 
