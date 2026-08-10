@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import {
-  SimulationRuntime,
-  type SimulationTaskView,
-} from "@/components/simulation";
+import { SimulationRuntime } from "@/components/simulation";
 import { redirect } from "@/i18n/navigation";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
-import { renderMarkdown } from "@/lib/markdown";
+import { buildSimulationTaskViews } from "@/lib/simulation-content";
 import {
   parseSimulationRunQuery,
   simulationRunHref,
@@ -53,18 +50,7 @@ export default async function NewSimulationPage({
   }
 
   const topicT = await getTranslations({ locale, namespace: "topics" });
-  const tasks: SimulationTaskView[] = await Promise.all(
-    variant.tasks.map(async ({ examPosition, maxPoints, task }) => ({
-      id: task.id,
-      slot: task.slot,
-      examPosition,
-      maxPoints,
-      topic: task.topic,
-      topicName: topicT(task.topic),
-      statementHtml: await renderMarkdown(task.statement),
-      fields: task.check.map(({ label, kind }) => ({ label, kind })),
-    })),
-  );
+  const tasks = await buildSimulationTaskViews(variant, topicT);
 
   return (
     <SimulationRuntime

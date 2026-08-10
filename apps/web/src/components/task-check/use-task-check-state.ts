@@ -25,6 +25,7 @@ export function useTaskCheckState(
   partCount: number,
   maxHints: number,
   confirmMessage: string,
+  practiceId: string | null,
 ): [TaskCheckState, Dispatch<SetStateAction<TaskCheckState>>] {
   const restoring = useRef(true);
   const [state, setState] = useState<TaskCheckState>(() => ({
@@ -34,7 +35,7 @@ export function useTaskCheckState(
 
   useEffect(() => {
     const draft = parseTaskDraft(
-      readSession(storageKey(taskId)),
+      readSession(storageKey(taskId, practiceId)),
       partCount,
       maxHints,
     );
@@ -42,22 +43,22 @@ export function useTaskCheckState(
     // Session storage is external state and can only be restored after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ ...(draft ?? createTaskDraft(partCount)), results: null });
-  }, [maxHints, partCount, taskId]);
+  }, [maxHints, partCount, practiceId, taskId]);
 
   useEffect(() => {
     if (restoring.current) {
       restoring.current = false;
       return;
     }
-    writeSession(storageKey(taskId), toDraft(state));
-  }, [state, taskId]);
+    writeSession(storageKey(taskId, practiceId), toDraft(state));
+  }, [practiceId, state, taskId]);
 
   useUnsavedExitGuard(state.dirty, confirmMessage);
   return [state, setState];
 }
 
-function storageKey(taskId: string): string {
-  return `${STORAGE_PREFIX}${taskId}`;
+function storageKey(taskId: string, practiceId: string | null): string {
+  return `${STORAGE_PREFIX}${practiceId ? `${practiceId}:` : ""}${taskId}`;
 }
 
 function toDraft(state: TaskCheckState): TaskDraft {

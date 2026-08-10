@@ -1,11 +1,15 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CheckPart } from "@/lib/answer";
 import { recordAttempts } from "@/lib/attempts-store";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { Link } from "@/i18n/navigation";
+import {
+  markTaskHistoryHelp,
+  recordTaskHistory,
+} from "@/lib/task-history-store";
 import { AnswerField } from "./answer-field";
 import { CardButton, FeedbackCard } from "./feedback-card";
 import { useTaskCheckState } from "./use-task-check-state";
@@ -17,6 +21,7 @@ export function TaskCheck({
   hintsHtml,
   solutionHtml,
   nextTaskHref,
+  practiceId,
 }: {
   taskId: string;
   slot: number;
@@ -24,6 +29,7 @@ export function TaskCheck({
   hintsHtml: string[];
   solutionHtml: string;
   nextTaskHref: string | null;
+  practiceId: string | null;
 }) {
   const t = useTranslations("tasks");
   const [state, setState] = useTaskCheckState(
@@ -31,10 +37,12 @@ export function TaskCheck({
     check.length,
     hintsHtml.length,
     t("unsavedExit"),
+    practiceId,
   );
   const locked = state.solved || state.burned;
   const [checking, setChecking] = useState(false);
   const [checkerUnavailable, setCheckerUnavailable] = useState(false);
+  const historyEntryId = useRef<string | null>(null);
 
   const recordHelp = (helpLevel: number) => {
     recordAttempts([
@@ -66,6 +74,17 @@ export function TaskCheck({
           helpLevel: state.hintsShown,
         },
       ]);
+      historyEntryId.current =
+        recordTaskHistory([
+          {
+            taskId,
+            slot,
+            source: "practice",
+            outcome: correct ? "correct" : "incorrect",
+            answers: state.answers,
+            helpLevel: state.hintsShown,
+          },
+        ])[0]?.id ?? null;
       setState((current) => ({
         ...current,
         results,
@@ -82,7 +101,11 @@ export function TaskCheck({
   };
 
   const showHint = () => {
-    recordHelp(Math.max(state.hintsShown, 1));
+    const helpLevel = Math.max(state.hintsShown, 1);
+    recordHelp(helpLevel);
+    if (historyEntryId.current) {
+      markTaskHistoryHelp(historyEntryId.current, helpLevel);
+    }
     setState((current) => ({
       ...current,
       hintsShown: Math.max(current.hintsShown, 1),
@@ -96,6 +119,21 @@ export function TaskCheck({
       recordAttempts([
         { taskId, slot, correct: false, source: "practice", helpLevel: 3 },
       ]);
+      if (historyEntryId.current) {
+        markTaskHistoryHelp(historyEntryId.current, 3);
+      } else {
+        historyEntryId.current =
+          recordTaskHistory([
+            {
+              taskId,
+              slot,
+              source: "practice",
+              outcome: "incorrect",
+              answers: state.answers,
+              helpLevel: 3,
+            },
+          ])[0]?.id ?? null;
+      }
     }
     setState((current) => ({
       ...current,
@@ -109,7 +147,11 @@ export function TaskCheck({
 
   const nextHelp = () => {
     if (state.hintsShown < hintsHtml.length) {
-      recordHelp(state.hintsShown + 1);
+      const helpLevel = state.hintsShown + 1;
+      recordHelp(helpLevel);
+      if (historyEntryId.current) {
+        markTaskHistoryHelp(historyEntryId.current, helpLevel);
+      }
       setState((current) => ({
         ...current,
         hintsShown: current.hintsShown + 1,

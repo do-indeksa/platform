@@ -130,13 +130,25 @@ export function taskPracticeHref(
   task: Pick<TaskSummary, "id" | "topic"> | undefined,
   returnTo: string,
   practiceSet: readonly string[] = [],
+  practiceId?: string,
 ): string {
   if (!task) return TASK_BANK_PATH;
   const params = new URLSearchParams({ returnTo });
   if (practiceSet.length > 0) {
     params.set("set", practiceSet.slice(0, MAX_PRACTICE_SET_SIZE).join(","));
   }
+  const validPracticeId = parsePracticeId(practiceId);
+  if (validPracticeId) params.set("practice", validPracticeId);
   return `${TASK_BANK_PATH}/${task.topic}/${task.id}?${params}`;
+}
+
+export function parsePracticeId(value: string | undefined): string | null {
+  return value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+    ? value
+    : null;
 }
 
 export function filterTaskSummaries(
@@ -246,10 +258,21 @@ export function safeTaskBankReturnPath(
   try {
     const base = new URL("https://do-indeksa.invalid");
     const target = new URL(value, base);
+    const allowedPath =
+      target.pathname === TASK_BANK_PATH ||
+      target.pathname === "/prep" ||
+      target.pathname === "/history";
+    const validHistoryQuery =
+      target.pathname !== "/history" ||
+      (!target.hash &&
+        [...target.searchParams.keys()].every((key) => key === "tab") &&
+        (!target.searchParams.has("tab") ||
+          target.searchParams.get("tab") === "tasks"));
     if (
       target.origin !== base.origin ||
-      (target.pathname !== TASK_BANK_PATH && target.pathname !== "/prep") ||
-      (target.pathname === "/prep" && (target.search || target.hash))
+      !allowedPath ||
+      (target.pathname === "/prep" && (target.search || target.hash)) ||
+      !validHistoryQuery
     ) {
       return null;
     }

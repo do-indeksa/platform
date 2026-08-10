@@ -38,6 +38,8 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
   };
 
   const replaceLocale = (nextLocale: AppLocale) => {
+    // A document navigation avoids stale concurrent RSC responses on locale changes.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`${localeHref(nextLocale)}${window.location.hash}`);
   };
 

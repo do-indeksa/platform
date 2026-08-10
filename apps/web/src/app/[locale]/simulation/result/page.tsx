@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { SimulationResult } from "@/components/simulation";
 import { redirect } from "@/i18n/navigation";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
+import { buildSimulationTaskViews } from "@/lib/simulation-content";
 import { parseSimulationRunQuery } from "@/lib/simulation-run";
 import { resolveVariantTaskIds } from "@/lib/variant";
 
@@ -36,6 +37,8 @@ export default async function SimulationResultPage({
     ? await resolveVariantTaskIds(run.taskIds, run.blueprintVersion)
     : null;
   if (!run || !variant) return redirect({ href: "/simulation", locale });
+  const topicT = await getTranslations({ locale, namespace: "topics" });
+  const tasks = await buildSimulationTaskViews(variant, topicT);
 
-  return <SimulationResult run={run} />;
+  return <SimulationResult run={run} tasks={tasks} />;
 }

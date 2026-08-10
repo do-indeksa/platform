@@ -4,6 +4,7 @@ import {
   BookOpenCheck,
   Calculator,
   ClipboardList,
+  History,
   Map,
   MoreHorizontal,
   type LucideIcon,
@@ -15,7 +16,7 @@ import { isNavigationItemActive } from "@/lib/app-routes";
 
 type NavigationItem = {
   href: string;
-  key: "prep" | "tasks" | "simulation" | "calculator";
+  key: "prep" | "tasks" | "simulation" | "history" | "calculator";
   icon: LucideIcon;
 };
 
@@ -25,11 +26,19 @@ const primaryItems: NavigationItem[] = [
   { href: "/simulation", key: "simulation", icon: BookOpenCheck },
 ];
 
+const historyItem: NavigationItem = {
+  href: "/history",
+  key: "history",
+  icon: History,
+};
+
 const secondaryItems: NavigationItem[] = [
+  historyItem,
   { href: "/calculator", key: "calculator", icon: Calculator },
 ];
 
 const allItems = [...primaryItems, ...secondaryItems];
+const mobileItems = [...primaryItems, historyItem];
 
 export function DesktopNavigation() {
   const pathname = usePathname();
@@ -135,7 +144,7 @@ export function MobileBottomNavigation() {
       aria-label={t("navigation")}
       className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      {allItems.map(({ href, key, icon: Icon }) => {
+      {mobileItems.map(({ href, key, icon: Icon }) => {
         const active = isNavigationItemActive(pathname, href);
         return (
           <Link

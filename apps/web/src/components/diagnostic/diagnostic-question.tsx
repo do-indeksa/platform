@@ -7,6 +7,7 @@ import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { AnswerField } from "@/components/task-check/answer-field";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useDiagnostic } from "@/lib/diagnostic-store";
+import { recordTaskHistory } from "@/lib/task-history-store";
 import type { DiagnosticTaskView } from "./types";
 
 export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
@@ -49,6 +50,16 @@ export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
       if (result.outcome !== "correct" && result.outcome !== "incorrect") {
         throw new Error("invalid check response");
       }
+      recordTaskHistory([
+        {
+          taskId: task.id,
+          slot: task.slot,
+          source: "diagnostic",
+          outcome: result.outcome,
+          answers,
+          helpLevel: 0,
+        },
+      ]);
       completeCurrent(task.id, result.outcome);
     } catch {
       setError(t("checkUnavailable"));
@@ -170,6 +181,16 @@ export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
               disabled={submitting}
               onClick={() => {
                 setError(null);
+                recordTaskHistory([
+                  {
+                    taskId: task.id,
+                    slot: task.slot,
+                    source: "diagnostic",
+                    outcome: "skipped",
+                    answers,
+                    helpLevel: 0,
+                  },
+                ]);
                 completeCurrent(task.id, "skipped");
               }}
               className="inline-flex min-h-12 items-center justify-center gap-2 px-4 py-3 font-medium text-muted transition-colors hover:text-ink disabled:opacity-50"

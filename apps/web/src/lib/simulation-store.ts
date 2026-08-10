@@ -20,6 +20,7 @@ import {
   type SimulationTaskView,
 } from "./simulation-types";
 import { MAX_ANSWER_LENGTH } from "./task-draft";
+import { recordTaskHistory } from "./task-history-store";
 
 export const SIMULATION_STORE_VERSION = 5;
 
@@ -168,6 +169,18 @@ export const useSimulation = create<SimulationState>()(
               source: "simulation" as const,
             };
           }),
+        );
+        recordTaskHistory(
+          results.map((result, index) => ({
+            taskId: result.taskId,
+            slot: state.tasks[index].slot,
+            source: "simulation" as const,
+            outcome:
+              result.outcome === "unanswered" ? "skipped" : result.outcome,
+            answers: state.answers[index],
+            helpLevel: 0,
+            at: new Date(finishedAt).toISOString(),
+          })),
         );
         const entry = buildHistoryEntry(state, results, finishedAt);
         set({

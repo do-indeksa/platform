@@ -13,8 +13,12 @@ import {
 } from "@/lib/simulation-run";
 import {
   attachSimulationReview,
+  parseSimulationGradeItems,
+  parseSimulationReviewItems,
+  type SimulationGradeItem,
+  type SimulationHistoryEntry,
   type SimulationRenderedReviewItem,
-  type SimulationReviewItem,
+  type SimulationTaskView,
 } from "@/lib/simulation-types";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -22,47 +26,63 @@ import { AnswersTable, ErrorReview } from "./simulation-result-answers";
 import { ResultMetrics } from "./simulation-result-metrics";
 import { ResultPositions } from "./simulation-result-positions";
 
-export function SimulationResult({ run }: { run: SimulationRunQuery }) {
+export function SimulationResult({
+  run,
+  tasks: taskViews,
+}: {
+  run: SimulationRunQuery;
+  tasks: SimulationTaskView[];
+}) {
   const t = useTranslations("simulation");
   const router = useRouter();
   const hydrated = useHydrated();
   const history = useSimulation((state) => state.history);
   const activeRunId = useSimulation((state) => state.runId);
   const activeVersion = useSimulation((state) => state.blueprintVersion);
-  const storedTasks = useSimulation((state) => state.tasks);
   const review = useSimulation((state) => state.review);
   const reset = useSimulation((state) => state.reset);
   const [rendered, setRendered] = useState<RenderedReviewState>(null);
+  const entry = history.find((candidate) => candidate.id === run.runId);
+  const matchingStoredReview =
+    activeRunId === run.runId &&
+    activeVersion === run.blueprintVersion &&
+    review.length === taskViews.length;
+  const reviewSource = entry
+    ? [
+        matchingStoredReview ? "stored" : "history",
+        entry.id,
+        entry.finishedAt,
+        run.blueprintVersion,
+        run.taskIds.join(","),
+      ].join(":")
+    : `missing:${run.runId}`;
 
   useEffect(() => {
     let current = true;
-    void renderSimulationReview(review).then(
+    const load = matchingStoredReview
+      ? renderSimulationReview(review)
+      : entry
+        ? loadHistoricalReview(run, entry, taskViews)
+        : Promise.resolve(null);
+    void load.then(
       (items) => {
-        if (current) setRendered({ source: review, items });
+        if (current) setRendered({ source: reviewSource, items });
       },
       () => {
-        if (current) setRendered({ source: review, items: null });
+        if (current) setRendered({ source: reviewSource, items: null });
       },
     );
     return () => {
       current = false;
     };
-  }, [review]);
+  }, [entry, matchingStoredReview, review, reviewSource, run, taskViews]);
 
-  if (!hydrated || rendered?.source !== review) return <ResultLoading />;
+  if (!hydrated || rendered?.source !== reviewSource) return <ResultLoading />;
   const tasks = rendered.items
-    ? attachSimulationReview(storedTasks, rendered.items)
+    ? attachSimulationReview(taskViews, rendered.items)
     : null;
-  const entry = history.find((candidate) => candidate.id === run.runId);
-  const matchingRun =
-    activeRunId === run.runId &&
-    activeVersion === run.blueprintVersion &&
-    run.taskIds.length === storedTasks.length &&
-    run.taskIds.every((taskId, index) => taskId === storedTasks[index].id);
   const summary =
-    entry && tasks && matchingRun
-      ? buildSimulationResultSummary(entry, history, tasks)
-      : null;
+    entry && tasks ? buildSimulationResultSummary(entry, history, tasks) : null;
   if (!entry || !tasks || !summary) return <ResultUnavailable />;
 
   const resultHref = simulationRunHref("/simulation/result", run);
@@ -154,9 +174,55 @@ export function SimulationResult({ run }: { run: SimulationRunQuery }) {
 }
 
 type RenderedReviewState = {
-  source: readonly SimulationReviewItem[];
+  source: string;
   items: SimulationRenderedReviewItem[] | null;
 } | null;
+
+async function loadHistoricalReview(
+  run: SimulationRunQuery,
+  entry: SimulationHistoryEntry,
+  tasks: SimulationTaskView[],
+): Promise<SimulationRenderedReviewItem[] | null> {
+  const response = await fetch("/api/content/simulation-grade", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      blueprintVersion: run.blueprintVersion,
+      taskIds: run.taskIds,
+      answers: entry.answers,
+    }),
+  });
+  if (!response.ok) return null;
+  const payload = (await response.json()) as unknown;
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    Array.isArray(payload)
+  ) {
+    return null;
+  }
+  const candidate = payload as Record<string, unknown>;
+  const results = parseSimulationGradeItems(candidate.results, tasks);
+  const review = parseSimulationReviewItems(candidate.review, tasks);
+  if (!results || !review || !sameGrade(results, entry.results)) return null;
+  return renderSimulationReview(review);
+}
+
+function sameGrade(
+  left: readonly SimulationGradeItem[],
+  right: SimulationHistoryEntry["results"],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every(
+      (result, index) =>
+        result.taskId === right[index].taskId &&
+        result.outcome === right[index].outcome &&
+        result.earnedPoints === right[index].earnedPoints &&
+        result.maxPoints === right[index].maxPoints,
+    )
+  );
+}
 
 function ResultNotice({ children }: { children: React.ReactNode }) {
   return (
