@@ -131,11 +131,13 @@ jobs:
             --env POSTGRES_USER=postgres \
             --env POSTGRES_PASSWORD=postgres \
             "${POSTGRES_IMAGE}" >/dev/null
-          for attempt in {1..30}; do
-            if docker exec "${postgres}" pg_isready --username postgres --dbname do_indeksa >/dev/null; then
+          for attempt in {1..60}; do
+            pid1="$(docker exec "${postgres}" cat /proc/1/comm 2>/dev/null || true)"
+            if [[ "${pid1}" == "postgres" ]] && \
+              docker exec "${postgres}" pg_isready --username postgres --dbname do_indeksa >/dev/null; then
               break
             fi
-            if [[ "${attempt}" == "30" ]]; then
+            if [[ "${attempt}" == "60" ]]; then
               docker logs "${postgres}"
               exit 1
             fi
