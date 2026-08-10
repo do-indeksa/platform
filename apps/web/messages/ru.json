@@ -164,6 +164,19 @@
       "positions": "позиций экзамена",
       "duration": "длительность экзамена"
     },
+    "daily": {
+      "kicker": "Сегодня",
+      "title": "Задание дня",
+      "loading": "Загружаем задание дня",
+      "meta": "Позиция {position} · {topic} · Сложность {difficulty}/5",
+      "statusLabel": "Статус на сегодня",
+      "completed": "Решено сегодня",
+      "notCompleted": "Ждёт решения",
+      "streakLabel": "Серия верных дней",
+      "streak": "{count, plural, one {# день} few {# дня} many {# дней} other {# дня}}",
+      "solve": "Решить задание",
+      "repeat": "Решить снова"
+    },
     "startPractice": "Начать практику",
     "checkLevel": "Проверить уровень",
     "builder": {

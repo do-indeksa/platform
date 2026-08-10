@@ -164,6 +164,19 @@
       "positions": "exam positions",
       "duration": "exam duration"
     },
+    "daily": {
+      "kicker": "Today",
+      "title": "Task of the day",
+      "loading": "Loading today's task",
+      "meta": "Position {position} · {topic} · Difficulty {difficulty}/5",
+      "statusLabel": "Today's status",
+      "completed": "Solved today",
+      "notCompleted": "Waiting to be solved",
+      "streakLabel": "Correct-day streak",
+      "streak": "{count, plural, one {# day} other {# days}}",
+      "solve": "Solve task",
+      "repeat": "Solve again"
+    },
     "startPractice": "Start practice",
     "checkLevel": "Check your level",
     "builder": {

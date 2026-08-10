@@ -7,7 +7,8 @@ const localizedOverviews = [
     start: "Počni vežbanje",
     check: "Proveri nivo",
     position: /^Pozicija 1:/,
-    difficulty: "Težina",
+    dailyHeading: "Zadatak dana",
+    dailySolve: "Reši zadatak",
   },
   {
     path: "/en",
@@ -15,7 +16,8 @@ const localizedOverviews = [
     start: "Start practice",
     check: "Check your level",
     position: /^Position 1:/,
-    difficulty: "Difficulty",
+    dailyHeading: "Task of the day",
+    dailySolve: "Solve task",
   },
   {
     path: "/ru",
@@ -23,7 +25,8 @@ const localizedOverviews = [
     start: "Начать практику",
     check: "Проверить уровень",
     position: /^Позиция 1:/,
-    difficulty: "Сложность",
+    dailyHeading: "Задание дня",
+    dailySolve: "Решить задание",
   },
 ] as const;
 
@@ -59,17 +62,28 @@ for (const locale of localizedOverviews) {
     await expect(
       page.getByRole("link", { name: locale.check, exact: true }),
     ).toBeVisible();
+    const dailyTask = page.getByTestId("daily-task");
+    await expect(
+      dailyTask.getByRole("heading", {
+        name: locale.dailyHeading,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      dailyTask.getByRole("link", { name: locale.dailySolve, exact: true }),
+    ).toBeVisible();
     const firstPosition = page.getByRole("button", {
       name: locale.position,
     });
     await expect(firstPosition).toBeVisible();
-    expect((await firstPosition.boundingBox())?.y).toBeLessThan(844);
-    const difficulty = await page.getByLabel(locale.difficulty).boundingBox();
+    const dailyAction = await dailyTask
+      .getByRole("link", { name: locale.dailySolve, exact: true })
+      .boundingBox();
     const mobileNavigation = await page
       .getByTestId("mobile-navigation")
       .boundingBox();
     expect(
-      (difficulty?.y ?? 0) + (difficulty?.height ?? 0),
+      (dailyAction?.y ?? 0) + (dailyAction?.height ?? 0),
     ).toBeLessThanOrEqual(mobileNavigation?.y ?? 844);
     expect(
       await page.evaluate(
@@ -80,6 +94,59 @@ for (const locale of localizedOverviews) {
     expect(browserErrors).toEqual([]);
   });
 }
+
+test("task of the day uses local-first progress and returns to overview", async ({
+  page,
+}) => {
+  await page.goto("/en");
+  const dailyTask = page.getByTestId("daily-task");
+  await expect(dailyTask).toHaveAttribute("data-task-id", /^[a-z0-9-]+$/);
+  await expect(dailyTask).toHaveAttribute("data-task-slot", /^\d+$/);
+  const taskId = await dailyTask.getAttribute("data-task-id");
+  const slot = Number(await dailyTask.getAttribute("data-task-slot"));
+  expect(taskId).not.toBeNull();
+
+  await page.evaluate(
+    ({ taskId, slot }) => {
+      localStorage.setItem(
+        "do-indeksa-attempts",
+        JSON.stringify({
+          version: 1,
+          attempts: [
+            {
+              taskId,
+              slot,
+              correct: true,
+              source: "practice",
+              helpLevel: 0,
+              at: new Date().toISOString(),
+            },
+          ],
+        }),
+      );
+    },
+    { taskId: taskId!, slot },
+  );
+  await page.reload();
+
+  await expect(
+    dailyTask.getByText("Solved today", { exact: true }),
+  ).toBeVisible();
+  await expect(dailyTask.getByText("1 day", { exact: true })).toBeVisible();
+  const repeat = dailyTask.getByRole("link", {
+    name: "Solve again",
+    exact: true,
+  });
+  await expect(repeat).toHaveAttribute(
+    "href",
+    new RegExp(`/en/tasks/.+/${taskId}\\?returnTo=%2F$`),
+  );
+  await repeat.click();
+  await expect(page.getByRole("link", { name: /Exit task/ })).toHaveAttribute(
+    "href",
+    "/en",
+  );
+});
 
 test("quick builder starts a balanced bounded practice set", async ({
   page,

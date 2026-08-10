@@ -51,12 +51,16 @@ export default async function Home({ params }: Props) {
         officialVariantUrl: officialVariant.url,
       }}
       positions={positions}
-      tasks={tasks.map(({ id, slot, topic, difficulty }) => ({
-        id,
-        slot,
-        topic,
-        difficulty,
-      }))}
+      tasks={tasks.map(
+        ({ id, slot, topic, difficulty, statementPreviewHtml }) => ({
+          id,
+          slot,
+          topic,
+          difficulty,
+          statementPreviewHtml,
+          topicLabel: topicT(topic),
+        }),
+      )}
       topicSlots={topics.map(({ slug, slot }) => ({ slug, slot }))}
       programs={programGuide.programs}
       programSource={programGuide.source}

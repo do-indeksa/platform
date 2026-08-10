@@ -187,6 +187,8 @@ describe("practice navigation input", () => {
   });
 
   it("accepts only local task-bank return paths", () => {
+    expect(safeTaskBankReturnPath("/")).toBe("/");
+    expect(safeTaskBankReturnPath("/?redirect=bad")).toBeNull();
     expect(safeTaskBankReturnPath("/tasks?topic=logs")).toBe(
       "/tasks?topic=logs",
     );
