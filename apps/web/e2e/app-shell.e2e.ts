@@ -48,7 +48,9 @@ test("language switch keeps the current route", async ({ page }) => {
   await page.getByRole("link", { name: "EN", exact: true }).click();
 
   await expect(page).toHaveURL(/\/en\/tasks\?source=official$/);
-  await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Tasks", exact: true }),
+  ).toBeVisible();
 });
 
 test("secondary desktop navigation exposes active state and closes", async ({
@@ -88,4 +90,84 @@ test("focused work hides the global shell", async ({ page }) => {
   await page.goto("/en/simulation/new");
   await expect(page.getByTestId("site-header")).toHaveCount(0);
   await expect(page.getByTestId("mobile-navigation")).toHaveCount(0);
+});
+
+test("task-bank filters are shareable and expose an honest empty state", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/ru/tasks");
+
+  await page.getByRole("button", { name: "Фильтры" }).click();
+  const dialog = page.getByRole("dialog", { name: "Фильтры" });
+  await expect(dialog).toBeVisible();
+  await dialog
+    .getByRole("checkbox", { name: "Позиция 1", exact: true })
+    .check();
+  await dialog.getByRole("button", { name: "Показать задания" }).click();
+
+  await expect(page).toHaveURL(/position=1/);
+  await expect(page.getByText("3 задания", { exact: true })).toBeVisible();
+
+  await page
+    .getByRole("searchbox", { name: "Поиск заданий" })
+    .fill("нет такого");
+  await expect(page).toHaveURL(
+    /q=%D0%BD%D0%B5%D1%82\+%D1%82%D0%B0%D0%BA%D0%BE%D0%B3%D0%BE/,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Подходящих заданий нет" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Сбросить фильтры" }).click();
+  await expect(page).toHaveURL(/\/ru\/tasks$/);
+  await expect(page.getByText("30 заданий", { exact: true })).toBeVisible();
+});
+
+test("selected tasks form a bounded practice sequence and return intact", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/ru/tasks");
+  await page.getByRole("checkbox", { name: "Выбрать задание kb-001" }).check();
+  await page.getByRole("checkbox", { name: "Выбрать задание kv-001" }).check();
+  await expect(
+    page.getByText("Выбрано 2 задания", { exact: true }),
+  ).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo({ top: 600 }));
+  await page.getByRole("link", { name: "Решать выбранные задания" }).click();
+
+  await expect(page).toHaveURL(/set=kb-001%2Ckv-001/);
+  await expect(page.getByText("Задание 1 из 2", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("site-header")).toHaveCount(0);
+
+  await page.getByRole("textbox", { name: "t", exact: true }).fill("1");
+  await page
+    .getByRole("textbox", { name: "|z|", exact: true })
+    .fill("3sqrt(2)");
+  await page.getByRole("button", { name: "Проверить" }).click();
+  await expect(page.getByText("Верно!", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Следующее задание" }).click();
+  await expect(page).toHaveURL(/\/kvadratna-jednacina\/kv-001\?/);
+  await expect(page.getByText("Задание 2 из 2", { exact: true })).toBeVisible();
+
+  await page.getByRole("link", { name: "Выйти из задания" }).click();
+  await expect(page).toHaveURL(/\/ru\/tasks\?selected=kb-001&selected=kv-001$/);
+  await expect(
+    page.getByText("Выбрано 2 задания", { exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(500);
+});
+
+test("legacy topic links enter the unified task bank", async ({ page }) => {
+  await page.goto("/en/tasks/logaritmi");
+
+  await expect(page).toHaveURL(/\/en\/tasks\?topic=logaritmi$/);
+  await expect(page.getByText("3 tasks", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Logarithms", { exact: true }).first(),
+  ).toBeVisible();
 });

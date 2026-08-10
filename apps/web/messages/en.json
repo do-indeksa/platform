@@ -93,6 +93,62 @@
     "sourceLabel": "Source: {source}",
     "difficulty": "Difficulty {level} of 5"
   },
+  "topics": {
+    "kompleksni-brojevi": "Complex numbers",
+    "kvadratna-jednacina": "Quadratic equations and Vieta's formulas",
+    "logaritmi": "Logarithms",
+    "eksponencijalne": "Exponential equations and inequalities",
+    "trigonometrija": "Trigonometry",
+    "vektori-analitika": "Vectors and analytic geometry",
+    "planimetrija": "Plane geometry",
+    "stereometrija": "Solid geometry",
+    "analiza-funkcije": "Function analysis and integrals",
+    "kombinatorika": "Combinatorics"
+  },
+  "taskBank": {
+    "searchLabel": "Search tasks",
+    "searchPlaceholder": "Search by statement, topic or task code",
+    "filters": "Filters",
+    "closeFilters": "Close filters",
+    "showResults": "Show tasks",
+    "positionFilter": "Exam position",
+    "positionOption": "Position {position}",
+    "positionChip": "Position {position}",
+    "topicFilter": "Topic",
+    "difficultyFilter": "Difficulty",
+    "progressFilter": "Progress",
+    "difficulty": {
+      "foundation": "Foundation · 1–2",
+      "exam": "Exam level · 3",
+      "advanced": "Advanced · 4–5"
+    },
+    "progress": {
+      "all": "All tasks",
+      "new": "Not attempted",
+      "correct": "Solved",
+      "incorrect": "Needs another try"
+    },
+    "resetFilters": "Reset filters",
+    "reset": "Reset",
+    "resultCount": "{count, plural, one {# task} other {# tasks}}",
+    "sortLabel": "Sort",
+    "sort": {
+      "position": "By position",
+      "difficulty": "By difficulty"
+    },
+    "selectVisible": "Select visible tasks",
+    "selectedCount": "{count, plural, one {# task selected} other {# tasks selected}}",
+    "clearSelection": "Clear selection",
+    "startPractice": "Start selected practice",
+    "start": "Start",
+    "selectTask": "Select task {id}",
+    "taskCode": "Task {id}",
+    "authoredSource": "Original",
+    "loadingProgress": "Loading your task progress…",
+    "emptyTitle": "No tasks match",
+    "emptyQuery": "Nothing matched “{query}”. Try a shorter query or change the filters.",
+    "emptyFilters": "These filters do not match any current tasks. Change or reset them."
+  },
   "calculator": {
     "title": "FTN score calculator",
     "description": "Calculate your FTN admission score and compare it with recent thresholds for every degree program.",

@@ -3,8 +3,13 @@ import path from "node:path";
 import matter from "gray-matter";
 import { describe, expect, it } from "vitest";
 import { checkAnswer, type CheckPart } from "./answer";
-import { getTasks, getTopics } from "./content";
-import { renderMarkdown } from "./markdown";
+import {
+  getTaskReferences,
+  getTaskSummaries,
+  getTasks,
+  getTopics,
+} from "./content";
+import { markdownToPlainText, renderMarkdown } from "./markdown";
 
 const tasksDir = path.join(process.cwd(), "..", "..", "content", "tasks");
 
@@ -64,6 +69,33 @@ describe("topics.yaml", () => {
 });
 
 describe("task files", () => {
+  it("exposes searchable summaries without grading data", async () => {
+    const summaries = await getTaskSummaries();
+    expect(summaries).toHaveLength(30);
+    expect(summaries[0].statementPreview).not.toContain("$");
+    expect(summaries[0].statementPreviewHtml).toContain("katex");
+    expect(summaries[0]).not.toHaveProperty("answer");
+    expect(summaries[0]).not.toHaveProperty("check");
+    expect(summaries[0]).not.toHaveProperty("solution");
+  });
+
+  it("exposes a lightweight navigation catalog", async () => {
+    const references = await getTaskReferences();
+    expect(references).toHaveLength(30);
+    expect(references[0]).toEqual({
+      id: "kb-001",
+      slot: 1,
+      topic: "kompleksni-brojevi",
+    });
+    expect(references[0]).not.toHaveProperty("statementPreviewHtml");
+  });
+
+  it("creates a readable search index from Markdown and math", () => {
+    expect(markdownToPlainText("**Find** $x^2$\n\n- first\n- second")).toBe(
+      "Find x^2 first second",
+    );
+  });
+
   it("frontmatter matches the schema", async () => {
     const taskFiles = await readAllTaskFiles();
     const topics = await getTopics();
