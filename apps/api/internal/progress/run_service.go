@@ -115,11 +115,11 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	if input.ActiveDurationMs != nil && *input.ActiveDurationMs < 0 {
-		return RunAggregate{}, invalidInput("activeDurationMs")
-	}
 	if submittedAt.Before(run.StartedAt) {
 		return RunAggregate{}, invalidInput("submittedAt")
+	}
+	if !validActiveDuration(input.ActiveDurationMs, submittedAt.Sub(run.StartedAt)) {
+		return RunAggregate{}, invalidInput("activeDurationMs")
 	}
 	duration := input.ActiveDurationMs
 	if duration == nil {
