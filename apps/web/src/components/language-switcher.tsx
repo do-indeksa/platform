@@ -1,8 +1,9 @@
 "use client";
 
 import { ChevronDown, Languages } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useTransition } from "react";
+import { Suspense, useTransition } from "react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 
@@ -13,11 +14,22 @@ const localeLabels: Record<AppLocale, string> = {
 };
 
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+  return (
+    <Suspense fallback={<LanguageSwitcherFallback compact={compact} />}>
+      <LanguageSwitcherContent compact={compact} />
+    </Suspense>
+  );
+}
+
+function LanguageSwitcherContent({ compact }: { compact: boolean }) {
   const locale = useLocale() as AppLocale;
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations("nav");
   const [pending, startTransition] = useTransition();
+  const query = searchParams.toString();
+  const href = query ? `${pathname}?${query}` : pathname;
 
   const replaceLocale = (nextLocale: AppLocale) => {
     const suffix = `${window.location.search}${window.location.hash}`;
@@ -65,10 +77,10 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
         return (
           <Link
             key={item}
-            href={pathname}
+            href={href}
             locale={item}
             onClick={(event) => {
-              if (!window.location.search && !window.location.hash) return;
+              if (!window.location.hash) return;
               event.preventDefault();
               replaceLocale(item);
             }}
@@ -84,5 +96,16 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
         );
       })}
     </div>
+  );
+}
+
+function LanguageSwitcherFallback({ compact }: { compact: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`block animate-pulse rounded-xl border border-line bg-surface ${
+        compact ? "h-11 w-20" : "h-[54px] w-[142px]"
+      }`}
+    />
   );
 }
