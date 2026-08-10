@@ -1,33 +1,52 @@
-import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+"use client";
+
+import { useTranslations } from "next-intl";
+import {
+  DesktopNavigation,
+  MobileBottomNavigation,
+} from "@/components/app-navigation";
 import { HeaderUser } from "@/components/header-user";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { MobileMenu } from "@/components/mobile-menu";
+import { Link } from "@/i18n/navigation";
 
-const sections = [
-  { href: "/prep", key: "prep" },
-  { href: "/tasks", key: "tasks" },
-  { href: "/simulation", key: "simulation" },
-  { href: "/calculator", key: "calculator" },
-] as const;
+export function SiteHeader() {
+  const t = useTranslations("nav");
 
-export async function SiteHeader() {
-  const t = await getTranslations("nav");
   return (
-    <header className="border-b border-zinc-200">
-      <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-3">
-        <Link href="/" className="font-bold">
-          Do indeksa
-        </Link>
-        <nav className="flex gap-4 text-sm text-zinc-600">
-          {sections.map(({ href, key }) => (
-            <Link key={href} href={href} className="hover:text-zinc-900">
-              {t(key)}
-            </Link>
-          ))}
-        </nav>
-        <div className="ml-auto">
-          <HeaderUser />
+    <>
+      <header
+        data-testid="site-header"
+        className="sticky top-0 z-40 h-16 border-b border-line bg-surface"
+      >
+        <div className="relative mx-auto flex h-full w-full max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:gap-5 lg:px-8">
+          <Link
+            href="/"
+            aria-label={t("brandHome")}
+            className="shrink-0 text-xl font-bold text-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+          >
+            do indeksa
+          </Link>
+          <span className="hidden min-h-9 shrink-0 items-center rounded-lg bg-subtle px-3 text-xs font-semibold text-brand-ink xl:flex">
+            {t("exam")}
+          </span>
+          <DesktopNavigation />
+          <div className="ml-auto hidden shrink-0 items-center gap-2 md:flex lg:gap-3">
+            <div className="lg:hidden">
+              <LanguageSwitcher compact />
+            </div>
+            <div className="hidden lg:block">
+              <LanguageSwitcher />
+            </div>
+            <HeaderUser />
+          </div>
+          <span className="ml-auto flex min-h-9 min-w-0 items-center rounded-lg bg-subtle px-2.5 text-xs font-semibold text-brand-ink md:hidden">
+            <span className="truncate">{t("exam")}</span>
+          </span>
+          <MobileMenu />
         </div>
-      </div>
-    </header>
+      </header>
+      <MobileBottomNavigation />
+    </>
   );
 }
