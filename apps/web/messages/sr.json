@@ -152,8 +152,8 @@
   "home": {
     "metadataTitle": "Priprema za FTN P1",
     "metadataDescription": "Vežbaj zadatke, proveri nivo i napravi plan pripreme za prijemni ispit FTN P1 iz matematike.",
-    "context": "FTN Novi Sad · P1 · Matematika",
-    "verifiedFormat": "Potvrđen format {version}",
+    "context": "FTN Novi Sad · P1",
+    "verifiedFormat": "Potvrđeno · {version}",
     "title": "Priprema za P1 iz matematike",
     "intro": "Aktuelni ispit ima {tasks} zadataka, traje {hours} sata i nosi najviše {points} bodova.",
     "facts": {
