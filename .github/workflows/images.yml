@@ -1,0 +1,182 @@
+name: images
+
+on:
+  pull_request:
+    paths:
+      - .dockerignore
+      - apps/api/**
+      - apps/web/**
+      - content/**
+      - .github/workflows/images.yml
+  push:
+    branches: [main]
+    paths:
+      - .dockerignore
+      - apps/api/**
+      - apps/web/**
+      - content/**
+      - .github/workflows/images.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: api
+            context: ./apps/api
+            file: ./apps/api/Dockerfile
+          - image: web
+            context: .
+            file: ./apps/web/Dockerfile
+    env:
+      LOCAL_IMAGE: do-indeksa-${{ matrix.image }}:ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Build test image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ env.LOCAL_IMAGE }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/do-indeksa/platform
+            org.opencontainers.image.revision=${{ github.sha }}
+          provenance: false
+          sbom: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          build-args: |
+            API_URL=http://do-indeksa-api:8080
+            NEXT_PUBLIC_UMAMI_SCRIPT_URL=${{ vars.NEXT_PUBLIC_UMAMI_SCRIPT_URL }}
+            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ vars.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
+            NEXT_PUBLIC_UMAMI_DOMAINS=${{ vars.NEXT_PUBLIC_UMAMI_DOMAINS }}
+
+      - name: Verify non-root runtime
+        shell: bash
+        run: |
+          user="$(docker image inspect "${LOCAL_IMAGE}" --format '{{.Config.User}}')"
+          if [[ -z "${user}" || "${user}" == "0" || "${user}" == "root" ]]; then
+            echo "Image runtime user must be non-root" >&2
+            exit 1
+          fi
+
+      - name: Scan runtime image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.LOCAL_IMAGE }}
+          version: v0.73.0
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL,HIGH
+          scanners: vuln
+
+      - name: Smoke test web image
+        if: matrix.image == 'web'
+        shell: bash
+        run: |
+          set -euo pipefail
+          container=do-indeksa-web-smoke
+          trap 'docker rm -f "${container}" >/dev/null 2>&1 || true' EXIT
+          docker run --detach --name "${container}" \
+            --publish 127.0.0.1:3000:3000 "${LOCAL_IMAGE}"
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:3000/healthz >/dev/null; then
+              break
+            fi
+            if [[ "${attempt}" == "30" ]]; then
+              docker logs "${container}"
+              exit 1
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:3000/tasks | grep --quiet Zadaci
+
+      - name: Smoke test API image
+        if: matrix.image == 'api'
+        shell: bash
+        env:
+          POSTGRES_IMAGE: postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+        run: |
+          set -euo pipefail
+          network=do-indeksa-api-smoke
+          postgres=do-indeksa-postgres-smoke
+          api=do-indeksa-api-smoke
+          cleanup() {
+            docker rm -f "${api}" "${postgres}" >/dev/null 2>&1 || true
+            docker network rm "${network}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker network create "${network}" >/dev/null
+          docker run --detach --name "${postgres}" --network "${network}" \
+            --env POSTGRES_DB=do_indeksa \
+            --env POSTGRES_USER=postgres \
+            --env POSTGRES_PASSWORD=postgres \
+            "${POSTGRES_IMAGE}" >/dev/null
+          for attempt in {1..30}; do
+            if docker exec "${postgres}" pg_isready --username postgres --dbname do_indeksa >/dev/null; then
+              break
+            fi
+            if [[ "${attempt}" == "30" ]]; then
+              docker logs "${postgres}"
+              exit 1
+            fi
+            sleep 1
+          done
+          docker run --detach --name "${api}" --network "${network}" \
+            --publish 127.0.0.1:8080:8080 \
+            --env DATABASE_URL="postgresql://postgres:postgres@${postgres}:5432/do_indeksa?sslmode=disable" \
+            --env GOOGLE_CLIENT_ID=ci-client \
+            --env GOOGLE_CLIENT_SECRET=ci-secret \
+            --env AUTH_SECRET=0000000000000000000000000000000000000000000000000000000000000000 \
+            --env CANONICAL_WEB_ORIGIN=http://localhost:3000 \
+            "${LOCAL_IMAGE}" >/dev/null
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null; then
+              break
+            fi
+            if [[ "${attempt}" == "30" ]]; then
+              docker logs "${api}"
+              exit 1
+            fi
+            sleep 1
+          done
+          versions="$(docker exec "${postgres}" psql --username postgres --dbname do_indeksa \
+            --tuples-only --no-align --command 'select count(*) from goose_db_version;')"
+          test "${versions}" -ge 1
+
+      - name: Log in to production registry
+        if: github.event_name == 'push'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ secrets.ZOT_REGISTRY }}
+          username: ${{ secrets.ZOT_USER }}
+          password: ${{ secrets.ZOT_PASS }}
+
+      - name: Push immutable production image
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          REGISTRY: ${{ secrets.ZOT_REGISTRY }}
+        run: |
+          set -euo pipefail
+          remote_image="${REGISTRY}/do-indeksa-${{ matrix.image }}:${GITHUB_SHA}"
+          docker tag "${LOCAL_IMAGE}" "${remote_image}"
+          docker push "${remote_image}"
