@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
       }),
   rewrites: async () => [
     { source: "/api/v1/:path*", destination: `${apiUrl}/v1/:path*` },
+    { source: "/graphql", destination: `${apiUrl}/graphql` },
   ],
   images: {
     remotePatterns: [

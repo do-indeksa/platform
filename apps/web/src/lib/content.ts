@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import matter from "gray-matter";
@@ -16,6 +17,7 @@ export type Topic = {
 
 export type Task = {
   id: string;
+  revision: string;
   slot: number;
   topic: string;
   difficulty: number;
@@ -27,6 +29,19 @@ export type Task = {
   hints: string[];
   solution: string;
 };
+
+export function taskSetRevision(
+  tasks: readonly Pick<Task, "id" | "revision">[],
+): string {
+  const hash = createHash("sha256");
+  for (const task of tasks) {
+    hash.update(task.id);
+    hash.update("\0");
+    hash.update(task.revision);
+    hash.update("\n");
+  }
+  return `sha256:${hash.digest("hex")}`;
+}
 
 export type TaskSummary = Pick<
   Task,
@@ -135,7 +150,8 @@ async function readTask(filePath: string): Promise<Task> {
   const { data, content } = matter(raw);
   const sections = parseSections(content);
   return {
-    ...(data as Omit<Task, "statement" | "hints" | "solution">),
+    ...(data as Omit<Task, "revision" | "statement" | "hints" | "solution">),
+    revision: `sha256:${createHash("sha256").update(raw).digest("hex")}`,
     statement: sections.get("Zadatak") ?? "",
     hints: [sections.get("Nagoveštaj 1"), sections.get("Nagoveštaj 2")].filter(
       (hint) => hint !== undefined,
