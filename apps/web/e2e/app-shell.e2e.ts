@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 const locales = [
   { path: "/tasks", heading: "Zadaci", htmlLang: "sr-Latn" },
@@ -53,6 +53,21 @@ test("language switch keeps the current route", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("overview is a primary destination on desktop and mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/ru");
+  await expect(
+    page.getByTestId("mobile-navigation").getByRole("link", { name: "Обзор" }),
+  ).toHaveAttribute("aria-current", "page");
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(
+    page.getByTestId("desktop-navigation").getByRole("link", { name: "Обзор" }),
+  ).toHaveAttribute("aria-current", "page");
+});
+
 test("secondary desktop navigation exposes active state and closes", async ({
   page,
 }) => {
@@ -98,12 +113,25 @@ test("task-bank filters are shareable and expose an honest empty state", async (
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/ru/tasks");
 
-  await page.getByRole("button", { name: "Фильтры" }).click();
+  await expectMinimumHitArea(page.getByRole("link", { name: "Главная" }));
+  await expectMinimumHitArea(
+    page
+      .getByRole("checkbox", { name: "Выбрать видимые задания" })
+      .locator(".."),
+  );
+
+  await page.getByRole("button", { name: "Фильтры", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Фильтры" });
   await expect(dialog).toBeVisible();
-  await dialog
-    .getByRole("checkbox", { name: "Позиция 1", exact: true })
-    .check();
+  await expectMinimumHitArea(
+    dialog.getByRole("button", { name: "Закрыть фильтры" }),
+  );
+  const firstPosition = dialog.getByRole("checkbox", {
+    name: "Позиция 1",
+    exact: true,
+  });
+  await expectMinimumHitArea(firstPosition.locator(".."));
+  await firstPosition.check();
   await dialog.getByRole("button", { name: "Показать задания" }).click();
 
   await expect(page).toHaveURL(/position=1/);
@@ -171,3 +199,10 @@ test("legacy topic links enter the unified task bank", async ({ page }) => {
     page.getByText("Logarithms", { exact: true }).first(),
   ).toBeVisible();
 });
+
+async function expectMinimumHitArea(locator: Locator) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box?.width).toBeGreaterThanOrEqual(44);
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+}
