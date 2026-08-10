@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -78,6 +79,12 @@ func newTestApp(t *testing.T) http.Handler {
 
 func seedSession(t *testing.T, suffix string) *http.Cookie {
 	t.Helper()
+	_, session := seedUserSession(t, suffix)
+	return session
+}
+
+func seedUserSession(t *testing.T, suffix string) (auth.User, *http.Cookie) {
+	t.Helper()
 	ctx := context.Background()
 	user, err := auth.New(testPool).UpsertUser(ctx, auth.UpsertUserParams{
 		GoogleSub: "seed-" + t.Name() + suffix,
@@ -91,7 +98,7 @@ func seedSession(t *testing.T, suffix string) *http.Cookie {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: auth.SessionCookieName, Value: token}
+	return user, &http.Cookie{Name: auth.SessionCookieName, Value: token}
 }
 
 func do(t *testing.T, app http.Handler, method, target string, body any, cookies ...*http.Cookie) *http.Response {
@@ -162,6 +169,83 @@ func TestRecordAndListRoundtrip(t *testing.T) {
 	}
 	if second.At.IsZero() || time.Since(second.At) > time.Minute {
 		t.Fatalf("missing at not defaulted to now: %v", second.At)
+	}
+}
+
+func TestLegacyProjectionKeepsOnlyBooleanGraphQLAttempts(t *testing.T) {
+	app := newTestApp(t)
+	user, session := seedUserSession(t, "")
+	service := NewService(testPool)
+	startedAt := time.Now().Add(-10 * time.Minute).UTC().Truncate(time.Microsecond)
+	maxPoints := int16(6)
+	earnedPoints := int16(3)
+	items := []NewRunItem{
+		{ID: uuid.New(), TaskID: "kb-001", ExamPosition: 1, Topic: "kompleksni-brojevi", MaxPoints: &maxPoints, TaskRevision: "rev-kb"},
+		{ID: uuid.New(), TaskID: "kv-001", ExamPosition: 2, Topic: "kvadratna-jednacina", MaxPoints: &maxPoints, TaskRevision: "rev-kv"},
+		{ID: uuid.New(), TaskID: "log-001", ExamPosition: 3, Topic: "logaritmi", MaxPoints: &maxPoints, TaskRevision: "rev-log"},
+		{ID: uuid.New(), TaskID: "eks-001", ExamPosition: 4, Topic: "eksponencijalne-jednacine", MaxPoints: &maxPoints, TaskRevision: "rev-eks"},
+	}
+	runID := uuid.New()
+	if _, err := service.StartRun(context.Background(), user.ID, StartRunInput{
+		ID:               runID,
+		Kind:             RunKindDiagnostic,
+		BlueprintVersion: "diagnostic-v1",
+		ContentRevision:  "content-revision",
+		StartedAt:        startedAt,
+		Items:            items,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	outcomes := []struct {
+		outcome AttemptOutcome
+		earned  *int16
+	}{
+		{AttemptOutcomeCorrect, &maxPoints},
+		{AttemptOutcomeIncorrect, nil},
+		{AttemptOutcomeSkipped, nil},
+		{AttemptOutcomePartial, &earnedPoints},
+	}
+	for index, outcome := range outcomes {
+		submittedAt := startedAt.Add(time.Duration(index+1) * time.Minute)
+		if _, err := service.RecordAttempt(context.Background(), user.ID, RecordAttemptInput{
+			ID:           uuid.New(),
+			RunItemID:    &items[index].ID,
+			StartedAt:    submittedAt.Add(-30 * time.Second),
+			SubmittedAt:  submittedAt,
+			Outcome:      outcome.outcome,
+			GradingKind:  GradingKindAuto,
+			EarnedPoints: outcome.earned,
+		}); err != nil {
+			t.Fatalf("record %s: %v", outcome.outcome, err)
+		}
+	}
+
+	aggregate, err := service.GetRun(context.Background(), user.ID, runID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(aggregate.Attempts) != len(outcomes) {
+		t.Fatalf("GraphQL aggregate lost outcomes: got %d", len(aggregate.Attempts))
+	}
+
+	res := do(t, app, http.MethodGet, "/v1/attempts", nil, session)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get: got status %d", res.StatusCode)
+	}
+	var attempts []api.Attempt
+	if err := json.NewDecoder(res.Body).Decode(&attempts); err != nil {
+		t.Fatal(err)
+	}
+	if len(attempts) != 2 || attempts[0].TaskId != "kb-001" || !attempts[0].Correct ||
+		attempts[1].TaskId != "kv-001" || attempts[1].Correct {
+		t.Fatalf("unexpected REST projection: %+v", attempts)
+	}
+	for index, attempt := range attempts {
+		want := startedAt.Add(time.Duration(index+1) * time.Minute)
+		if !attempt.At.Equal(want) {
+			t.Fatalf("attempt %d timestamp = %v, want %v", index, attempt.At, want)
+		}
 	}
 }
 

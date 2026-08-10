@@ -23,6 +23,7 @@ insert into attempts (
     correct,
     source,
     help_level,
+    created_at,
     started_at,
     submitted_at,
     active_duration_ms,
@@ -35,7 +36,7 @@ insert into attempts (
 )
 values (
     $1, $2, $3, $4, $5, $6, $7, $8, $9,
-    $10, $11, $12, $13, $14, $15, $16, $17
+    $10, $11, $12, $13, $14, $15, $16, $17, $18
 )
 on conflict (public_id) do nothing
 returning id, user_id, task_id, slot, correct, source, created_at, help_level, public_id, run_item_id, started_at, submitted_at, active_duration_ms, answer, outcome, grading_kind, earned_points, max_points, task_revision
@@ -50,6 +51,7 @@ type CreateAttemptParams struct {
 	Correct          bool
 	Source           string
 	HelpLevel        int16
+	CreatedAt        time.Time
 	StartedAt        pgtype.Timestamptz
 	SubmittedAt      pgtype.Timestamptz
 	ActiveDurationMs *int64
@@ -71,6 +73,7 @@ func (q *Queries) CreateAttempt(ctx context.Context, arg CreateAttemptParams) (A
 		arg.Correct,
 		arg.Source,
 		arg.HelpLevel,
+		arg.CreatedAt,
 		arg.StartedAt,
 		arg.SubmittedAt,
 		arg.ActiveDurationMs,
@@ -384,6 +387,7 @@ from (
     select id, task_id, slot, correct, source, help_level, created_at
     from attempts
     where user_id = $1
+      and (outcome is null or outcome in ('correct', 'incorrect'))
     order by created_at desc, id desc
     limit 1000
 ) recent
