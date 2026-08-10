@@ -1,5 +1,12 @@
 import { all, create } from "mathjs/number";
-import type { EvalFunction, MathNode } from "mathjs";
+import type {
+  ConstantNode,
+  EvalFunction,
+  FunctionNode,
+  MathNode,
+  OperatorNode,
+  SymbolNode,
+} from "mathjs";
 
 const math = create(all);
 
@@ -20,6 +27,18 @@ const SAMPLE_GRID = [
   11.65,
 ];
 const MIN_SAMPLE_MATCHES = 3;
+const ALLOWED_OPERATORS = new Set(["+", "-", "*", "/", "^"]);
+const ALLOWED_SYMBOLS = new Set([
+  "x",
+  "pi",
+  "e",
+  "Infinity",
+  "sqrt",
+  "log",
+  "log10",
+  "log2",
+]);
+const ALLOWED_FUNCTIONS = new Set(["sqrt", "log", "log10", "log2"]);
 
 export function checkAnswer(part: CheckPart, input: string): CheckResult {
   if (input.length > MAX_INPUT_LENGTH) return "invalid";
@@ -81,8 +100,8 @@ function stripLead(s: string): string {
   return s.replace(/^[a-z][a-z0-9]{0,3}(\(x\))?=/, "");
 }
 
-function isDecimalLiteral(s: string): boolean {
-  return /^[+-]?\d+(\.\d+)?$/.test(s);
+function hasDecimalLiteral(s: string): boolean {
+  return /(^|[^\da-z_.])(?:\d+\.\d*|\.\d+)(?=$|[^\da-z_.])/i.test(s);
 }
 
 function matches(expected: number, given: number, literal: boolean): boolean {
@@ -90,16 +109,62 @@ function matches(expected: number, given: number, literal: boolean): boolean {
 }
 
 function valueEquals(expected: string, given: string): boolean {
-  const expectedNode = math.parse(expected);
-  const givenNode = math.parse(given);
+  const expectedNode = parseExpression(expected);
+  const givenNode = parseExpression(given);
   if (usesX(expectedNode) || usesX(givenNode)) {
     return sampledEquals(expectedNode, givenNode);
   }
   return matches(
     toNumber(expectedNode),
     toNumber(givenNode),
-    isDecimalLiteral(given),
+    hasDecimalLiteral(given),
   );
+}
+
+function parseExpression(expression: string): MathNode {
+  const node = math.parse(expression);
+  assertSafeExpression(node);
+  return node;
+}
+
+function assertSafeExpression(node: MathNode): void {
+  node.traverse((child) => {
+    switch (child.type) {
+      case "ConstantNode":
+        if (typeof (child as ConstantNode).value !== "number") {
+          throw new Error("only numeric constants are allowed");
+        }
+        return;
+      case "SymbolNode":
+        if (!ALLOWED_SYMBOLS.has((child as SymbolNode).name)) {
+          throw new Error("symbol is not allowed");
+        }
+        return;
+      case "OperatorNode":
+        if (!ALLOWED_OPERATORS.has((child as OperatorNode).op)) {
+          throw new Error("operator is not allowed");
+        }
+        return;
+      case "FunctionNode": {
+        const fn = (child as FunctionNode).fn;
+        if (
+          typeof fn !== "object" ||
+          fn === null ||
+          !("type" in fn) ||
+          fn.type !== "SymbolNode" ||
+          !ALLOWED_FUNCTIONS.has((fn as SymbolNode).name) ||
+          (child as FunctionNode).args.length !== 1
+        ) {
+          throw new Error("function is not allowed");
+        }
+        return;
+      }
+      case "ParenthesisNode":
+        return;
+      default:
+        throw new Error("expression node is not allowed");
+    }
+  });
 }
 
 function usesX(node: MathNode): boolean {
@@ -154,15 +219,18 @@ function valueList(s: string): ListedValue[] {
     const bare = stripLead(element);
     if (bare.startsWith("±")) {
       const body = bare.slice(1);
-      const value = toNumber(math.parse(body));
-      const literal = isDecimalLiteral(body);
+      const value = toNumber(parseExpression(body));
+      const literal = hasDecimalLiteral(body);
       return [
         { value, literal },
         { value: -value, literal },
       ];
     }
     return [
-      { value: toNumber(math.parse(bare)), literal: isDecimalLiteral(bare) },
+      {
+        value: toNumber(parseExpression(bare)),
+        literal: hasDecimalLiteral(bare),
+      },
     ];
   });
 }
@@ -189,7 +257,7 @@ type Bound = { value: number; open: boolean; literal: boolean };
 type Interval = { lo: Bound; hi: Bound };
 
 function intervalList(s: string): Interval[] {
-  return splitTop(s, "u;").map(parseInterval);
+  return splitUnion(s).map(parseInterval);
 }
 
 function parseInterval(s: string): Interval {
@@ -232,9 +300,9 @@ function inequalityInterval(s: string): Interval | null {
 
 function bound(expr: string, open: boolean): Bound {
   return {
-    value: toNumber(math.parse(expr)),
+    value: toNumber(parseExpression(expr)),
     open,
-    literal: isDecimalLiteral(expr),
+    literal: hasDecimalLiteral(expr),
   };
 }
 
@@ -266,6 +334,30 @@ function splitTop(s: string, separators: string): string[] {
     if ("([{".includes(char)) depth++;
     else if (")]}".includes(char)) depth--;
     else if (depth === 0 && separators.includes(char)) {
+      parts.push(s.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(s.slice(start));
+  return parts;
+}
+
+function splitUnion(s: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const char = s[i];
+    if ("([{".includes(char)) {
+      depth++;
+    } else if (")]}".includes(char)) {
+      depth--;
+    } else if (
+      depth === 0 &&
+      (char === ";" ||
+        (char === "u" &&
+          !(/[a-z]/i.test(s[i - 1] ?? "") && /[a-z]/i.test(s[i + 1] ?? ""))))
+    ) {
       parts.push(s.slice(start, i));
       start = i + 1;
     }

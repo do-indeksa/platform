@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Difficulty } from "@/components/difficulty";
-import { Markdown } from "@/components/markdown";
-import { TaskSelfCheck } from "@/components/task-self-check";
+import { RenderedMarkdown } from "@/components/rendered-markdown";
+import { TaskCheck } from "@/components/task-check";
 import { getTask, getTasks, getTopic, getTopics } from "@/lib/content";
+import { renderMarkdown } from "@/lib/markdown";
 
 type Props = { params: Promise<{ topic: string; id: string }> };
 
@@ -29,36 +30,60 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TaskPage({ params }: Props) {
   const { topic: topicSlug, id } = await params;
-  const [topic, task] = await Promise.all([
+  const [topic, tasks] = await Promise.all([
     getTopic(topicSlug),
-    getTask(topicSlug, id),
+    getTasks(topicSlug),
   ]);
+  const task = tasks.find((candidate) => candidate.id === id);
   if (!topic || !task) notFound();
   const t = await getTranslations("tasks");
+  const [statementHtml, hintsHtml, solutionHtml] = await Promise.all([
+    renderMarkdown(task.statement),
+    Promise.all(task.hints.map(renderMarkdown)),
+    renderMarkdown(task.solution),
+  ]);
+  const taskIndex = tasks.indexOf(task);
+  const next = tasks[(taskIndex + 1) % tasks.length];
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <Link
-        href={`/tasks/${topic.slug}`}
-        className="text-sm text-zinc-500 hover:underline"
-      >
-        ← {topic.name}
-      </Link>
-      <div className="mt-2 mb-6 flex items-baseline justify-between">
-        <h1 className="text-2xl font-bold">
-          {t("taskTitle", { id: task.id })}
-        </h1>
+    <main className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-8 sm:py-8">
+      <nav className="mb-8 flex items-center justify-between border-b border-zinc-200 pb-4 text-sm">
+        <Link
+          href={`/tasks/${topic.slug}`}
+          className="font-medium text-zinc-600 hover:text-zinc-900"
+        >
+          {t("exitPractice")}
+        </Link>
+        <span className="tabular-nums text-zinc-500">
+          {t("taskProgress", { current: taskIndex + 1, total: tasks.length })}
+        </span>
+      </nav>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-sm text-zinc-500">
+            {t("taskContext", { slot: task.slot, topic: topic.name })}
+          </p>
+          <h1 className="text-2xl font-bold">
+            {t("taskTitle", { id: task.id })}
+          </h1>
+        </div>
         <Difficulty level={task.difficulty} />
       </div>
-      <Markdown>{task.statement}</Markdown>
-      <details className="group mt-8 rounded-lg border border-zinc-200">
-        <summary className="cursor-pointer select-none p-4 font-medium group-open:border-b group-open:border-zinc-200">
-          {t("showSolution")}
-        </summary>
-        <div className="p-4">
-          <Markdown>{task.solution}</Markdown>
-        </div>
-      </details>
-      <TaskSelfCheck taskId={task.id} slot={task.slot} />
+      <RenderedMarkdown
+        html={statementHtml}
+        openImageLabel={t("openImage")}
+        closeImageLabel={t("closeImage")}
+      />
+      <TaskCheck
+        key={task.id}
+        taskId={task.id}
+        slot={task.slot}
+        check={task.check}
+        hintsHtml={hintsHtml}
+        solutionHtml={solutionHtml}
+        nextTaskHref={
+          next.id === task.id ? null : `/tasks/${topic.slug}/${next.id}`
+        }
+      />
       <p className="mt-6 text-sm text-zinc-500">
         {t("sourceLabel", { source: task.source })}
       </p>

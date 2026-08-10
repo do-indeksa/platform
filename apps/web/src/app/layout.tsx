@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { SiteHeader } from "@/components/site-header";
+import { SiteChrome } from "@/components/site-chrome";
 import { UserProvider } from "@/components/user-provider";
 import "./globals.css";
 import "katex/dist/katex.min.css";
@@ -39,7 +40,9 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider>
           <UserProvider>
-            <SiteHeader />
+            <SiteChrome>
+              <SiteHeader />
+            </SiteChrome>
             {children}
           </UserProvider>
         </NextIntlClientProvider>
