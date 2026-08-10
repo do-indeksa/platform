@@ -3,3 +3,60 @@
 //   sqlc v1.30.0
 
 package progress
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type Attempt struct {
+	ID               int64
+	UserID           uuid.UUID
+	TaskID           string
+	Slot             int32
+	Correct          bool
+	Source           string
+	CreatedAt        time.Time
+	HelpLevel        int16
+	PublicID         uuid.UUID
+	RunItemID        pgtype.UUID
+	StartedAt        pgtype.Timestamptz
+	SubmittedAt      pgtype.Timestamptz
+	ActiveDurationMs *int64
+	Answer           *string
+	Outcome          *string
+	GradingKind      *string
+	EarnedPoints     *int16
+	MaxPoints        *int16
+	TaskRevision     *string
+}
+
+type Run struct {
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	Kind             string
+	Status           string
+	BlueprintVersion string
+	ContentRevision  string
+	StartedAt        time.Time
+	DeadlineAt       pgtype.Timestamptz
+	SubmittedAt      pgtype.Timestamptz
+	DurationMs       *int64
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type RunItem struct {
+	ID           uuid.UUID
+	RunID        uuid.UUID
+	UserID       uuid.UUID
+	TaskID       string
+	Ordinal      int16
+	ExamPosition int16
+	Topic        string
+	MaxPoints    *int16
+	TaskRevision string
+	CreatedAt    time.Time
+}
