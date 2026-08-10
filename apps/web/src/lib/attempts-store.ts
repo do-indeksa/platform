@@ -139,29 +139,42 @@ function scheduleFlush(): Promise<void> {
 
 let fetchSeq = 0;
 
-async function fetchServer(): Promise<void> {
+async function fetchServer(): Promise<boolean> {
   const seq = ++fetchSeq;
-  const res = await fetch("/api/v1/attempts");
-  if (!res.ok)
-    throw new Error(`attempts fetch failed with status ${res.status}`);
-  const value: unknown = await res.json();
-  if (!Array.isArray(value) || !value.every(isAttempt)) {
-    throw new Error("attempts fetch returned an invalid response");
+  try {
+    const res = await fetch("/api/v1/attempts");
+    if (seq !== fetchSeq) return false;
+    if (!res.ok)
+      throw new Error(`attempts fetch failed with status ${res.status}`);
+    const value: unknown = await res.json();
+    if (seq !== fetchSeq) return false;
+    if (!Array.isArray(value) || !value.every(isAttempt)) {
+      throw new Error("attempts fetch returned an invalid response");
+    }
+    serverAttempts = value.map(toPublicAttempt);
+    serverUnavailable = false;
+    return true;
+  } catch (error) {
+    if (seq !== fetchSeq) return false;
+    throw error;
   }
-  const attempts = value.map(toPublicAttempt);
-  if (seq !== fetchSeq) return;
-  serverAttempts = attempts;
-  serverUnavailable = false;
 }
 
 export async function syncAttempts(isSignedIn: boolean): Promise<void> {
   authKnown = true;
+  const signingIn = isSignedIn && !signedIn;
   signedIn = isSignedIn;
   if (!isSignedIn) {
+    fetchSeq += 1;
     serverAttempts = null;
     serverUnavailable = false;
     emit();
     return;
+  }
+  if (signingIn) {
+    serverAttempts = null;
+    serverUnavailable = false;
+    emit();
   }
   await scheduleFlush();
   try {
@@ -221,7 +234,7 @@ export function recordGraphQLAttempts(
 export async function acknowledgeGraphQLRun(runId: string): Promise<boolean> {
   if (!signedIn || !isUuid(runId)) return false;
   try {
-    await fetchServer();
+    if (!(await fetchServer())) return false;
   } catch {
     serverUnavailable = true;
     emit();

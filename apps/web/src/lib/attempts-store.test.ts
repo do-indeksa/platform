@@ -170,6 +170,32 @@ describe("syncAttempts", () => {
     expect(store.attemptsView()).toHaveLength(2);
   });
 
+  it("invalidates an in-flight server view across sign-out", async () => {
+    mockStorage();
+    const resolvers: ((response: Response) => void)[] = [];
+    mockFetch(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+    const store = await loadStore();
+
+    const firstSignIn = store.syncAttempts(true);
+    await vi.waitFor(() => expect(resolvers).toHaveLength(1));
+    await store.syncAttempts(false);
+    resolvers[0](Response.json([attempt("previous-user")]));
+    await firstSignIn;
+    expect(store.attemptsView()).toEqual([]);
+
+    const secondSignIn = store.syncAttempts(true);
+    await vi.waitFor(() => expect(resolvers).toHaveLength(2));
+    expect(store.attemptsView()).toBeNull();
+    resolvers[1](Response.json([]));
+    await secondSignIn;
+    expect(store.attemptsView()).toEqual([]);
+  });
+
   it("drops a chunk the server rejects as invalid", async () => {
     const map = mockStorage([attempt("kb-001")]);
     mockFetch((call) =>
@@ -305,6 +331,43 @@ describe("syncAttempts", () => {
     expect(await store.acknowledgeGraphQLRun(runId)).toBe(false);
     expect(stored(map)).toHaveLength(1);
     expect(store.attemptsView()).toHaveLength(1);
+  });
+
+  it("retains a GraphQL fallback when its refresh is superseded", async () => {
+    const map = mockStorage();
+    let reads = 0;
+    let resolveStale: ((response: Response) => void) | undefined;
+    let resolveCurrent: ((response: Response) => void) | undefined;
+    mockFetch(() => {
+      reads += 1;
+      if (reads === 1) return Response.json([]);
+      return new Promise<Response>((resolve) => {
+        if (reads === 2) resolveStale = resolve;
+        else resolveCurrent = resolve;
+      });
+    });
+    const store = await loadStore();
+    await store.syncAttempts(true);
+    store.recordGraphQLAttempts(runId, [
+      attempt("kb-001", { source: "diagnostic" }),
+    ]);
+
+    const acknowledgment = store.acknowledgeGraphQLRun(runId);
+    await vi.waitFor(() => expect(reads).toBe(2));
+    const currentRefresh = store.syncAttempts(true);
+    await vi.waitFor(() => expect(reads).toBe(3));
+    resolveStale?.(
+      Response.json([attempt("kb-001", { source: "diagnostic" })]),
+    );
+
+    expect(await acknowledgment).toBe(false);
+    expect(stored(map)).toHaveLength(1);
+
+    resolveCurrent?.(
+      Response.json([attempt("kb-001", { source: "diagnostic" })]),
+    );
+    await currentRefresh;
+    expect(stored(map)).toHaveLength(1);
   });
 
   it("filters malformed GraphQL ownership metadata", async () => {

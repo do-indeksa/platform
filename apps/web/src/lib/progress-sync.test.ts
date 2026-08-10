@@ -208,6 +208,25 @@ describe("progress outbox", () => {
     expect(mocks.acknowledgeGraphQLRun).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed GraphQL error envelopes", async () => {
+    const map = mockStorage();
+    mockGraphQL((call) => {
+      const response = success(call);
+      return response.json().then((payload) =>
+        Response.json({
+          ...(payload as object),
+          errors: { message: "malformed" },
+        }),
+      );
+    });
+    const sync = await loadSync();
+    await sync.syncProgress(userId);
+
+    expect(await sync.queueCompletedProgressRun(completedRun())).toBe(true);
+    expect(pending(map)).toHaveLength(1);
+    expect(mocks.acknowledgeGraphQLRun).not.toHaveBeenCalled();
+  });
+
   it("keeps the outbox until the compatibility view is refreshed", async () => {
     const map = mockStorage();
     const calls = mockGraphQL();
@@ -254,6 +273,22 @@ describe("progress outbox", () => {
     sync.clearProgressSync();
 
     expect(pending(map)).toHaveLength(0);
+  });
+
+  it("invalidates the active owner when authentication data is malformed", async () => {
+    const map = mockStorage();
+    const calls = mockGraphQL(() => new Response(null, { status: 503 }));
+    const sync = await loadSync();
+    await sync.syncProgress(userId);
+    await sync.queueCompletedProgressRun(completedRun());
+
+    await sync.syncProgress("invalid-user-id");
+    await sync.queueCompletedProgressRun(
+      completedRun("b0e47478-813c-42f6-9256-e75f87081390"),
+    );
+
+    expect(calls).toHaveLength(1);
+    expect(pending(map).map((entry) => entry.ownerId)).toEqual([userId, null]);
   });
 
   it("ignores malformed sync receipts", async () => {

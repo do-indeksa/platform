@@ -17,11 +17,6 @@ type PendingProgressRun = {
   run: CompletedProgressRun;
 };
 
-type GraphQLResponse = {
-  data?: Record<string, unknown> | null;
-  errors?: unknown[];
-};
-
 let activeOwnerId: string | null | undefined;
 let authGeneration = 0;
 let flushChain: Promise<void> = Promise.resolve();
@@ -75,7 +70,11 @@ export async function queueCompletedProgressRun(
 }
 
 export async function syncProgress(userId: string | null): Promise<void> {
-  if (userId !== null && !isUuid(userId)) return;
+  if (userId !== null && !isUuid(userId)) {
+    activeOwnerId = null;
+    authGeneration += 1;
+    return;
+  }
   const generation = ++authGeneration;
   activeOwnerId = userId;
   if (userId === null) return;
@@ -251,8 +250,13 @@ async function mutate(
   if (!response.ok) {
     throw new Error(`GraphQL request failed with status ${response.status}`);
   }
-  const payload = (await response.json()) as GraphQLResponse;
-  if (payload.errors?.length || !isRecord(payload.data)) {
+  const payload: unknown = await response.json();
+  if (
+    !isRecord(payload) ||
+    (payload.errors !== undefined &&
+      (!Array.isArray(payload.errors) || payload.errors.length > 0)) ||
+    !isRecord(payload.data)
+  ) {
     throw new Error("GraphQL request returned an error");
   }
   const result = payload.data[field];
