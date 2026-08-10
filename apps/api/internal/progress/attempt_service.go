@@ -48,6 +48,7 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 		Correct:          normalized.Outcome == AttemptOutcomeCorrect,
 		Source:           string(target.mode),
 		HelpLevel:        normalized.HelpLevel,
+		CreatedAt:        normalized.SubmittedAt,
 		StartedAt:        requiredTime(normalized.StartedAt),
 		SubmittedAt:      requiredTime(normalized.SubmittedAt),
 		ActiveDurationMs: normalized.ActiveDurationMs,

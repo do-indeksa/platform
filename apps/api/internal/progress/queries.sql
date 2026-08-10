@@ -20,6 +20,7 @@ from (
     select id, task_id, slot, correct, source, help_level, created_at
     from attempts
     where user_id = $1
+      and (outcome is null or outcome in ('correct', 'incorrect'))
     order by created_at desc, id desc
     limit 1000
 ) recent
@@ -103,6 +104,7 @@ insert into attempts (
     correct,
     source,
     help_level,
+    created_at,
     started_at,
     submitted_at,
     active_duration_ms,
@@ -115,7 +117,7 @@ insert into attempts (
 )
 values (
     $1, $2, $3, $4, $5, $6, $7, $8, $9,
-    $10, $11, $12, $13, $14, $15, $16, $17
+    $10, $11, $12, $13, $14, $15, $16, $17, $18
 )
 on conflict (public_id) do nothing
 returning *;
