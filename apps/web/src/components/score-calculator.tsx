@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import type { Program } from "@/lib/guide";
+import type { Program } from "@/lib/guide-types";
 import {
   BUDGET_THRESHOLD,
   EXAM_POINTS_MAX,

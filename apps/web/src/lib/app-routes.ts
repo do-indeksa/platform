@@ -1,5 +1,15 @@
+import { ftnExamCodes, type FtnExamCode } from "./guide-types";
+
 export function isNavigationItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function examCodeFromPathname(pathname: string): FtnExamCode | null {
+  const match = pathname.match(/^\/exams\/ftn-(p\d+)\/?$/i);
+  if (!match) return null;
+
+  const code = match[1].toUpperCase();
+  return ftnExamCodes.find((candidate) => candidate === code) ?? null;
 }
 
 export function isImmersivePath(pathname: string): boolean {

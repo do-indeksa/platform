@@ -1,0 +1,75 @@
+source: https://ftn.uns.ac.rs/upis/pet-zelja/
+retrievedAt: "2026-08-10"
+faculty:
+  id: ftn
+  slug: ftn
+  name: Fakultet tehničkih nauka
+  university: Univerzitet u Novom Sadu
+  city: Novi Sad
+  officialUrl: https://ftn.uns.ac.rs/
+  programsUrl: https://ftn.uns.ac.rs/studijski-programi/
+exams:
+  - id: ftn-p1
+    code: P1
+    officialName: Matematika
+    status: available
+    programs:
+      - Energetika, elektronika i telekomunikacije (E1)
+      - Računarstvo i automatika (E2)
+      - Mehatronika
+      - Softversko inženjerstvo i informacione tehnologije
+      - Primenjeno softversko inženjerstvo
+      - Merenje i regulacija
+      - Biomedicinsko inženjerstvo
+      - Inženjerstvo informacionih sistema
+      - Informacioni inženjering
+      - Animacija u inženjerstvu
+  - id: ftn-p3
+    code: P3
+    officialName: Matematika sa logikom
+    status: planned
+    programs:
+      - Industrijsko inženjerstvo
+      - Inženjerski menadžment
+      - Proizvodno mašinstvo
+      - Mehanizacija i konstrukciono mašinstvo
+      - Energetika i procesna tehnika
+      - Tehnička mehanika i dizajn u tehnici
+      - Upravljanje rizikom od katastrofalnih događaja i požara
+      - Saobraćaj i transport
+      - Poštanski saobraćaj i telekomunikacije
+      - Geodezija i geoinformatika
+      - Čiste energetske tehnologije
+      - Elektrotehnika
+      - Softverske i informacione tehnologije
+  - id: ftn-p4
+    code: P4
+    officialName: Matematika sa testom sklonosti za GRID
+    status: planned
+    programs:
+      - Grafičko inženjerstvo i dizajn
+  - id: ftn-p5
+    code: P5
+    officialName: Matematika sa proverom sklonosti za oblast zaštite
+    status: planned
+    programs:
+      - Inženjerstvo zaštite životne sredine
+      - Inženjerstvo zaštite na radu
+  - id: ftn-p6
+    code: P6
+    officialName: Matematika sa proverom sklonosti za građevinarstvo
+    status: planned
+    programs:
+      - Građevinarstvo
+  - id: ftn-p7
+    code: P7
+    officialName: Test za arhitekturu
+    status: planned
+    programs:
+      - Arhitektura
+  - id: ftn-p8
+    code: P8
+    officialName: Test opšte kulture i razgovor sa komisijom
+    status: planned
+    programs:
+      - Scenska arhitektura, tehnika i dizajn
