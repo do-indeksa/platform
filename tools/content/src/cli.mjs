@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { auditTaskOrigins } from "./audit.mjs";
 import { generateTaskFiles, writeTaskFiles } from "./generate.mjs";
 import { loadSourceRegistry } from "./sources.mjs";
+import { auditVerificationRecords } from "./verification.mjs";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -13,6 +14,7 @@ const repoRoot = path.resolve(
 );
 const defaults = {
   registry: path.join(repoRoot, "content/sources/ftn-p1/sources.json"),
+  reviews: path.join(repoRoot, "content/reviews"),
   tasks: path.join(repoRoot, "content/tasks"),
 };
 
@@ -23,12 +25,17 @@ try {
     const registry = await loadSourceRegistry(
       argumentsMap.registry ?? defaults.registry,
     );
-    const report = await auditTaskOrigins(
-      argumentsMap.tasks ?? defaults.tasks,
-      registry,
-    );
+    const tasksDirectory = argumentsMap.tasks ?? defaults.tasks;
+    const [report, verification] = await Promise.all([
+      auditTaskOrigins(tasksDirectory, registry),
+      auditVerificationRecords(
+        tasksDirectory,
+        argumentsMap.reviews ?? defaults.reviews,
+      ),
+    ]);
     process.stdout.write(
-      `content pipeline: ${report.taskCount} task origins across ${report.slotCount} slots verified\n`,
+      `content pipeline: ${report.taskCount} origins across ${report.slotCount} slots; ` +
+        `${verification.verifiedTaskCount} verified tasks across ${verification.verifiedTopicCount} topics\n`,
     );
   } else if (command === "generate") {
     if (!argumentsMap.manifest || !argumentsMap.output) {

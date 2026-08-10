@@ -1,4 +1,5 @@
 export const MAX_ANSWER_LENGTH = 200;
+export const MAX_TASK_ANSWER_PARTS = 6;
 
 export type TaskCheckView =
   "form" | "incorrect" | "hint" | "solution" | "correct";

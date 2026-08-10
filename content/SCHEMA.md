@@ -31,7 +31,8 @@ check:
 lists a union with bracket types (`(-inf,0)u(2,inf)`). Equivalence is
 numeric, so any equivalent exact form passes. Parts that cannot be
 machine-checked (domains, monotonicity, sketches) are omitted — the
-solution covers them; at least one checked part is required.
+solution covers them. A task requires 1–6 checked parts; this bound is shared by
+practice, diagnostic, and simulation flows.
 
 ## Body
 
@@ -61,8 +62,16 @@ Imported authored tasks use an origin in the form
 `<statement-file>.tex, slot <1-10>, zadatak <selector>`, where a selector is a
 task number (`3`) or a subtask (`3a`). The content pipeline resolves the same
 selector in both the statement and solution workbooks. Its manifest must supply
-exactly two hints and at least one machine-check part, and it can emit only
+exactly two hints and 1–6 machine-check parts, and it can emit only
 `draft` or `review` status.
+
+## Verification records
+
+Changing a task to `verified` requires a Markdown record in `reviews/`. Its
+frontmatter names the verification date, methods, and complete task list for
+every promoted topic. CI rejects unrecorded verified tasks, duplicate records,
+and partial topic reviews. The record body contains concise independent
+calculation evidence; the corresponding pull request carries the review trail.
 
 ## Rules
 

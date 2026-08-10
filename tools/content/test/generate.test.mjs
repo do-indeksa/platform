@@ -73,6 +73,29 @@ test("task selectors start at one", () => {
   );
 });
 
+test("reviewer manifests respect the runtime answer-part limit", () => {
+  assert.throws(
+    () =>
+      generateTaskFiles(
+        {
+          ...example,
+          tasks: [
+            {
+              ...example.tasks[0],
+              check: Array.from({ length: 7 }, (_, index) => ({
+                label: `part ${index + 1}`,
+                kind: "value",
+                expected: "1",
+              })),
+            },
+          ],
+        },
+        registry,
+      ),
+    /expected 1-6 parts/,
+  );
+});
+
 test("generation is atomic and refuses to overwrite output", async () => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "do-indeksa-content-"),

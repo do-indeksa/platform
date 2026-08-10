@@ -1,7 +1,8 @@
 import type { CheckKind } from "./answer";
+import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
 export const SIMULATION_MAX_TASKS = 20;
-export const SIMULATION_MAX_ANSWER_PARTS = 6;
+export const SIMULATION_MAX_ANSWER_PARTS = MAX_TASK_ANSWER_PARTS;
 export const SIMULATION_MAX_RENDERED_HTML_LENGTH = 500_000;
 export const SIMULATION_MAX_REVIEW_MARKDOWN_LENGTH = 100_000;
 

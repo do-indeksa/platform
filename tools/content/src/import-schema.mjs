@@ -44,9 +44,9 @@ export function validateImportManifest(value) {
     if (
       !Array.isArray(task.check) ||
       !task.check.length ||
-      task.check.length > 10
+      task.check.length > 6
     ) {
-      throw new Error(`${field}.check: expected 1-10 parts`);
+      throw new Error(`${field}.check: expected 1-6 parts`);
     }
     const check = task.check.map((rawPart, partIndex) => {
       const partField = `${field}.check[${partIndex}]`;
