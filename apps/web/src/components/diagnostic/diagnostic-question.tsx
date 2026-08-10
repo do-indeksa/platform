@@ -6,6 +6,7 @@ import { useState } from "react";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { AnswerField } from "@/components/task-check/answer-field";
 import { Link, useRouter } from "@/i18n/navigation";
+import { trackTaskSolved } from "@/lib/analytics";
 import { useDiagnostic } from "@/lib/diagnostic-store";
 import { recordTaskHistory } from "@/lib/task-history-store";
 import type { DiagnosticTaskView } from "./types";
@@ -60,6 +61,12 @@ export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
           helpLevel: 0,
         },
       ]);
+      if (result.outcome === "correct") {
+        trackTaskSolved({
+          source: "diagnostic",
+          position: task.examPosition,
+        });
+      }
       completeCurrent(task.id, result.outcome);
     } catch {
       setError(t("checkUnavailable"));
