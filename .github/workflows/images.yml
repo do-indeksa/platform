@@ -63,9 +63,6 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
           build-args: |
             API_URL=http://do-indeksa-api:8080
-            NEXT_PUBLIC_UMAMI_SCRIPT_URL=${{ vars.NEXT_PUBLIC_UMAMI_SCRIPT_URL }}
-            NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ vars.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
-            NEXT_PUBLIC_UMAMI_DOMAINS=${{ vars.NEXT_PUBLIC_UMAMI_DOMAINS }}
 
       - name: Verify non-root runtime
         shell: bash

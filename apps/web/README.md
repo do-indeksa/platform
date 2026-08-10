@@ -26,9 +26,10 @@ The distroless standalone server runs as the fixed non-root UID/GID
 ## Analytics
 
 Self-hosted Umami is optional and disabled by default. Set all three of
-`NEXT_PUBLIC_UMAMI_SCRIPT_URL`, `NEXT_PUBLIC_UMAMI_WEBSITE_ID`, and the
-comma-separated `NEXT_PUBLIC_UMAMI_DOMAINS` at build time. The tracker respects
-Do Not Track and excludes URL query strings and hashes.
+`UMAMI_SCRIPT_URL`, `UMAMI_WEBSITE_ID`, and the comma-separated
+`UMAMI_DOMAINS` at runtime. The same image can move between environments without
+changing its immutable tag. The tracker respects Do Not Track and excludes URL
+query strings and hashes.
 
 Only anonymous page views and the `task-solved` event are collected. Custom
 event data is limited to the learning mode, exam position, and optional help
