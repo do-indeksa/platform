@@ -47,22 +47,36 @@ describe("simulation persistence migration", () => {
     });
   });
 
-  it("adds the run kind before migrating a version-one simulation", () => {
+  it("migrates a version-one simulation without persisted run metadata", () => {
     const withoutKind: Record<string, unknown> = legacyState();
     delete withoutKind.kind;
     const migrated = migrateSimulationState(withoutKind, 1);
 
-    expect(migrated.kind).toBe("simulation");
     expect(migrated.endsAt).toBe(oldDeadline + 60 * 60 * 1000);
   });
 
   it.each([
-    { label: "diagnostic", overrides: { kind: "diagnostic" } },
     { label: "grading phase", overrides: { phase: "grading" } },
     { label: "completed phase", overrides: { phase: "done" } },
   ])("does not extend a legacy $label deadline", ({ overrides }) => {
     const migrated = migrateSimulationState(legacyState(overrides), 2);
     expect(migrated.endsAt).toBe(oldDeadline);
+  });
+
+  it("removes a legacy diagnostic from the simulation store", () => {
+    const history = [
+      { finishedAt: oldDeadline, score: 42, taskIds: ["kb-001"] },
+    ];
+    expect(
+      migrateSimulationState(legacyState({ kind: "diagnostic", history }), 3),
+    ).toEqual({
+      tasks: [],
+      marks: [],
+      phase: null,
+      endsAt: null,
+      currentIndex: 0,
+      history,
+    });
   });
 
   it("resets version-zero active data while preserving history", () => {
@@ -71,7 +85,6 @@ describe("simulation persistence migration", () => {
     ];
 
     expect(migrateSimulationState({ history }, 0)).toEqual({
-      kind: "simulation",
       tasks: [],
       marks: [],
       phase: null,

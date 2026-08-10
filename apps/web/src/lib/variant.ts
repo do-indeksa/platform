@@ -64,3 +64,43 @@ export async function generateVariant({
 
   return { blueprint, tasks };
 }
+
+export async function resolveVariantTaskIds(
+  taskIds: readonly string[],
+  version?: string,
+): Promise<GeneratedVariant | null> {
+  const blueprint = await getP1Blueprint(version);
+  if (
+    taskIds.length !== blueprint.taskCount ||
+    new Set(taskIds).size !== taskIds.length
+  ) {
+    return null;
+  }
+
+  const taskCache = new Map<string, Promise<Task[]>>();
+  const tasks: GeneratedVariantTask[] = [];
+  for (const [index, position] of blueprint.positions.entries()) {
+    const candidates = (
+      await Promise.all(
+        position.topicSlugs.map((topicSlug) => {
+          const cached = taskCache.get(topicSlug);
+          if (cached) return cached;
+          const loaded = getTasks(topicSlug);
+          taskCache.set(topicSlug, loaded);
+          return loaded;
+        }),
+      )
+    ).flat();
+    const task = candidates.find(
+      (candidate) => candidate.id === taskIds[index],
+    );
+    if (!task) return null;
+    tasks.push({
+      examPosition: position.number,
+      maxPoints: position.maxPoints,
+      task,
+    });
+  }
+
+  return { blueprint, tasks };
+}

@@ -19,7 +19,7 @@ export function AnswerField({
   disabled,
   onChange,
 }: {
-  part: CheckPart;
+  part: Pick<CheckPart, "label" | "kind">;
   index: number;
   value: string;
   result: CheckResult | null;
