@@ -51,6 +51,29 @@ test("language switch keeps the current route", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Tasks" })).toBeVisible();
 });
 
+test("secondary desktop navigation exposes active state and closes", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/calculator");
+
+  const more = page.getByTitle("Još");
+  const menu = more.locator("..");
+  await expect(more).toHaveClass(/bg-subtle/);
+  await more.click();
+  await expect(page.getByRole("link", { name: "Kalkulator" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
+  await page.goto("/tasks");
+  await more.click();
+  await page.getByRole("link", { name: "Kalkulator" }).click();
+
+  await expect(page).toHaveURL(/\/calculator$/);
+  await expect(menu).not.toHaveAttribute("open", "");
+});
+
 test("authentication redirect keeps the visible locale", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/ru/tasks");
