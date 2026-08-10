@@ -3,6 +3,7 @@ import {
   parsePersistedDiagnosticState,
   useDiagnostic,
 } from "./diagnostic-store";
+import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const taskIds = [
@@ -113,6 +114,27 @@ describe("diagnostic persistence", () => {
         null,
       ],
     });
+  });
+
+  it("restores a valid task at the shared answer-part limit", () => {
+    const answers = answerPartCounts.map((count) => Array(count).fill(""));
+    answers[0] = Array(MAX_TASK_ANSWER_PARTS).fill("");
+
+    expect(parsePersistedDiagnosticState(persisted({ answers }))).toMatchObject(
+      {
+        phase: "running",
+        answers,
+      },
+    );
+  });
+
+  it("rejects a task above the shared answer-part limit", () => {
+    const answers = answerPartCounts.map((count) => Array(count).fill(""));
+    answers[0] = Array(MAX_TASK_ANSWER_PARTS + 1).fill("");
+
+    expect(
+      parsePersistedDiagnosticState(persisted({ answers })).phase,
+    ).toBeNull();
   });
 
   it.each([
