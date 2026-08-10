@@ -4,6 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { Topic } from "@/lib/content";
 import {
+  constrainTaskBankTopics,
   defaultTaskBankFilters,
   difficultyBands,
   progressFilters,
@@ -26,6 +27,7 @@ export function FilterControls({
   onChange,
 }: FilterControlsProps) {
   const t = useTranslations("taskBank");
+  const topicSlots = new Map(topics.map((topic) => [topic.slug, topic.slot]));
   const availableTopics =
     filters.positions.length === 0
       ? topics
@@ -42,12 +44,15 @@ export function FilterControls({
                 checked={filters.positions.includes(position)}
                 label={String(position)}
                 ariaLabel={t("positionOption", { position })}
-                onChange={() =>
-                  onChange({
-                    ...filters,
-                    positions: toggle(filters.positions, position),
-                  })
-                }
+                onChange={() => {
+                  const positions = toggle(filters.positions, position);
+                  onChange(
+                    constrainTaskBankTopics(
+                      { ...filters, positions },
+                      topicSlots,
+                    ),
+                  );
+                }}
               />
             ),
           )}
