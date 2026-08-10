@@ -178,6 +178,6 @@ jobs:
           REGISTRY: ${{ secrets.ZOT_REGISTRY }}
         run: |
           set -euo pipefail
-          remote_image="${REGISTRY}/do-indeksa-${{ matrix.image }}:${GITHUB_SHA}"
+          remote_image="${REGISTRY}/do-indeksa/do-indeksa-${{ matrix.image }}:${GITHUB_SHA}"
           docker tag "${LOCAL_IMAGE}" "${remote_image}"
           docker push "${remote_image}"
