@@ -1,6 +1,6 @@
 # Do indeksa: план разработки MVP
 
-Срез плана: 10 августа 2026 года. Основа решений -
+Срез плана: 11 августа 2026 года. Основа решений -
 `docs/PROJECT_INDEX.ru.md`.
 
 ## 1. Цель MVP
@@ -25,10 +25,11 @@
 - Сохранять guest-first; авторизация нужна для синхронизации между устройствами,
   а не для первого результата.
 - Контент проходит математическую проверку независимо от code review.
-- Сербский текст является каноническим; английский и русский являются
-  версиями одного task ID и не дублируют answer/check/rubric.
-- Автоматические и AI-проверки не переводят задачу в статус человеческой
-  верификации и не выдаются за официальное оценивание FTN.
+- Сербский текст задач является каноническим; интерфейс локализован на
+  `sr-Latn`/`en`/`ru`. Будущие переводы контента должны оставаться версиями
+  одного task ID и не дублировать answer/check/rubric.
+- Автоматические и AI-проверки не переводят задачу в `verified` без отдельной
+  maintainer review и не выдаются за официальное оценивание FTN.
 - Доступность и mobile layout входят в Definition of Done каждого среза.
 
 ### Цель первых двух недель
@@ -43,8 +44,26 @@
 - deploy preview или production deploy, если инфраструктурный аудит не мешает
   качеству продукта.
 
-Диагностика, персональный план, полный пробник и AI-оценивание добавляются после
-этого по тем же вертикальным срезам. Качество важнее формального срока.
+Изначально диагностика, персональный план и пробник были следующими
+вертикальными срезами; они вошли в portfolio checkpoint раньше плана.
+AI-оценивание остается вне критического пути. Качество важнее формального срока.
+
+### Checkpoint 11 августа
+
+Портфолио-цель первых двух недель выполнена шире исходного плана:
+
+- исправлены P1/P3-P8, 4 часа, лимит 60 и versioned blueprints;
+- готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
+  история, simplified plan, daily task/streak и FTN-каталог;
+- Go-монолит содержит gqlgen run/attempt lifecycle и HTTP OAuth;
+- 30 авторских задач имеют hash-pinned provenance, первые 9 задач в 3 полных
+  темах прошли versioned mathematical review;
+- blocking CI включает 290 unit-тестов, 50 Playwright-сценариев, container
+  smoke, dependency audit и Trivy.
+
+Не завершены server-backed cross-device lifecycle, rubric partial scoring,
+расширение verified-банка и production rollout. Analytics сознательно
+fail-closed до безопасного image.
 
 ## 3. Критический путь
 
@@ -349,17 +368,16 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 ## 9. Следующий исполнимый пакет
 
-Ветка `feat/45-instant-check-hints` проверена и влита через PR #51. Работа
-продолжается небольшими независимыми PR:
+Работа продолжается теми же небольшими независимыми PR:
 
-1. Версионированные blueprint fixtures 2025/2026, разделение
-   `topic`/`examPosition`, 4-часовой таймер и граница trainer estimate.
-2. Обновление уязвимых production-зависимостей и повторный security audit.
-3. Locale-routing и контентная модель `sr-Latn`/`en`/`ru`.
-4. ADR и минимальный каркас `gqlgen`: продуктовый GraphQL плюс HTTP OAuth в
-   существующем Go-монолите.
-5. Responsive app shell и главный task-flow из Figma.
-6. Browser, visual и unit regression tests на критические факты.
-
-После первых двух пакетов Solution/Tasks можно переносить без закрепления в
-новом интерфейсе неправильной доменной модели или заведомо уязвимого baseline.
+1. После выпуска Google OAuth credentials завершить VMCore GitOps rollout и
+   доказать auth, GraphQL, Neon migration, backup и rollback на canonical host.
+2. Перевести web diagnostic/simulation/history на уже готовый GraphQL
+   run/attempt lifecycle с безопасным guest-to-user merge.
+3. Спроектировать rubric self-check и частичные баллы, не смешивая trainer
+   estimate с официальным оцениванием FTN.
+4. Расширять verified-банк от текущих 9 задач и сохранять независимый
+   review-record на каждую полную тему.
+5. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
+6. Закрыть analytics issue только после vulnerability-clean image или
+   документированного перехода на другой privacy-friendly provider.
