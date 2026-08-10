@@ -1,10 +1,10 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { usePathname } from "@/i18n/navigation";
+import { isImmersivePath } from "@/lib/app-routes";
 
 export function SiteChrome({ children }: { children: ReactNode }) {
-  const segments = usePathname().split("/").filter(Boolean);
-  if (segments.length === 3 && segments[0] === "tasks") return null;
+  if (isImmersivePath(usePathname())) return null;
   return children;
 }

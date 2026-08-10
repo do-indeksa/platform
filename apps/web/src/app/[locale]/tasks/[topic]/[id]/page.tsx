@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Difficulty } from "@/components/difficulty";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { TaskCheck } from "@/components/task-check";
+import { Link } from "@/i18n/navigation";
 import { getTask, getTasks, getTopic, getTopics } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
 

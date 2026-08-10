@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Difficulty } from "@/components/difficulty";
+import { Link } from "@/i18n/navigation";
 import { getTasks, getTopic, getTopics } from "@/lib/content";
 
 type Props = { params: Promise<{ topic: string }> };
