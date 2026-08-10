@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRef } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { isNavigationItemActive } from "@/lib/app-routes";
 
@@ -33,6 +34,10 @@ const allItems = [...primaryItems, ...secondaryItems];
 export function DesktopNavigation() {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const moreMenu = useRef<HTMLDetailsElement>(null);
+  const secondaryActive = secondaryItems.some(({ href }) =>
+    isNavigationItemActive(pathname, href),
+  );
 
   return (
     <nav
@@ -48,9 +53,21 @@ export function DesktopNavigation() {
           label={t(item.key)}
         />
       ))}
-      <details className="group relative flex h-16 items-center">
+      <details
+        ref={moreMenu}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            event.currentTarget.removeAttribute("open");
+          }
+        }}
+        className="group relative flex h-16 items-center"
+      >
         <summary
-          className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg text-muted transition-colors hover:bg-subtle hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden"
+          className={`flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden ${
+            secondaryActive
+              ? "bg-subtle text-brand-ink"
+              : "text-muted hover:bg-subtle hover:text-ink"
+          }`}
           title={t("more")}
         >
           <MoreHorizontal aria-hidden size={20} strokeWidth={1.8} />
@@ -63,6 +80,7 @@ export function DesktopNavigation() {
               <Link
                 key={href}
                 href={href}
+                onClick={() => moreMenu.current?.removeAttribute("open")}
                 aria-current={active ? "page" : undefined}
                 className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                   active ? "bg-subtle text-brand-ink" : "text-ink hover:bg-page"

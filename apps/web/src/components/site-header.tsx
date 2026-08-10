@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   DesktopNavigation,
   MobileBottomNavigation,
@@ -8,9 +8,11 @@ import {
 import { HeaderUser } from "@/components/header-user";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { MobileMenu } from "@/components/mobile-menu";
-import { Link } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 
 export function SiteHeader() {
+  const locale = useLocale();
+  const pathname = usePathname();
   const t = useTranslations("nav");
 
   return (
@@ -43,7 +45,7 @@ export function SiteHeader() {
           <span className="ml-auto flex min-h-9 min-w-0 items-center rounded-lg bg-subtle px-2.5 text-xs font-semibold text-brand-ink md:hidden">
             <span className="truncate">{t("exam")}</span>
           </span>
-          <MobileMenu />
+          <MobileMenu key={`${locale}:${pathname}`} />
         </div>
       </header>
       <MobileBottomNavigation />
