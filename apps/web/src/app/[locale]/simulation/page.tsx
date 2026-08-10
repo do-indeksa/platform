@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { SimulationHistory } from "@/components/simulation-history";
-import { Link } from "@/i18n/navigation";
+import { SimulationEntry } from "@/components/simulation";
+import { simulationRunHref } from "@/lib/simulation-run";
+import { generateVariant } from "@/lib/variant";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("simulation");
@@ -9,19 +12,19 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SimulationPage() {
-  const t = await getTranslations("simulation");
+  const variant = await generateVariant();
+  const freshStartHref = simulationRunHref("/simulation/new", {
+    runId: crypto.randomUUID(),
+    blueprintVersion: variant.blueprint.version,
+    taskIds: variant.tasks.map(({ task }) => task.id),
+  });
+
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-3xl font-bold">{t("title")}</h1>
-      <p className="mb-1 text-zinc-600">{t("intro1")}</p>
-      <p className="mb-8 text-zinc-600">{t("intro2")}</p>
-      <Link
-        href="/simulation/new"
-        className="inline-block rounded-full bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
-      >
-        {t("startCta")}
-      </Link>
-      <SimulationHistory />
-    </main>
+    <SimulationEntry
+      freshStartHref={freshStartHref}
+      taskCount={variant.blueprint.taskCount}
+      durationMinutes={variant.blueprint.durationMinutes}
+      maxPoints={variant.blueprint.maxPoints}
+    />
   );
 }

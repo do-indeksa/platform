@@ -1,0 +1,196 @@
+"use client";
+
+import { AlertTriangle, ArrowRight, RotateCcw, SearchX } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
+import { Link, useRouter } from "@/i18n/navigation";
+import { renderSimulationReview } from "@/lib/simulation-review";
+import { buildSimulationResultSummary } from "@/lib/simulation-result";
+import { useSimulation } from "@/lib/simulation-store";
+import {
+  simulationRunHref,
+  type SimulationRunQuery,
+} from "@/lib/simulation-run";
+import {
+  attachSimulationReview,
+  type SimulationRenderedReviewItem,
+  type SimulationReviewItem,
+} from "@/lib/simulation-types";
+import { taskPracticeHref } from "@/lib/task-bank";
+import { useHydrated } from "@/lib/use-hydrated";
+import { AnswersTable, ErrorReview } from "./simulation-result-answers";
+import { ResultMetrics } from "./simulation-result-metrics";
+import { ResultPositions } from "./simulation-result-positions";
+
+export function SimulationResult({ run }: { run: SimulationRunQuery }) {
+  const t = useTranslations("simulation");
+  const router = useRouter();
+  const hydrated = useHydrated();
+  const history = useSimulation((state) => state.history);
+  const activeRunId = useSimulation((state) => state.runId);
+  const activeVersion = useSimulation((state) => state.blueprintVersion);
+  const storedTasks = useSimulation((state) => state.tasks);
+  const review = useSimulation((state) => state.review);
+  const reset = useSimulation((state) => state.reset);
+  const [rendered, setRendered] = useState<RenderedReviewState>(null);
+
+  useEffect(() => {
+    let current = true;
+    void renderSimulationReview(review).then(
+      (items) => {
+        if (current) setRendered({ source: review, items });
+      },
+      () => {
+        if (current) setRendered({ source: review, items: null });
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [review]);
+
+  if (!hydrated || rendered?.source !== review) return <ResultLoading />;
+  const tasks = rendered.items
+    ? attachSimulationReview(storedTasks, rendered.items)
+    : null;
+  const entry = history.find((candidate) => candidate.id === run.runId);
+  const matchingRun =
+    activeRunId === run.runId &&
+    activeVersion === run.blueprintVersion &&
+    run.taskIds.length === storedTasks.length &&
+    run.taskIds.every((taskId, index) => taskId === storedTasks[index].id);
+  const summary =
+    entry && tasks && matchingRun
+      ? buildSimulationResultSummary(entry, history, tasks)
+      : null;
+  if (!entry || !tasks || !summary) return <ResultUnavailable />;
+
+  const resultHref = simulationRunHref("/simulation/result", run);
+  const firstPracticeTask = summary.practiceTaskIds
+    .map((taskId) => tasks.find((task) => task.id === taskId))
+    .find((task) => task !== undefined);
+  const practiceHref = taskPracticeHref(
+    firstPracticeTask,
+    resultHref,
+    summary.practiceTaskIds,
+  );
+  const hasErrors = summary.weakPositions.length > 0;
+
+  return (
+    <main className="mx-auto w-full max-w-6xl px-5 py-9 sm:px-8 sm:py-14">
+      <header className="max-w-3xl">
+        <p className="text-sm font-semibold text-brand-ink">
+          {t("resultKicker")}
+        </p>
+        <h1 className="mt-3 text-4xl font-bold leading-tight sm:text-5xl">
+          {t("resultTitle")}
+        </h1>
+        <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
+          {t("resultIntro")}
+        </p>
+      </header>
+
+      {entry.timedOut && <ResultNotice>{t("timeExpiredResult")}</ResultNotice>}
+      {!summary.complete && (
+        <ResultNotice>
+          {t("partialResult", {
+            answered: summary.answeredCount,
+            total: summary.totalCount,
+          })}
+        </ResultNotice>
+      )}
+
+      <div className="mt-8">
+        <ResultMetrics summary={summary} />
+      </div>
+      <ResultPositions
+        strong={summary.strongPositions}
+        weak={summary.weakPositions}
+        unanswered={summary.unansweredPositions}
+      />
+
+      <section className="mt-8 border-y border-line py-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <Link
+            href={summary.practiceTaskIds.length > 0 ? practiceHref : "/tasks"}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+          >
+            {hasErrors
+              ? t("practiceWeak")
+              : summary.unansweredPositions.length > 0
+                ? t("practiceUnanswered")
+                : t("browseMoreTasks")}
+            <ArrowRight aria-hidden className="h-5 w-5" />
+          </Link>
+          {hasErrors && (
+            <a
+              href="#error-review"
+              className="inline-flex min-h-12 items-center justify-center rounded-lg border border-line px-5 py-3 font-semibold hover:border-brand hover:text-brand-ink"
+            >
+              {t("viewErrors")}
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              reset();
+              router.push("/simulation/new");
+            }}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-line px-5 py-3 font-semibold hover:border-brand hover:text-brand-ink"
+          >
+            <RotateCcw aria-hidden className="h-4 w-4" />
+            {t("retake")}
+          </button>
+        </div>
+        <p className="mt-4 max-w-3xl text-sm leading-6 text-muted">
+          {t("estimateDisclaimer")}
+        </p>
+      </section>
+
+      <ErrorReview entry={entry} tasks={tasks} />
+      <AnswersTable entry={entry} tasks={tasks} />
+    </main>
+  );
+}
+
+type RenderedReviewState = {
+  source: readonly SimulationReviewItem[];
+  items: SimulationRenderedReviewItem[] | null;
+} | null;
+
+function ResultNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-6 flex max-w-3xl items-start gap-3 rounded-lg bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+      <AlertTriangle aria-hidden className="mt-0.5 h-5 w-5 shrink-0" />
+      <p>{children}</p>
+    </div>
+  );
+}
+
+function ResultLoading() {
+  const t = useTranslations("simulation");
+  return (
+    <main className="flex min-h-[32rem] items-center justify-center px-5 text-muted">
+      {t("loadingResult")}
+    </main>
+  );
+}
+
+function ResultUnavailable() {
+  const t = useTranslations("simulation");
+  return (
+    <main className="mx-auto flex min-h-[32rem] max-w-lg flex-col items-center justify-center px-5 text-center">
+      <SearchX aria-hidden className="h-8 w-8 text-muted" />
+      <h1 className="mt-5 text-2xl font-bold">{t("resultUnavailableTitle")}</h1>
+      <p className="mt-3 leading-7 text-muted">
+        {t("resultUnavailableDescription")}
+      </p>
+      <Link
+        href="/simulation"
+        className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+      >
+        {t("back")}
+      </Link>
+    </main>
+  );
+}

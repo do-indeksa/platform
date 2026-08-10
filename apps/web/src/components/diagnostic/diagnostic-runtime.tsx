@@ -6,7 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { useSimulation } from "@/lib/simulation-store";
+import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
 import { DiagnosticQuestion } from "./diagnostic-question";
 import { LoadingState, RunNotice } from "./diagnostic-status";
 import type { DiagnosticTaskView } from "./types";
@@ -33,8 +33,7 @@ export function DiagnosticRuntime({
     runId,
     canonicalTaskIds,
   );
-  const activeMock =
-    simulationPhase === "running" || simulationPhase === "grading";
+  const activeMock = isSimulationActive(simulationPhase);
 
   useEffect(() => {
     if (hydrated && !startedRef.current && !activeMock) {
