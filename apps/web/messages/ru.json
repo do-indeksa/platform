@@ -93,6 +93,62 @@
     "sourceLabel": "Источник: {source}",
     "difficulty": "Сложность: {level} из 5"
   },
+  "topics": {
+    "kompleksni-brojevi": "Комплексные числа",
+    "kvadratna-jednacina": "Квадратные уравнения и формулы Виета",
+    "logaritmi": "Логарифмы",
+    "eksponencijalne": "Показательные уравнения и неравенства",
+    "trigonometrija": "Тригонометрия",
+    "vektori-analitika": "Векторы и аналитическая геометрия",
+    "planimetrija": "Планиметрия",
+    "stereometrija": "Стереометрия",
+    "analiza-funkcije": "Исследование функций и интегралы",
+    "kombinatorika": "Комбинаторика"
+  },
+  "taskBank": {
+    "searchLabel": "Поиск заданий",
+    "searchPlaceholder": "Поиск по условию, теме или коду задания",
+    "filters": "Фильтры",
+    "closeFilters": "Закрыть фильтры",
+    "showResults": "Показать задания",
+    "positionFilter": "Позиция на экзамене",
+    "positionOption": "Позиция {position}",
+    "positionChip": "Позиция {position}",
+    "topicFilter": "Тема",
+    "difficultyFilter": "Сложность",
+    "progressFilter": "Прогресс",
+    "difficulty": {
+      "foundation": "Базовые · 1–2",
+      "exam": "Экзаменационные · 3",
+      "advanced": "Продвинутые · 4–5"
+    },
+    "progress": {
+      "all": "Все задания",
+      "new": "Без попыток",
+      "correct": "Решено",
+      "incorrect": "Нужно повторить"
+    },
+    "resetFilters": "Сбросить фильтры",
+    "reset": "Сбросить",
+    "resultCount": "{count, plural, one {# задание} few {# задания} many {# заданий} other {# задания}}",
+    "sortLabel": "Сортировка",
+    "sort": {
+      "position": "По позиции",
+      "difficulty": "По сложности"
+    },
+    "selectVisible": "Выбрать видимые задания",
+    "selectedCount": "{count, plural, one {Выбрано # задание} few {Выбрано # задания} many {Выбрано # заданий} other {Выбрано # задания}}",
+    "clearSelection": "Очистить выбор",
+    "startPractice": "Решать выбранные задания",
+    "start": "Начать",
+    "selectTask": "Выбрать задание {id}",
+    "taskCode": "Задание {id}",
+    "authoredSource": "Авторское",
+    "loadingProgress": "Загружаем ваш прогресс…",
+    "emptyTitle": "Подходящих заданий нет",
+    "emptyQuery": "По запросу «{query}» ничего не найдено. Сократите запрос или измените фильтры.",
+    "emptyFilters": "Текущим фильтрам не соответствует ни одно задание. Измените или сбросьте их."
+  },
   "calculator": {
     "title": "Калькулятор баллов FTN",
     "description": "Рассчитайте конкурсный балл FTN и сравните его с проходными баллами всех направлений.",

@@ -93,6 +93,62 @@
     "sourceLabel": "Izvor: {source}",
     "difficulty": "Težina {level} od 5"
   },
+  "topics": {
+    "kompleksni-brojevi": "Kompleksni brojevi",
+    "kvadratna-jednacina": "Kvadratne jednačine i Vijetove formule",
+    "logaritmi": "Logaritmi",
+    "eksponencijalne": "Eksponencijalne jednačine i nejednačine",
+    "trigonometrija": "Trigonometrija",
+    "vektori-analitika": "Vektori i analitička geometrija",
+    "planimetrija": "Planimetrija",
+    "stereometrija": "Stereometrija",
+    "analiza-funkcije": "Analiza funkcije i integral",
+    "kombinatorika": "Kombinatorika"
+  },
+  "taskBank": {
+    "searchLabel": "Pretraži zadatke",
+    "searchPlaceholder": "Pretraži tekst, oblast ili oznaku zadatka",
+    "filters": "Filteri",
+    "closeFilters": "Zatvori filtere",
+    "showResults": "Prikaži zadatke",
+    "positionFilter": "Pozicija na ispitu",
+    "positionOption": "Pozicija {position}",
+    "positionChip": "Pozicija {position}",
+    "topicFilter": "Oblast",
+    "difficultyFilter": "Težina",
+    "progressFilter": "Napredak",
+    "difficulty": {
+      "foundation": "Osnovni · 1–2",
+      "exam": "Ispitni nivo · 3",
+      "advanced": "Napredni · 4–5"
+    },
+    "progress": {
+      "all": "Svi zadaci",
+      "new": "Nije pokušano",
+      "correct": "Rešeno",
+      "incorrect": "Za novi pokušaj"
+    },
+    "resetFilters": "Poništi filtere",
+    "reset": "Poništi",
+    "resultCount": "{count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+    "sortLabel": "Redosled",
+    "sort": {
+      "position": "Po poziciji",
+      "difficulty": "Po težini"
+    },
+    "selectVisible": "Izaberi vidljive zadatke",
+    "selectedCount": "{count, plural, one {Izabran # zadatak} few {Izabrana # zadatka} other {Izabrano # zadataka}}",
+    "clearSelection": "Poništi izbor",
+    "startPractice": "Vežbaj izabrane zadatke",
+    "start": "Počni",
+    "selectTask": "Izaberi zadatak {id}",
+    "taskCode": "Zadatak {id}",
+    "authoredSource": "Autorski",
+    "loadingProgress": "Učitavam tvoj napredak…",
+    "emptyTitle": "Nema odgovarajućih zadataka",
+    "emptyQuery": "Nema rezultata za „{query}“. Skrati upit ili promeni filtere.",
+    "emptyFilters": "Trenutno nijedan zadatak ne odgovara ovim filterima. Promeni ih ili poništi."
+  },
   "calculator": {
     "title": "Kalkulator bodova za FTN",
     "description": "Izračunaj ukupan broj bodova za upis na FTN i uporedi sa prohodnim bodovima svih studijskih programa.",

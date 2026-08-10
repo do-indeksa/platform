@@ -1,38 +1,41 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { Link } from "@/i18n/navigation";
-import { getTasks, getTopics } from "@/lib/content";
+import { TaskBank } from "@/components/task-bank";
+import { getTaskSummaries, getTopics } from "@/lib/content";
+import { parseTaskBankState, toURLSearchParams } from "@/lib/task-bank";
+
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("tasks");
   return { title: t("title"), description: t("description") };
 }
 
-export default async function TopicsPage() {
-  const t = await getTranslations("tasks");
-  const topics = await getTopics();
-  const counts = await Promise.all(
-    topics.map(async (topic) => (await getTasks(topic.slug)).length),
+export default async function TasksPage({ searchParams }: Props) {
+  const [topics, tasks, topicT, rawSearchParams] = await Promise.all([
+    getTopics(),
+    getTaskSummaries(),
+    getTranslations("topics"),
+    searchParams,
+  ]);
+  const topicLabels = Object.fromEntries(
+    topics.map((topic) => [topic.slug, topicT(topic.slug)]),
   );
+  const state = parseTaskBankState(
+    toURLSearchParams(rawSearchParams),
+    new Map(topics.map((topic) => [topic.slug, topic.slot])),
+    new Set(tasks.map((task) => task.id)),
+  );
+
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-3xl font-bold">{t("title")}</h1>
-      <p className="mb-8 text-zinc-600">{t("intro")}</p>
-      <ul className="space-y-2">
-        {topics.map((topic, i) => (
-          <li key={topic.slug}>
-            <Link
-              href={`/tasks/${topic.slug}`}
-              className="flex items-baseline justify-between gap-4 rounded-lg border border-zinc-200 p-4 transition-colors hover:border-zinc-400"
-            >
-              <span className="font-medium">{topic.name}</span>
-              <span className="shrink-0 text-sm text-zinc-500">
-                {t("count", { count: counts[i] })}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <TaskBank
+      tasks={tasks}
+      topics={topics.map(({ slug, slot }) => ({ slug, slot }))}
+      topicLabels={topicLabels}
+      initialFilters={state.filters}
+      initialSelectedTaskIds={state.selectedTaskIds}
+    />
   );
 }
