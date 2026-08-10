@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "collections": [
+    {
+      "id": "ftn-p1-thematic-sr",
+      "language": "sr-Latn",
+      "license": "CC BY-NC-SA 4.0",
+      "statement": {
+        "file": "FTN_P1_Tematski_Zadaci_sr.tex",
+        "sha256": "77c09f9b0d1c0b92be4f66f8f0aa37704df7036333ef3118abce069c56f194f5"
+      },
+      "solution": {
+        "file": "FTN_P1_Tematski_Resenja_sr.tex",
+        "sha256": "a54bd5cccf8099b5a1c478ee7581c42b606648a90f3c51a1a046b2ffbf0ed2cc"
+      }
+    }
+  ]
+}

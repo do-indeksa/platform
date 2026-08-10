@@ -5,6 +5,7 @@ on:
     paths:
       - apps/web/**
       - content/**
+      - tools/content/**
       - apps/api/api/openapi.yaml
       - .github/workflows/web.yml
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - apps/web/**
       - content/**
+      - tools/content/**
       - apps/api/api/openapi.yaml
       - .github/workflows/web.yml
 
@@ -28,8 +30,26 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
+          cache-dependency-path: |
+            apps/web/package-lock.json
+            tools/content/package-lock.json
+      - name: Install content pipeline
+        working-directory: tools/content
+        run: npm ci
+      - name: Audit content dependencies
+        working-directory: tools/content
+        run: npm audit --omit=dev --audit-level=high
+      - name: Check content pipeline formatting
+        working-directory: tools/content
+        run: npm run format:check
+      - name: Test content pipeline
+        working-directory: tools/content
+        run: npm test
+      - name: Audit content provenance
+        working-directory: tools/content
+        run: npm run check
       - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run generate:api && git diff --exit-code
       - run: npx prettier --check .
       - run: npm run lint

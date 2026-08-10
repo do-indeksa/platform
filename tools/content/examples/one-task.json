@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "collection": "ftn-p1-thematic-sr",
+  "defaults": {
+    "source": "Do indeksa (autorski)",
+    "status": "draft"
+  },
+  "tasks": [
+    {
+      "id": "kb-import-example",
+      "slot": 1,
+      "selector": "5",
+      "topic": "kompleksni-brojevi",
+      "difficulty": 2,
+      "answer": "$t=1$, $|z|_{\\min}=3\\sqrt{2}$, $z=3-3i$",
+      "check": [
+        {
+          "label": "t",
+          "kind": "value",
+          "expected": "1"
+        },
+        {
+          "label": "|z|",
+          "kind": "value",
+          "expected": "3sqrt(2)"
+        }
+      ],
+      "hints": [
+        "Moduo je najmanji kada je najmanji njegov kvadrat, koji je kvadratna funkcija po $t$.",
+        "Napiši $|z|^2=(t+2)^2+(t-4)^2$ i odredi teme dobijene parabole."
+      ]
+    }
+  ]
+}

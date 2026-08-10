@@ -6,6 +6,14 @@ Structured educational content: tasks, solutions, and the faculty guide.
 - Serbian (latin script), matching the real exam.
 - Licensed under CC BY-NC-SA 4.0 — see [LICENSE.md](LICENSE.md).
 
+## Sources and imports
+
+Independently authored LaTeX snapshots live in `sources/` with SHA-256 values.
+The importer under `tools/content/` extracts structural task selectors, creates
+isolated drafts from reviewer manifests, and checks that every current `origin`
+still resolves to a statement and solution. Generated material is never marked
+`verified`; that status remains a human content-review decision.
+
 ## Faculty guide
 
 `guide/ftn/catalog.yaml` is the canonical FTN exam-to-program directory. It
