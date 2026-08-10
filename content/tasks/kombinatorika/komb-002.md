@@ -7,6 +7,16 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 10, zadatak 3'
 status: review
 answer: 'a) $300$; b) $108$; v) $156$'
+check:
+  - label: 'a)'
+    kind: value
+    expected: '300'
+  - label: 'b)'
+    kind: value
+    expected: '108'
+  - label: 'v)'
+    kind: value
+    expected: '156'
 ---
 
 ## Zadatak
@@ -18,6 +28,14 @@ Od cifara skupa $\{0,1,2,3,4,5\}$ obrazuju se **četvorocifreni** brojevi **sa r
 **b)** deljivih sa $5$;
 
 **v)** parnih.
+
+## Nagoveštaj 1
+
+Broj gradiš poziciju po poziciju pravilom proizvoda, pazeći da prva cifra nije $0$. Za b) i v) kreni od poslednje cifre — ona nosi uslov deljivosti — i razdvoj slučajeve prema tome da li je poslednja cifra $0$.
+
+## Nagoveštaj 2
+
+U a): prva cifra nije jednaka $0$: $5$ mogućnosti, a ostale tri pozicije — različite cifre iz preostalih: $5\cdot 4\cdot 3$. U b): ako je poslednja cifra $0$, prve tri pozicije daju $5\cdot 4\cdot 3=60$; ako je poslednja cifra $5$, prva nije $0$ ni $5$ ($4$ mogućnosti) — isto razmišljaj i u v).
 
 ## Rešenje
 

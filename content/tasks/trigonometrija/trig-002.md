@@ -7,6 +7,13 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 5, zadatak 1'
 status: review
 answer: 'a) $x\in\left\{\frac{2\pi}{3},\ \pi,\ \frac{4\pi}{3}\right\}$; b) $x\in\left\{\frac{\pi}{4},\ \frac{\pi}{3},\ \frac{3\pi}{4}\right\}$'
+check:
+  - label: 'a)'
+    kind: values
+    expected: '2pi/3, pi, 4pi/3'
+  - label: 'b)'
+    kind: values
+    expected: 'pi/4, pi/3, 3pi/4'
 ---
 
 ## Zadatak
@@ -16,6 +23,14 @@ Rešiti jednačine na naznačenim intervalima.
 **a)** $\cos 2x+3\cos x+2=0$ na intervalu $[0,\,2\pi)$;
 
 **b)** $\cos 3x+\cos x=\cos 2x$ na intervalu $(0,\,\pi)$.
+
+## Nagoveštaj 1
+
+Pod a) izrazi $\cos 2x$ preko $\cos x$ — jednačina postaje kvadratna po $\cos x$. Pod b) zbir kosinusa na levoj strani pretvori u proizvod, pa rastavi jednačinu na činioce.
+
+## Nagoveštaj 2
+
+Pod a) zamena $\cos 2x=2\cos^2 x-1$ daje $2\cos^2 x+3\cos x+1=0$ — uvedi $t=\cos x$ i reši kvadratnu jednačinu. Pod b) iz $\cos 3x+\cos x=2\cos 2x\cos x$ jednačina poprima oblik $\cos 2x\,(2\cos x-1)=0$, pa svaki činilac izjednači sa nulom.
 
 ## Rešenje
 

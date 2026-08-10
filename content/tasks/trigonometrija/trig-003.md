@@ -7,6 +7,16 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 5, zadatak 5'
 status: review
 answer: 'a) $x\in\left\{-\frac{\pi}{2},\ 0,\ \frac{\pi}{2}\right\}$; b) $x\in\left(-\frac{\pi}{2},0\right)\cup\left(0,\frac{\pi}{2}\right)$; c) $x\in\left(-\pi,-\frac{\pi}{2}\right)\cup\left(\frac{\pi}{2},\pi\right]$'
+check:
+  - label: 'a)'
+    kind: values
+    expected: '-pi/2, 0, pi/2'
+  - label: 'b)'
+    kind: interval
+    expected: '(-pi/2,0)u(0,pi/2)'
+  - label: 'c)'
+    kind: interval
+    expected: '(-pi,-pi/2)u(pi/2,pi]'
 ---
 
 ## Zadatak
@@ -18,6 +28,14 @@ Data je funkcija $f(x)=2\cos x-\cos 2x-1$, posmatrana na intervalu $(-\pi,\,\pi]
 **b)** Rešiti nejednačinu $f(x)>0$ na $(-\pi,\,\pi]$.
 
 **c)** Rešiti nejednačinu $f(x)<0$ na $(-\pi,\,\pi]$.
+
+## Nagoveštaj 1
+
+Izrazi $\cos 2x$ preko $\cos x$, pa funkciju rastavi na proizvod dva činioca. Uoči da je jedan od činilaca uvek nenegativan, pa znak funkcije zavisi samo od drugog.
+
+## Nagoveštaj 2
+
+Koristeći $\cos 2x=2\cos^2 x-1$ dobijaš $f(x)=2\cos x-(2\cos^2 x-1)-1=2\cos x\,(1-\cos x)$. Činilac $1-\cos x\ge 0$ svuda i jednak je nuli samo za $x=0$, pa za $x\ne 0$ znak $f$ prati znak $\cos x$ — odatle čitaj nule i rešenja obe nejednačine na $(-\pi,\pi]$.
 
 ## Rešenje
 

@@ -7,6 +7,13 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 5, zadatak 4'
 status: review
 answer: 'na $[0,2\pi)$: $x\in\left\{\frac{\pi}{2},\ \frac{5\pi}{6}\right\}$; u $\left(\frac{2\pi}{3},2\pi\right)$: samo $x=\frac{5\pi}{6}$'
+check:
+  - label: 'na [0,2pi)'
+    kind: values
+    expected: 'pi/2, 5pi/6'
+  - label: 'u (2pi/3,2pi)'
+    kind: value
+    expected: '5pi/6'
 ---
 
 ## Zadatak
@@ -16,6 +23,14 @@ Naći sva rešenja jednačine
 $$2\sin\!\left(x-\frac{\pi}{6}\right)=\sqrt{3},$$
 
 koja pripadaju intervalu $[0,\,2\pi)$, i posebno ona od njih koja leže u $\left(\dfrac{2\pi}{3},\,2\pi\right)$.
+
+## Nagoveštaj 1
+
+Podeli jednačinu sa $2$ da dobiješ tabličnu vrednost sinusa. Sinus istu vrednost uzima za dva ugla, pa zapiši obe serije rešenja, a zatim odaberi one korene koji upadaju u tražene intervale.
+
+## Nagoveštaj 2
+
+Iz $\sin\!\left(x-\dfrac{\pi}{6}\right)=\dfrac{\sqrt{3}}{2}$ dobijaš dve serije: $x-\frac{\pi}{6}=\frac{\pi}{3}+2k\pi$ ili $x-\frac{\pi}{6}=\frac{2\pi}{3}+2k\pi$. Prebaci $\dfrac{\pi}{6}$ na desnu stranu, pa proveri koje vrednosti pripadaju svakom od dva intervala.
 
 ## Rešenje
 

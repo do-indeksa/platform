@@ -13,7 +13,25 @@ One file = one task: `content/tasks/<topic-slug>/<id>.md`
 | `source` | string | e.g. `FTN 2019`, `ETF 2024, br. 2`, `Do indeksa (autorski)` |
 | `origin` | string | traceability to the LaTeX source file |
 | `status` | string | `draft` → `review` → `verified` |
-| `answer` | string | final answer, LaTeX inline math allowed |
+| `answer` | string | final answer for display, LaTeX inline math allowed |
+| `check` | list | machine-checkable answer parts, see below |
+
+## Check
+
+```yaml
+check:
+  - label: 'b)'      # optional when the task has a single checked part
+    kind: value      # value | values | interval | text
+    expected: '2sqrt(3)'
+```
+
+`expected` uses input syntax, not LaTeX: `sqrt(3)`, `pi`, `e`, `inf`,
+`ln` (natural log), `log` (base 10), `log2`, `x` in expression answers
+(`-2x+2`). Kind `values` lists a solution set (`0, 2`); kind `interval`
+lists a union with bracket types (`(-inf,0)u(2,inf)`). Equivalence is
+numeric, so any equivalent exact form passes. Parts that cannot be
+machine-checked (domains, monotonicity, sketches) are omitted — the
+solution covers them; at least one checked part is required.
 
 ## Body
 
@@ -22,10 +40,20 @@ One file = one task: `content/tasks/<topic-slug>/<id>.md`
 
 Statement in Serbian (latin script). LaTeX math: $...$ inline, $$...$$ display.
 
+## Nagoveštaj 1
+
+Direction of thought, never the final answer.
+
+## Nagoveštaj 2
+
+First concrete step; formulas copied verbatim from the solution.
+
 ## Rešenje
 
 Full worked solution in Serbian.
 ```
+
+Hint sections are optional, at most two, in order, before `## Rešenje`.
 
 ## Rules
 

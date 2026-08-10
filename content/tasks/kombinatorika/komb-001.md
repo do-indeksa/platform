@@ -7,6 +7,16 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 10, zadatak 2'
 status: review
 answer: 'a) $1771$; b) $969$; v) $455$'
+check:
+  - label: 'a)'
+    kind: value
+    expected: '1771'
+  - label: 'b)'
+    kind: value
+    expected: '969'
+  - label: 'v)'
+    kind: value
+    expected: '455'
 ---
 
 ## Zadatak
@@ -22,6 +32,14 @@ pod uslovima:
 **b)** $x_i\ge 1$ za sve $i$;
 
 **v)** $x_i\ge 2$ za sve $i$.
+
+## Nagoveštaj 1
+
+Ovo je model „zvezde i pregrade": raspoređuješ $20$ jedinica u četiri promenljive. Slučajeve b) i v) svedi smenom na slučaj nenegativnih rešenja iz a).
+
+## Nagoveštaj 2
+
+Broj nenegativnih celobrojnih rešenja jednačine $y_1+\cdots+y_4=N$ jednak je $\dbinom{N+3}{3}$. Za b) uvedi smenu $x_i=y_i+1$, $y_i\ge 0$, koja daje $y_1+\cdots+y_4=16$; za v) smena $x_i=y_i+2$, $y_i\ge 0$, daje $y_1+\cdots+y_4=12$.
 
 ## Rešenje
 

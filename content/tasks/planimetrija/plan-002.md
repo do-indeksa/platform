@@ -7,6 +7,16 @@ source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 7, zadatak 2'
 status: review
 answer: 'a) $b=13$, $r=6$, $P=156$; b) $h=10$, $P=100$'
+check:
+  - label: 'a) r'
+    kind: value
+    expected: '6'
+  - label: 'a) P'
+    kind: value
+    expected: '156'
+  - label: 'b) P'
+    kind: value
+    expected: '100'
 ---
 
 ## Zadatak
@@ -14,6 +24,14 @@ answer: 'a) $b=13$, $r=6$, $P=156$; b) $h=10$, $P=100$'
 **a)** U jednakokraki trapez sa osnovicama $a=18$ i $c=8$ može se upisati kružnica. Naći krak, poluprečnik upisane kružnice i površinu trapeza.
 
 **b)** U jednakokrakom trapezu dijagonale su uzajamno normalne, a osnovice su $a=14$ i $c=6$. Naći visinu i površinu trapeza.
+
+## Nagoveštaj 1
+
+Za a) iskoristi svojstvo tangentnog četvorougla — zbirovi naspramnih stranica su jednaki, a prečnik upisane kružnice jednak je visini trapeza. Za b) postavi trapez u koordinatni sistem: normalnost dijagonala postaje uslov na skalarni proizvod.
+
+## Nagoveštaj 2
+
+Uslov upisane kružnice: $a+c=b+d$, a za jednakokraki trapez $b=d$ — odatle krak. Visinu daje $h=\sqrt{b^2-5^2}$, jer je projekcija kraka na veću osnovicu $\dfrac{a-c}{2}=5$. Za b): postavi $A(-7,0)$, $B(7,0)$, $C(3,h)$, $D(-3,h)$ i iskoristi uslov $\overrightarrow{AC}\perp\overrightarrow{BD}$ preko skalarnog proizvoda.
 
 ## Rešenje
 

@@ -36,6 +36,7 @@ function normalize(raw: string, kind: CheckKind): string {
     .replace(/[−–]/g, "-")
     .replace(/[×·]/g, "*")
     .replace(/÷/g, "/")
+    .replace(/°/g, "")
     .replace(/√/g, "sqrt")
     .replace(/π/g, "pi")
     .replace(/∞/g, "inf")
