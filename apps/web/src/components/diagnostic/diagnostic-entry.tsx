@@ -18,7 +18,7 @@ import {
 } from "@/lib/diagnostic-run";
 import { useDiagnostic } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { useSimulation } from "@/lib/simulation-store";
+import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
 
 export function DiagnosticEntry({
   freshStartHref,
@@ -30,9 +30,7 @@ export function DiagnosticEntry({
   const hydrated = useHydrated();
   const diagnostic = useDiagnostic();
   const simulationPhase = useSimulation((state) => state.phase);
-  const activeMock =
-    hydrated &&
-    (simulationPhase === "running" || simulationPhase === "grading");
+  const activeMock = hydrated && isSimulationActive(simulationPhase);
   const completed = diagnostic.outcomes.filter(Boolean).length;
   const resumeHref = diagnostic.runId
     ? diagnosticRunHref(
