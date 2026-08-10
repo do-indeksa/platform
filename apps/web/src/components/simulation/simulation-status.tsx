@@ -19,7 +19,7 @@ export function RunNotice({
         <p className="text-lg font-semibold">{message}</p>
         <Link
           href={href}
-          className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+          className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
         >
           {action}
         </Link>
@@ -63,7 +63,7 @@ export function SubmissionStatus({
             <button
               type="button"
               onClick={retry}
-              className="mt-6 min-h-11 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+              className="mt-6 min-h-11 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
             >
               {t("retrySubmission")}
             </button>

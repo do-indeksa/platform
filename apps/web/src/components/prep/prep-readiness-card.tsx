@@ -25,13 +25,13 @@ export function ReadinessCard({
               <button
                 type="button"
                 aria-label={t("readinessMethod", { total })}
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
               >
                 <Info aria-hidden className="h-4 w-4" />
               </button>
               <span
                 role="tooltip"
-                className="pointer-events-none absolute top-9 right-0 z-10 hidden w-64 rounded-lg bg-ink p-3 text-xs font-normal leading-5 text-white shadow-lg group-hover:block group-focus-within:block"
+                className="pointer-events-none absolute top-12 right-0 z-10 hidden w-64 rounded-lg bg-emphasis p-3 text-xs font-normal leading-5 text-white shadow-lg group-hover:block group-focus-within:block"
               >
                 {t("readinessMethod", { total })}
               </span>
@@ -79,7 +79,7 @@ export function GuestOffer({ pathname }: { pathname: string }) {
           </p>
           <a
             href={`/api/v1/auth/google?redirect=${encodeURIComponent(pathname)}`}
-            className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-brand-ink hover:underline"
+            className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-ink hover:underline"
           >
             {t("guestCta")}
             <ArrowRight aria-hidden className="h-4 w-4" />

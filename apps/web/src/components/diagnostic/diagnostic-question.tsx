@@ -164,7 +164,7 @@ export function DiagnosticQuestion({ tasks }: { tasks: DiagnosticTaskView[] }) {
               type="button"
               disabled={submitting}
               onClick={submit}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-ink disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover disabled:cursor-wait disabled:opacity-60"
             >
               {submitting ? (
                 <LoaderCircle

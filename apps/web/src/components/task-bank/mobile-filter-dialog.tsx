@@ -66,7 +66,7 @@ export function MobileFilterDialog({
             type="button"
             onClick={onClose}
             aria-label={t("closeFilters")}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-muted transition-colors hover:bg-page hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <X aria-hidden size={20} />
           </button>
@@ -82,7 +82,7 @@ export function MobileFilterDialog({
         <footer className="border-t border-line bg-surface p-4">
           <button
             type="submit"
-            className="min-h-12 w-full rounded-lg bg-brand px-5 text-sm font-bold text-on-brand transition-colors hover:bg-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="min-h-12 w-full rounded-lg bg-brand px-5 text-sm font-bold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             {t("showResults")}
           </button>

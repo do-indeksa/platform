@@ -33,7 +33,7 @@ export function TaskRow({
           : "border-line hover:border-violet-300"
       }`}
     >
-      <label className="flex h-10 w-8 cursor-pointer items-center justify-center">
+      <label className="flex h-11 w-11 cursor-pointer items-center justify-center">
         <input
           type="checkbox"
           checked={selected}

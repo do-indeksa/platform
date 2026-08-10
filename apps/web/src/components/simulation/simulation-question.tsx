@@ -148,7 +148,7 @@ export function SimulationQuestion({
                 saveAndNext();
                 if (lastTask) setFinishOpen(true);
               }}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 font-semibold text-on-brand hover:bg-brand-ink sm:ml-auto"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 font-semibold text-on-brand hover:bg-brand-hover sm:ml-auto"
             >
               {lastTask ? t("saveAndReview") : t("saveAndNext")}
               <ArrowRight aria-hidden className="h-5 w-5" />

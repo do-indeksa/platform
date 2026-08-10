@@ -17,7 +17,7 @@ export function HistoryEmpty({ kind }: { kind: "tasks" | "variants" }) {
       </p>
       <Link
         href={href}
-        className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+        className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 font-semibold text-on-brand transition-colors hover:bg-brand-hover"
       >
         {t(taskHistory ? "startPractice" : "startMock")}
         <ArrowRight aria-hidden className="h-4 w-4" />

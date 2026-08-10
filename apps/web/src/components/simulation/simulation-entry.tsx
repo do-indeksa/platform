@@ -75,7 +75,7 @@ export function SimulationEntry({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link
             href={primaryHref}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
           >
             {active
               ? t("resumeMock")

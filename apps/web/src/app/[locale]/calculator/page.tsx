@@ -20,7 +20,10 @@ export default async function CalculatorPage() {
       <p className="mt-8 text-sm text-zinc-500">
         {t.rich("disclaimer", {
           link: (chunks) => (
-            <a href={source} className="underline hover:text-zinc-700">
+            <a
+              href={source}
+              className="inline-flex min-h-11 items-center underline hover:text-zinc-700"
+            >
               {chunks}
             </a>
           ),

@@ -46,7 +46,7 @@ export function TaskResults({
   const progressPending = attempts === null && filters.progress !== "all";
   return (
     <section aria-labelledby="task-results-title" className="min-w-0">
-      <div className="mb-3 flex min-h-10 flex-wrap items-center justify-between gap-3">
+      <div className="mb-3 flex min-h-11 flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <SelectAllCheckbox
             checked={allSelected}
@@ -74,7 +74,7 @@ export function TaskResults({
                 sort: event.currentTarget.value as TaskBankFilters["sort"],
               })
             }
-            className="h-10 rounded-lg border border-line bg-surface px-3 font-semibold text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+            className="h-11 rounded-lg border border-line bg-surface px-3 font-semibold text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           >
             <option value="position">{t("sort.position")}</option>
             <option value="difficulty">{t("sort.difficulty")}</option>
@@ -132,13 +132,14 @@ function SelectAllCheckbox({
     if (ref.current) ref.current.indeterminate = mixed;
   }, [mixed]);
   return (
-    <label className="flex min-h-9 cursor-pointer items-center gap-2 text-xs font-semibold text-muted">
+    <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 text-xs font-semibold text-muted sm:min-w-0 sm:justify-start">
       <input
         ref={ref}
         type="checkbox"
         checked={checked}
         disabled={disabled}
         onChange={onChange}
+        aria-label={label}
         className="h-4 w-4 accent-brand"
       />
       <span className="hidden sm:inline">{label}</span>
@@ -164,7 +165,7 @@ function EmptyState({
       <button
         type="button"
         onClick={onReset}
-        className="mt-5 min-h-10 rounded-lg bg-brand px-4 text-sm font-bold text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="mt-5 min-h-11 rounded-lg bg-brand px-4 text-sm font-bold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         {t("resetFilters")}
       </button>

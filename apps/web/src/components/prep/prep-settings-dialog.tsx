@@ -126,7 +126,7 @@ export function PrepSettingsDialog({
           </button>
           <button
             type="submit"
-            className="min-h-11 rounded-lg bg-brand px-5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-ink"
+            className="min-h-11 rounded-lg bg-brand px-5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
           >
             {t("saveSettings")}
           </button>

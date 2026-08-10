@@ -168,7 +168,7 @@ export function PracticeBuilder({
             type="button"
             disabled={!canStart}
             onClick={start}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 sm:min-w-48"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 sm:min-w-48"
           >
             <Play aria-hidden className="h-4 w-4 fill-current" />
             {canStart

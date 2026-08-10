@@ -32,7 +32,7 @@ export function RunNotice({
         <p className="mt-4 text-lg font-medium">{message}</p>
         <Link
           href={href}
-          className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-ink"
+          className="mt-6 inline-flex min-h-12 items-center rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
         >
           {action}
         </Link>

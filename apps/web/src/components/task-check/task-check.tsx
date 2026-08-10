@@ -194,7 +194,7 @@ export function TaskCheck({
           <button
             type="submit"
             disabled={locked || checking}
-            className="rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-40"
+            className="min-h-12 rounded-lg bg-brand px-6 py-3 font-medium text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-40"
           >
             {checking ? t("checkingCta") : t("checkCta")}
           </button>
@@ -284,7 +284,7 @@ export function TaskCheck({
             {nextTaskHref && (
               <Link
                 href={nextTaskHref}
-                className="inline-block rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+                className="inline-flex min-h-12 items-center rounded-lg bg-brand px-6 py-3 font-medium text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 {t("nextTask")}
               </Link>
@@ -299,7 +299,7 @@ export function TaskCheck({
               {nextTaskHref && (
                 <Link
                   href={nextTaskHref}
-                  className="rounded-lg bg-zinc-900 px-6 py-3 font-medium text-white transition-colors hover:bg-zinc-700"
+                  className="inline-flex min-h-12 items-center rounded-lg bg-brand px-6 py-3 font-medium text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
                   {t("nextTask")}
                 </Link>

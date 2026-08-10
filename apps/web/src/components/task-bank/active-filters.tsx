@@ -63,7 +63,7 @@ export function ActiveFilters({
           key={chip.key}
           type="button"
           onClick={chip.remove}
-          className="flex min-h-8 items-center gap-1.5 rounded-full bg-subtle px-3 text-xs font-semibold text-brand-ink transition-colors hover:bg-violet-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="flex min-h-11 items-center gap-1.5 rounded-full bg-subtle px-3 text-xs font-semibold text-brand-ink transition-colors hover:bg-subtle-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           {chip.label}
           <X aria-hidden size={13} />
@@ -72,7 +72,7 @@ export function ActiveFilters({
       <button
         type="button"
         onClick={() => onChange({ ...defaultTaskBankFilters })}
-        className="min-h-8 px-2 text-xs font-semibold text-muted hover:text-ink hover:underline"
+        className="min-h-11 px-2 text-xs font-semibold text-muted hover:text-ink hover:underline"
       >
         {t("reset")}
       </button>

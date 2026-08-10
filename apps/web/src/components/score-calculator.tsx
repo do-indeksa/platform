@@ -72,7 +72,7 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
               placeholder={t("gradePlaceholder")}
               value={grades[i]}
               onChange={(e) => setGrades(grades.with(i, e.target.value))}
-              className="rounded-lg border border-zinc-300 p-2"
+              className="min-h-11 rounded-lg border border-line bg-surface px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             />
           </label>
         ))}
@@ -84,13 +84,13 @@ export function ScoreCalculator({ programs }: { programs: Program[] }) {
             placeholder={t("examPlaceholder")}
             value={examPoints}
             onChange={(e) => setExamPoints(e.target.value)}
-            className="rounded-lg border border-zinc-300 p-2"
+            className="min-h-11 rounded-lg border border-line bg-surface px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           />
         </label>
       </fieldset>
 
       {total !== undefined && (
-        <p className="rounded-lg bg-zinc-900 p-4 text-lg text-white">
+        <p className="rounded-lg bg-emphasis p-4 text-lg text-white">
           {t("schoolLabel")}{" "}
           <strong>{formatPoints(schoolPoints(parsedGrades))}</strong> ·{" "}
           {t("totalLabel")} <strong>{formatPoints(total)}</strong> / 100

@@ -49,7 +49,7 @@ export function OverviewHero({
         <div className="mt-4 grid max-w-xl grid-cols-2 gap-2.5 sm:mt-5 sm:flex sm:gap-3">
           <Link
             href="/tasks"
-            className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2.5 text-center text-sm font-semibold text-on-brand transition-colors hover:bg-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-5"
+            className="inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2.5 text-center text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:px-5"
           >
             {t("startPractice")}
             <ArrowRight aria-hidden className="h-4 w-4 shrink-0" />
