@@ -1,0 +1,7 @@
+.env*
+*.pem
+*.log
+bin
+coverage
+compose.yaml
+railway.json
