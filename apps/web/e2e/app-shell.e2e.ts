@@ -99,11 +99,11 @@ test("language switch keeps the current route", async ({ page }) => {
   ).toBeVisible();
 });
 
-test("overview is a primary destination on desktop and mobile", async ({
+test("cabinet is a primary destination on desktop and mobile", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.goto("/ru");
+  await page.goto("/ru/cabinet");
   await page.getByTestId("mobile-menu-button").click();
   await expect(
     page.getByRole("link", { name: "Обзор", exact: true }),

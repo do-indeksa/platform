@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const localizedOverviews = [
   {
-    path: "/",
+    path: "/cabinet",
     heading: "Priprema za P1 iz matematike",
     start: "Počni vežbanje",
     check: "Proveri nivo",
@@ -11,7 +11,7 @@ const localizedOverviews = [
     dailySolve: "Reši zadatak",
   },
   {
-    path: "/en",
+    path: "/en/cabinet",
     heading: "Prepare for the P1 mathematics exam",
     start: "Start practice",
     check: "Check your level",
@@ -20,7 +20,7 @@ const localizedOverviews = [
     dailySolve: "Solve task",
   },
   {
-    path: "/ru",
+    path: "/ru/cabinet",
     heading: "Подготовка к P1 по математике",
     start: "Начать практику",
     check: "Проверить уровень",
@@ -96,7 +96,7 @@ for (const locale of localizedOverviews) {
 test("task of the day uses local-first progress and returns to overview", async ({
   page,
 }) => {
-  await page.goto("/en");
+  await page.goto("/en/cabinet");
   const dailyTask = page.getByTestId("daily-task");
   await expect(dailyTask).toHaveAttribute("data-task-id", /^[a-z0-9-]+$/);
   await expect(dailyTask).toHaveAttribute("data-task-slot", /^\d+$/);
@@ -137,12 +137,12 @@ test("task of the day uses local-first progress and returns to overview", async 
   });
   await expect(repeat).toHaveAttribute(
     "href",
-    new RegExp(`/en/tasks/.+/${taskId}\\?returnTo=%2F$`),
+    new RegExp(`/en/tasks/.+/${taskId}\\?returnTo=%2Fcabinet$`),
   );
   await repeat.click();
   await expect(page.getByRole("link", { name: /Exit task/ })).toHaveAttribute(
     "href",
-    "/en",
+    "/en/cabinet",
   );
 });
 
@@ -150,7 +150,7 @@ test("quick builder starts a balanced bounded practice set", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/en");
+  await page.goto("/en/cabinet");
 
   await expect(
     page.getByRole("button", { name: "Choose a position", exact: true }),
@@ -208,7 +208,7 @@ test("position cards use the current blueprint and local progress", async ({
       }),
     );
   });
-  await page.goto("/en");
+  await page.goto("/en/cabinet");
 
   const first = page.getByRole("link", {
     name: /^Open position 1:/,
@@ -274,7 +274,7 @@ test("an unfinished diagnostic is resumable from the overview", async ({
     },
     { runId, taskIds },
   );
-  await page.goto("/en");
+  await page.goto("/en/cabinet");
 
   const continuation = page.getByTestId("continue-run");
   await expect(

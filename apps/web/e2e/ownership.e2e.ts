@@ -148,7 +148,7 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
     });
   });
 
-  await page.goto("/en");
+  await page.goto("/en/cabinet");
   await expect(page.getByTestId("continue-run")).toHaveCount(0);
 
   releaseIdentity();

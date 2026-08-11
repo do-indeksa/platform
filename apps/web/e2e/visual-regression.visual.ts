@@ -18,7 +18,7 @@ const viewports = [
 const surfaces: readonly VisualSurface[] = [
   {
     name: "overview",
-    path: "/",
+    path: "/cabinet",
     ready: async (page) => {
       await expect(
         page.getByRole("heading", {

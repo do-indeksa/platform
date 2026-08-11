@@ -58,7 +58,7 @@ export function OverviewDashboard({
   const pending = !hydrated || attempts === null;
 
   return (
-    <main className="w-full">
+    <main data-design-status="provisional" className="w-full">
       <OverviewHero exam={exam} publishedTaskCount={tasks.length} />
       <DailyTask tasks={tasks} />
       <PracticeBuilder

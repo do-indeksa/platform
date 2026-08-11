@@ -40,7 +40,7 @@ type NavigationItem = {
 
 const headerPrimaryItems: NavigationItem[] = [
   {
-    href: "/",
+    href: "/cabinet",
     key: "preparation",
     icon: LayoutDashboard,
     headerWidths: {
@@ -115,7 +115,7 @@ const tabletOverflowItems: NavigationItem[] = [
 ];
 
 const mobileItems: NavigationItem[] = [
-  { href: "/", key: "overview", icon: LayoutDashboard },
+  { href: "/cabinet", key: "overview", icon: LayoutDashboard },
   { href: "/tasks", key: "tasks", icon: ClipboardList },
   { href: "/prep", key: "prep", icon: Map },
   {
