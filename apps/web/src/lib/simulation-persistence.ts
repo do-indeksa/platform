@@ -26,6 +26,7 @@ export { SIMULATION_HISTORY_LIMIT } from "./simulation-history-persistence";
 export type PersistedSimulationState = {
   runId: string | null;
   blueprintVersion: string | null;
+  contentRevision: string | null;
   tasks: SimulationTaskView[];
   answers: string[][];
   skipped: boolean[];
@@ -43,6 +44,7 @@ export type PersistedSimulationState = {
 
 const CHECK_KINDS = new Set<CheckKind>(["value", "values", "interval", "text"]);
 const TOPIC_PATTERN = /^[a-z0-9-]{1,64}$/;
+const REVISION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const MAX_HTML_LENGTH = SIMULATION_MAX_RENDERED_HTML_LENGTH;
 
 export function emptySimulationState(
@@ -51,6 +53,7 @@ export function emptySimulationState(
   return {
     runId: null,
     blueprintVersion: null,
+    contentRevision: null,
     tasks: [],
     answers: [],
     skipped: [],
@@ -74,6 +77,12 @@ export function migrateSimulationState(
   if (version < 5) {
     return emptySimulationState(migrateLegacySimulationHistory(value));
   }
+  if (version < 6) {
+    const history = isRecord(value)
+      ? parseSimulationHistory(value.history)
+      : [];
+    return emptySimulationState(history);
+  }
   return parsePersistedSimulationState(value);
 }
 
@@ -86,6 +95,7 @@ export function parsePersistedSimulationState(
   if (
     !isSimulationRunId(value.runId) ||
     !isSimulationBlueprintVersion(value.blueprintVersion) ||
+    !isRevision(value.contentRevision) ||
     !Array.isArray(value.tasks) ||
     value.tasks.length < 1 ||
     value.tasks.length > SIMULATION_MAX_TASKS ||
@@ -129,6 +139,7 @@ export function parsePersistedSimulationState(
   return {
     runId: value.runId,
     blueprintVersion: value.blueprintVersion,
+    contentRevision: value.contentRevision,
     tasks: tasks.map(cloneTask),
     answers: (value.answers as string[][]).map((answers) => [...answers]),
     skipped: [...(value.skipped as boolean[])],
@@ -155,6 +166,7 @@ function isTaskView(value: unknown): value is SimulationTaskView {
   if (!isRecord(value)) return false;
   return (
     isSimulationTaskId(value.id) &&
+    isRevision(value.revision) &&
     isFiniteInteger(value.slot, 1, 10) &&
     isFiniteInteger(value.examPosition, 1, SIMULATION_MAX_TASKS) &&
     isFiniteInteger(value.maxPoints, 1, 1_000) &&
@@ -275,4 +287,8 @@ function isFiniteInteger(
 
 function isBoundedString(value: unknown, max: number): value is string {
   return typeof value === "string" && value.length <= max;
+}
+
+function isRevision(value: unknown): value is string {
+  return typeof value === "string" && REVISION_PATTERN.test(value);
 }

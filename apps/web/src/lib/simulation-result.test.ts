@@ -10,6 +10,7 @@ import type {
 
 const tasks = [1, 2, 3].map((position): SimulationResultTaskView => ({
   id: `task-${position}`,
+  revision: `sha256:${String(position).repeat(64)}`,
   slot: position,
   examPosition: position,
   maxPoints: 6,

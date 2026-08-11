@@ -9,6 +9,7 @@ export async function buildSimulationTaskViews(
   return Promise.all(
     variant.tasks.map(async ({ examPosition, maxPoints, task }) => ({
       id: task.id,
+      revision: task.revision,
       slot: task.slot,
       examPosition,
       maxPoints,

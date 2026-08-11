@@ -12,6 +12,7 @@ const startedAt = Date.UTC(2026, 7, 10, 10);
 
 const task: SimulationTaskView = {
   id: "kb-001",
+  revision: `sha256:${"a".repeat(64)}`,
   slot: 1,
   examPosition: 1,
   maxPoints: 6,
@@ -26,6 +27,7 @@ function runningState() {
     ...emptySimulationState(),
     runId,
     blueprintVersion: "2026.1",
+    contentRevision: `sha256:${"b".repeat(64)}`,
     tasks: [task],
     answers: [[""]],
     skipped: [false],
@@ -88,6 +90,19 @@ describe("simulation persistence", () => {
       taskIds: [task.id],
       answers: [["2"]],
       results: [result],
+      progress: {
+        contentRevision: `sha256:${"b".repeat(64)}`,
+        items: [
+          {
+            taskId: task.id,
+            taskRevision: task.revision,
+            slot: task.slot,
+            examPosition: task.examPosition,
+            topic: task.topic,
+            maxPoints: task.maxPoints,
+          },
+        ],
+      },
     };
     const review = [
       {
@@ -132,6 +147,26 @@ describe("simulation persistence", () => {
         history: [entry],
       }),
     ).toEqual(emptySimulationState([entry]));
+    expect(
+      parsePersistedSimulationState({
+        ...runningState(),
+        answers: [["2"]],
+        phase: "done",
+        endsAt: null,
+        submittedAt: entry.finishedAt,
+        results: [result],
+        review,
+        history: [
+          {
+            ...entry,
+            progress: {
+              ...entry.progress,
+              items: [{ ...entry.progress.items[0], taskRevision: "mutable" }],
+            },
+          },
+        ],
+      }).history,
+    ).toEqual([]);
   });
 
   it("drops old active payloads but keeps bounded legacy summaries", () => {
@@ -156,6 +191,42 @@ describe("simulation persistence", () => {
         },
       ],
     });
+  });
+
+  it("preserves full v5 history while dropping an active run without revisions", () => {
+    const result = {
+      taskId: task.id,
+      outcome: "incorrect" as const,
+      earnedPoints: 0,
+      maxPoints: task.maxPoints,
+    };
+    const entry = {
+      id: runId,
+      blueprintVersion: "2026.1",
+      startedAt,
+      finishedAt: startedAt + 60_000,
+      durationMs: 60_000,
+      timedOut: false,
+      score: 0,
+      maxPoints: task.maxPoints,
+      correctCount: 0,
+      answeredCount: 1,
+      taskIds: [task.id],
+      answers: [["wrong"]],
+      results: [result],
+    };
+
+    expect(
+      migrateSimulationState(
+        {
+          ...runningState(),
+          contentRevision: undefined,
+          tasks: [{ ...task, revision: undefined }],
+          history: [entry],
+        },
+        5,
+      ),
+    ).toEqual(emptySimulationState([entry]));
   });
 
   it("treats only running and submitting phases as active", () => {

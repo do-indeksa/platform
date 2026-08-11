@@ -12,6 +12,7 @@ export type SimulationOutcome = "correct" | "incorrect" | "unanswered";
 
 export type SimulationTaskView = {
   id: string;
+  revision: string;
   slot: number;
   examPosition: number;
   maxPoints: number;
@@ -54,6 +55,21 @@ export type SimulationHistoryEntry = {
   taskIds: string[];
   answers: string[][];
   results: SimulationGradeItem[];
+  progress?: SimulationProgressMetadata;
+};
+
+export type SimulationProgressMetadata = {
+  contentRevision: string;
+  items: SimulationProgressItem[];
+};
+
+export type SimulationProgressItem = {
+  taskId: string;
+  taskRevision: string;
+  slot: number;
+  examPosition: number;
+  topic: string;
+  maxPoints: number;
 };
 
 export type SimulationResultTaskView = SimulationTaskView & {
