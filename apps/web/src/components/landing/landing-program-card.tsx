@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import type { AppLocale } from "@/i18n/routing";
 import type { LandingProgramGroup } from "@/lib/landing";
 
 const tagTones = [
@@ -19,6 +20,7 @@ export function LandingProgramCard({
   group: LandingProgramGroup;
   sourceDate: string;
 }) {
+  const locale = useLocale() as AppLocale;
   const t = useTranslations("landing.programs");
 
   return (
@@ -56,7 +58,9 @@ export function LandingProgramCard({
               <span
                 data-fit-text
                 title={t(`groups.${group.id}.columns.${columnNames[index]}`)}
-                className="min-w-0 whitespace-nowrap md:text-xs xl:text-[13px]"
+                className={`min-w-0 whitespace-nowrap xl:text-[13px] ${
+                  locale === "ru" ? "md:text-[11px]" : "md:text-xs"
+                }`}
               >
                 {t(`groups.${group.id}.columns.${columnNames[index]}`)}
               </span>
