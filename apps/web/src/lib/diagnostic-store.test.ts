@@ -236,6 +236,9 @@ describe("diagnostic persistence", () => {
     expect(useDiagnostic.getState().adoptCheckpointVersion(runId, 4)).toBe(
       true,
     );
+    expect(useDiagnostic.getState().adoptCheckpointVersion(runId, 3)).toBe(
+      false,
+    );
     const forkedId = crypto.randomUUID();
     expect(useDiagnostic.getState().fork(forkedId)).toBe(true);
     expect(useDiagnostic.getState()).toMatchObject({
