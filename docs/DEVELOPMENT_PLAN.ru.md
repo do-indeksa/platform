@@ -73,11 +73,12 @@ AI-оценивание остается вне критического пут�
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
 - blocking CI включает 508 web unit-тестов, 29 тестов content pipeline,
-  68 Playwright-сценариев, container smoke, dependency audit и Trivy.
+  68 функциональных Playwright-сценариев, 12 Linux visual-regression эталонов,
+  container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
-visual-regression baseline и production rollout. Analytics сознательно
-fail-closed до безопасного image.
+visual coverage для rubric/result/error states и production rollout. Analytics
+сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
 
@@ -356,8 +357,9 @@ attempt частью run. В любом варианте завершенная 
   идемпотентные mutations запуска и попытки.
 - Integration: start/resume/finish diagnostic and simulation.
 - Browser: основные сценарии на 360x800, 768x1024 и 1440x900.
-- Visual: Figma-reference screenshots для shell, task, plan, history; проверять
-  также long Serbian copy, ошибки и пустые состояния.
+- Visual: канонические Linux screenshots для первого viewport overview, task,
+  empty plan и empty history на 360x800, 768x1024 и 1440x900; следующим слоем
+  покрывать rubric review, result, ошибки и long Serbian copy.
 - Content: schema, math fixtures, сумма rubric points, ссылки и статус review.
 
 ## 7. Порядок релизов
@@ -394,8 +396,8 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 1. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
 2. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
-3. Добавить стабильные visual-regression эталоны для rubric review, результата,
-   shell, task, plan и history на 360/768/1440 px.
+3. Расширить стабильные visual-regression эталоны на rubric review, результат,
+   ошибки и long Serbian copy на 360/768/1440 px.
 4. После выпуска Google OAuth credentials и отдельного подтверждения завершить
    private Kubernetes rollout через Cloudflare Tunnel; доказать auth, GraphQL,
    Neon migration, backup и rollback без публикации origin.
