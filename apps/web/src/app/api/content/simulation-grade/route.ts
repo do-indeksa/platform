@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { readBoundedJson } from "@/lib/bounded-json";
+import type { Task } from "@/lib/content";
 import {
   gradeSimulationAnswers,
   parseSimulationGradeRequest,
 } from "@/lib/simulation-grade";
+import { resolveSimulationTaskRevisionCandidates } from "@/lib/simulation-task-revisions";
 import { resolveVariantTaskIds } from "@/lib/variant";
 
 const MAX_REQUEST_BYTES = 32_768;
@@ -33,17 +35,29 @@ export async function POST(request: Request) {
   }
   if (!variant) return json({ error: "variant not found" }, 404);
 
+  const resolved =
+    input.taskRevisions === undefined
+      ? variant.tasks.map(({ task }) => task)
+      : await resolveSimulationTaskRevisionCandidates(
+          variant.tasks.map(({ task }) => task),
+          input.taskRevisions,
+        );
+  const tasks = resolved.filter((task): task is Task => task !== undefined);
+  if (tasks.length !== resolved.length) {
+    return json({ error: "task revision not found" }, 404);
+  }
+
   const results = gradeSimulationAnswers(
-    variant.tasks.map(({ maxPoints, task }) => ({
+    tasks.map((task, index) => ({
       id: task.id,
-      maxPoints,
+      maxPoints: variant.tasks[index].maxPoints,
       check: task.check,
     })),
     input.answers,
   );
   if (!results) return json({ error: "answer composition mismatch" }, 400);
 
-  const review = variant.tasks.map(({ task }) => ({
+  const review = tasks.map((task) => ({
     taskId: task.id,
     correctAnswer: task.answer,
     solution: task.solution,

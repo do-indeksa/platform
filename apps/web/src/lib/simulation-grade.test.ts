@@ -47,9 +47,13 @@ describe("simulation grading", () => {
   });
 
   it("parses only bounded, unique, versioned requests", () => {
+    const taskRevisions = ["a", "b"].map(
+      (value) => `sha256:${value.repeat(64)}`,
+    );
     const valid = {
       blueprintVersion: "2026.1",
       taskIds: ["kb-001", "ster-001"],
+      taskRevisions,
       answers: [["2"], ["6", "2sqrt(3)"]],
     };
     expect(parseSimulationGradeRequest(valid)).toEqual(valid);
@@ -61,6 +65,18 @@ describe("simulation grading", () => {
     ).toBeNull();
     expect(
       parseSimulationGradeRequest({ ...valid, answers: [["2"]] }),
+    ).toBeNull();
+    expect(
+      parseSimulationGradeRequest({
+        ...valid,
+        taskRevisions: taskRevisions.slice(0, 1),
+      }),
+    ).toBeNull();
+    expect(
+      parseSimulationGradeRequest({
+        ...valid,
+        taskRevisions: [taskRevisions[0], "../tasks"],
+      }),
     ).toBeNull();
     expect(
       parseSimulationGradeRequest({
