@@ -653,6 +653,7 @@
     "resultIntro": "Po pozicijama izaberi šta sledeće da vežbaš, a zatim pregledaj svaki poslati odgovor.",
     "timeExpiredResult": "Vremensko ograničenje je isteklo, pa je pokušaj završen odgovorima sačuvanim do tog trenutka.",
     "partialResult": "Odgovorio si na {answered} od {total} zadataka. Pokušaj je označen kao nepotpun i ne poredi se sa ranijim rezultatima.",
+    "historicalContentArchived": "Tekstovi zadataka, očekivani odgovori i rešenja ispod odgovaraju nepromenljivim revizijama zabeleženim za ovaj probni ispit.",
     "historicalContentChanged": "Ovaj probni ispit je rađen sa starijom revizijom sadržaja. Sačuvani bodovi i odgovori nisu promenjeni; tekstovi zadataka, očekivani odgovori i rešenja ispod prikazuju trenutnu verziju.",
     "scoreMetric": "Bodovi",
     "binaryEstimate": "Procena krajnjih odgovora",

@@ -1,21 +1,31 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, RotateCcw, SearchX } from "lucide-react";
+import {
+  AlertTriangle,
+  Archive,
+  ArrowRight,
+  RotateCcw,
+  SearchX,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   compatibleSimulationHistory,
   mergeSimulationArchive,
-  simulationContentChanged,
 } from "@/lib/simulation-archive";
 import { useSimulationArchive } from "@/lib/simulation-archive-store";
 import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
 import { renderSimulationReview } from "@/lib/simulation-review";
 import { buildSimulationResultSummary } from "@/lib/simulation-result";
+import {
+  alignSimulationResultAnswers,
+  selectSimulationResultContent,
+  type SimulationResultContentCandidate,
+} from "@/lib/simulation-result-content";
 import { useSimulation, useSimulationHistory } from "@/lib/simulation-store";
 import {
-  simulationRunHref,
+  simulationResultHref,
   type SimulationRunQuery,
 } from "@/lib/simulation-run";
 import {
@@ -37,10 +47,12 @@ export function SimulationResult({
   run,
   tasks: taskViews,
   contentRevision,
+  archiveCandidate,
 }: {
   run: SimulationRunQuery;
   tasks: SimulationTaskView[];
   contentRevision: string;
+  archiveCandidate: SimulationResultContentCandidate | null;
 }) {
   const t = useTranslations("simulation");
   const router = useRouter();
@@ -64,24 +76,41 @@ export function SimulationResult({
     [mergedArchive],
   );
   const entry = history.find((candidate) => candidate.id === run.runId);
-  const contentChanged = entry
-    ? simulationContentChanged(entry, contentRevision, taskViews)
-    : false;
+  const content = useMemo(
+    () =>
+      entry
+        ? selectSimulationResultContent(
+            entry,
+            contentRevision,
+            taskViews,
+            archiveCandidate,
+          )
+        : null,
+    [archiveCandidate, contentRevision, entry, taskViews],
+  );
   const matchingStoredReview =
     localHistory !== null &&
     activeRunId === run.runId &&
     activeVersion === run.blueprintVersion &&
     review.length === taskViews.length;
-  const reviewSource = entry
-    ? [
-        matchingStoredReview ? "stored" : "history",
-        entry.id,
-        entry.finishedAt,
-        contentChanged,
-        run.blueprintVersion,
-        run.taskIds.join(","),
-      ].join(":")
-    : `missing:${run.runId}`;
+  const useStoredReview =
+    matchingStoredReview &&
+    content !== null &&
+    !content.isArchived &&
+    !content.revisionMismatch;
+  const reviewSource =
+    entry && content
+      ? [
+          useStoredReview ? "stored" : "history",
+          entry.id,
+          entry.finishedAt,
+          content.isArchived,
+          content.revisionMismatch,
+          run.blueprintVersion,
+          run.taskIds.join(","),
+          content.tasks.map(({ revision }) => revision).join(","),
+        ].join(":")
+      : `missing:${run.runId}`;
 
   useEffect(() => {
     if (hydrated && entry) persistCompletedSimulationRun(entry);
@@ -89,10 +118,18 @@ export function SimulationResult({
 
   useEffect(() => {
     let current = true;
-    const load = matchingStoredReview
+    const load = useStoredReview
       ? renderSimulationReview(review)
-      : entry
-        ? loadHistoricalReview(run, entry, taskViews, contentChanged)
+      : entry && content
+        ? loadHistoricalReview(
+            run,
+            entry,
+            content.tasks,
+            content.revisionMismatch,
+            content.isArchived
+              ? content.tasks.map(({ revision }) => revision)
+              : undefined,
+          )
         : Promise.resolve(null);
     void load.then(
       (items) => {
@@ -105,15 +142,7 @@ export function SimulationResult({
     return () => {
       current = false;
     };
-  }, [
-    contentChanged,
-    entry,
-    matchingStoredReview,
-    review,
-    reviewSource,
-    run,
-    taskViews,
-  ]);
+  }, [content, entry, review, reviewSource, run, useStoredReview]);
 
   if (
     !hydrated ||
@@ -123,14 +152,20 @@ export function SimulationResult({
   ) {
     return <ResultLoading />;
   }
-  const tasks = rendered.items
-    ? attachSimulationReview(taskViews, rendered.items)
-    : null;
+  const tasks =
+    rendered.items && content
+      ? attachSimulationReview(content.tasks, rendered.items)
+      : null;
   const summary =
     entry && tasks ? buildSimulationResultSummary(entry, history, tasks) : null;
-  if (!entry || !tasks || !summary) return <ResultUnavailable />;
+  if (!entry || !content || !tasks || !summary) return <ResultUnavailable />;
 
-  const resultHref = simulationRunHref("/simulation/result", run);
+  const resultHref = simulationResultHref(
+    run,
+    content.isArchived
+      ? content.tasks.map(({ revision }) => revision)
+      : undefined,
+  );
   const firstPracticeTask = summary.practiceTaskIds
     .map((taskId) => tasks.find((task) => task.id === taskId))
     .find((task) => task !== undefined);
@@ -165,8 +200,13 @@ export function SimulationResult({
           })}
         </ResultNotice>
       )}
-      {contentChanged && (
+      {content.revisionMismatch && (
         <ResultNotice>{t("historicalContentChanged")}</ResultNotice>
+      )}
+      {content.isArchived && (
+        <ArchivedResultNotice>
+          {t("historicalContentArchived")}
+        </ArchivedResultNotice>
       )}
 
       <div className="mt-8">
@@ -237,6 +277,7 @@ async function loadHistoricalReview(
   entry: SimulationHistoryEntry,
   tasks: SimulationTaskView[],
   allowGradeMismatch: boolean,
+  taskRevisions?: readonly string[],
 ): Promise<SimulationRenderedReviewItem[] | null> {
   const response = await fetch("/api/content/simulation-grade", {
     method: "POST",
@@ -244,11 +285,10 @@ async function loadHistoricalReview(
     body: JSON.stringify({
       blueprintVersion: run.blueprintVersion,
       taskIds: run.taskIds,
-      answers: entry.answers.map((answers, index) =>
-        entry.results[index].outcome === "unanswered"
-          ? tasks[index].fields.map((_, part) => answers[part] ?? "")
-          : answers,
-      ),
+      ...(taskRevisions === undefined
+        ? {}
+        : { taskRevisions: [...taskRevisions] }),
+      answers: alignSimulationResultAnswers(tasks, entry.answers),
     }),
   });
   if (!response.ok) return null;
@@ -295,6 +335,15 @@ function sameGrade(
               : right[index].outcome === "partial" &&
                 right[index].earnedPoints === rubricScores[index])),
     )
+  );
+}
+
+function ArchivedResultNotice({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mt-6 flex max-w-3xl items-start gap-3 rounded-lg border border-line bg-subtle p-4 text-sm leading-6 text-ink">
+      <Archive aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-brand" />
+      <p>{children}</p>
+    </div>
   );
 }
 
