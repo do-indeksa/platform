@@ -124,7 +124,7 @@ test("a fresh browser recovers an interrupted rubric review", async ({
   await expect(
     page.getByRole("heading", { name: "Compare your written work" }),
   ).toBeVisible();
-  await expect(page.getByText("Task 1 of 5", { exact: true })).toBeVisible();
+  await expect(page.getByText("Task 1 of 6", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "2", exact: true }).click();
   await expect
     .poll(
@@ -154,14 +154,14 @@ test("a fresh browser recovers an interrupted rubric review", async ({
   await expect(
     page.getByRole("heading", { name: "Compare your written work" }),
   ).toBeVisible();
-  await expect(page.getByText("Task 2 of 5", { exact: true })).toBeVisible();
+  await expect(page.getByText("Task 2 of 6", { exact: true })).toBeVisible();
   const persisted = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
   expect(persisted.state).toMatchObject({
     phase: "reviewing",
     submittedAt: Date.parse(submittedAt),
-    rubricScores: [2, null, null, null, null, ...Array(5).fill(null)],
+    rubricScores: [2, null, null, null, null, null, ...Array(4).fill(null)],
   });
   expect(
     mutations.filter((call) => call.operationName === "RecordAttempt"),
