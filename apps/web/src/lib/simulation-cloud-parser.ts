@@ -1,0 +1,488 @@
+import { validate as isUuid } from "uuid";
+import {
+  emptySimulationState,
+  parsePersistedSimulationState,
+  type PersistedSimulationState,
+} from "./simulation-persistence";
+import { progressAttemptId, progressRunItemId } from "./progress-run";
+import type {
+  ProgressCloudCatalog,
+  ProgressCloudTask,
+} from "./progress-cloud-types";
+import { MAX_ANSWER_LENGTH } from "./task-draft";
+import type { SimulationTaskView } from "./simulation-types";
+
+const CONTENT_REVISION_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const LOCAL_BLUEPRINT_VERSION_PATTERN = /^\d{4}\.\d+$/;
+const CLIENT_CLOCK_SKEW_MS = 5 * 60_000;
+const MAX_SERIALIZED_ANSWER_LENGTH = 8_192;
+
+export type SimulationCloudTask = ProgressCloudTask & {
+  examPosition: number;
+  maxPoints: number;
+};
+
+export type SimulationCloudRuntime = {
+  runId: string;
+  runOwnerId: string;
+  checkpointVersion: number;
+  blueprintVersion: string;
+  contentRevision: string;
+  tasks: SimulationCloudTask[];
+  answers: string[][];
+  skipped: boolean[];
+  phase: "running" | "submitting";
+  startedAt: number;
+  endsAt: number;
+  currentIndex: number;
+  savedAt: number | null;
+  timedOut: boolean;
+};
+
+export type SimulationCloudRun = {
+  runtime: SimulationCloudRuntime;
+  checkpointUpdatedAt: string | null;
+};
+
+export function parseActiveSimulationRunIds(
+  value: unknown,
+  limit: number,
+): string[] | null {
+  if (!Array.isArray(value) || value.length > limit) return null;
+  const activeIds: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of value) {
+    if (
+      !isRecord(candidate) ||
+      !isUuidString(candidate.id) ||
+      seen.has(candidate.id) ||
+      !isRunKind(candidate.kind) ||
+      !isRunStatus(candidate.status) ||
+      !isRemoteTime(candidate.startedAt)
+    ) {
+      return null;
+    }
+    seen.add(candidate.id);
+    if (candidate.kind === "SIMULATION" && candidate.status === "ACTIVE") {
+      activeIds.push(candidate.id);
+    }
+  }
+  return activeIds;
+}
+
+export function parseSimulationCloudRun(
+  value: unknown,
+  catalog: ProgressCloudCatalog,
+  ownerId: string,
+): SimulationCloudRun | null {
+  const blueprintVersion = localBlueprintVersion(catalog.blueprintVersion);
+  if (
+    !validCatalog(catalog) ||
+    blueprintVersion === null ||
+    !isRecord(value) ||
+    !isUuid(ownerId) ||
+    !isUuidString(value.id) ||
+    value.kind !== "SIMULATION" ||
+    value.status !== "ACTIVE" ||
+    value.blueprintVersion !== catalog.blueprintVersion ||
+    typeof value.contentRevision !== "string" ||
+    !CONTENT_REVISION_PATTERN.test(value.contentRevision) ||
+    !isRemoteTime(value.startedAt) ||
+    !isOptionalRemoteTime(value.deadlineAt) ||
+    (value.submittedAt !== null && value.submittedAt !== undefined) ||
+    !Array.isArray(value.items) ||
+    value.items.length !== catalog.taskCount
+  ) {
+    return null;
+  }
+
+  const startedAt = Date.parse(value.startedAt);
+  const expectedEndsAt = startedAt + catalog.durationMinutes * 60_000;
+  if (
+    (typeof value.deadlineAt === "string" &&
+      Date.parse(value.deadlineAt) !== expectedEndsAt) ||
+    !isOptionalDuration(value.activeDurationMs, startedAt)
+  ) {
+    return null;
+  }
+
+  const tasks: SimulationCloudTask[] = [];
+  const attempts: (ParsedAttempt | null)[] = [];
+  const runItemIds: string[] = [];
+  const seenTasks = new Set<string>();
+  let attemptGap = false;
+  let attemptCount = 0;
+  let submissionAt: number | null = null;
+
+  for (const [index, rawItem] of value.items.entries()) {
+    const position = catalog.positions[index];
+    if (
+      position?.ordinal !== index + 1 ||
+      !isRecord(rawItem) ||
+      rawItem.ordinal !== index + 1 ||
+      rawItem.examPosition !== position.examPosition ||
+      rawItem.maxPoints !== position.maxPoints ||
+      typeof rawItem.taskId !== "string"
+    ) {
+      return null;
+    }
+    const task = position.candidates.find(
+      (candidate) => candidate.id === rawItem.taskId,
+    );
+    const runItemId = task ? progressRunItemId(value.id, task.id) : null;
+    if (
+      task === undefined ||
+      seenTasks.has(task.id) ||
+      rawItem.id !== runItemId ||
+      rawItem.topic !== task.topic ||
+      rawItem.taskRevision !== task.revision ||
+      !Array.isArray(rawItem.recentAttempts) ||
+      rawItem.recentAttempts.length > 1
+    ) {
+      return null;
+    }
+    seenTasks.add(task.id);
+    const resolvedTask = {
+      ...task,
+      examPosition: position.examPosition,
+      maxPoints: position.maxPoints,
+    };
+    tasks.push(resolvedTask);
+    runItemIds.push(runItemId as string);
+
+    const rawAttempt = rawItem.recentAttempts[0];
+    if (rawAttempt === undefined) {
+      attemptGap = true;
+      attempts.push(null);
+      continue;
+    }
+    if (attemptGap) return null;
+    const attempt = parseAttempt(
+      rawAttempt,
+      runItemId as string,
+      resolvedTask,
+      startedAt,
+    );
+    if (
+      attempt === null ||
+      (submissionAt !== null && submissionAt !== attempt.submittedAt)
+    ) {
+      return null;
+    }
+    submissionAt = attempt.submittedAt;
+    attemptCount += 1;
+    attempts.push(attempt);
+  }
+
+  const checkpoint = parseCheckpoint(
+    value.checkpoint,
+    tasks,
+    runItemIds,
+    startedAt,
+  );
+  if (checkpoint === null) return null;
+  const answers = tasks.map(emptyAnswers);
+  const skipped = Array<boolean>(tasks.length).fill(false);
+  for (const [index, draft] of checkpoint.drafts.entries()) {
+    if (draft === null) continue;
+    answers[index] = draft;
+    skipped[index] = draft.every((answer) => answer === "");
+  }
+  for (const [index, attempt] of attempts.entries()) {
+    if (attempt === null) continue;
+    const draft = checkpoint.drafts[index];
+    if (
+      draft !== null &&
+      (!sameValues(draft, attempt.answers) ||
+        skipped[index] !== attempt.skipped)
+    ) {
+      return null;
+    }
+    answers[index] = attempt.answers;
+    skipped[index] = attempt.skipped;
+  }
+
+  const phase = attemptCount > 0 ? "submitting" : "running";
+  const currentIndex =
+    checkpoint.currentIndex ??
+    Math.min(Math.max(attemptCount - 1, 0), tasks.length - 1);
+  return {
+    runtime: {
+      runId: value.id,
+      runOwnerId: ownerId,
+      checkpointVersion: checkpoint.version,
+      blueprintVersion,
+      contentRevision: value.contentRevision,
+      tasks,
+      answers,
+      skipped,
+      phase,
+      startedAt,
+      endsAt: expectedEndsAt,
+      currentIndex,
+      savedAt: checkpoint.updatedAt,
+      timedOut:
+        phase === "submitting" &&
+        submissionAt !== null &&
+        submissionAt >= expectedEndsAt,
+    },
+    checkpointUpdatedAt: checkpoint.updatedAtIso,
+  };
+}
+
+export function materializeSimulationCloudRun(
+  cloud: SimulationCloudRun,
+  blueprintVersion: string,
+  contentRevision: string,
+  tasks: readonly SimulationTaskView[],
+): PersistedSimulationState | null {
+  const remote = cloud.runtime;
+  if (
+    remote.blueprintVersion !== blueprintVersion ||
+    remote.contentRevision !== contentRevision ||
+    tasks.length !== remote.tasks.length ||
+    !tasks.every((task, index) => sameTaskView(task, remote.tasks[index]))
+  ) {
+    return null;
+  }
+  const parsed = parsePersistedSimulationState({
+    ...emptySimulationState(),
+    runId: remote.runId,
+    runOwnerId: remote.runOwnerId,
+    checkpointVersion: remote.checkpointVersion,
+    blueprintVersion: remote.blueprintVersion,
+    contentRevision: remote.contentRevision,
+    tasks,
+    answers: remote.answers,
+    skipped: remote.skipped,
+    phase: remote.phase,
+    startedAt: remote.startedAt,
+    endsAt: remote.endsAt,
+    currentIndex: remote.currentIndex,
+    savedAt: remote.savedAt,
+    timedOut: remote.timedOut,
+  });
+  return parsed.phase === remote.phase ? parsed : null;
+}
+
+type ParsedCheckpoint = {
+  version: number;
+  currentIndex: number | null;
+  updatedAt: number | null;
+  updatedAtIso: string | null;
+  drafts: (string[] | null)[];
+};
+
+function parseCheckpoint(
+  value: unknown,
+  tasks: SimulationCloudTask[],
+  runItemIds: string[],
+  startedAt: number,
+): ParsedCheckpoint | null {
+  if (value === null || value === undefined) {
+    return {
+      version: 0,
+      currentIndex: null,
+      updatedAt: null,
+      updatedAtIso: null,
+      drafts: Array<null>(tasks.length).fill(null),
+    };
+  }
+  if (
+    !isRecord(value) ||
+    !isPositiveVersion(value.version) ||
+    !Number.isInteger(value.currentOrdinal) ||
+    (value.currentOrdinal as number) < 1 ||
+    (value.currentOrdinal as number) > tasks.length ||
+    !isOptionalDuration(value.activeDurationMs, startedAt) ||
+    !isRemoteTime(value.updatedAt) ||
+    !Array.isArray(value.drafts) ||
+    value.drafts.length > tasks.length
+  ) {
+    return null;
+  }
+  const drafts = Array<string[] | null>(tasks.length).fill(null);
+  for (const rawDraft of value.drafts) {
+    if (!isRecord(rawDraft) || typeof rawDraft.runItemId !== "string") {
+      return null;
+    }
+    const index = runItemIds.indexOf(rawDraft.runItemId);
+    if (index < 0 || drafts[index] !== null) return null;
+    const answers = parseAnswers(rawDraft.answer, tasks[index].answerPartCount);
+    if (answers === null) return null;
+    drafts[index] = answers;
+  }
+  return {
+    version: value.version,
+    currentIndex: (value.currentOrdinal as number) - 1,
+    updatedAt: Date.parse(value.updatedAt),
+    updatedAtIso: value.updatedAt,
+    drafts,
+  };
+}
+
+type ParsedAttempt = {
+  answers: string[];
+  skipped: boolean;
+  submittedAt: number;
+};
+
+function parseAttempt(
+  value: unknown,
+  runItemId: string,
+  task: SimulationCloudTask,
+  runStartedAt: number,
+): ParsedAttempt | null {
+  if (
+    !isRecord(value) ||
+    value.id !== progressAttemptId(runItemId) ||
+    value.runItemId !== runItemId ||
+    value.taskId !== task.id ||
+    value.examPosition !== task.examPosition ||
+    value.mode !== "SIMULATION" ||
+    value.helpLevel !== 0 ||
+    value.gradingKind !== "AUTO" ||
+    value.taskRevision !== task.revision ||
+    value.maxPoints !== task.maxPoints ||
+    !isRemoteTime(value.startedAt) ||
+    Date.parse(value.startedAt) !== runStartedAt ||
+    !isRemoteTime(value.submittedAt) ||
+    !isOptionalDuration(value.activeDurationMs, runStartedAt)
+  ) {
+    return null;
+  }
+  const submittedAt = Date.parse(value.submittedAt);
+  if (submittedAt < runStartedAt) return null;
+  if (value.outcome === "SKIPPED") {
+    if (
+      (value.answer !== null && value.answer !== undefined) ||
+      (value.earnedPoints !== null && value.earnedPoints !== undefined)
+    ) {
+      return null;
+    }
+    return { answers: emptyAnswers(task), skipped: true, submittedAt };
+  }
+  if (value.outcome !== "CORRECT" && value.outcome !== "INCORRECT") {
+    return null;
+  }
+  const answers = parseAnswers(value.answer, task.answerPartCount);
+  const expectedPoints = value.outcome === "CORRECT" ? task.maxPoints : 0;
+  return answers === null || value.earnedPoints !== expectedPoints
+    ? null
+    : { answers, skipped: false, submittedAt };
+}
+
+function parseAnswers(value: unknown, partCount: number): string[] | null {
+  if (
+    typeof value !== "string" ||
+    value.length > MAX_SERIALIZED_ANSWER_LENGTH
+  ) {
+    return null;
+  }
+  try {
+    const answers: unknown = JSON.parse(value);
+    if (
+      !Array.isArray(answers) ||
+      answers.length !== partCount ||
+      !answers.every(
+        (answer) =>
+          typeof answer === "string" && answer.length <= MAX_ANSWER_LENGTH,
+      )
+    ) {
+      return null;
+    }
+    return [...answers];
+  } catch {
+    return null;
+  }
+}
+
+function sameTaskView(
+  task: SimulationTaskView,
+  remote: SimulationCloudTask,
+): boolean {
+  return (
+    task.id === remote.id &&
+    task.revision === remote.revision &&
+    task.slot === remote.slot &&
+    task.examPosition === remote.examPosition &&
+    task.maxPoints === remote.maxPoints &&
+    task.topic === remote.topic &&
+    task.fields.length === remote.answerPartCount
+  );
+}
+
+function validCatalog(catalog: ProgressCloudCatalog): boolean {
+  return (
+    Number.isSafeInteger(catalog.durationMinutes) &&
+    catalog.durationMinutes > 0 &&
+    Number.isSafeInteger(catalog.taskCount) &&
+    catalog.taskCount > 0 &&
+    catalog.taskCount <= 20 &&
+    catalog.positions.length === catalog.taskCount
+  );
+}
+
+function localBlueprintVersion(value: string): string | null {
+  const separator = value.lastIndexOf(":");
+  const version = separator < 0 ? "" : value.slice(separator + 1);
+  return LOCAL_BLUEPRINT_VERSION_PATTERN.test(version) ? version : null;
+}
+
+function emptyAnswers(task: Pick<ProgressCloudTask, "answerPartCount">) {
+  return Array<string>(task.answerPartCount).fill("");
+}
+
+function isRemoteTime(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const timestamp = Date.parse(value);
+  return (
+    !Number.isNaN(timestamp) &&
+    timestamp > 0 &&
+    timestamp <= Date.now() + CLIENT_CLOCK_SKEW_MS
+  );
+}
+
+function isOptionalRemoteTime(value: unknown): boolean {
+  return value === null || value === undefined || isRemoteTime(value);
+}
+
+function isOptionalDuration(value: unknown, startedAt: number): boolean {
+  return (
+    value === null ||
+    value === undefined ||
+    (typeof value === "number" &&
+      Number.isSafeInteger(value) &&
+      value >= 0 &&
+      value <= Date.now() + CLIENT_CLOCK_SKEW_MS - startedAt)
+  );
+}
+
+function isPositiveVersion(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function isUuidString(value: unknown): value is string {
+  return typeof value === "string" && isUuid(value);
+}
+
+function isRunKind(value: unknown): boolean {
+  return (
+    value === "PRACTICE" || value === "DIAGNOSTIC" || value === "SIMULATION"
+  );
+}
+
+function isRunStatus(value: unknown): boolean {
+  return value === "ACTIVE" || value === "SUBMITTED" || value === "ABANDONED";
+}
+
+function sameValues<T>(left: readonly T[], right: readonly T[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
