@@ -241,6 +241,9 @@ describe("task files", () => {
       "eks-001",
       "eks-002",
       "eks-003",
+      "fun-001",
+      "fun-002",
+      "fun-003",
       "kb-001",
       "kb-002",
       "kb-003",
@@ -398,6 +401,40 @@ describe("task files", () => {
       "incorrect",
     );
     expect(checkAnswer(tasks.get("ster-002")!.check[3], "3/4")).toBe(
+      "incorrect",
+    );
+  });
+
+  it("roundtrips independently verified function-analysis answers", async () => {
+    const tasks = new Map(
+      (await getTasks("analiza-funkcije")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["fun-001", 0, "6/3"],
+      ["fun-001", 1, "2+x"],
+      ["fun-001", 2, "sqrt(4)"],
+      ["fun-001", 3, "12/2"],
+      ["fun-001", 4, "ln(2)+22/4"],
+      ["fun-002", 0, "-2/2"],
+      ["fun-002", 1, "-1+x"],
+      ["fun-002", 2, "2-2*x"],
+      ["fun-002", 3, "2+x/2"],
+      ["fun-002", 4, "3/3"],
+      ["fun-003", 0, "e^2/4+1/4"],
+      ["fun-003", 1, "(sqrt(8)-1)/3"],
+      ["fun-003", 2, "2/4"],
+      ["fun-003", 3, "5/5"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("fun-001")!.check[4], "11/2")).toBe(
+      "incorrect",
+    );
+    expect(checkAnswer(tasks.get("fun-002")!.check[3], "-x/2+2")).toBe(
       "incorrect",
     );
   });
