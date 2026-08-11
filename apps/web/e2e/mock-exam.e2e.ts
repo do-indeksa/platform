@@ -373,7 +373,26 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
           operation === "StartRun" || operation === "CheckpointRun",
       ),
   ).toBe(true);
-  expect(operations.slice(firstAttempt).includes("CheckpointRun")).toBe(false);
+  const attemptIndexes = operations.flatMap((operation, index) =>
+    operation === "RecordAttempt" ? [index] : [],
+  );
+  const reviewCheckpoints = graphQLCalls
+    .slice(firstAttempt)
+    .filter((call) => call.operationName === "CheckpointRun");
+  expect(reviewCheckpoints.length).toBeGreaterThan(0);
+  expect(operations.lastIndexOf("CheckpointRun")).toBeLessThan(
+    attemptIndexes[10],
+  );
+  expect(
+    reviewCheckpoints.some((call) => {
+      const drafts = call.variables.input?.drafts as
+        { answer: string }[] | undefined;
+      return drafts?.some((draft) => {
+        const value = JSON.parse(draft.answer) as Record<string, unknown>;
+        return value.version === 1 && value.rubricScore === 0;
+      });
+    }),
+  ).toBe(true);
   expect(
     operations.filter((operation) => operation === "RecordAttempt"),
   ).toHaveLength(20);
