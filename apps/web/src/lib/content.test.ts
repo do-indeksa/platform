@@ -253,6 +253,9 @@ describe("task files", () => {
       "plan-001",
       "plan-002",
       "plan-003",
+      "ster-001",
+      "ster-002",
+      "ster-003",
       "trig-001",
       "trig-002",
       "trig-003",
@@ -365,6 +368,36 @@ describe("task files", () => {
       "incorrect",
     );
     expect(checkAnswer(tasks.get("plan-003")!.check[0], "6,10,13")).toBe(
+      "incorrect",
+    );
+  });
+
+  it("roundtrips independently verified stereometry answers", async () => {
+    const tasks = new Map(
+      (await getTasks("stereometrija")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["ster-001", 0, "12/2"],
+      ["ster-001", 1, "sqrt(12)"],
+      ["ster-001", 2, "1/(3sqrt(3))"],
+      ["ster-002", 0, "3*pi*4"],
+      ["ster-002", 1, "8*3*pi"],
+      ["ster-002", 2, "6/4"],
+      ["ster-002", 3, "9/24"],
+      ["ster-003", 0, "4^3"],
+      ["ster-003", 1, "6*4^2"],
+      ["ster-003", 2, "64/144"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("ster-001")!.check[1], "sqrt(3)")).toBe(
+      "incorrect",
+    );
+    expect(checkAnswer(tasks.get("ster-002")!.check[3], "3/4")).toBe(
       "incorrect",
     );
   });

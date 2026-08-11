@@ -17,7 +17,7 @@ test("verified topics have a versioned review record", async () => {
       path.join(repoRoot, "content/tasks"),
       path.join(repoRoot, "content/reviews"),
     ),
-    { reviewCount: 5, verifiedTaskCount: 21, verifiedTopicCount: 7 },
+    { reviewCount: 6, verifiedTaskCount: 24, verifiedTopicCount: 8 },
   );
 });
 

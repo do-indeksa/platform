@@ -5,7 +5,7 @@ topic: stereometrija
 difficulty: 4
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 8, zadatak 2'
-status: review
+status: verified
 answer: 'a) $b=\frac{aH}{a+H}$; b) $b=4$, $V=64$, $P=96$; v) $\frac{4}{9}$'
 check:
   - label: 'b) V'
@@ -17,11 +17,21 @@ check:
   - label: 'v)'
     kind: value
     expected: '4/9'
+rubric:
+  - id: cube-edge-from-section
+    points: 2
+    text: 'Iz linearnog smanjivanja horizontalnog preseka i uslova na visini $z=b$ izvedeno je $b=aH/(a+H)$.'
+  - id: cube-measures
+    points: 2
+    text: 'Za $a=6$ i $H=12$ tačno su izračunati $b=4$, zapremina $64$ i površina $96$.'
+  - id: cube-pyramid-volume-ratio
+    points: 1
+    text: 'Zapremina kocke upoređena je sa $V_{\text{pir}}=a^2H/3=144$, pa je dobijen odnos $4/9$.'
 ---
 
 ## Zadatak
 
-U pravilnu četvorostranu piramidu sa stranicom osnove $a$ i visinom $H$ upisana je kocka: jedna stranica kocke leži u osnovi piramide (centrirana), a četiri gornja temena kocke leže na bočnim stranama piramide.
+U pravilnu četvorostranu piramidu sa stranicom osnove $a$ i visinom $H$ upisana je kocka: jedna strana kocke leži u osnovi piramide, centrirana je i njene ivice su paralelne odgovarajućim ivicama osnove piramide, a četiri gornja temena kocke leže na bočnim stranama piramide.
 
 **a)** Izraziti ivicu kocke $b$ kao funkciju od $a$ i $H$.
 
@@ -39,7 +49,7 @@ Presek na visini $z$ ima stranicu $a\cdot\dfrac{H-z}{H}$; za gornju stranu kocke
 
 ## Rešenje
 
-**a)** Horizontalni presek piramide na visini $z$ je kvadrat sa stranicom $a\cdot\dfrac{H-z}{H}$. Gornja strana kocke na visini $z=b$ ima stranicu $b$, jednaku stranici preseka:
+**a)** Zbog zadate paralelne orijentacije, horizontalni presek piramide na visini $z$ je kvadrat sa stranicom $a\cdot\dfrac{H-z}{H}$, a gornja strana kocke na visini $z=b$ poklapa se s tim presekom. Zato je njena stranica $b$ jednaka stranici preseka:
 
 $$b=a\cdot\frac{H-b}{H}\Rightarrow b(a+H)=aH\Rightarrow b=\frac{aH}{a+H}.$$
 
