@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { parsePersistedSimulationState } from "../src/lib/simulation-persistence";
+import { archivedSimulationTaskRevisions } from "./simulation-revision-fixture";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const dynamicNavigationTimeout = 15_000;
@@ -496,6 +497,34 @@ test("mock checker bounds bodies and returns only grading outcomes", async ({
         !("expected" in result),
     ),
   ).toBe(true);
+
+  const historical = await request.post("/api/content/simulation-grade", {
+    data: {
+      blueprintVersion: "2026.1",
+      taskIds: currentTaskIds,
+      taskRevisions: archivedSimulationTaskRevisions,
+      answers: answerPartCounts.map((count) => Array(count).fill("")),
+    },
+  });
+  expect(historical.status()).toBe(200);
+  const historicalPayload = await historical.json();
+  expect(historicalPayload.review[0].rubric).toEqual([]);
+  expect(payload.review[0].rubric).toHaveLength(3);
+
+  const missingRevision = [...archivedSimulationTaskRevisions];
+  missingRevision[0] = `sha256:${"0".repeat(64)}`;
+  expect(
+    (
+      await request.post("/api/content/simulation-grade", {
+        data: {
+          blueprintVersion: "2026.1",
+          taskIds: currentTaskIds,
+          taskRevisions: missingRevision,
+          answers: answerPartCounts.map((count) => Array(count).fill("")),
+        },
+      })
+    ).status(),
+  ).toBe(404);
 
   const wrongType = await request.post("/api/content/simulation-grade", {
     headers: { "Content-Type": "text/plain" },

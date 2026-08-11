@@ -1,4 +1,9 @@
 import { expect, test } from "@playwright/test";
+import {
+  archivedSimulationContentRevision,
+  archivedSimulationTaskRevisions,
+  currentKbRevision,
+} from "./simulation-revision-fixture";
 
 const taskIds = [
   "kb-001",
@@ -438,7 +443,12 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
   page,
 }) => {
   const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
-  const revision = `sha256:${"b".repeat(64)}`;
+  const gradeRequests: Record<string, unknown>[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/content/simulation-grade")) {
+      gradeRequests.push(request.postDataJSON() as Record<string, unknown>);
+    }
+  });
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({
       json: {
@@ -465,7 +475,7 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
             {
               id: runId,
               blueprintVersion: "ftn-p1:2026.1",
-              contentRevision: `sha256:${"a".repeat(64)}`,
+              contentRevision: archivedSimulationContentRevision,
               startedAt: "2026-08-10T10:00:00.000Z",
               deadlineAt: "2026-08-10T14:00:00.000Z",
               submittedAt: "2026-08-10T10:10:00.000Z",
@@ -475,17 +485,21 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
                 examPosition: index + 1,
                 topic: `topic-${index + 1}`,
                 maxPoints: 6,
-                taskRevision: revision,
+                taskRevision: archivedSimulationTaskRevisions[index],
                 answer:
                   index === 0
                     ? JSON.stringify(Array(answerPartCounts[index]).fill("0"))
-                    : null,
-                outcome: index === 0 ? "PARTIAL" : "SKIPPED",
-                gradingKind:
-                  index === 0 || index === 1 || index === 3
-                    ? "RUBRIC_SELF"
-                    : "AUTO",
-                earnedPoints: index === 0 ? 3 : null,
+                    : index === 1
+                      ? JSON.stringify(["1"])
+                      : null,
+                outcome:
+                  index === 0
+                    ? "INCORRECT"
+                    : index === 1
+                      ? "PARTIAL"
+                      : "SKIPPED",
+                gradingKind: index === 1 ? "RUBRIC_SELF" : "AUTO",
+                earnedPoints: index === 0 ? 0 : index === 1 ? 3 : null,
               })),
             },
           ],
@@ -514,15 +528,45 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
   await expect(
     page.getByRole("heading", { name: "Your result", exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("You answered 1 of 10 tasks.")).toBeVisible();
+  const archivedUrl = new URL(page.url());
+  expect(archivedUrl.searchParams.get("revisions")?.split(",")).toEqual(
+    archivedSimulationTaskRevisions,
+  );
+  expect(archivedUrl.searchParams.has("account")).toBe(false);
+  expect(archivedUrl.searchParams.has("answer")).toBe(false);
+  await expect(page.getByText("You answered 2 of 10 tasks.")).toBeVisible();
   const partial = page
     .getByRole("heading", { name: "Partial credit", exact: true })
     .locator("../..");
-  await expect(partial).toContainText("1");
+  await expect(partial).toContainText("2");
+  await expect(
+    page.getByText(
+      "The statements, expected answers and solutions below match the immutable task revisions recorded for this mock exam.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/This mock exam used an older content revision/),
+  ).toHaveCount(0);
+  await expect
+    .poll(() => gradeRequests.at(-1)?.taskRevisions)
+    .toEqual([...archivedSimulationTaskRevisions]);
+  await expect(page.locator("#answers tbody tr")).toHaveCount(10);
+
+  const tamperedRevisions = [...archivedSimulationTaskRevisions];
+  tamperedRevisions[0] = currentKbRevision;
+  archivedUrl.searchParams.set("revisions", tamperedRevisions.join(","));
+  await page.goto(archivedUrl.toString());
   await expect(
     page.getByText(/This mock exam used an older content revision/),
   ).toBeVisible();
-  await expect(page.locator("#answers tbody tr")).toHaveCount(10);
+  await expect(
+    page.getByText(
+      "The statements, expected answers and solutions below match the immutable task revisions recorded for this mock exam.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
+  await expect.poll(() => gradeRequests.at(-1)?.taskRevisions).toBeUndefined();
 });
 
 test("local detail rows stay isolated between accounts", async ({ page }) => {
