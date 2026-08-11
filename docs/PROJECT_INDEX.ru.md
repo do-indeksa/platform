@@ -174,12 +174,12 @@ EN и SR, гостевые и авторизованные состояния.
 | Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
 | Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |
 | Пробный экзамен          | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор    |
-| История                  | готова для preview     | sync, URL-фильтры задач, detail/back и честный score trend полных P1      |
+| История                  | готова для preview     | sync, фильтры, immutable task detail и честный score trend полных P1      |
 | Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                     |
 | Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
-| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 30 immutable snapshots          |
+| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions          |
 | Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
 Текущие маршруты web:
@@ -247,10 +247,13 @@ History UI показывает ответы, длительность, спос
 все outcomes; локальные legacy-детали и архив пробников изолированы по owner.
 Завершённые пробники объединяются с серверным архивом по run UUID, поэтому их
 можно открыть на другом устройстве. Точные verified Markdown snapshots условий
-и решений сохраняются по task ID и revision. Web resolver принимает только
-строгие task ID/SHA-256, перепроверяет bytes/metadata и использует общий parser
-с текущим контентом. Оставшийся разрыв - привязка resolver к hydrated history
-entry: пока UI показывает предупреждение и текущую редакцию.
+и решений сохраняются по task ID и revision. Ссылка детали передаёт только
+публичную SHA-256 revision; web resolver перепроверяет ID, bytes и metadata общим
+parser, а клиент выбирает архив только после точного совпадения с owner-scoped
+hydrated entry. Для записанной, но отсутствующей или подменённой revision UI
+показывает текущую редакцию с явным предупреждением; legacy entry без revision
+не выдаётся за архивную. Повтор задачи и похожая задача всегда открывают текущий
+контент.
 
 ### Run
 
@@ -265,9 +268,10 @@ checkpoint отдельно от append-only attempts и удаляет его �
 текущий draft, гидратирует только совместимый актуальный blueprint и при
 расхождении предлагает явный выбор без last-write-wins. Пробник синхронизирует
 assignment и drafts до общей сдачи, затем сохраняет отдельный слой `AUTO`
-проверки и `RUBRIC_SELF` самооценки до единственного `submitRun`. Immutable
-архив и строгий server-side resolver старых content revisions существуют, но
-history UI пока не выбирает снимок конкретной попытки.
+проверки и `RUBRIC_SELF` самооценки до единственного `submitRun`. Деталь
+отдельной history attempt уже выбирает точный immutable snapshot; привязка
+архивных условий к каждому item на странице результата пробника остаётся
+отдельным срезом.
 
 ## 8. Зафиксированные продуктовые решения
 
