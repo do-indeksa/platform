@@ -653,6 +653,7 @@
     "resultIntro": "Use the position breakdown to decide what to practise next, then inspect every submitted answer.",
     "timeExpiredResult": "The time limit expired, so the attempt was submitted with the answers saved at that moment.",
     "partialResult": "You answered {answered} of {total} tasks. This is shown as a partial attempt and is not compared with earlier results.",
+    "historicalContentArchived": "The statements, expected answers and solutions below match the immutable task revisions recorded for this mock exam.",
     "historicalContentChanged": "This mock exam used an older content revision. Its stored score and answers are unchanged; the statements, expected answers and solutions below show the current version.",
     "scoreMetric": "Score",
     "binaryEstimate": "Final-answer estimate",
