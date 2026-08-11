@@ -5,7 +5,7 @@ topic: trigonometrija
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 5, zadatak 1'
-status: review
+status: verified
 answer: 'a) $x\in\left\{\frac{2\pi}{3},\ \pi,\ \frac{4\pi}{3}\right\}$; b) $x\in\left\{\frac{\pi}{4},\ \frac{\pi}{3},\ \frac{3\pi}{4}\right\}$'
 check:
   - label: 'a)'
@@ -14,6 +14,16 @@ check:
   - label: 'b)'
     kind: values
     expected: 'pi/4, pi/3, 3pi/4'
+rubric:
+  - id: double-angle-reduction
+    points: 2
+    text: 'U delu a) identitet $\cos 2x=2\cos^2x-1$ daje kvadratnu jednačinu sa vrednostima $\cos x=-1/2$ i $\cos x=-1$.'
+  - id: product-reduction
+    points: 2
+    text: 'U delu b) zbir kosinusa je pravilno pretvoren u proizvod $\cos 2x\,(2\cos x-1)=0$ i rešena su oba činioca.'
+  - id: interval-filter
+    points: 1
+    text: 'Sve dobijene serije su presečene sa odgovarajućim intervalima i navedena su sva rešenja bez suvišnih tačaka.'
 ---
 
 ## Zadatak

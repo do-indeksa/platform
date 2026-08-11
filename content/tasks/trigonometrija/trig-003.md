@@ -5,7 +5,7 @@ topic: trigonometrija
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 5, zadatak 5'
-status: review
+status: verified
 answer: 'a) $x\in\left\{-\frac{\pi}{2},\ 0,\ \frac{\pi}{2}\right\}$; b) $x\in\left(-\frac{\pi}{2},0\right)\cup\left(0,\frac{\pi}{2}\right)$; c) $x\in\left(-\pi,-\frac{\pi}{2}\right)\cup\left(\frac{\pi}{2},\pi\right]$'
 check:
   - label: 'a)'
@@ -17,6 +17,16 @@ check:
   - label: 'c)'
     kind: interval
     expected: '(-pi,-pi/2)u(pi/2,pi]'
+rubric:
+  - id: factorization
+    points: 2
+    text: 'Funkcija je identitetom za $\cos 2x$ pravilno rastavljena kao $f(x)=2\cos x\,(1-\cos x)$ i uočen je znak drugog činioca.'
+  - id: zeros
+    points: 1
+    text: 'Na intervalu $(-\pi,\pi]$ nađene su sve tri nule $-\pi/2$, $0$ i $\pi/2$.'
+  - id: sign-intervals
+    points: 2
+    text: 'Znak funkcije je tačno određen između nula, uz isključivanje tačke $0$ za $f>0$ i pravilno uključivanje tačke $\pi$ za $f<0$.'
 ---
 
 ## Zadatak

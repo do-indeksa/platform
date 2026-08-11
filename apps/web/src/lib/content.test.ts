@@ -250,6 +250,9 @@ describe("task files", () => {
       "log-001",
       "log-002",
       "log-003",
+      "trig-001",
+      "trig-002",
+      "trig-003",
     ]);
   });
 
@@ -274,6 +277,33 @@ describe("task files", () => {
     expect(checkAnswer(tasks.get("eks-003")!.check[1], "(-1,3)")).toBe(
       "incorrect",
     );
+  });
+
+  it("roundtrips independently verified trigonometry answers", async () => {
+    const tasks = new Map(
+      (await getTasks("trigonometrija")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["trig-001", 0, "{5π/6, π/2}"],
+      ["trig-001", 1, "x=5*pi/6"],
+      ["trig-002", 0, "pi, 4pi/3, 2pi/3"],
+      ["trig-002", 1, "{3π/4, π/4, π/3}"],
+      ["trig-003", 0, "0, π/2, -π/2"],
+      ["trig-003", 1, "(-π/2,0) U (0,π/2)"],
+      ["trig-003", 2, "(π/2,π] ∪ (-π,-π/2)"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("trig-001")!.check[1], "pi/2")).toBe(
+      "incorrect",
+    );
+    expect(
+      checkAnswer(tasks.get("trig-003")!.check[2], "(-pi,-pi/2)u(pi/2,pi)"),
+    ).toBe("incorrect");
   });
 
   it("statements and solutions render without KaTeX errors", async () => {
