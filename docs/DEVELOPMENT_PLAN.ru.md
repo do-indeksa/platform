@@ -57,12 +57,14 @@ AI-оценивание остается вне критического пут�
   история, simplified plan, daily task/streak и FTN-каталог;
 - Go-монолит содержит gqlgen run/attempt lifecycle и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
-- история показывает score trend только по полным проверенным P1 на 60 баллов;
+- история имеет allowlisted URL-фильтры по области, результату и периоду,
+  сохраняет их при открытии детали и показывает score trend только по полным
+  проверенным P1 на 60 баллов;
 - `Prijavi grešku` открывает предзаполненный content-report с task ID и revision,
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, первые 9 задач в 3 полных
   темах прошли versioned mathematical review;
-- blocking CI включает 380 unit-тестов, 60 Playwright-сценариев, container
+- blocking CI включает 386 unit-тестов, 61 Playwright-сценарий, container
   smoke, dependency audit и Trivy.
 
 Не завершены server-backed cross-device lifecycle, rubric partial scoring,
