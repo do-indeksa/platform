@@ -5,7 +5,7 @@ topic: kombinatorika
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 10, zadatak 3'
-status: review
+status: verified
 answer: 'a) $300$; b) $108$; v) $156$'
 check:
   - label: 'a)'
@@ -17,6 +17,16 @@ check:
   - label: 'v)'
     kind: value
     expected: '156'
+rubric:
+  - id: all-four-digit-numbers
+    points: 2
+    text: 'Prva cifra je odabrana bez nule, a preostale bez ponavljanja, pa je ukupan broj $5\cdot5\cdot4\cdot3=300$.'
+  - id: divisible-by-five
+    points: 2
+    text: 'Slučajevi poslednje cifre $0$ i $5$ pravilno su razdvojeni i sabrani kao $60+48=108$.'
+  - id: even-numbers
+    points: 1
+    text: 'Slučajevi poslednje cifre $0$, $2$ i $4$ pravilno su prebrojani, uz rezultat $60+2\cdot48=156$.'
 ---
 
 ## Zadatak
