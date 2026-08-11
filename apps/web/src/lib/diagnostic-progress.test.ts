@@ -13,6 +13,7 @@ function completedState(): PersistedDiagnosticState {
   return {
     runId,
     runOwnerId: null,
+    checkpointVersion: 0,
     taskIds: Array.from({ length: 10 }, (_, index) => `task-${index + 1}`),
     slots: Array.from({ length: 10 }, (_, index) => index + 1),
     answers: Array.from({ length: 10 }, (_, index) => [String(index + 1)]),
