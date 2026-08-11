@@ -440,8 +440,12 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
                   index === 0
                     ? JSON.stringify(Array(answerPartCounts[index]).fill("0"))
                     : null,
-                outcome: index === 0 ? "INCORRECT" : "SKIPPED",
-                earnedPoints: index === 0 ? 0 : null,
+                outcome: index === 0 ? "PARTIAL" : "SKIPPED",
+                gradingKind:
+                  index === 0 || index === 1 || index === 3
+                    ? "RUBRIC_SELF"
+                    : "AUTO",
+                earnedPoints: index === 0 ? 3 : null,
               })),
             },
           ],
@@ -457,7 +461,7 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole("cell", { name: "0 / 60", exact: true }),
+    page.getByRole("cell", { name: "3 / 60", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(() => {
@@ -471,6 +475,10 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
     page.getByRole("heading", { name: "Your result", exact: true }),
   ).toBeVisible();
   await expect(page.getByText("You answered 1 of 10 tasks.")).toBeVisible();
+  const partial = page
+    .getByRole("heading", { name: "Partial credit", exact: true })
+    .locator("../..");
+  await expect(partial).toContainText("1");
   await expect(
     page.getByText(/This mock exam used an older content revision/),
   ).toBeVisible();

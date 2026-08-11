@@ -32,7 +32,7 @@ export async function simulationCloudFixture({
   const items = base.run.items.map((item) => ({
     ...item,
     maxPoints: 6,
-    recentAttempts: [],
+    recentAttempts: [] as Record<string, unknown>[],
   }));
   return {
     tasks: base.tasks,
@@ -137,6 +137,12 @@ export async function installSimulationCloudRoutes(
             },
           },
         },
+      });
+      return;
+    }
+    if (call.operationName === "RecordAttempt") {
+      await route.fulfill({
+        json: { data: { recordAttempt: { id: input.id } } },
       });
       return;
     }

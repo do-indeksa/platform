@@ -36,7 +36,7 @@ test("a fresh signed-in browser resumes the active mock with its original deadli
   const persisted = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
-  expect(persisted.version).toBe(9);
+  expect(persisted.version).toBe(10);
   expect(persisted.state).toMatchObject({
     runId: simulationRunId,
     phase: "running",
@@ -96,3 +96,100 @@ test("a conflicting device copy is forked only after the cloud run is abandoned"
   expect(forked.state.checkpointVersion).toBeGreaterThanOrEqual(0);
   expect(forked.state.answers[0][0]).toBe("device-answer");
 });
+
+test("a fresh browser recovers an interrupted rubric review", async ({
+  page,
+}) => {
+  const mutations: E2EGraphQLCall[] = [];
+  const fixture = await simulationCloudFixture({ draft: [] });
+  const submittedAt = new Date(
+    Date.parse(fixture.run.startedAt) + 30_000,
+  ).toISOString();
+  for (const [index, item] of fixture.run.items.entries()) {
+    const answer = index === 0 ? '["wrong","","",""]' : null;
+    item.recentAttempts = [
+      simulationAttempt(item, fixture.run.startedAt, submittedAt, {
+        id: simulationAutoAttemptIds[index],
+        answer,
+        outcome: index === 0 ? "INCORRECT" : "SKIPPED",
+        gradingKind: "AUTO",
+        earnedPoints: index === 0 ? 0 : null,
+      }),
+    ];
+  }
+  const first = fixture.run.items[0];
+  first.recentAttempts.push(
+    simulationAttempt(first, fixture.run.startedAt, submittedAt, {
+      id: firstRubricAttemptId,
+      answer: '["wrong","","",""]',
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      earnedPoints: 2,
+    }),
+  );
+  await installSimulationCloudRoutes(page, fixture, mutations);
+
+  await page.goto(simulationRunUrl);
+
+  await expect(
+    page.getByRole("heading", { name: "Compare your written work" }),
+  ).toBeVisible();
+  await expect(page.getByText("Task 2 of 3", { exact: true })).toBeVisible();
+  const persisted = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
+  );
+  expect(persisted.state).toMatchObject({
+    phase: "reviewing",
+    submittedAt: Date.parse(submittedAt),
+    rubricScores: [2, null, null, null, ...Array(6).fill(null)],
+  });
+  expect(
+    mutations.filter((call) => call.operationName === "RecordAttempt"),
+  ).toHaveLength(10);
+  expect(mutations.some((call) => call.operationName === "SubmitRun")).toBe(
+    false,
+  );
+});
+
+const simulationAutoAttemptIds = [
+  "6fb1f40b-707b-5abf-9b76-770dc0c0c217",
+  "345611fe-1fe0-54b8-b1ce-740cca7c1104",
+  "efa618f6-f638-5f3b-b885-09e5c1f0fc93",
+  "9fade9dd-94b0-5c66-998b-5424f65ddeb4",
+  "e04b0d3d-4b9d-501d-af5e-f3e87dab5207",
+  "611029e2-de1b-568b-9436-6555bf432e96",
+  "3aedbe66-015e-50b9-bce2-a35daabc9a76",
+  "651ac088-74fb-5554-b8e3-4cd104e9ecd5",
+  "3fc8ce4f-602e-59d2-a093-fa60106703e5",
+  "2ed2ae6d-f9a6-5d51-8663-e5c371c642e2",
+];
+const firstRubricAttemptId = "f8a93730-6c4e-59e1-827e-5099c95710ef";
+
+function simulationAttempt(
+  item: Awaited<
+    ReturnType<typeof simulationCloudFixture>
+  >["run"]["items"][number],
+  startedAt: string,
+  submittedAt: string,
+  attempt: {
+    id: string;
+    answer: string | null;
+    outcome: "INCORRECT" | "PARTIAL" | "SKIPPED";
+    gradingKind: "AUTO" | "RUBRIC_SELF";
+    earnedPoints: number | null;
+  },
+) {
+  return {
+    ...attempt,
+    runItemId: item.id,
+    taskId: item.taskId,
+    examPosition: item.examPosition,
+    mode: "SIMULATION",
+    startedAt,
+    submittedAt,
+    activeDurationMs: null,
+    helpLevel: 0,
+    maxPoints: item.maxPoints,
+    taskRevision: item.taskRevision,
+  };
+}
