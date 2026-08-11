@@ -134,11 +134,13 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
   await expect(
     page.getByRole("heading", { name: "Compare your written work" }),
   ).toBeVisible();
-  await expect(page.getByText("Task 1 of 7", { exact: true })).toBeVisible();
+  await expect(page.getByText("Task 1 of 8", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "3", exact: true }).click();
   await page.getByRole("button", { name: "Next task", exact: true }).click();
   await page.reload();
-  await expect(page.getByText("Task 2 of 7", { exact: true })).toBeVisible();
+  await expect(page.getByText("Task 2 of 8", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "0", exact: true }).click();
+  await page.getByRole("button", { name: "Next task", exact: true }).click();
   await page.getByRole("button", { name: "0", exact: true }).click();
   await page.getByRole("button", { name: "Next task", exact: true }).click();
   await page.getByRole("button", { name: "0", exact: true }).click();
@@ -217,7 +219,8 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
     0,
     0,
     0,
-    ...Array(3).fill(null),
+    0,
+    ...Array(2).fill(null),
   ]);
   expect(completedPayload.state.history[0].progress.items).toHaveLength(10);
   const progressOutbox = await page.evaluate(() =>
@@ -364,7 +367,7 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     .getByRole("button", { name: "Finish and check", exact: true })
     .click();
 
-  await completeRubricReview(page, [0, 0, 0, 0, 0, 0, 0]);
+  await completeRubricReview(page, [0, 0, 0, 0, 0, 0, 0, 0]);
 
   await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
     timeout: dynamicNavigationTimeout,
@@ -445,7 +448,8 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     "RUBRIC_SELF",
     "RUBRIC_SELF",
     "RUBRIC_SELF",
-    ...Array(3).fill("AUTO"),
+    "RUBRIC_SELF",
+    ...Array(2).fill("AUTO"),
   ]);
   const startItems = startCall.variables.input?.items as {
     taskRevision: string;
@@ -571,7 +575,7 @@ test("the time limit submits saved answers without losing the attempt", async ({
   await expect(page.getByText(/^Saved at /)).toBeVisible();
   await page.clock.fastForward(4 * 60 * 60 * 1_000 + 1_000);
 
-  await completeRubricReview(page, [0, 0, 0, 0, 0, 0, 0]);
+  await completeRubricReview(page, [0, 0, 0, 0, 0, 0, 0, 0]);
 
   await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
     timeout: dynamicNavigationTimeout,
