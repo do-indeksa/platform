@@ -65,18 +65,19 @@ AI-оценивание остается вне критического пут�
   восстанавливаемую самопроверку по rubric с отдельными `RUBRIC_SELF` attempts;
 - история имеет allowlisted URL-фильтры по области, результату и периоду,
   сохраняет их при открытии детали и показывает score trend только по полным
-  проверенным P1 на 60 баллов; detail восстанавливает архивную verified-ревизию
-  только после совпадения SHA-256 с owner-scoped hydrated attempt;
+  проверенным P1 на 60 баллов; detail задачи и завершённого пробника
+  восстанавливают архивные verified-ревизии только после совпадения SHA-256 с
+  owner-scoped hydrated attempt/run;
 - `Prijavi grešku` открывает предзаполненный content-report с task ID и revision,
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 499 web unit-тестов, 29 тестов content pipeline,
+- blocking CI включает 508 web unit-тестов, 29 тестов content pipeline,
   68 Playwright-сценариев, container smoke, dependency audit и Trivy.
 
-Остаются архивный разбор item пробника, расширение verified-банка, пилотная
-калибровка рекомендаций и production rollout. Analytics сознательно fail-closed
-до безопасного image.
+Остаются расширение verified-банка, пилотная калибровка рекомендаций,
+visual-regression baseline и production rollout. Analytics сознательно
+fail-closed до безопасного image.
 
 ## 3. Критический путь
 
@@ -392,13 +393,11 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 1. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
-2. Применить тот же immutable resolver к item завершённого пробника, сохранив
-   проверку revision по owner-scoped run archive и текущие retry-ссылки.
-3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
-4. Добавить стабильные visual-regression эталоны для rubric review, результата,
+2. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
+3. Добавить стабильные visual-regression эталоны для rubric review, результата,
    shell, task, plan и history на 360/768/1440 px.
-5. После выпуска Google OAuth credentials и отдельного подтверждения завершить
+4. После выпуска Google OAuth credentials и отдельного подтверждения завершить
    private Kubernetes rollout через Cloudflare Tunnel; доказать auth, GraphQL,
    Neon migration, backup и rollback без публикации origin.
-6. Закрыть analytics issue только после vulnerability-clean image или
+5. Закрыть analytics issue только после vulnerability-clean image или
    документированного перехода на другой privacy-friendly provider.
