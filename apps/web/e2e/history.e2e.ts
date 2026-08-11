@@ -638,6 +638,11 @@ test("local detail rows stay isolated between accounts", async ({ page }) => {
   await expect(page.locator("tbody tr")).toContainText("#kv-001");
   await expect(page.locator("tbody tr")).not.toContainText("#kb-001");
 
+  await page
+    .getByTestId("site-header")
+    .locator("summary")
+    .filter({ hasText: "Account B" })
+    .click();
   await page.getByRole("button", { name: "Sign out" }).click();
 
   await expect(

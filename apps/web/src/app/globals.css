@@ -45,9 +45,3 @@ body {
   outline: 2px solid var(--di-color-action-primary);
   outline-offset: 2px;
 }
-
-@media (max-width: 767px) {
-  body {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
-  }
-}

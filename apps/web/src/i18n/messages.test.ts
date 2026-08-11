@@ -21,6 +21,9 @@ describe("user-facing terminology", () => {
 
   it("keeps the canonical Serbian navigation terms", () => {
     expect(sr.nav.overview).toBe("Pregled");
+    expect(sr.nav.preparation).toBe("Moja priprema");
+    expect(sr.nav.training).toBe("Vežbanje");
+    expect(sr.nav.favorites).toBe("Omiljeno");
     expect(sr.nav.simulation).toBe("Probni ispit");
     expect(sr.taskBank.positionFilter).toContain("Pozicija");
   });

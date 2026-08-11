@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronDown, Languages } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Suspense } from "react";
@@ -11,6 +10,13 @@ const localeLabels: Record<AppLocale, string> = {
   sr: "SR",
   en: "EN",
   ru: "RU",
+};
+
+const languageOrder: readonly AppLocale[] = ["ru", "en", "sr"];
+const fullSegmentWidths: Record<AppLocale, string> = {
+  ru: "w-[43px]",
+  en: "w-[42px]",
+  sr: "w-[42px]",
 };
 
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
@@ -45,27 +51,29 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
 
   if (compact) {
     return (
-      <label className="relative flex h-11 items-center rounded-lg border border-line bg-surface text-sm text-muted focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand">
-        <Languages aria-hidden className="pointer-events-none ml-3" size={17} />
+      <label className="relative flex h-[39px] w-[59px] items-start gap-0.5 rounded-xl bg-surface p-1 shadow-[inset_0_0_0_1px_var(--di-color-border-default)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand">
+        <span className="flex h-[31px] w-[42px] shrink-0 items-center justify-center rounded-lg bg-brand px-3 text-[13px] leading-normal font-medium text-on-brand">
+          {localeLabels[locale]}
+        </span>
+        <span
+          aria-hidden
+          className="pointer-events-none w-[7px] shrink-0 text-[13px] leading-normal font-medium text-muted"
+        >
+          ⌄
+        </span>
         <span className="sr-only">{t("language")}</span>
         <select
           aria-label={t("language")}
           value={locale}
           onChange={(event) => replaceLocale(event.target.value as AppLocale)}
-          className="h-full cursor-pointer appearance-none bg-transparent pr-7 pl-2 font-semibold text-ink outline-none"
+          className="absolute inset-0 cursor-pointer appearance-none opacity-0"
         >
-          {routing.locales.map((item) => (
+          {languageOrder.map((item) => (
             <option key={item} value={item}>
               {localeLabels[item]}
             </option>
           ))}
         </select>
-        <ChevronDown
-          aria-hidden
-          className="pointer-events-none absolute right-2.5"
-          size={15}
-          strokeWidth={1.8}
-        />
       </label>
     );
   }
@@ -74,9 +82,9 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
     <div
       role="group"
       aria-label={t("language")}
-      className="flex items-center gap-0.5 rounded-xl border border-line bg-surface p-1"
+      className="flex h-[39px] w-[139px] items-start gap-0.5 rounded-xl bg-surface p-1 shadow-[inset_0_0_0_1px_var(--di-color-border-default)]"
     >
-      {routing.locales.map((item) => {
+      {languageOrder.map((item) => {
         const active = item === locale;
         return (
           <a
@@ -87,7 +95,7 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
               replaceLocale(item);
             }}
             aria-current={active ? "page" : undefined}
-            className={`flex h-11 min-w-11 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+            className={`flex h-[31px] ${fullSegmentWidths[item]} shrink-0 items-center justify-center rounded-lg px-3 text-[13px] leading-normal font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
               active
                 ? "bg-brand text-on-brand"
                 : "text-muted hover:bg-page hover:text-ink"
@@ -105,8 +113,8 @@ function LanguageSwitcherFallback({ compact }: { compact: boolean }) {
   return (
     <span
       aria-hidden="true"
-      className={`block animate-pulse rounded-xl border border-line bg-surface ${
-        compact ? "h-11 w-20" : "h-[54px] w-[142px]"
+      className={`block h-[39px] animate-pulse rounded-xl bg-surface shadow-[inset_0_0_0_1px_var(--di-color-border-default)] ${
+        compact ? "w-[59px]" : "w-[139px]"
       }`}
     />
   );
