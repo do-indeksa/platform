@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+type AbandonRunInput struct {
+	ID string `json:"id"`
+}
+
 type Attempt struct {
 	ID               string         `json:"id"`
 	RunItemID        *string        `json:"runItemId,omitempty"`
@@ -26,6 +30,16 @@ type Attempt struct {
 	EarnedPoints     *int32         `json:"earnedPoints,omitempty"`
 	MaxPoints        *int32         `json:"maxPoints,omitempty"`
 	TaskRevision     *string        `json:"taskRevision,omitempty"`
+}
+
+type CheckpointRunInput struct {
+	ID string `json:"id"`
+	// Use zero for the first write, then the version returned by the server.
+	ExpectedVersion  int64  `json:"expectedVersion"`
+	CurrentOrdinal   int32  `json:"currentOrdinal"`
+	ActiveDurationMs *int64 `json:"activeDurationMs,omitempty"`
+	// Full draft replacement; omitting an item removes its previous draft.
+	Drafts []RunCheckpointDraftInput `json:"drafts"`
 }
 
 type CompletedSimulationRun struct {
@@ -89,7 +103,27 @@ type Run struct {
 	DeadlineAt       *time.Time `json:"deadlineAt,omitempty"`
 	SubmittedAt      *time.Time `json:"submittedAt,omitempty"`
 	ActiveDurationMs *int64     `json:"activeDurationMs,omitempty"`
-	Items            []RunItem  `json:"items"`
+	// Mutable active state; absent after submit or abandon.
+	Checkpoint *RunCheckpoint `json:"checkpoint,omitempty"`
+	Items      []RunItem      `json:"items"`
+}
+
+type RunCheckpoint struct {
+	Version          int64                `json:"version"`
+	CurrentOrdinal   int32                `json:"currentOrdinal"`
+	ActiveDurationMs *int64               `json:"activeDurationMs,omitempty"`
+	UpdatedAt        time.Time            `json:"updatedAt"`
+	Drafts           []RunCheckpointDraft `json:"drafts"`
+}
+
+type RunCheckpointDraft struct {
+	RunItemID string `json:"runItemId"`
+	Answer    string `json:"answer"`
+}
+
+type RunCheckpointDraftInput struct {
+	RunItemID string `json:"runItemId"`
+	Answer    string `json:"answer"`
 }
 
 type RunItem struct {

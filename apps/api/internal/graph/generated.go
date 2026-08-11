@@ -80,6 +80,8 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AbandonRun    func(childComplexity int, input model.AbandonRunInput) int
+		CheckpointRun func(childComplexity int, input model.CheckpointRunInput) int
 		RecordAttempt func(childComplexity int, input model.RecordAttemptInput) int
 		StartRun      func(childComplexity int, input model.StartRunInput) int
 		SubmitRun     func(childComplexity int, input model.SubmitRunInput) int
@@ -95,6 +97,7 @@ type ComplexityRoot struct {
 	Run struct {
 		ActiveDurationMs func(childComplexity int) int
 		BlueprintVersion func(childComplexity int) int
+		Checkpoint       func(childComplexity int) int
 		ContentRevision  func(childComplexity int) int
 		DeadlineAt       func(childComplexity int) int
 		ID               func(childComplexity int) int
@@ -103,6 +106,19 @@ type ComplexityRoot struct {
 		StartedAt        func(childComplexity int) int
 		Status           func(childComplexity int) int
 		SubmittedAt      func(childComplexity int) int
+	}
+
+	RunCheckpoint struct {
+		ActiveDurationMs func(childComplexity int) int
+		CurrentOrdinal   func(childComplexity int) int
+		Drafts           func(childComplexity int) int
+		UpdatedAt        func(childComplexity int) int
+		Version          func(childComplexity int) int
+	}
+
+	RunCheckpointDraft struct {
+		Answer    func(childComplexity int) int
+		RunItemID func(childComplexity int) int
 	}
 
 	RunItem struct {
@@ -136,7 +152,9 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	StartRun(ctx context.Context, input model.StartRunInput) (*model.Run, error)
 	RecordAttempt(ctx context.Context, input model.RecordAttemptInput) (*model.Attempt, error)
+	CheckpointRun(ctx context.Context, input model.CheckpointRunInput) (*model.RunCheckpoint, error)
 	SubmitRun(ctx context.Context, input model.SubmitRunInput) (*model.Run, error)
+	AbandonRun(ctx context.Context, input model.AbandonRunInput) (*model.Run, error)
 }
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
@@ -355,6 +373,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.CompletedSimulationRunItem.Topic(childComplexity), true
 
+	case "Mutation.abandonRun":
+		if e.ComplexityRoot.Mutation.AbandonRun == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_abandonRun_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.AbandonRun(childComplexity, args["input"].(model.AbandonRunInput)), true
+	case "Mutation.checkpointRun":
+		if e.ComplexityRoot.Mutation.CheckpointRun == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_checkpointRun_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CheckpointRun(childComplexity, args["input"].(model.CheckpointRunInput)), true
 	case "Mutation.recordAttempt":
 		if e.ComplexityRoot.Mutation.RecordAttempt == nil {
 			break
@@ -447,6 +487,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Run.BlueprintVersion(childComplexity), true
+	case "Run.checkpoint":
+		if e.ComplexityRoot.Run.Checkpoint == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Run.Checkpoint(childComplexity), true
 	case "Run.contentRevision":
 		if e.ComplexityRoot.Run.ContentRevision == nil {
 			break
@@ -495,6 +541,50 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Run.SubmittedAt(childComplexity), true
+
+	case "RunCheckpoint.activeDurationMs":
+		if e.ComplexityRoot.RunCheckpoint.ActiveDurationMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpoint.ActiveDurationMs(childComplexity), true
+	case "RunCheckpoint.currentOrdinal":
+		if e.ComplexityRoot.RunCheckpoint.CurrentOrdinal == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpoint.CurrentOrdinal(childComplexity), true
+	case "RunCheckpoint.drafts":
+		if e.ComplexityRoot.RunCheckpoint.Drafts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpoint.Drafts(childComplexity), true
+	case "RunCheckpoint.updatedAt":
+		if e.ComplexityRoot.RunCheckpoint.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpoint.UpdatedAt(childComplexity), true
+	case "RunCheckpoint.version":
+		if e.ComplexityRoot.RunCheckpoint.Version == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpoint.Version(childComplexity), true
+
+	case "RunCheckpointDraft.answer":
+		if e.ComplexityRoot.RunCheckpointDraft.Answer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpointDraft.Answer(childComplexity), true
+	case "RunCheckpointDraft.runItemId":
+		if e.ComplexityRoot.RunCheckpointDraft.RunItemID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunCheckpointDraft.RunItemID(childComplexity), true
 
 	case "RunItem.examPosition":
 		if e.ComplexityRoot.RunItem.ExamPosition == nil {
@@ -613,8 +703,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := newExecutionContext(opCtx, e, make(chan graphql.DeferredResult))
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAbandonRunInput,
+		ec.unmarshalInputCheckpointRunInput,
 		ec.unmarshalInputNewRunItemInput,
 		ec.unmarshalInputRecordAttemptInput,
+		ec.unmarshalInputRunCheckpointDraftInput,
 		ec.unmarshalInputStandaloneAttemptTargetInput,
 		ec.unmarshalInputStartRunInput,
 		ec.unmarshalInputSubmitRunInput,
@@ -812,10 +905,38 @@ func (ec *executionContext) childFields_Run(ctx context.Context, field graphql.C
 		return ec.fieldContext_Run_submittedAt(ctx, field)
 	case "activeDurationMs":
 		return ec.fieldContext_Run_activeDurationMs(ctx, field)
+	case "checkpoint":
+		return ec.fieldContext_Run_checkpoint(ctx, field)
 	case "items":
 		return ec.fieldContext_Run_items(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Run", field.Name)
+}
+
+func (ec *executionContext) childFields_RunCheckpoint(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "version":
+		return ec.fieldContext_RunCheckpoint_version(ctx, field)
+	case "currentOrdinal":
+		return ec.fieldContext_RunCheckpoint_currentOrdinal(ctx, field)
+	case "activeDurationMs":
+		return ec.fieldContext_RunCheckpoint_activeDurationMs(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_RunCheckpoint_updatedAt(ctx, field)
+	case "drafts":
+		return ec.fieldContext_RunCheckpoint_drafts(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RunCheckpoint", field.Name)
+}
+
+func (ec *executionContext) childFields_RunCheckpointDraft(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "runItemId":
+		return ec.fieldContext_RunCheckpointDraft_runItemId(ctx, field)
+	case "answer":
+		return ec.fieldContext_RunCheckpointDraft_answer(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RunCheckpointDraft", field.Name)
 }
 
 func (ec *executionContext) childFields_RunItem(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -979,6 +1100,34 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 // endregion ************************** internal!.gotpl ***************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_abandonRun_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.AbandonRunInput, error) {
+			return ec.unmarshalNAbandonRunInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐAbandonRunInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_checkpointRun_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.CheckpointRunInput, error) {
+			return ec.unmarshalNCheckpointRunInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCheckpointRunInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_recordAttempt_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -1976,6 +2125,50 @@ func (ec *executionContext) fieldContext_Mutation_recordAttempt(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_checkpointRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_checkpointRun(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CheckpointRun(ctx, fc.Args["input"].(model.CheckpointRunInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RunCheckpoint) graphql.Marshaler {
+			return ec.marshalNRunCheckpoint2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpoint(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_checkpointRun(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RunCheckpoint(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_checkpointRun_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_submitRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2014,6 +2207,50 @@ func (ec *executionContext) fieldContext_Mutation_submitRun(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_submitRun_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_abandonRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_abandonRun(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().AbandonRun(ctx, fc.Args["input"].(model.AbandonRunInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Run) graphql.Marshaler {
+			return ec.marshalNRun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRun(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_abandonRun(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Run(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_abandonRun_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2479,6 +2716,38 @@ func (ec *executionContext) fieldContext_Run_activeDurationMs(_ context.Context,
 	return graphql.NewScalarFieldContext("Run", field, false, false, errors.New("field of type Int64 does not have child fields"))
 }
 
+func (ec *executionContext) _Run_checkpoint(ctx context.Context, field graphql.CollectedField, obj *model.Run) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Run_checkpoint(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Checkpoint, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RunCheckpoint) graphql.Marshaler {
+			return ec.marshalORunCheckpoint2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpoint(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Run_checkpoint(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Run",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RunCheckpoint(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Run_items(ctx context.Context, field graphql.CollectedField, obj *model.Run) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2509,6 +2778,176 @@ func (ec *executionContext) fieldContext_Run_items(_ context.Context, field grap
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _RunCheckpoint_version(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpoint_version(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Version, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpoint_version(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunCheckpoint", field, false, false, errors.New("field of type Int64 does not have child fields"))
+}
+
+func (ec *executionContext) _RunCheckpoint_currentOrdinal(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpoint_currentOrdinal(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CurrentOrdinal, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpoint_currentOrdinal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunCheckpoint", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RunCheckpoint_activeDurationMs(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpoint_activeDurationMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ActiveDurationMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int64) graphql.Marshaler {
+			return ec.marshalOInt642ᚖint64(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpoint_activeDurationMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunCheckpoint", field, false, false, errors.New("field of type Int64 does not have child fields"))
+}
+
+func (ec *executionContext) _RunCheckpoint_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpoint_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpoint_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunCheckpoint", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _RunCheckpoint_drafts(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpoint) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpoint_drafts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Drafts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []model.RunCheckpointDraft) graphql.Marshaler {
+			return ec.marshalNRunCheckpointDraft2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraftᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpoint_drafts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RunCheckpoint",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RunCheckpointDraft(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RunCheckpointDraft_runItemId(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpointDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpointDraft_runItemId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RunItemID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpointDraft_runItemId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunCheckpointDraft", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _RunCheckpointDraft_answer(ctx context.Context, field graphql.CollectedField, obj *model.RunCheckpointDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunCheckpointDraft_answer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Answer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunCheckpointDraft_answer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunCheckpointDraft", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _RunItem_id(ctx context.Context, field graphql.CollectedField, obj *model.RunItem) (ret graphql.Marshaler) {
@@ -3982,6 +4421,98 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAbandonRunInput(ctx context.Context, obj any) (model.AbandonRunInput, error) {
+	var it model.AbandonRunInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCheckpointRunInput(ctx context.Context, obj any) (model.CheckpointRunInput, error) {
+	var it model.CheckpointRunInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["drafts"]; !present {
+		asMap["drafts"] = []any{}
+	}
+
+	fieldsInOrder := [...]string{"id", "expectedVersion", "currentOrdinal", "activeDurationMs", "drafts"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "expectedVersion":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expectedVersion"))
+			data, err := ec.unmarshalNInt642int64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExpectedVersion = data
+		case "currentOrdinal":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currentOrdinal"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CurrentOrdinal = data
+		case "activeDurationMs":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("activeDurationMs"))
+			data, err := ec.unmarshalOInt642ᚖint64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ActiveDurationMs = data
+		case "drafts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("drafts"))
+			data, err := ec.unmarshalNRunCheckpointDraftInput2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraftInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Drafts = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewRunItemInput(ctx context.Context, obj any) (model.NewRunItemInput, error) {
 	var it model.NewRunItemInput
 	if obj == nil {
@@ -4146,6 +4677,43 @@ func (ec *executionContext) unmarshalInputRecordAttemptInput(ctx context.Context
 				return it, err
 			}
 			it.EarnedPoints = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRunCheckpointDraftInput(ctx context.Context, obj any) (model.RunCheckpointDraftInput, error) {
+	var it model.RunCheckpointDraftInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"runItemId", "answer"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "runItemId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("runItemId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RunItemID = data
+		case "answer":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("answer"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Answer = data
 		}
 	}
 	return it, nil
@@ -4614,9 +5182,23 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "checkpointRun":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_checkpointRun(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "submitRun":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_submitRun(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "abandonRun":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_abandonRun(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -4842,8 +5424,114 @@ func (ec *executionContext) _Run(ctx context.Context, sel ast.SelectionSet, obj 
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "checkpoint":
+			out.Values[i] = ec._Run_checkpoint(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "items":
 			out.Values[i] = ec._Run_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var runCheckpointImplementors = []string{"RunCheckpoint"}
+
+func (ec *executionContext) _RunCheckpoint(ctx context.Context, sel ast.SelectionSet, obj *model.RunCheckpoint) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, runCheckpointImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RunCheckpoint")
+		case "version":
+			out.Values[i] = ec._RunCheckpoint_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "currentOrdinal":
+			out.Values[i] = ec._RunCheckpoint_currentOrdinal(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "activeDurationMs":
+			out.Values[i] = ec._RunCheckpoint_activeDurationMs(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._RunCheckpoint_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "drafts":
+			out.Values[i] = ec._RunCheckpoint_drafts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var runCheckpointDraftImplementors = []string{"RunCheckpointDraft"}
+
+func (ec *executionContext) _RunCheckpointDraft(ctx context.Context, sel ast.SelectionSet, obj *model.RunCheckpointDraft) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, runCheckpointDraftImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RunCheckpointDraft")
+		case "runItemId":
+			out.Values[i] = ec._RunCheckpointDraft_runItemId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "answer":
+			out.Values[i] = ec._RunCheckpointDraft_answer(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -5444,6 +6132,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) unmarshalNAbandonRunInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐAbandonRunInput(ctx context.Context, v any) (model.AbandonRunInput, error) {
+	res, err := ec.unmarshalInputAbandonRunInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNAttempt2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐAttempt(ctx context.Context, sel ast.SelectionSet, v model.Attempt) graphql.Marshaler {
 	return ec._Attempt(ctx, sel, &v)
 }
@@ -5498,6 +6191,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNCheckpointRunInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCheckpointRunInput(ctx context.Context, v any) (model.CheckpointRunInput, error) {
+	res, err := ec.unmarshalInputCheckpointRunInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNClientGradingKind2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐClientGradingKind(ctx context.Context, v any) (model.ClientGradingKind, error) {
@@ -5592,6 +6290,22 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNInt642int64(ctx context.Context, v any) (int64, error) {
+	res, err := graphql.UnmarshalInt64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInt642int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalInt64(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNNewRunItemInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐNewRunItemInput(ctx context.Context, v any) (model.NewRunItemInput, error) {
 	res, err := ec.unmarshalInputNewRunItemInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5628,6 +6342,59 @@ func (ec *executionContext) marshalNRun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatfor
 		return graphql.Null
 	}
 	return ec._Run(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRunCheckpoint2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpoint(ctx context.Context, sel ast.SelectionSet, v model.RunCheckpoint) graphql.Marshaler {
+	return ec._RunCheckpoint(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRunCheckpoint2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpoint(ctx context.Context, sel ast.SelectionSet, v *model.RunCheckpoint) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RunCheckpoint(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRunCheckpointDraft2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraft(ctx context.Context, sel ast.SelectionSet, v model.RunCheckpointDraft) graphql.Marshaler {
+	return ec._RunCheckpointDraft(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRunCheckpointDraft2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraftᚄ(ctx context.Context, sel ast.SelectionSet, v []model.RunCheckpointDraft) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNRunCheckpointDraft2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraft(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNRunCheckpointDraftInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraftInput(ctx context.Context, v any) (model.RunCheckpointDraftInput, error) {
+	res, err := ec.unmarshalInputRunCheckpointDraftInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRunCheckpointDraftInput2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraftInputᚄ(ctx context.Context, v any) ([]model.RunCheckpointDraftInput, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]model.RunCheckpointDraftInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNRunCheckpointDraftInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpointDraftInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalNRunItem2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunItem(ctx context.Context, sel ast.SelectionSet, v model.RunItem) graphql.Marshaler {
@@ -5977,6 +6744,13 @@ func (ec *executionContext) marshalORun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatfor
 		return graphql.Null
 	}
 	return ec._Run(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORunCheckpoint2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunCheckpoint(ctx context.Context, sel ast.SelectionSet, v *model.RunCheckpoint) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RunCheckpoint(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOStandaloneAttemptTargetInput2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐStandaloneAttemptTargetInput(ctx context.Context, v any) (*model.StandaloneAttemptTargetInput, error) {

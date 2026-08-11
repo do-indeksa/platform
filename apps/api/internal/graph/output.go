@@ -60,8 +60,31 @@ func graphRun(aggregate progress.RunAggregate) (*model.Run, error) {
 		DeadlineAt:       graphTime(aggregate.Run.DeadlineAt),
 		SubmittedAt:      graphTime(aggregate.Run.SubmittedAt),
 		ActiveDurationMs: aggregate.Run.DurationMs,
+		Checkpoint:       graphRunCheckpoint(aggregate.Checkpoint),
 		Items:            items,
 	}, nil
+}
+
+func graphRunCheckpoint(
+	aggregate *progress.RunCheckpointAggregate,
+) *model.RunCheckpoint {
+	if aggregate == nil {
+		return nil
+	}
+	drafts := make([]model.RunCheckpointDraft, len(aggregate.Drafts))
+	for index, draft := range aggregate.Drafts {
+		drafts[index] = model.RunCheckpointDraft{
+			RunItemID: draft.RunItemID.String(),
+			Answer:    draft.Answer,
+		}
+	}
+	return &model.RunCheckpoint{
+		Version:          aggregate.Checkpoint.Version,
+		CurrentOrdinal:   int32(aggregate.Checkpoint.CurrentOrdinal),
+		ActiveDurationMs: aggregate.Checkpoint.ActiveDurationMs,
+		UpdatedAt:        aggregate.Checkpoint.UpdatedAt,
+		Drafts:           drafts,
+	}
 }
 
 func graphRunSummary(run progress.Run) (model.RunSummary, error) {
