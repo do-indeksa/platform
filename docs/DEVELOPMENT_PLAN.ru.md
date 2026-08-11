@@ -70,7 +70,7 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, первые 9 задач в 3 полных
   темах прошли versioned mathematical review;
-- blocking CI включает 472 unit-теста, 68 Playwright-сценариев, container
+- blocking CI включает 475 unit-тестов, 68 Playwright-сценариев, container
   smoke, dependency audit и Trivy.
 
 Не завершены исторические content snapshots, расширение verified-банка,
