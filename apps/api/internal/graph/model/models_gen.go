@@ -25,7 +25,7 @@ type Attempt struct {
 	GradingKind      GradingKind    `json:"gradingKind"`
 	EarnedPoints     *int32         `json:"earnedPoints,omitempty"`
 	MaxPoints        *int32         `json:"maxPoints,omitempty"`
-	TaskRevision     string         `json:"taskRevision"`
+	TaskRevision     *string        `json:"taskRevision,omitempty"`
 }
 
 type Mutation struct {

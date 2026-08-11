@@ -120,6 +120,26 @@ func (r *queryResolver) Runs(ctx context.Context, limit int32) ([]model.RunSumma
 	return result, nil
 }
 
+// Attempts is the resolver for the attempts field.
+func (r *queryResolver) Attempts(ctx context.Context, limit int32) ([]model.Attempt, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	attempts, err := r.progress.ListAttemptJournal(ctx, user.ID, limit)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result := make([]model.Attempt, len(attempts))
+	for i, attempt := range attempts {
+		result[i], err = graphAttempt(attempt, nil)
+		if err != nil {
+			return nil, presentError(ctx, err)
+		}
+	}
+	return result, nil
+}
+
 // RecentAttempts is the resolver for the recentAttempts field.
 func (r *runItemResolver) RecentAttempts(ctx context.Context, obj *model.RunItem, limit int32) ([]model.Attempt, error) {
 	if limit < 1 || limit > progress.MaxRecentRunItemAttempts {

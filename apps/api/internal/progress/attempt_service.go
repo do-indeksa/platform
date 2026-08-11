@@ -91,6 +91,23 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	return attempt, nil
 }
 
+func (s *Service) ListAttemptJournal(ctx context.Context, userID uuid.UUID, limit int32) ([]Attempt, error) {
+	if limit < 1 || limit > MaxAttemptJournalEntries {
+		return nil, invalidInput("limit")
+	}
+	attempts, err := s.queries.ListAttemptJournal(ctx, ListAttemptJournalParams{
+		UserID:      userID,
+		MaxAttempts: limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if attempts == nil {
+		return []Attempt{}, nil
+	}
+	return attempts, nil
+}
+
 type attemptTarget struct {
 	runItemID    pgtype.UUID
 	runStatus    RunStatus

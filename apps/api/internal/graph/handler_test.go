@@ -10,8 +10,13 @@ import (
 )
 
 func TestGraphQLRequiresAuthentication(t *testing.T) {
-	_, payload := graphRequest(t, `query { runs { id } }`, nil, nil)
-	requireGraphCode(t, payload, "UNAUTHENTICATED")
+	for _, query := range []string{
+		`query { runs { id } }`,
+		`query { attempts { id } }`,
+	} {
+		_, payload := graphRequest(t, query, nil, nil)
+		requireGraphCode(t, payload, "UNAUTHENTICATED")
+	}
 }
 
 func TestGraphQLRejectsInvalidProductInput(t *testing.T) {
@@ -22,6 +27,8 @@ func TestGraphQLRejectsInvalidProductInput(t *testing.T) {
 	requireGraphCode(t, payload, "BAD_USER_INPUT")
 
 	_, payload = graphRequest(t, `query { runs(limit: 101) { id } }`, nil, session)
+	requireGraphCode(t, payload, "BAD_USER_INPUT")
+	_, payload = graphRequest(t, `query { attempts(limit: 1001) { id } }`, nil, session)
 	requireGraphCode(t, payload, "BAD_USER_INPUT")
 
 	_, payload = graphRequest(t, `mutation($input: RecordAttemptInput!) {
@@ -57,6 +64,16 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 	_, payload := graphRequest(t, "query {"+strings.Join(aliases, "\n")+"}", nil, session)
 	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
 		t.Fatalf("complex query was accepted: %+v", payload)
+	}
+
+	_, payload = graphRequest(t, `query {
+		attempts(limit: 1000) {
+			id taskId examPosition mode startedAt submittedAt activeDurationMs answer
+			outcome helpLevel gradingKind earnedPoints maxPoints taskRevision
+		}
+	}`, nil, session)
+	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
+		t.Fatalf("wide attempt journal was accepted: %+v", payload)
 	}
 
 	_, payload = graphRequest(t, `query { __schema { queryType { name } } }`, nil, session)

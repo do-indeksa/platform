@@ -28,6 +28,15 @@ func NewHandler(resolver *Resolver) http.Handler {
 		}
 		return int(limit) * childComplexity
 	}
+	config.Complexity.Query.Attempts = func(childComplexity int, limit int32) int {
+		if limit < 1 {
+			return childComplexity
+		}
+		if limit > progress.MaxAttemptJournalEntries {
+			limit = progress.MaxAttemptJournalEntries
+		}
+		return int(limit) * childComplexity
+	}
 	config.Complexity.Run.Items = func(childComplexity int) int {
 		return 10 * childComplexity
 	}

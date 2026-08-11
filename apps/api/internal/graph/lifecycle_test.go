@@ -2,6 +2,8 @@ package graph
 
 import (
 	"encoding/json"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -114,9 +116,10 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 	}
 
 	_, payload = graphRequest(t, `query Run($id: ID!) {
-    run(id: $id) { id status items { id recentAttempts { id outcome } } }
-    runs { id status }
-  }`, map[string]any{"id": runID}, session)
+	    run(id: $id) { id status items { id recentAttempts { id outcome } } }
+	    runs { id status }
+	    attempts { id runItemId taskRevision }
+	  }`, map[string]any{"id": runID}, session)
 	requireGraphSuccess(t, payload)
 	var queried struct {
 		Run struct {
@@ -130,13 +133,21 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 		Runs []struct {
 			ID string `json:"id"`
 		} `json:"runs"`
+		Attempts []struct {
+			ID           string  `json:"id"`
+			RunItemID    *string `json:"runItemId"`
+			TaskRevision *string `json:"taskRevision"`
+		} `json:"attempts"`
 	}
 	if err := json.Unmarshal(payload.Data, &queried); err != nil {
 		t.Fatal(err)
 	}
 	if queried.Run.ID != runID || len(queried.Run.Items) != 1 ||
 		len(queried.Run.Items[0].Attempts) != 1 || queried.Run.Items[0].Attempts[0].ID != attemptID ||
-		len(queried.Runs) != 1 || queried.Runs[0].ID != runID {
+		len(queried.Runs) != 1 || queried.Runs[0].ID != runID ||
+		len(queried.Attempts) != 1 || queried.Attempts[0].ID != attemptID ||
+		queried.Attempts[0].RunItemID == nil || *queried.Attempts[0].RunItemID != itemID ||
+		queried.Attempts[0].TaskRevision == nil || *queried.Attempts[0].TaskRevision != "task-revision" {
 		t.Fatalf("unexpected query result: %+v", queried)
 	}
 
@@ -170,6 +181,88 @@ func TestGraphQLRunLifecycle(t *testing.T) {
     run(id: $id) { items { recentAttempts(limit: 21) { id } } }
   }`, map[string]any{"id": runID}, session)
 	requireGraphCode(t, payload, "BAD_USER_INPUT")
+}
+
+func TestGraphQLStandaloneAttemptJournal(t *testing.T) {
+	owner := seedGraphSession(t, "-owner")
+	other := seedGraphSession(t, "-other")
+	startedAt := time.Now().Add(-time.Hour).UTC().Truncate(time.Microsecond)
+	firstID := uuid.New().String()
+	secondID := uuid.New().String()
+
+	record := func(t *testing.T, session *http.Cookie, id, taskID string, position int, submittedAt time.Time) {
+		t.Helper()
+		_, payload := graphRequest(t, recordAttemptMutation, map[string]any{"input": map[string]any{
+			"id": id,
+			"standalone": map[string]any{
+				"taskId":       taskID,
+				"examPosition": position,
+				"taskRevision": "sha256:" + strings.Repeat("a", 64),
+			},
+			"startedAt":        submittedAt.Add(-time.Minute),
+			"submittedAt":      submittedAt,
+			"activeDurationMs": 60_000,
+			"answer":           "42",
+			"outcome":          "CORRECT",
+			"helpLevel":        1,
+			"gradingKind":      "AUTO",
+		}}, session)
+		requireGraphSuccess(t, payload)
+	}
+
+	record(t, owner, firstID, "log-001", 3, startedAt.Add(10*time.Minute))
+	record(t, owner, secondID, "eks-001", 4, startedAt.Add(20*time.Minute))
+	record(t, other, uuid.New().String(), "other-001", 1, startedAt.Add(30*time.Minute))
+
+	_, payload := graphRequest(t, `query {
+		attempts(limit: 10) {
+			id runItemId taskId examPosition mode activeDurationMs answer outcome
+			helpLevel gradingKind taskRevision
+		}
+	}`, nil, owner)
+	requireGraphSuccess(t, payload)
+	var queried struct {
+		Attempts []struct {
+			ID               string  `json:"id"`
+			RunItemID        *string `json:"runItemId"`
+			TaskID           string  `json:"taskId"`
+			ExamPosition     int     `json:"examPosition"`
+			Mode             string  `json:"mode"`
+			ActiveDurationMs int64   `json:"activeDurationMs"`
+			Answer           string  `json:"answer"`
+			Outcome          string  `json:"outcome"`
+			HelpLevel        int     `json:"helpLevel"`
+			GradingKind      string  `json:"gradingKind"`
+			TaskRevision     *string `json:"taskRevision"`
+		} `json:"attempts"`
+	}
+	if err := json.Unmarshal(payload.Data, &queried); err != nil {
+		t.Fatal(err)
+	}
+	if len(queried.Attempts) != 2 || queried.Attempts[0].ID != firstID || queried.Attempts[1].ID != secondID {
+		t.Fatalf("attempt journal is not chronological or user-scoped: %+v", queried.Attempts)
+	}
+	latest := queried.Attempts[1]
+	if latest.RunItemID != nil || latest.TaskID != "eks-001" || latest.ExamPosition != 4 ||
+		latest.Mode != "PRACTICE" || latest.ActiveDurationMs != 60_000 || latest.Answer != "42" ||
+		latest.Outcome != "CORRECT" || latest.HelpLevel != 1 || latest.GradingKind != "AUTO" ||
+		latest.TaskRevision == nil {
+		t.Fatalf("rich standalone attempt was not preserved: %+v", latest)
+	}
+
+	_, payload = graphRequest(t, `query { attempts(limit: 1) { id } }`, nil, owner)
+	requireGraphSuccess(t, payload)
+	var limited struct {
+		Attempts []struct {
+			ID string `json:"id"`
+		} `json:"attempts"`
+	}
+	if err := json.Unmarshal(payload.Data, &limited); err != nil {
+		t.Fatal(err)
+	}
+	if len(limited.Attempts) != 1 || limited.Attempts[0].ID != secondID {
+		t.Fatalf("journal limit kept the wrong attempt: %+v", limited.Attempts)
+	}
 }
 
 func TestGraphQLRunOwnershipIsNotDisclosed(t *testing.T) {

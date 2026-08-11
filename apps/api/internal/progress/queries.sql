@@ -26,6 +26,19 @@ from (
 ) recent
 order by created_at, id;
 
+-- name: ListAttemptJournal :many
+with recent_attempt_ids as (
+    select id
+    from attempts
+    where attempts.user_id = sqlc.arg(user_id)
+    order by coalesce(submitted_at, created_at) desc, id desc
+    limit sqlc.arg(max_attempts)
+)
+select a.*
+from attempts a
+join recent_attempt_ids recent on recent.id = a.id
+order by coalesce(a.submitted_at, a.created_at), a.id;
+
 -- name: CreateRun :one
 insert into runs (
     id,

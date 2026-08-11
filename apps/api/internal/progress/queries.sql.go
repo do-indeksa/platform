@@ -381,6 +381,65 @@ type InsertAttemptsParams struct {
 	GradingKind *string
 }
 
+const listAttemptJournal = `-- name: ListAttemptJournal :many
+with recent_attempt_ids as (
+    select id
+    from attempts
+    where attempts.user_id = $1
+    order by coalesce(submitted_at, created_at) desc, id desc
+    limit $2
+)
+select a.id, a.user_id, a.task_id, a.slot, a.correct, a.source, a.created_at, a.help_level, a.public_id, a.run_item_id, a.started_at, a.submitted_at, a.active_duration_ms, a.answer, a.outcome, a.grading_kind, a.earned_points, a.max_points, a.task_revision
+from attempts a
+join recent_attempt_ids recent on recent.id = a.id
+order by coalesce(a.submitted_at, a.created_at), a.id
+`
+
+type ListAttemptJournalParams struct {
+	UserID      uuid.UUID
+	MaxAttempts int32
+}
+
+func (q *Queries) ListAttemptJournal(ctx context.Context, arg ListAttemptJournalParams) ([]Attempt, error) {
+	rows, err := q.db.Query(ctx, listAttemptJournal, arg.UserID, arg.MaxAttempts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Attempt
+	for rows.Next() {
+		var i Attempt
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TaskID,
+			&i.Slot,
+			&i.Correct,
+			&i.Source,
+			&i.CreatedAt,
+			&i.HelpLevel,
+			&i.PublicID,
+			&i.RunItemID,
+			&i.StartedAt,
+			&i.SubmittedAt,
+			&i.ActiveDurationMs,
+			&i.Answer,
+			&i.Outcome,
+			&i.GradingKind,
+			&i.EarnedPoints,
+			&i.MaxPoints,
+			&i.TaskRevision,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAttempts = `-- name: ListAttempts :many
 select task_id, slot, correct, source, help_level, created_at
 from (
