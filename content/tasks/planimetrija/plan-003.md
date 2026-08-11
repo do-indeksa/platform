@@ -5,7 +5,7 @@ topic: planimetrija
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 7, zadatak 4'
-status: review
+status: verified
 answer: 'a) stranice $6,\ 10,\ 14$, $S=15\sqrt{3}$; b) $r=\sqrt{3}$, $R=\frac{14\sqrt{3}}{3}$'
 check:
   - label: 'a) stranice'
@@ -20,6 +20,16 @@ check:
   - label: 'b) R'
     kind: value
     expected: '14sqrt(3)/3'
+rubric:
+  - id: progression-and-cosine-law
+    points: 2
+    text: 'Stranice su zapisane kao $10-d$, $10$, $10+d$ i kosinusnom teoremom za ugao $120^\circ$ dobijeno je $d=4$.'
+  - id: sides-and-area
+    points: 1
+    text: 'Navedene su stranice $6,10,14$ i površina $S=15\sqrt3$.'
+  - id: circle-radii
+    points: 2
+    text: 'Iz $r=S/s$ i sinusne teoreme pravilno su dobijeni $r=\sqrt3$ i $R=14\sqrt3/3$.'
 ---
 
 ## Zadatak

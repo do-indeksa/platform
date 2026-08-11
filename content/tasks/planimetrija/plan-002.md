@@ -5,7 +5,7 @@ topic: planimetrija
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 7, zadatak 2'
-status: review
+status: verified
 answer: 'a) $b=13$, $r=6$, $P=156$; b) $h=10$, $P=100$'
 check:
   - label: 'a) r'
@@ -17,6 +17,16 @@ check:
   - label: 'b) P'
     kind: value
     expected: '100'
+rubric:
+  - id: tangential-trapezoid
+    points: 2
+    text: 'U delu a) iz uslova tangentnog jednakokrakog trapeza dobijeni su krak $13$, visina $12$ i poluprečnik $r=6$.'
+  - id: first-area
+    points: 1
+    text: 'Površina prvog trapeza pravilno je izračunata kao $P=13\cdot12=156$.'
+  - id: perpendicular-diagonals
+    points: 2
+    text: 'U delu b) normalnost dijagonala je prevedena u $h^2=100$, pa su dobijeni $h=10$ i $P=100$.'
 ---
 
 ## Zadatak
