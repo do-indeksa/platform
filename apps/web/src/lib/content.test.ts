@@ -247,6 +247,9 @@ describe("task files", () => {
       "kb-001",
       "kb-002",
       "kb-003",
+      "komb-001",
+      "komb-002",
+      "komb-003",
       "kv-001",
       "kv-002",
       "kv-003",
@@ -435,6 +438,36 @@ describe("task files", () => {
       "incorrect",
     );
     expect(checkAnswer(tasks.get("fun-002")!.check[3], "-x/2+2")).toBe(
+      "incorrect",
+    );
+  });
+
+  it("roundtrips independently verified combinatorics answers", async () => {
+    const tasks = new Map(
+      (await getTasks("kombinatorika")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["komb-001", 0, "23*22*21/6"],
+      ["komb-001", 1, "19*18*17/6"],
+      ["komb-001", 2, "15*14*13/6"],
+      ["komb-002", 0, "5*5*4*3"],
+      ["komb-002", 1, "60+48"],
+      ["komb-002", 2, "60+2*48"],
+      ["komb-003", 0, "495-35"],
+      ["komb-003", 1, "20/2"],
+      ["komb-003", 2, "6/2"],
+      ["komb-003", 3, "30*900"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("komb-001")!.check[0], "1770")).toBe(
+      "incorrect",
+    );
+    expect(checkAnswer(tasks.get("komb-002")!.check[2], "108")).toBe(
       "incorrect",
     );
   });

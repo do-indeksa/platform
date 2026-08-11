@@ -5,7 +5,7 @@ topic: kombinatorika
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 10, zadatak 2'
-status: review
+status: verified
 answer: 'a) $1771$; b) $969$; v) $455$'
 check:
   - label: 'a)'
@@ -17,6 +17,16 @@ check:
   - label: 'v)'
     kind: value
     expected: '455'
+rubric:
+  - id: nonnegative-solutions
+    points: 1
+    text: 'Za nenegativna rešenja pravilno je primenjena formula zvezda i pregrada $\binom{23}{3}=1771$.'
+  - id: positive-solutions
+    points: 2
+    text: 'Smenom $x_i=y_i+1$ uslov je sveden na zbir $16$, pa je broj rešenja $\binom{19}{3}=969$.'
+  - id: lower-bound-two
+    points: 2
+    text: 'Smenom $x_i=y_i+2$ uslov je sveden na zbir $12$, pa je broj rešenja $\binom{15}{3}=455$.'
 ---
 
 ## Zadatak
@@ -35,7 +45,7 @@ pod uslovima:
 
 ## Nagoveštaj 1
 
-Ovo je model „zvezde i pregrade": raspoređuješ $20$ jedinica u četiri promenljive. Slučajeve b) i v) svedi smenom na slučaj nenegativnih rešenja iz a).
+Ovo je model „zvezde i pregrade”: raspoređuješ $20$ jedinica u četiri promenljive. Slučajeve b) i v) svedi smenom na slučaj nenegativnih rešenja iz a).
 
 ## Nagoveštaj 2
 
@@ -43,7 +53,7 @@ Broj nenegativnih celobrojnih rešenja jednačine $y_1+\cdots+y_4=N$ jednak je $
 
 ## Rešenje
 
-Broj nenegativnih celobrojnih rešenja jednačine $y_1+\cdots+y_4=N$ („zvezde i pregrade") jednak je $\dbinom{N+3}{3}$.
+Broj nenegativnih celobrojnih rešenja jednačine $y_1+\cdots+y_4=N$ („zvezde i pregrade”) jednak je $\dbinom{N+3}{3}$.
 
 **a)** Odmah $\dbinom{23}{3}=\dfrac{23\cdot 22\cdot 21}{6}=1771$.
 
