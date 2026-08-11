@@ -188,16 +188,24 @@ export const useSimulation = create<SimulationState>()(
           return false;
         }
         recordTaskHistory(
-          results.map((result, index) => ({
-            taskId: result.taskId,
-            slot: state.tasks[index].slot,
-            source: "simulation" as const,
-            outcome:
-              result.outcome === "unanswered" ? "skipped" : result.outcome,
-            answers: state.answers[index],
-            helpLevel: 0,
-            at: new Date(finishedAt).toISOString(),
-          })),
+          results.flatMap((result, index) =>
+            result.outcome === "partial"
+              ? []
+              : [
+                  {
+                    taskId: result.taskId,
+                    slot: state.tasks[index].slot,
+                    source: "simulation" as const,
+                    outcome:
+                      result.outcome === "unanswered"
+                        ? ("skipped" as const)
+                        : result.outcome,
+                    answers: state.answers[index],
+                    helpLevel: 0,
+                    at: new Date(finishedAt).toISOString(),
+                  },
+                ],
+          ),
         );
         const entry = buildHistoryEntry(
           state,

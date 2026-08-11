@@ -8,7 +8,8 @@ export const SIMULATION_MAX_REVIEW_MARKDOWN_LENGTH = 100_000;
 
 export type SimulationPhase = "running" | "submitting" | "done";
 export type SimulationTaskStatus = "empty" | "answered" | "skipped";
-export type SimulationOutcome = "correct" | "incorrect" | "unanswered";
+export type SimulationOutcome =
+  "correct" | "partial" | "incorrect" | "unanswered";
 
 export type SimulationTaskView = {
   id: string;
@@ -33,13 +34,26 @@ export type SimulationReviewItem = {
   taskId: string;
   correctAnswer: string;
   solution: string;
+  rubric: SimulationRubricCriterion[];
+};
+
+export type SimulationRubricCriterion = {
+  id: string;
+  points: number;
+  text: string;
 };
 
 export type SimulationRenderedReviewItem = {
   taskId: string;
   correctAnswerHtml: string;
   solutionHtml: string;
+  rubric: SimulationRenderedRubricCriterion[];
 };
+
+export type SimulationRenderedRubricCriterion = Omit<
+  SimulationRubricCriterion,
+  "text"
+> & { textHtml: string };
 
 export type SimulationHistoryEntry = {
   id: string;
@@ -55,6 +69,7 @@ export type SimulationHistoryEntry = {
   taskIds: string[];
   answers: string[][];
   results: SimulationGradeItem[];
+  rubricScores?: (number | null)[];
   progress?: SimulationProgressMetadata;
   archiveSnapshot?: SimulationArchiveSnapshot;
   ownerId?: string | null;
@@ -82,6 +97,7 @@ export type SimulationProgressItem = {
 export type SimulationResultTaskView = SimulationTaskView & {
   correctAnswerHtml: string;
   solutionHtml: string;
+  rubric: SimulationRenderedRubricCriterion[];
 };
 
 export function attachSimulationReview(
@@ -99,6 +115,7 @@ export function attachSimulationReview(
     fields: task.fields.map((field) => ({ ...field })),
     correctAnswerHtml: review[index].correctAnswerHtml,
     solutionHtml: review[index].solutionHtml,
+    rubric: review[index].rubric.map((criterion) => ({ ...criterion })),
   }));
 }
 
@@ -125,6 +142,7 @@ export function parseSimulationGradeItems(
     if (
       result.taskId !== task.id ||
       (result.outcome !== "correct" &&
+        result.outcome !== "partial" &&
         result.outcome !== "incorrect" &&
         result.outcome !== "unanswered") ||
       !Number.isInteger(result.earnedPoints) ||
@@ -133,7 +151,9 @@ export function parseSimulationGradeItems(
       result.maxPoints !== task.maxPoints ||
       (result.outcome === "correct"
         ? result.earnedPoints !== task.maxPoints
-        : result.earnedPoints !== 0)
+        : result.outcome === "partial"
+          ? result.earnedPoints === 0 || result.earnedPoints === task.maxPoints
+          : result.earnedPoints !== 0)
     ) {
       return null;
     }
@@ -149,7 +169,7 @@ export function parseSimulationGradeItems(
 
 export function parseSimulationReviewItems(
   value: unknown,
-  tasks: readonly Pick<SimulationTaskView, "id">[],
+  tasks: readonly Pick<SimulationTaskView, "id" | "maxPoints">[],
 ): SimulationReviewItem[] | null {
   if (!Array.isArray(value) || value.length !== tasks.length) return null;
   const review: SimulationReviewItem[] = [];
@@ -158,10 +178,12 @@ export function parseSimulationReviewItems(
       return null;
     }
     const candidate = item as Record<string, unknown>;
+    const rubric = parseRubric(candidate.rubric, tasks[index].maxPoints);
     if (
       candidate.taskId !== tasks[index].id ||
       !isBoundedReviewMarkdown(candidate.correctAnswer) ||
-      !isBoundedReviewMarkdown(candidate.solution)
+      !isBoundedReviewMarkdown(candidate.solution) ||
+      rubric === null
     ) {
       return null;
     }
@@ -169,9 +191,50 @@ export function parseSimulationReviewItems(
       taskId: tasks[index].id,
       correctAnswer: candidate.correctAnswer,
       solution: candidate.solution,
+      rubric,
     });
   }
   return review;
+}
+
+function parseRubric(
+  value: unknown,
+  maxPoints: number,
+): SimulationRubricCriterion[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 10) return null;
+  const criteria: SimulationRubricCriterion[] = [];
+  const ids = new Set<string>();
+  for (const valueItem of value) {
+    if (
+      typeof valueItem !== "object" ||
+      valueItem === null ||
+      Array.isArray(valueItem)
+    ) {
+      return null;
+    }
+    const item = valueItem as Record<string, unknown>;
+    if (
+      typeof item.id !== "string" ||
+      !/^[a-z0-9-]{1,32}$/.test(item.id) ||
+      ids.has(item.id) ||
+      !Number.isInteger(item.points) ||
+      (item.points as number) < 1 ||
+      !isBoundedReviewMarkdown(item.text)
+    ) {
+      return null;
+    }
+    ids.add(item.id);
+    criteria.push({
+      id: item.id,
+      points: item.points as number,
+      text: item.text,
+    });
+  }
+  return criteria.length === 0 ||
+    criteria.reduce((sum, item) => sum + item.points, 0) === maxPoints - 1
+    ? criteria
+    : null;
 }
 
 function isBoundedReviewMarkdown(value: unknown): value is string {

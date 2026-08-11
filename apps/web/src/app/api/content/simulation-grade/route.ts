@@ -47,6 +47,7 @@ export async function POST(request: Request) {
     taskId: task.id,
     correctAnswer: task.answer,
     solution: task.solution,
+    rubric: task.rubric,
   }));
 
   return json({ results, review });

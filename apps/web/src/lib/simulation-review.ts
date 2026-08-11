@@ -12,6 +12,13 @@ export async function renderSimulationReview(
       taskId: item.taskId,
       correctAnswerHtml: await renderMarkdown(item.correctAnswer),
       solutionHtml: await renderMarkdown(item.solution),
+      rubric: await Promise.all(
+        item.rubric.map(async (criterion) => ({
+          id: criterion.id,
+          points: criterion.points,
+          textHtml: await renderMarkdown(criterion.text),
+        })),
+      ),
     })),
   );
 }
