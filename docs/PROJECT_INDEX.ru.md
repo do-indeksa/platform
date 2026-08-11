@@ -171,6 +171,8 @@ EN и SR, гостевые и авторизованные состояния.
 
 | Возможность              | Состояние              | Комментарий                                                               |
 | ------------------------ | ---------------------- | ------------------------------------------------------------------------- |
+| Публичный landing        | готов по Figma         | literal SR desktop/tablet/mobile, локализация EN/RU и реальные данные P1  |
+| Кабинет                  | provisional skeleton   | прежний functional overview перенесен на `/cabinet`, Figma slice впереди  |
 | Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
 | Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
 | Решение отдельной задачи | готов для preview      | exact checker, подсказки, решение, resume, история и task-report          |
@@ -188,7 +190,7 @@ EN и SR, гостевые и авторизованные состояния.
 
 Текущие маршруты web:
 
-`/`, `/prep`, `/tasks`, `/tasks/[topic]`, `/tasks/[topic]/[id]`,
+`/`, `/cabinet`, `/prep`, `/tasks`, `/tasks/[topic]`, `/tasks/[topic]/[id]`,
 `/diagnostic`, `/diagnostic/new`, `/diagnostic/result`, `/simulation`,
 `/simulation/new`, `/simulation/result`, `/history`, `/exams`,
 `/exams/[examId]`, `/faculties/ftn`, `/calculator` во всех трех locale.

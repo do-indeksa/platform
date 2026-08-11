@@ -58,6 +58,9 @@ AI-оценивание остается вне критического пут�
 - исправлены P1/P3-P8, 4 часа, лимит 60 и versioned blueprints;
 - готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
   история, simplified plan, daily task/streak и FTN-каталог;
+- публичный `/` буквально воспроизводит canonical Figma landing на
+  desktop/tablet/mobile; прежний functional overview изолирован на явно
+  provisional `/cabinet`;
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
@@ -75,12 +78,12 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 508 web unit-тестов, 29 тестов content pipeline,
-  68 функциональных Playwright-сценариев, 21 Linux visual-regression эталон,
+- blocking CI включает 510 web unit-тестов, 29 тестов content pipeline,
+  80 функциональных Playwright-сценариев, 38 Linux visual-regression эталонов,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
-pixel-perfect пересборка текущих самостоятельных композиций по Figma, visual
+pixel-perfect пересборка кабинета и остальных самостоятельных композиций по Figma, visual
 coverage для error states и long Serbian copy, а также production rollout.
 Analytics сознательно fail-closed до безопасного image.
 
@@ -402,8 +405,9 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 Работа продолжается теми же небольшими независимыми PR:
 
-1. Пересобрать существующие routes по точным Figma nodes небольшими UI PR и
-   принимать новые visual baselines только после overlay-review.
+1. После готового public landing пересобрать `/cabinet`, Solution и остальные
+   существующие routes по точным Figma nodes небольшими UI PR; принимать новые
+   visual baselines только после overlay-review.
 2. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
