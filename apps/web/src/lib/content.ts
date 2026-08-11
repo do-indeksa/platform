@@ -7,6 +7,10 @@ import type { CheckPart } from "@/lib/answer";
 import { markdownToPlainText, renderMarkdown } from "./markdown";
 
 const contentDir = path.join(process.cwd(), "..", "..", "content");
+const taskSnapshotsDir = path.join(contentDir, "snapshots", "tasks");
+const taskIdPattern = /^(?=.{5,64}$)[a-z][a-z0-9]*-[0-9]{3}$/;
+const taskRevisionPattern = /^sha256:([a-f0-9]{64})$/;
+const taskTopicPattern = /^[a-z][a-z0-9-]{1,63}$/;
 
 export type Topic = {
   slug: string;
@@ -100,6 +104,48 @@ export async function getTask(
   return tasks.find((task) => task.id === id);
 }
 
+// Invalid or missing lookups are absent; an existing corrupt snapshot is fatal.
+export async function getArchivedTask(
+  taskId: string,
+  revision: string,
+): Promise<Task | undefined> {
+  const revisionMatch =
+    typeof taskId === "string" &&
+    taskIdPattern.test(taskId) &&
+    typeof revision === "string"
+      ? taskRevisionPattern.exec(revision)
+      : null;
+  if (!revisionMatch) return undefined;
+
+  const filePath = path.join(
+    taskSnapshotsDir,
+    taskId,
+    `${revisionMatch[1]}.md`,
+  );
+  let raw: string;
+  try {
+    raw = await fs.readFile(filePath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw error;
+  }
+
+  if (taskRevision(raw) !== revision) {
+    throw new Error(`${filePath}: archived task hash mismatch`);
+  }
+  const task = parseTask(raw, filePath);
+  if (task.id !== taskId) {
+    throw new Error(`${filePath}: archived task ID mismatch`);
+  }
+  if (typeof task.topic !== "string" || !taskTopicPattern.test(task.topic)) {
+    throw new Error(`${filePath}: archived task topic is invalid`);
+  }
+  if (task.status !== "verified") {
+    throw new Error(`${filePath}: archived task is not verified`);
+  }
+  return task;
+}
+
 export function getTaskSummaries(): Promise<TaskSummary[]> {
   if (process.env.NODE_ENV === "development") return buildTaskSummaries();
   // Git-backed content is immutable for a running production process.
@@ -154,6 +200,10 @@ async function buildTaskReferences(): Promise<TaskReference[]> {
 
 async function readTask(filePath: string): Promise<Task> {
   const raw = await fs.readFile(filePath, "utf8");
+  return parseTask(raw, filePath);
+}
+
+function parseTask(raw: string, filePath: string): Task {
   const { data, content } = matter(raw);
   const sections = parseSections(content);
   return {
@@ -161,7 +211,7 @@ async function readTask(filePath: string): Promise<Task> {
       Task,
       "revision" | "rubric" | "statement" | "hints" | "solution"
     >),
-    revision: `sha256:${createHash("sha256").update(raw).digest("hex")}`,
+    revision: taskRevision(raw),
     rubric: parseTaskRubric(data.rubric, filePath),
     statement: sections.get("Zadatak") ?? "",
     hints: [sections.get("Nagoveštaj 1"), sections.get("Nagoveštaj 2")].filter(
@@ -169,6 +219,10 @@ async function readTask(filePath: string): Promise<Task> {
     ),
     solution: sections.get("Rešenje") ?? "",
   };
+}
+
+function taskRevision(raw: string): string {
+  return `sha256:${createHash("sha256").update(raw).digest("hex")}`;
 }
 
 function parseTaskRubric(
