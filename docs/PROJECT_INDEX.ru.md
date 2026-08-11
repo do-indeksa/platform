@@ -190,8 +190,8 @@ EN и SR, гостевые и авторизованные состояния.
 HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v1/attempts` только
 для дренирования старых локальных записей. Новые попытки, история, диагностика
 и пробный экзамен используют product API на `/graphql`: `Run`, `RunItem`,
-расширенный `Attempt`, start/record/submit lifecycle, recent history и
-bounded-проекцию `completedSimulationRuns` без N+1.
+расширенный `Attempt`, start/record/checkpoint/submit/abandon lifecycle, recent
+history и bounded-проекцию `completedSimulationRuns` без N+1.
 
 ## 6. Разбор PDF и Figma
 
@@ -256,9 +256,10 @@ Backend-модель `Run`/`RunItem` реализована. Диагности�
 guest-run, а logout, смена аккаунта или невалидный owner синхронно удаляют чужой
 runtime до сетевой синхронизации; owner-scoped история при этом сохраняется.
 Завершённые пробники имеют bounded cross-device archive с batch-загрузкой
-run/items/latest attempts. ADR 0016 отделяет versioned mutable checkpoint от
-append-only attempts, но активный server-backed cross-device resume и полная
-копия старого content revision еще не замыкают полный контур.
+run/items/latest attempts. Backend-контракт ADR 0016 хранит versioned mutable
+checkpoint отдельно от append-only attempts и удаляет его при submit/abandon.
+Browser upload/hydration и полная копия старого content revision еще не замыкают
+полный контур.
 
 ## 8. Зафиксированные продуктовые решения
 

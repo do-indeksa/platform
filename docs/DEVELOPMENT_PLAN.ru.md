@@ -55,7 +55,8 @@ AI-оценивание остается вне критического пут�
 - исправлены P1/P3-P8, 4 часа, лимит 60 и versioned blueprints;
 - готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
   история, simplified plan, daily task/streak и FTN-каталог;
-- Go-монолит содержит gqlgen run/attempt lifecycle и HTTP OAuth;
+- Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
+  explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
 - история имеет allowlisted URL-фильтры по области, результату и периоду,
   сохраняет их при открытии детали и показывает score trend только по полным
@@ -67,9 +68,9 @@ AI-оценивание остается вне критического пут�
 - blocking CI включает 386 unit-тестов, 61 Playwright-сценарий, container
   smoke, dependency audit и Trivy.
 
-Не завершены server-backed cross-device lifecycle, rubric partial scoring,
-расширение verified-банка и production rollout. Analytics сознательно
-fail-closed до безопасного image.
+Не завершены browser upload/hydration активного checkpoint, rubric partial
+scoring, исторические content snapshots, расширение verified-банка и production
+rollout. Analytics сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
 
@@ -379,9 +380,9 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 1. После выпуска Google OAuth credentials завершить private Kubernetes rollout
    через Cloudflare Tunnel и доказать auth, GraphQL, Neon migration, backup и
    rollback на `doindeksa.rs` без публикации origin.
-2. Реализовать versioned active-run checkpoints и explicit abandon по ADR 0016,
-   начиная с backend-контракта и диагностики; исторические snapshots условий и
-   решений остаются отдельным immutable-срезом.
+2. Подключить диагностику к versioned active-run checkpoint по ADR 0016:
+   upload, hydrate, conflict и explicit abandon; исторические snapshots условий
+   и решений остаются отдельным immutable-срезом.
 3. Спроектировать rubric self-check и частичные баллы, не смешивая trainer
    estimate с официальным оцениванием FTN.
 4. Расширять verified-банк от текущих 9 задач и сохранять независимый
