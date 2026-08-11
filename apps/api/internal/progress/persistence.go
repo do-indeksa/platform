@@ -38,7 +38,53 @@ func loadRun(ctx context.Context, queries *Queries, userID, runID uuid.UUID) (Ru
 	if attempts == nil {
 		attempts = []Attempt{}
 	}
-	return RunAggregate{Run: run, Items: items, Attempts: attempts}, nil
+	checkpoint, err := loadRunCheckpoint(ctx, queries, userID, runID)
+	if err != nil {
+		return RunAggregate{}, err
+	}
+	return RunAggregate{Run: run, Items: items, Attempts: attempts, Checkpoint: checkpoint}, nil
+}
+
+func loadRunCheckpoint(
+	ctx context.Context,
+	queries *Queries,
+	userID, runID uuid.UUID,
+) (*RunCheckpointAggregate, error) {
+	rows, err := queries.ListRunCheckpointRows(ctx, ListRunCheckpointRowsParams{
+		RunID: runID, UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	first := rows[0]
+	checkpoint := RunCheckpoint{
+		RunID: first.RunID, UserID: first.UserID, Version: first.Version,
+		CurrentOrdinal: first.CurrentOrdinal, ActiveDurationMs: first.ActiveDurationMs,
+		UpdatedAt: first.UpdatedAt,
+	}
+	drafts := make([]RunCheckpointDraft, 0, len(rows))
+	for _, row := range rows {
+		if row.RunID != checkpoint.RunID || row.UserID != checkpoint.UserID ||
+			row.Version != checkpoint.Version || row.CurrentOrdinal != checkpoint.CurrentOrdinal ||
+			!samePointer(row.ActiveDurationMs, checkpoint.ActiveDurationMs) ||
+			!row.UpdatedAt.Equal(checkpoint.UpdatedAt) {
+			return nil, fmt.Errorf("checkpoint projection changed within one query")
+		}
+		if !row.RunItemID.Valid && row.Answer == nil {
+			continue
+		}
+		if !row.RunItemID.Valid || row.Answer == nil {
+			return nil, fmt.Errorf("checkpoint draft projection is incomplete")
+		}
+		drafts = append(drafts, RunCheckpointDraft{
+			RunID: row.RunID, RunItemID: uuid.UUID(row.RunItemID.Bytes), UserID: row.UserID,
+			Answer: *row.Answer,
+		})
+	}
+	return &RunCheckpointAggregate{Checkpoint: checkpoint, Drafts: drafts}, nil
 }
 
 func loadCompletedSimulationRuns(

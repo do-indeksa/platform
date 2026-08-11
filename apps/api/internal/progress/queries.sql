@@ -64,6 +64,13 @@ from runs
 where id = $1 and user_id = $2
 for update;
 
+-- name: AbandonRun :one
+update runs
+set status = 'abandoned',
+    updated_at = now()
+where id = $1 and user_id = $2 and status = 'active'
+returning *;
+
 -- name: ListRuns :many
 select *
 from runs
@@ -100,6 +107,80 @@ select *
 from run_items
 where run_id = $1 and user_id = $2
 order by ordinal;
+
+-- name: ListRunCheckpointRows :many
+select checkpoint.run_id,
+       checkpoint.user_id,
+       checkpoint.version,
+       checkpoint.current_ordinal,
+       checkpoint.active_duration_ms,
+       checkpoint.updated_at,
+       draft.run_item_id,
+       draft.answer
+from run_checkpoints checkpoint
+left join run_checkpoint_drafts draft
+  on draft.run_id = checkpoint.run_id
+ and draft.user_id = checkpoint.user_id
+left join run_items item
+  on item.run_id = draft.run_id
+ and item.id = draft.run_item_id
+ and item.user_id = draft.user_id
+where checkpoint.run_id = $1 and checkpoint.user_id = $2
+order by item.ordinal nulls last;
+
+-- name: GetRunCheckpointForUpdate :one
+select *
+from run_checkpoints
+where run_id = $1 and user_id = $2
+for update;
+
+-- name: CreateRunCheckpoint :one
+insert into run_checkpoints (
+    run_id,
+    user_id,
+    version,
+    current_ordinal,
+    active_duration_ms
+)
+values ($1, $2, 1, $3, $4)
+returning *;
+
+-- name: UpdateRunCheckpoint :one
+update run_checkpoints
+set version = version + 1,
+    current_ordinal = $4,
+    active_duration_ms = $5,
+    updated_at = now()
+where run_id = $1 and user_id = $2 and version = $3
+returning *;
+
+-- name: DeleteRunCheckpoint :exec
+delete from run_checkpoints
+where run_id = $1 and user_id = $2;
+
+-- name: DeleteRunCheckpointDrafts :exec
+delete from run_checkpoint_drafts
+where run_id = $1 and user_id = $2;
+
+-- name: CreateRunCheckpointDraft :one
+insert into run_checkpoint_drafts (run_id, run_item_id, user_id, answer)
+values ($1, $2, $3, $4)
+returning *;
+
+-- name: ListRunCheckpointDrafts :many
+select draft.*
+from run_checkpoint_drafts draft
+join run_items item
+  on item.run_id = draft.run_id
+ and item.id = draft.run_item_id
+ and item.user_id = draft.user_id
+where draft.run_id = $1 and draft.user_id = $2
+order by item.ordinal;
+
+-- name: TouchRun :exec
+update runs
+set updated_at = now()
+where id = $1 and user_id = $2;
 
 -- name: ListRunItemsByRunIDs :many
 select *
