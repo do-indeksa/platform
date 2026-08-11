@@ -15,6 +15,7 @@ One file = one task: `content/tasks/<topic-slug>/<id>.md`
 | `status`     | string | `draft` → `review` → `verified`                             |
 | `answer`     | string | final answer for display, LaTeX inline math allowed         |
 | `check`      | list   | machine-checkable answer parts, see below                   |
+| `rubric`     | list   | optional reviewed method criteria, see below                |
 
 ## Check
 
@@ -33,6 +34,24 @@ numeric, so any equivalent exact form passes. Parts that cannot be
 machine-checked (domains, monotonicity, sketches) are omitted — the
 solution covers them. A task requires 1–6 checked parts; this bound is shared by
 practice, diagnostic, and simulation flows.
+
+## Rubric
+
+```yaml
+rubric:
+  - id: model
+    points: 2
+    text: "Postavljen je odgovarajuci matematicki model."
+```
+
+Rubric criteria describe evidence visible in the candidate's written method.
+They are optional and may be added only to `verified` tasks. Criterion IDs are
+unique lowercase slugs, points are positive integers, and descriptions are
+canonical Serbian text. For every blueprint position that can select the task,
+the criterion points must total `maxPoints - 1`. The remaining point belongs to
+the exact final-answer check, so a mismatched answer can receive partial credit
+but never the trainer's full-score estimate. This is a self-assessment aid, not
+official FTN grading.
 
 ## Body
 
