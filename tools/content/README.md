@@ -1,12 +1,17 @@
 # Content pipeline
 
-The pipeline has two independent gates:
+The pipeline has four independent commands:
 
 1. `npm run check` verifies source SHA-256 values and proves that every current
    task origin resolves to a real statement and solution selector. It also
-   enforces complete, versioned review records for every `verified` task.
+   enforces complete, versioned review records and an immutable snapshot for
+   every `verified` task.
 2. `npm run generate -- --manifest FILE --output DIR` parses a reviewer
    manifest and creates a new directory of structured task files atomically.
+3. `npm run snapshot` creates the missing content-addressed Markdown snapshot
+   for every current verified task and never overwrites an existing file.
+4. `npm run check:snapshot-history -- --base REF` rejects modification,
+   deletion, or rename of a task snapshot already present at `REF`.
 
 The importer uses a LaTeX AST. A selector such as `3` addresses the third task
 in a slot; `3a` addresses its first subtask. Reviewer manifests provide the

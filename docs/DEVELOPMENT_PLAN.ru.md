@@ -69,13 +69,13 @@ AI-оценивание остается вне критического пут�
 - `Prijavi grešku` открывает предзаполненный content-report с task ID и revision,
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
-  прошли versioned mathematical review;
-- blocking CI включает 482 unit-теста, 68 Playwright-сценариев, container
-  smoke, dependency audit и Trivy.
+  прошли versioned mathematical review и сохранены в immutable SHA-256 archive;
+- blocking CI включает 482 web unit-теста, 28 тестов content pipeline,
+  68 Playwright-сценариев, container smoke, dependency audit и Trivy.
 
-Не завершены исторические content snapshots, расширение verified-банка,
-пилотная калибровка рекомендаций и production rollout. Analytics сознательно
-fail-closed до безопасного image.
+Не завершены runtime-resolver исторических content snapshots, расширение
+verified-банка, пилотная калибровка рекомендаций и production rollout. Analytics
+сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
 
@@ -391,8 +391,8 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 1. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
-2. Спроектировать immutable historical content snapshots, не сохраняя
-   непроверенный HTML и не ломая hash-bound provenance.
+2. Подключить безопасный runtime-resolver immutable Markdown snapshots по
+   task ID и SHA-256 revision без хранения непроверенного HTML в БД.
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
 4. Добавить стабильные visual-regression эталоны для rubric review, результата,
    shell, task, plan и history на 360/768/1440 px.
