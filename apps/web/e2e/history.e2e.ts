@@ -167,12 +167,20 @@ test("signed practice retries the same GraphQL attempt without REST", async ({
                 ? [
                     {
                       id: input.id,
+                      runItemId: null,
                       taskId: input.standalone.taskId,
                       examPosition: input.standalone.examPosition,
                       mode: "PRACTICE",
+                      startedAt: input.startedAt,
                       submittedAt: input.submittedAt,
+                      activeDurationMs: input.activeDurationMs,
+                      answer: input.answer,
                       outcome: input.outcome,
                       helpLevel: input.helpLevel,
+                      gradingKind: input.gradingKind,
+                      earnedPoints: null,
+                      maxPoints: null,
+                      taskRevision: input.standalone.taskRevision,
                     },
                   ]
                 : [],
@@ -233,6 +241,233 @@ test("signed practice retries the same GraphQL attempt without REST", async ({
     )
     .toBeNull();
   expect(restRequests).toEqual([]);
+});
+
+test("a signed-in user opens a synced attempt on a clean browser", async ({
+  page,
+}) => {
+  const attemptId = "99c66cc7-4666-47e7-98b5-c91a7794a5e8";
+  const revision = `sha256:${"b".repeat(64)}`;
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as { operationName?: string };
+    if (call.operationName !== "AttemptJournal") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        data: {
+          attempts: [
+            {
+              id: attemptId,
+              runItemId: null,
+              taskId: "kb-001",
+              examPosition: 1,
+              mode: "PRACTICE",
+              startedAt: "2026-07-12T09:59:50.000Z",
+              submittedAt: "2026-07-12T10:00:00.000Z",
+              activeDurationMs: 10_000,
+              answer: JSON.stringify(["0", "0", "0", "0"]),
+              outcome: "INCORRECT",
+              helpLevel: 1,
+              gradingKind: "AUTO",
+              earnedPoints: null,
+              maxPoints: null,
+              taskRevision: revision,
+            },
+            {
+              id: "13c66cc7-4666-47e7-98b5-c91a7794a5e8",
+              runItemId: "13c66cc7-4666-47e7-88b5-c91a7794a5e8",
+              taskId: "kv-001",
+              examPosition: 2,
+              mode: "DIAGNOSTIC",
+              startedAt: "2026-07-12T10:00:30.000Z",
+              submittedAt: "2026-07-12T10:01:00.000Z",
+              activeDurationMs: 30_000,
+              answer: JSON.stringify(["1"]),
+              outcome: "PARTIAL",
+              helpLevel: 0,
+              gradingKind: "RUBRIC_SELF",
+              earnedPoints: 3,
+              maxPoints: 6,
+              taskRevision: revision,
+            },
+            {
+              id: "23c66cc7-4666-47e7-98b5-c91a7794a5e8",
+              runItemId: null,
+              taskId: "eks-001",
+              examPosition: 3,
+              mode: "PRACTICE",
+              startedAt: "2026-07-12T10:01:30.000Z",
+              submittedAt: "2026-07-12T10:02:00.000Z",
+              activeDurationMs: 30_000,
+              answer: null,
+              outcome: "SKIPPED",
+              helpLevel: 3,
+              gradingKind: "AUTO",
+              earnedPoints: null,
+              maxPoints: null,
+              taskRevision: revision,
+            },
+            {
+              id: "33c66cc7-4666-47e7-98b5-c91a7794a5e8",
+              runItemId: "33c66cc7-4666-47e7-88b5-c91a7794a5e8",
+              taskId: "log-001",
+              examPosition: 4,
+              mode: "SIMULATION",
+              startedAt: "2026-07-12T10:02:30.000Z",
+              submittedAt: "2026-07-12T10:03:00.000Z",
+              activeDurationMs: 30_000,
+              answer: null,
+              outcome: "UNGRADED",
+              helpLevel: 0,
+              gradingKind: "HUMAN",
+              earnedPoints: null,
+              maxPoints: 6,
+              taskRevision: revision,
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  await page.goto("/en/history");
+  await expect(
+    page.getByText(
+      "This journal is synced to your account and available on your other devices.",
+    ),
+  ).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(4);
+  await expect(
+    page.locator("tbody tr").filter({ hasText: "#kb-001" }),
+  ).toContainText("0 · 0 · 0 · 0");
+  await expect(
+    page.locator("tbody").getByText("Partial", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("tbody").getByText("Skipped", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator("tbody").getByText("Awaiting review", { exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => localStorage.getItem("do-indeksa-task-history")),
+  ).toBeNull();
+
+  await page
+    .getByRole("link", { name: "Open attempt for task kv-001" })
+    .click();
+  await expect(
+    page.getByText("Self-assessed rubric", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("3 / 6", { exact: true })).toBeVisible();
+  await expect(page.getByTitle(revision)).toHaveText("bbbbbbbbbbbb");
+  await expect(
+    page.getByText(
+      "This task changed after the attempt. The statement and solution below show the current version.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.goBack();
+
+  await page
+    .getByRole("link", { name: "Open attempt for task kb-001" })
+    .click();
+  await expect(page.getByText("10 sec", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Automatic check", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator('section[aria-labelledby="answer-comparison-heading"] dd')
+      .filter({ hasText: /^0$/ }),
+  ).toHaveCount(4);
+});
+
+test("local detail rows stay isolated between accounts", async ({ page }) => {
+  const userA = "a0209703-275b-4c6e-b815-25025b923ae8";
+  const userB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
+  let signedOut = false;
+  await page.addInitScript(
+    ({ ownerA, ownerB }) => {
+      const base = {
+        slot: 1,
+        source: "practice",
+        outcome: "incorrect",
+        answers: ["1"],
+        helpLevel: 0,
+        at: "2026-07-12T10:00:00.000Z",
+      };
+      localStorage.setItem(
+        "do-indeksa-task-history",
+        JSON.stringify({
+          version: 2,
+          entries: [
+            {
+              ...base,
+              id: "b8b70648-4249-4474-bb6b-ef1b6db05f55",
+              taskId: "kb-001",
+              ownerId: ownerA,
+            },
+            {
+              ...base,
+              id: "81214e0d-5b5a-4ae9-bc71-636e39e76c64",
+              taskId: "kv-001",
+              slot: 2,
+              ownerId: ownerB,
+            },
+          ],
+        }),
+      );
+    },
+    { ownerA: userA, ownerB: userB },
+  );
+  await page.route("**/api/v1/me", (route) =>
+    signedOut
+      ? route.fulfill({ status: 401 })
+      : route.fulfill({
+          json: {
+            id: userB,
+            email: "account-b@example.test",
+            name: "Account B",
+          },
+        }),
+  );
+  await page.route("**/api/v1/auth/logout", (route) => {
+    signedOut = true;
+    return route.fulfill({ status: 204 });
+  });
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as { operationName?: string };
+    await route.fulfill({
+      json:
+        call.operationName === "AttemptJournal"
+          ? { data: { attempts: [] } }
+          : { data: { runs: [] } },
+    });
+  });
+
+  await page.goto("/en/history");
+
+  await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("tbody tr")).toContainText("#kv-001");
+  await expect(page.locator("tbody tr")).not.toContainText("#kb-001");
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "No task attempts yet" }),
+  ).toBeVisible();
 });
 
 test("an archived mock exam can rebuild and open its trusted result", async ({

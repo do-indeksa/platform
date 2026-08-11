@@ -13,12 +13,20 @@ const ATTEMPT_JOURNAL = `
   query AttemptJournal($limit: Int!) {
     attempts(limit: $limit) {
       id
+      runItemId
       taskId
       examPosition
       mode
+      startedAt
       submittedAt
+      activeDurationMs
+      answer
       outcome
       helpLevel
+      gradingKind
+      earnedPoints
+      maxPoints
+      taskRevision
     }
   }
 `;

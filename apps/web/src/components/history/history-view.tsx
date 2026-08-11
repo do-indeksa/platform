@@ -1,11 +1,15 @@
 "use client";
 
-import { HardDrive, LoaderCircle } from "lucide-react";
+import { Cloud, CloudOff, HardDrive, LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import { Link } from "@/i18n/navigation";
+import { useAttemptJournal } from "@/lib/attempts-store";
+import {
+  mergeTaskHistory,
+  recentHistoryErrorTaskIds,
+} from "@/lib/history-journal";
 import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
-import { recentErrorTaskIds } from "@/lib/task-history";
 import { useTaskHistory } from "@/lib/task-history-store";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -24,7 +28,8 @@ export function HistoryView({
 }) {
   const t = useTranslations("history");
   const hydrated = useHydrated();
-  const taskEntries = useTaskHistory();
+  const localTaskEntries = useTaskHistory();
+  const journal = useAttemptJournal();
   const variantEntries = useSimulation((state) => state.history);
   const simulationPhase = useSimulation((state) => state.phase);
   const [practiceId] = useState(() => crypto.randomUUID());
@@ -32,8 +37,15 @@ export function HistoryView({
     () => new Map(tasks.map((task) => [task.id, task])),
     [tasks],
   );
+  const taskEntries = useMemo(
+    () =>
+      localTaskEntries === null || journal === null
+        ? null
+        : mergeTaskHistory(localTaskEntries, journal.entries),
+    [journal, localTaskEntries],
+  );
 
-  if (!hydrated || taskEntries === null) {
+  if (!hydrated || taskEntries === null || journal === null) {
     return (
       <main className="mx-auto flex min-h-[32rem] w-full max-w-6xl items-center justify-center px-5 sm:px-8">
         <p className="flex items-center gap-3 text-muted">
@@ -44,7 +56,7 @@ export function HistoryView({
     );
   }
 
-  const errorTaskIds = recentErrorTaskIds(taskEntries).filter((taskId) =>
+  const errorTaskIds = recentHistoryErrorTaskIds(taskEntries).filter((taskId) =>
     taskById.has(taskId),
   );
   const firstError = taskById.get(errorTaskIds[0] ?? "");
@@ -67,10 +79,7 @@ export function HistoryView({
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
           {t("intro")}
         </p>
-        <p className="mt-5 flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted">
-          <HardDrive aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-          {t("localNotice")}
-        </p>
+        <SyncNotice status={journal.status} />
       </header>
 
       <div
@@ -113,6 +122,18 @@ export function HistoryView({
         </p>
       )}
     </main>
+  );
+}
+
+function SyncNotice({ status }: { status: "guest" | "synced" | "degraded" }) {
+  const t = useTranslations("history");
+  const Icon =
+    status === "guest" ? HardDrive : status === "synced" ? Cloud : CloudOff;
+  return (
+    <p className="mt-5 flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted">
+      <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+      {t(`syncNotice.${status}`)}
+    </p>
   );
 }
 

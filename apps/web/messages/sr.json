@@ -332,7 +332,11 @@
     "description": "Završeni zadaci i probni ispiti tokom pripreme za FTN P1.",
     "kicker": "P1 · Tvoj rad",
     "intro": "Vrati se na prethodne odgovore, pogledaj greške u kontekstu i pretvori ih u kratku vežbu.",
-    "localNotice": "Detaljni odgovori čuvaju se na ovom uređaju. Prijava trenutno sinhronizuje pregled napretka, ali ne i ovaj ceo lokalni dnevnik.",
+    "syncNotice": {
+      "guest": "Detaljni odgovori ostaju na ovom uređaju dok se ne prijaviš.",
+      "synced": "Dnevnik je sinhronizovan sa nalogom i dostupan na drugim uređajima.",
+      "degraded": "Sinhronizacija još nije ažurna. Neposlati pokušaji ostaju bezbedni na ovom uređaju."
+    },
     "loading": "Učitavamo istoriju...",
     "loadingAttempt": "Otvaramo pokušaj...",
     "tabsLabel": "Prikazi istorije",
@@ -359,7 +363,9 @@
     "outcome": {
       "correct": "Tačno",
       "incorrect": "Greška",
-      "skipped": "Preskočeno"
+      "partial": "Delimično",
+      "skipped": "Preskočeno",
+      "ungraded": "Čeka pregled"
     },
     "source": {
       "practice": "Vežba",
@@ -380,6 +386,7 @@
     "scoreValue": "{score} / {max}",
     "durationHoursMinutes": "{hours} č {minutes} min",
     "durationMinutes": "{minutes} min",
+    "durationSeconds": "{seconds} sek",
     "complete": "Završeno",
     "partial": "Odgovoreno {answered}/{total}",
     "timedOut": "Vreme je isteklo",
@@ -387,6 +394,17 @@
     "attemptTitle": "Pokušaj zadatka {id}",
     "detailKicker": "Detalji pokušaja",
     "backToHistory": "Nazad na istoriju",
+    "activeTime": "Aktivno vreme",
+    "gradingLabel": "Provera",
+    "pointsLabel": "Bodovi",
+    "revisionLabel": "Revizija sadržaja",
+    "revisionMismatch": "Zadatak je promenjen nakon ovog pokušaja. Ispod su tekst i rešenje iz trenutne verzije.",
+    "grading": {
+      "auto": "Automatska provera",
+      "rubric_self": "Samoprocena po rubrici",
+      "ai_assisted": "Provera uz pomoć AI",
+      "human": "Pregled nastavnika"
+    },
     "statementTitle": "Tekst zadatka",
     "answerComparisonTitle": "Poređenje odgovora",
     "yourAnswer": "Tvoj odgovor",

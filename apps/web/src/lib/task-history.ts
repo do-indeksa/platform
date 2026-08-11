@@ -2,7 +2,7 @@ import { MAX_ANSWER_LENGTH } from "./task-draft";
 import { SIMULATION_MAX_ANSWER_PARTS } from "./simulation-types";
 
 export const TASK_HISTORY_STORAGE_KEY = "do-indeksa-task-history";
-export const TASK_HISTORY_VERSION = 1;
+export const TASK_HISTORY_VERSION = 2;
 export const TASK_HISTORY_LIMIT = 200;
 export const ERROR_PRACTICE_LIMIT = 6;
 
@@ -24,9 +24,13 @@ export type NewTaskHistoryEntry = Omit<TaskHistoryEntry, "id" | "at"> & {
   at?: string;
 };
 
+export type StoredTaskHistoryEntry = TaskHistoryEntry & {
+  ownerId: string | null;
+};
+
 export type PersistedTaskHistory = {
   version: typeof TASK_HISTORY_VERSION;
-  entries: TaskHistoryEntry[];
+  entries: StoredTaskHistoryEntry[];
 };
 
 const UUID_PATTERN =
@@ -43,32 +47,34 @@ const OUTCOMES = new Set<TaskHistoryOutcome>([
   "skipped",
 ]);
 
-export function parseTaskHistory(value: unknown): TaskHistoryEntry[] {
-  if (
-    !isRecord(value) ||
-    value.version !== TASK_HISTORY_VERSION ||
-    !Array.isArray(value.entries)
-  ) {
+export function parseTaskHistory(value: unknown): StoredTaskHistoryEntry[] {
+  if (!isRecord(value) || !Array.isArray(value.entries)) {
     return [];
   }
 
+  const legacy = value.version === 1;
+  if (!legacy && value.version !== TASK_HISTORY_VERSION) return [];
+
   const ids = new Set<string>();
-  const entries: TaskHistoryEntry[] = [];
+  const entries: StoredTaskHistoryEntry[] = [];
   for (const candidate of value.entries) {
-    if (!isTaskHistoryEntry(candidate) || ids.has(candidate.id)) continue;
-    ids.add(candidate.id);
-    entries.push(cloneTaskHistoryEntry(candidate));
+    const entry = legacy
+      ? toLegacyStoredEntry(candidate)
+      : toStoredTaskHistoryEntry(candidate);
+    if (entry === null || ids.has(entry.id)) continue;
+    ids.add(entry.id);
+    entries.push(entry);
     if (entries.length === TASK_HISTORY_LIMIT) break;
   }
   return entries;
 }
 
 export function toPersistedTaskHistory(
-  entries: readonly TaskHistoryEntry[],
+  entries: readonly StoredTaskHistoryEntry[],
 ): PersistedTaskHistory {
   return {
     version: TASK_HISTORY_VERSION,
-    entries: entries.slice(0, TASK_HISTORY_LIMIT).map(cloneTaskHistoryEntry),
+    entries: entries.slice(0, TASK_HISTORY_LIMIT).map(cloneStoredEntry),
   };
 }
 
@@ -123,7 +129,48 @@ export function recentErrorTaskIds(
 }
 
 function cloneTaskHistoryEntry(entry: TaskHistoryEntry): TaskHistoryEntry {
-  return { ...entry, answers: [...entry.answers] };
+  return {
+    id: entry.id,
+    taskId: entry.taskId,
+    slot: entry.slot,
+    source: entry.source,
+    outcome: entry.outcome,
+    answers: [...entry.answers],
+    helpLevel: entry.helpLevel,
+    at: entry.at,
+  };
+}
+
+export function toPublicTaskHistoryEntry(
+  entry: StoredTaskHistoryEntry,
+): TaskHistoryEntry {
+  return cloneTaskHistoryEntry(entry);
+}
+
+function toLegacyStoredEntry(value: unknown): StoredTaskHistoryEntry | null {
+  if (!isTaskHistoryEntry(value)) return null;
+  return { ...cloneTaskHistoryEntry(value), ownerId: null };
+}
+
+function toStoredTaskHistoryEntry(
+  value: unknown,
+): StoredTaskHistoryEntry | null {
+  if (!isRecord(value)) return null;
+  const ownerId = value.ownerId;
+  if (!isTaskHistoryEntry(value) || !isOwnerId(ownerId)) return null;
+  return cloneStoredEntry({ ...value, ownerId });
+}
+
+function cloneStoredEntry(
+  entry: StoredTaskHistoryEntry,
+): StoredTaskHistoryEntry {
+  return { ...cloneTaskHistoryEntry(entry), ownerId: entry.ownerId };
+}
+
+function isOwnerId(value: unknown): value is string | null {
+  return (
+    value === null || (typeof value === "string" && UUID_PATTERN.test(value))
+  );
 }
 
 function isTimestamp(value: unknown): value is string {

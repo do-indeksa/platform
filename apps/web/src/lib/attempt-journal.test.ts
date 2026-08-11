@@ -10,6 +10,27 @@ const REVISION = `sha256:${"a".repeat(64)}`;
 const ATTEMPT_ID = "cb973bed-6f86-410b-89fa-26bedc57cf1e";
 const OWNER_ID = "a0209703-275b-4c6e-b815-25025b923ae8";
 
+function serverRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: ATTEMPT_ID,
+    runItemId: null,
+    taskId: "kb-001",
+    examPosition: 1,
+    mode: "PRACTICE",
+    startedAt: "2026-07-12T09:59:50.000Z",
+    submittedAt: "2026-07-12T10:00:00.000Z",
+    activeDurationMs: 10_000,
+    answer: '["2"]',
+    outcome: "CORRECT",
+    helpLevel: 1,
+    gradingKind: "AUTO",
+    earnedPoints: null,
+    maxPoints: null,
+    taskRevision: REVISION,
+    ...overrides,
+  };
+}
+
 function pending() {
   return {
     taskId: "kb-001",
@@ -128,26 +149,20 @@ describe("parseStoredAttempt", () => {
 });
 
 describe("GraphQL response parsing", () => {
-  it("projects only graded mastery outcomes while validating every row", () => {
+  it("keeps the rich journal while projecting only mastery outcomes", () => {
     const rows = [
-      {
-        id: ATTEMPT_ID,
-        taskId: "kb-001",
-        examPosition: 1,
-        mode: "PRACTICE",
-        submittedAt: "2026-07-12T10:00:00.000Z",
-        outcome: "CORRECT",
-        helpLevel: 1,
-      },
-      {
+      serverRow(),
+      serverRow({
         id: "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91",
         taskId: "kb-002",
         examPosition: 2,
-        mode: "PRACTICE",
+        startedAt: "2026-07-12T10:00:30.000Z",
         submittedAt: "2026-07-12T10:01:00.000Z",
+        activeDurationMs: 30_000,
+        answer: null,
         outcome: "SKIPPED",
         helpLevel: 3,
-      },
+      }),
     ];
 
     expect(
@@ -163,20 +178,43 @@ describe("GraphQL response parsing", () => {
           helpLevel: 1,
           at: "2026-07-12T10:00:00.000Z",
         },
+        journal: {
+          id: ATTEMPT_ID,
+          taskId: "kb-001",
+          examPosition: 1,
+          mode: "practice",
+          startedAt: "2026-07-12T09:59:50.000Z",
+          submittedAt: "2026-07-12T10:00:00.000Z",
+          activeDurationMs: 10_000,
+          answer: '["2"]',
+          outcome: "CORRECT",
+          helpLevel: 1,
+          gradingKind: "AUTO",
+          taskRevision: REVISION,
+        },
+      },
+      {
+        id: "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91",
+        attempt: null,
+        journal: {
+          id: "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91",
+          taskId: "kb-002",
+          examPosition: 2,
+          mode: "practice",
+          startedAt: "2026-07-12T10:00:30.000Z",
+          submittedAt: "2026-07-12T10:01:00.000Z",
+          activeDurationMs: 30_000,
+          outcome: "SKIPPED",
+          helpLevel: 3,
+          gradingKind: "AUTO",
+          taskRevision: REVISION,
+        },
       },
     ]);
   });
 
   it("rejects duplicate IDs, malformed rows, limits, and GraphQL errors", () => {
-    const row = {
-      id: ATTEMPT_ID,
-      taskId: "kb-001",
-      examPosition: 1,
-      mode: "PRACTICE",
-      submittedAt: "2026-07-12T10:00:00.000Z",
-      outcome: "CORRECT",
-      helpLevel: 0,
-    };
+    const row = serverRow();
     expect(
       parseAttemptJournalResponse({ data: { attempts: [row, row] } }, 10),
     ).toBeNull();
@@ -192,6 +230,48 @@ describe("GraphQL response parsing", () => {
     expect(
       parseAttemptJournalResponse(
         { data: null, errors: [{ message: "denied" }] },
+        10,
+      ),
+    ).toBeNull();
+  });
+
+  it("rejects inconsistent scoring, mutable revisions, and reversed time", () => {
+    expect(
+      parseAttemptJournalResponse(
+        {
+          data: {
+            attempts: [serverRow({ earnedPoints: 7, maxPoints: 6 })],
+          },
+        },
+        10,
+      ),
+    ).toBeNull();
+    for (const scoring of [
+      { outcome: "CORRECT", earnedPoints: 3, maxPoints: 6 },
+      { outcome: "PARTIAL", earnedPoints: null, maxPoints: 6 },
+      { outcome: "SKIPPED", earnedPoints: 0, maxPoints: 6 },
+      { outcome: "INCORRECT", earnedPoints: null, maxPoints: 0 },
+    ]) {
+      expect(
+        parseAttemptJournalResponse(
+          { data: { attempts: [serverRow(scoring)] } },
+          10,
+        ),
+      ).toBeNull();
+    }
+    expect(
+      parseAttemptJournalResponse(
+        { data: { attempts: [serverRow({ taskRevision: "latest" })] } },
+        10,
+      ),
+    ).toBeNull();
+    expect(
+      parseAttemptJournalResponse(
+        {
+          data: {
+            attempts: [serverRow({ startedAt: "2026-07-12T10:00:01.000Z" })],
+          },
+        },
         10,
       ),
     ).toBeNull();

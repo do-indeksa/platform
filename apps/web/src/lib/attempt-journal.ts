@@ -19,9 +19,17 @@ const OUTCOMES = new Set([
   "SKIPPED",
   "UNGRADED",
 ]);
+const GRADING_KINDS = new Set(["AUTO", "RUBRIC_SELF", "AI_ASSISTED", "HUMAN"]);
 const CLIENT_OUTCOMES = new Set(["CORRECT", "INCORRECT", "SKIPPED"]);
 
-export type ClientAttemptOutcome = "CORRECT" | "INCORRECT" | "SKIPPED";
+export type JournalAttemptOutcome =
+  "CORRECT" | "INCORRECT" | "PARTIAL" | "SKIPPED" | "UNGRADED";
+export type JournalGradingKind =
+  "AUTO" | "RUBRIC_SELF" | "AI_ASSISTED" | "HUMAN";
+export type ClientAttemptOutcome = Extract<
+  JournalAttemptOutcome,
+  "CORRECT" | "INCORRECT" | "SKIPPED"
+>;
 
 export type StandaloneAttemptInput = {
   id: string;
@@ -78,9 +86,28 @@ export type PracticeAttemptInput = {
   helpLevel: number;
 };
 
+export type JournalAttempt = {
+  id: string;
+  runItemId?: string;
+  taskId: string;
+  examPosition: number;
+  mode: Attempt["source"];
+  startedAt: string;
+  submittedAt: string;
+  activeDurationMs?: number;
+  answer?: string;
+  outcome: JournalAttemptOutcome;
+  helpLevel: number;
+  gradingKind: JournalGradingKind;
+  earnedPoints?: number;
+  maxPoints?: number;
+  taskRevision?: string;
+};
+
 export type ServerAttempt = {
   id: string;
-  attempt: Attempt;
+  attempt: Attempt | null;
+  journal: JournalAttempt;
 };
 
 export function createPendingPracticeAttempt(
@@ -177,6 +204,29 @@ export function toPublicAttempt(attempt: Attempt): Attempt {
   };
 }
 
+export function toJournalAttempt(
+  attempt: PendingPracticeAttempt,
+): JournalAttempt {
+  return {
+    id: attempt.input.id,
+    taskId: attempt.input.standalone.taskId,
+    examPosition: attempt.input.standalone.examPosition,
+    mode: "practice",
+    startedAt: attempt.input.startedAt,
+    submittedAt: attempt.input.submittedAt,
+    ...(attempt.input.activeDurationMs === undefined
+      ? {}
+      : { activeDurationMs: attempt.input.activeDurationMs }),
+    ...(attempt.input.answer === undefined
+      ? {}
+      : { answer: attempt.input.answer }),
+    outcome: attempt.input.outcome,
+    helpLevel: attempt.input.helpLevel,
+    gradingKind: attempt.input.gradingKind,
+    taskRevision: attempt.input.standalone.taskRevision,
+  };
+}
+
 export function claimAttemptOwner(
   attempt: StoredAttempt,
   ownerId: string,
@@ -216,39 +266,84 @@ export function parseAttemptJournalResponse(
   for (const candidate of attempts) {
     if (!isRecord(candidate)) return null;
     const id = candidate.id;
+    const runItemId = candidate.runItemId;
     const taskId = candidate.taskId;
     const position = candidate.examPosition;
     const mode = candidate.mode;
+    const startedAt = candidate.startedAt;
     const submittedAt = candidate.submittedAt;
+    const activeDurationMs = candidate.activeDurationMs;
+    const answer = candidate.answer;
     const outcome = candidate.outcome;
     const helpLevel = candidate.helpLevel;
+    const gradingKind = candidate.gradingKind;
+    const earnedPoints = candidate.earnedPoints;
+    const maxPoints = candidate.maxPoints;
+    const taskRevision = candidate.taskRevision;
     if (
       typeof id !== "string" ||
       !isUuid(id) ||
       ids.has(id) ||
+      (runItemId !== null &&
+        (typeof runItemId !== "string" || !isUuid(runItemId))) ||
       !isTaskId(taskId) ||
       !isPosition(position) ||
       typeof mode !== "string" ||
       !SOURCES.has(mode.toLowerCase()) ||
+      !isTimestamp(startedAt) ||
       !isTimestamp(submittedAt) ||
+      Date.parse(submittedAt) < Date.parse(startedAt) ||
+      (activeDurationMs !== null && !isDuration(activeDurationMs)) ||
+      (answer !== null &&
+        (typeof answer !== "string" || answer.length > MAX_ANSWER_LENGTH)) ||
       typeof outcome !== "string" ||
       !OUTCOMES.has(outcome) ||
-      !isHelpLevel(helpLevel)
+      !isHelpLevel(helpLevel) ||
+      typeof gradingKind !== "string" ||
+      !GRADING_KINDS.has(gradingKind) ||
+      (maxPoints !== null && !isPoints(maxPoints, 1)) ||
+      (earnedPoints !== null && !isPoints(earnedPoints, 0)) ||
+      !isValidScore(outcome, earnedPoints, maxPoints) ||
+      (taskRevision !== null &&
+        (typeof taskRevision !== "string" ||
+          taskRevision.length > MAX_REVISION_LENGTH ||
+          !REVISION_PATTERN.test(taskRevision)))
     ) {
       return null;
     }
     ids.add(id);
-    if (outcome !== "CORRECT" && outcome !== "INCORRECT") continue;
+    const source = mode.toLowerCase() as Attempt["source"];
+    const journal: JournalAttempt = {
+      id,
+      ...(runItemId === null ? {} : { runItemId }),
+      taskId,
+      examPosition: position,
+      mode: source,
+      startedAt,
+      submittedAt,
+      ...(activeDurationMs === null ? {} : { activeDurationMs }),
+      ...(answer === null ? {} : { answer }),
+      outcome: outcome as JournalAttemptOutcome,
+      helpLevel,
+      gradingKind: gradingKind as JournalGradingKind,
+      ...(earnedPoints === null ? {} : { earnedPoints }),
+      ...(maxPoints === null ? {} : { maxPoints }),
+      ...(taskRevision === null ? {} : { taskRevision }),
+    };
     result.push({
       id,
-      attempt: {
-        taskId,
-        slot: position,
-        correct: outcome === "CORRECT",
-        source: mode.toLowerCase() as Attempt["source"],
-        helpLevel,
-        at: submittedAt,
-      },
+      attempt:
+        outcome === "CORRECT" || outcome === "INCORRECT"
+          ? {
+              taskId,
+              slot: position,
+              correct: outcome === "CORRECT",
+              source,
+              helpLevel,
+              at: submittedAt,
+            }
+          : null,
+      journal,
     });
   }
   return result;
@@ -374,6 +469,38 @@ function isHelpLevel(value: unknown): value is number {
 
 function isDuration(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function isValidScore(
+  outcome: unknown,
+  earnedPoints: number | null,
+  maxPoints: number | null,
+): boolean {
+  if (earnedPoints !== null && maxPoints === null) return false;
+  if (outcome === "CORRECT") {
+    return earnedPoints === null || earnedPoints === maxPoints;
+  }
+  if (outcome === "INCORRECT") {
+    return earnedPoints === null || earnedPoints === 0;
+  }
+  if (outcome === "PARTIAL") {
+    return (
+      typeof earnedPoints === "number" &&
+      typeof maxPoints === "number" &&
+      earnedPoints > 0 &&
+      earnedPoints < maxPoints
+    );
+  }
+  return earnedPoints === null;
+}
+
+function isPoints(value: unknown, minimum: number): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= minimum &&
+    value <= 60
+  );
 }
 
 function isTimestamp(value: unknown): value is string {

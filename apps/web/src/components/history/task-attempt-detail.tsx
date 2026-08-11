@@ -1,13 +1,29 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, LoaderCircle, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  LoaderCircle,
+  RotateCcw,
+  TriangleAlert,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { useMemo } from "react";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
+import { useAttemptJournal } from "@/lib/attempts-store";
+import { mergeTaskHistory, type HistoryAttempt } from "@/lib/history-journal";
 import { useTaskHistory } from "@/lib/task-history-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OutcomeBadge } from "./outcome-badge";
+
+const GRADING_MESSAGE = {
+  AUTO: "grading.auto",
+  RUBRIC_SELF: "grading.rubric_self",
+  AI_ASSISTED: "grading.ai_assisted",
+  HUMAN: "grading.human",
+} as const;
 
 export function TaskAttemptDetail({
   attemptId,
@@ -19,6 +35,7 @@ export function TaskAttemptDetail({
   task: {
     id: string;
     slot: number;
+    revision: string;
     topicName: string;
     statementHtml: string;
     correctAnswerHtml: string;
@@ -32,9 +49,17 @@ export function TaskAttemptDetail({
   const t = useTranslations("history");
   const locale = useLocale() as AppLocale;
   const hydrated = useHydrated();
-  const entries = useTaskHistory();
+  const localEntries = useTaskHistory();
+  const journal = useAttemptJournal();
+  const entries = useMemo(
+    () =>
+      localEntries === null || journal === null
+        ? null
+        : mergeTaskHistory(localEntries, journal.entries),
+    [journal, localEntries],
+  );
 
-  if (!hydrated || entries === null) {
+  if (!hydrated || entries === null || journal === null) {
     return (
       <main className="mx-auto flex min-h-[32rem] w-full max-w-4xl items-center justify-center px-5 sm:px-8">
         <p className="flex items-center gap-3 text-muted">
@@ -78,7 +103,16 @@ export function TaskAttemptDetail({
         <p className="mt-3 text-muted">
           {task.topicName} · {attemptedAt} · {t(`source.${entry.source}`)}
         </p>
+        <AttemptMetadata entry={entry} />
       </header>
+
+      {entry.taskRevision !== undefined &&
+        entry.taskRevision !== task.revision && (
+          <p className="mt-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+            <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
+            {t("revisionMismatch")}
+          </p>
+        )}
 
       <section aria-labelledby="statement-heading" className="py-8">
         <h2 id="statement-heading" className="mb-5 text-xl font-bold">
@@ -178,6 +212,70 @@ export function TaskAttemptDetail({
       </section>
     </main>
   );
+}
+
+function AttemptMetadata({ entry }: { entry: HistoryAttempt }) {
+  const t = useTranslations("history");
+  const items = [
+    entry.activeDurationMs === undefined
+      ? null
+      : {
+          label: t("activeTime"),
+          value: durationLabel(entry.activeDurationMs, t),
+        },
+    entry.gradingKind === undefined
+      ? null
+      : {
+          label: t("gradingLabel"),
+          value: t(GRADING_MESSAGE[entry.gradingKind]),
+        },
+    entry.earnedPoints === undefined || entry.maxPoints === undefined
+      ? null
+      : {
+          label: t("pointsLabel"),
+          value: t("scoreValue", {
+            score: entry.earnedPoints,
+            max: entry.maxPoints,
+          }),
+        },
+  ].filter((item): item is { label: string; value: string } => item !== null);
+
+  if (items.length === 0 && entry.taskRevision === undefined) return null;
+  return (
+    <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+      {items.map((item) => (
+        <div key={item.label}>
+          <dt className="text-muted">{item.label}</dt>
+          <dd className="mt-0.5 font-semibold">{item.value}</dd>
+        </div>
+      ))}
+      {entry.taskRevision !== undefined && (
+        <div>
+          <dt className="text-muted">{t("revisionLabel")}</dt>
+          <dd
+            title={entry.taskRevision}
+            className="mt-0.5 font-mono text-xs font-semibold"
+          >
+            {entry.taskRevision.slice("sha256:".length, 19)}
+          </dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+function durationLabel(
+  durationMs: number,
+  t: ReturnType<typeof useTranslations<"history">>,
+): string {
+  const totalSeconds = Math.floor(durationMs / 1_000);
+  if (totalSeconds < 60) return t("durationSeconds", { seconds: totalSeconds });
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0
+    ? t("durationHoursMinutes", { hours, minutes })
+    : t("durationMinutes", { minutes: totalMinutes });
 }
 
 function AnswerList({
