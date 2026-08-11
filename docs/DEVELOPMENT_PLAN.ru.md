@@ -70,7 +70,7 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review и сохранены в immutable SHA-256 archive;
-- blocking CI включает 482 web unit-теста, 28 тестов content pipeline,
+- blocking CI включает 482 web unit-теста, 29 тестов content pipeline,
   68 Playwright-сценариев, container smoke, dependency audit и Trivy.
 
 Не завершены runtime-resolver исторических content snapshots, расширение

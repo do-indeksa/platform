@@ -186,6 +186,36 @@ test("snapshot generation rejects invalid current task paths", async (t) => {
   }
 });
 
+test("snapshot generation rejects duplicate verified task identities", async () => {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "do-indeksa-snapshots-"),
+  );
+  const tasks = path.join(root, "tasks");
+  try {
+    await Promise.all([
+      fs.mkdir(path.join(tasks, "prva-tema"), { recursive: true }),
+      fs.mkdir(path.join(tasks, "druga-tema"), { recursive: true }),
+    ]);
+    await Promise.all([
+      fs.writeFile(
+        path.join(tasks, "prva-tema", "a-001.md"),
+        taskFile("a-001", "verified", "First version", "prva-tema"),
+      ),
+      fs.writeFile(
+        path.join(tasks, "druga-tema", "a-001.md"),
+        taskFile("a-001", "verified", "Second version", "druga-tema"),
+      ),
+    ]);
+
+    await assert.rejects(
+      () => writeTaskSnapshots(tasks, path.join(root, "snapshots")),
+      /duplicate task ID a-001/,
+    );
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test("snapshot history allows additions and rejects published mutations", async (t) => {
   await t.test("addition", async () => {
     const { root, base, snapshot } = await gitFixture();
