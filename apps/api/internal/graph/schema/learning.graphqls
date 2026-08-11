@@ -111,6 +111,7 @@ type CompletedSimulationRunItem {
   taskRevision: String!
   answer: String
   outcome: AttemptOutcome
+  gradingKind: GradingKind
   earnedPoints: Int
 }
 

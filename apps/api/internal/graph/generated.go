@@ -72,6 +72,7 @@ type ComplexityRoot struct {
 		Answer       func(childComplexity int) int
 		EarnedPoints func(childComplexity int) int
 		ExamPosition func(childComplexity int) int
+		GradingKind  func(childComplexity int) int
 		MaxPoints    func(childComplexity int) int
 		Outcome      func(childComplexity int) int
 		TaskID       func(childComplexity int) int
@@ -342,6 +343,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.CompletedSimulationRunItem.ExamPosition(childComplexity), true
+	case "CompletedSimulationRunItem.gradingKind":
+		if e.ComplexityRoot.CompletedSimulationRunItem.GradingKind == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.GradingKind(childComplexity), true
 	case "CompletedSimulationRunItem.maxPoints":
 		if e.ComplexityRoot.CompletedSimulationRunItem.MaxPoints == nil {
 			break
@@ -879,6 +886,8 @@ func (ec *executionContext) childFields_CompletedSimulationRunItem(ctx context.C
 		return ec.fieldContext_CompletedSimulationRunItem_answer(ctx, field)
 	case "outcome":
 		return ec.fieldContext_CompletedSimulationRunItem_outcome(ctx, field)
+	case "gradingKind":
+		return ec.fieldContext_CompletedSimulationRunItem_gradingKind(ctx, field)
 	case "earnedPoints":
 		return ec.fieldContext_CompletedSimulationRunItem_earnedPoints(ctx, field)
 	}
@@ -2012,6 +2021,29 @@ func (ec *executionContext) _CompletedSimulationRunItem_outcome(ctx context.Cont
 }
 func (ec *executionContext) fieldContext_CompletedSimulationRunItem_outcome(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type AttemptOutcome does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_gradingKind(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_gradingKind(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.GradingKind, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.GradingKind) graphql.Marshaler {
+			return ec.marshalOGradingKind2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGradingKind(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_gradingKind(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type GradingKind does not have child fields"))
 }
 
 func (ec *executionContext) _CompletedSimulationRunItem_earnedPoints(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
@@ -5122,6 +5154,11 @@ func (ec *executionContext) _CompletedSimulationRunItem(ctx context.Context, sel
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "gradingKind":
+			out.Values[i] = ec._CompletedSimulationRunItem_gradingKind(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "earnedPoints":
 			out.Values[i] = ec._CompletedSimulationRunItem_earnedPoints(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
@@ -6683,6 +6720,22 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOGradingKind2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGradingKind(ctx context.Context, v any) (*model.GradingKind, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.GradingKind)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOGradingKind2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGradingKind(ctx context.Context, sel ast.SelectionSet, v *model.GradingKind) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {

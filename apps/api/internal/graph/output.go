@@ -165,8 +165,13 @@ func graphCompletedSimulationRun(
 			if err != nil {
 				return model.CompletedSimulationRun{}, err
 			}
+			gradingKind, err := graphGradingKind(attempt.GradingKind)
+			if err != nil {
+				return model.CompletedSimulationRun{}, err
+			}
 			mapped.Answer = attempt.Answer
 			mapped.Outcome = &outcome
+			mapped.GradingKind = &gradingKind
 			mapped.EarnedPoints = graphInt16(attempt.EarnedPoints)
 		}
 		items[index] = mapped
