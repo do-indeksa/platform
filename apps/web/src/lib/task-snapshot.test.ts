@@ -20,6 +20,20 @@ describe("archived task resolver", () => {
     }
   });
 
+  it("resolves a verified historical revision independently of the current task", async () => {
+    const revision =
+      "sha256:f2a6cbf436042386c193131bbb5c103e2cdd0595713ae4d5ce2c94fa580b9903";
+    const task = await getArchivedTask("kb-001", revision);
+
+    expect(task).toMatchObject({
+      id: "kb-001",
+      revision,
+      status: "verified",
+      rubric: [],
+    });
+    expect(task?.solution).toContain("minimum u temenu");
+  });
+
   it.each([
     ["../kb-001", `sha256:${"a".repeat(64)}`],
     ["kb-001/../../tasks", `sha256:${"a".repeat(64)}`],
