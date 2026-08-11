@@ -92,8 +92,8 @@ mobile-навигацию, поэтому она не входит в целев
 
 | Поверхность            | Текущее состояние                                                                                  | PDF                                                                           | Figma desktop / mobile                      | Целевой контракт                                                                                                     |
 | ---------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Public landing         | `/` сейчас является самостоятельным P1 overview и не совпадает с Figma                             | В результат дизайнера marketing landing не входил; W-01 описывает P1 overview | SR `175:390` / `177:2854`                   | Пересобрать `/` по этим nodes; сохранить все Figma-блоки и assets, заменив только ложные обещания и mock data        |
-| P1 overview / cabinet  | Отдельного cabinet route нет; `/` совмещает быстрый старт и overview                               | W-01/W-02, S-01                                                               | Cabinet SR `154:572` / `154:916`            | Создать отдельную app surface и повторить nodes; реальные данные подставлять в те же widgets                         |
+| Public landing         | `/` воспроизводит SR guest frames и их responsive geometry; EN/RU локализованы в той же композиции | В результат дизайнера marketing landing не входил; W-01 описывает P1 overview | SR `175:390` / `176:1706` / `177:2854`      | Поддерживать literal Figma-match; менять только подтвержденные факты, copy и реальные данные без перекомпоновки      |
+| P1 overview / cabinet  | Functional overview перенесен на `/cabinet` и явно помечен provisional до отдельного UI slice      | W-01/W-02, S-01                                                               | Cabinet SR `154:572` / `154:916`            | Повторить nodes на отдельной app surface; реальные данные подставлять в те же widgets                                |
 | Task bank              | `/tasks` функционален, но визуально и композиционно не совпадает                                   | W-03, S-02                                                                    | RU default `195:141` / `195:1090`           | Пересобрать по этим nodes; отсутствующую функциональность довести или временно реализовать честным provisional state |
 | Task workspace         | Standalone task, diagnostic и simulation имеют собственные shells, не совпадающие с Figma Solution | W-04/W-05/W-07/W-09, S-03/S-04/S-06/S-08                                      | Solution SR `155:477` / `155:757`           | Standalone/practice workspace повторяет nodes; exam-only ограничения меняют поведение, а не произвольно композицию   |
 | Training builder       | Быстрый builder находится на overview; selected tasks стартуют из банка                            | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                      | Реализовать отдельный экран по nodes, заменив предметы на позиции/темы P1 в существующих slots                       |
@@ -111,6 +111,9 @@ Figma landing переносится целиком: header, hero, benefits, exa
 faculties, process и CTA остаются в том же порядке и геометрии. Copy внутри этих
 блоков сужается до реального FTN P1; Physics/P2 и неподдержанный широкий
 multi-university promise не показываются. CTA ведет прямо в guest-first P1 flow.
+Canonical SR regression frames: desktop `175:390`, tablet `176:1706`, mobile
+`177:2854`. Их размеры составляют соответственно `1440x2898`, `1024x3094` и
+`390x6120`; Linux screenshots проверяются после side-by-side и overlay review.
 
 ### Cabinet / overview
 
