@@ -45,6 +45,7 @@ type RunJob = {
 export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
   private readonly jobs = new Map<string, RunJob>();
   private readonly blockedRuns = new Set<string>();
+  private readonly finishedRuns = new Set<string>();
 
   constructor(private readonly callbacks: QueueCallbacks<Context>) {}
 
@@ -86,6 +87,7 @@ export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
 
   finish(runId: string): void {
     this.blockedRuns.add(runId);
+    this.finishedRuns.add(runId);
     const job = this.jobs.get(runId);
     if (!job) return;
     clearJobTimer(job);
@@ -134,6 +136,7 @@ export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
     for (const job of this.jobs.values()) clearJobTimer(job);
     this.jobs.clear();
     this.blockedRuns.clear();
+    this.finishedRuns.clear();
   }
 
   private async start(
@@ -154,6 +157,7 @@ export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
     job.desired = null;
     job.running = true;
     this.callbacks.setStatus("syncing");
+    let continueAutomatically = true;
     try {
       const version = await withRunSyncLock(runId, async () => {
         const current = useDiagnostic.getState();
@@ -183,7 +187,13 @@ export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
       job.syncedFingerprint = target.fingerprint;
       this.callbacks.setReady(context);
     } catch (error) {
-      if (!this.callbacks.isCurrent(context) || isAbortError(error)) return;
+      if (
+        !this.callbacks.isCurrent(context) ||
+        isAbortError(error) ||
+        this.finishedRuns.has(runId)
+      ) {
+        return;
+      }
       if (
         error instanceof DiagnosticGraphQLError &&
         (error.code === "CONFLICT" ||
@@ -199,10 +209,12 @@ export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
         );
         if (reconciled) {
           this.blockedRuns.delete(runId);
-          job.desired = { ...target, immediate: true };
+          job.desired ??= target;
+          job.desired.immediate = true;
         }
       } else {
-        job.desired = target;
+        job.desired ??= target;
+        continueAutomatically = false;
         this.callbacks.setStatus("offline");
       }
     } finally {
@@ -211,7 +223,7 @@ export class DiagnosticCloudUploadQueue<Context extends QueueContext> {
         if (job.desired === null) this.jobs.delete(runId);
         return;
       }
-      if (job.desired !== null) {
+      if (job.desired !== null && continueAutomatically) {
         if (job.desired.immediate) {
           void this.start(runId, context, job);
         } else {
