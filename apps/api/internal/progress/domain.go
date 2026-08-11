@@ -9,7 +9,7 @@ import (
 
 var (
 	ErrNotFound          = errors.New("progress record not found")
-	ErrConflict          = errors.New("client id is already used by different data")
+	ErrConflict          = errors.New("progress write conflicts with existing data")
 	ErrInvalidInput      = errors.New("invalid progress input")
 	ErrInvalidTransition = errors.New("invalid run status transition")
 )
@@ -34,6 +34,7 @@ const (
 	MaxRecentRunItemAttempts   int32 = 20
 	MaxAttemptJournalEntries   int32 = 1000
 	MaxCompletedSimulationRuns int32 = 20
+	MaxRunCheckpointDrafts     int32 = 100
 )
 
 type AttemptOutcome string
@@ -56,9 +57,15 @@ const (
 )
 
 type RunAggregate struct {
-	Run      Run
-	Items    []RunItem
-	Attempts []Attempt
+	Run        Run
+	Items      []RunItem
+	Attempts   []Attempt
+	Checkpoint *RunCheckpointAggregate
+}
+
+type RunCheckpointAggregate struct {
+	Checkpoint RunCheckpoint
+	Drafts     []RunCheckpointDraft
 }
 
 type StartRunInput struct {
@@ -105,4 +112,21 @@ type SubmitRunInput struct {
 	ID               uuid.UUID
 	SubmittedAt      time.Time
 	ActiveDurationMs *int64
+}
+
+type CheckpointRunInput struct {
+	ID               uuid.UUID
+	ExpectedVersion  int64
+	CurrentOrdinal   int16
+	ActiveDurationMs *int64
+	Drafts           []RunCheckpointDraftInput
+}
+
+type RunCheckpointDraftInput struct {
+	RunItemID uuid.UUID
+	Answer    string
+}
+
+type AbandonRunInput struct {
+	ID uuid.UUID
 }

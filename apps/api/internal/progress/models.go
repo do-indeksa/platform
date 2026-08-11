@@ -48,6 +48,22 @@ type Run struct {
 	UpdatedAt        time.Time
 }
 
+type RunCheckpoint struct {
+	RunID            uuid.UUID
+	UserID           uuid.UUID
+	Version          int64
+	CurrentOrdinal   int16
+	ActiveDurationMs *int64
+	UpdatedAt        time.Time
+}
+
+type RunCheckpointDraft struct {
+	RunID     uuid.UUID
+	RunItemID uuid.UUID
+	UserID    uuid.UUID
+	Answer    string
+}
+
 type RunItem struct {
 	ID           uuid.UUID
 	RunID        uuid.UUID

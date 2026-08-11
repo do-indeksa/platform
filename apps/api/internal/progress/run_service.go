@@ -72,7 +72,22 @@ func (s *Service) StartRun(ctx context.Context, userID uuid.UUID, input StartRun
 }
 
 func (s *Service) GetRun(ctx context.Context, userID, runID uuid.UUID) (RunAggregate, error) {
-	return loadRun(ctx, s.queries, userID, runID)
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{
+		IsoLevel:   pgx.RepeatableRead,
+		AccessMode: pgx.ReadOnly,
+	})
+	if err != nil {
+		return RunAggregate{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	aggregate, err := loadRun(ctx, s.queries.WithTx(tx), userID, runID)
+	if err != nil {
+		return RunAggregate{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return RunAggregate{}, err
+	}
+	return aggregate, nil
 }
 
 func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) ([]Run, error) {
@@ -124,7 +139,19 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 		return RunAggregate{}, err
 	}
 	if RunStatus(run.Status) == RunStatusSubmitted {
-		return loadRun(ctx, queries, userID, input.ID)
+		if err := queries.DeleteRunCheckpoint(ctx, DeleteRunCheckpointParams{
+			RunID: input.ID, UserID: userID,
+		}); err != nil {
+			return RunAggregate{}, err
+		}
+		aggregate, err := loadRun(ctx, queries, userID, input.ID)
+		if err != nil {
+			return RunAggregate{}, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return RunAggregate{}, err
+		}
+		return aggregate, nil
 	}
 	if RunStatus(run.Status) != RunStatusActive {
 		return RunAggregate{}, ErrInvalidTransition
@@ -152,6 +179,11 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 		DurationMs:  duration,
 	}); err != nil {
 		return RunAggregate{}, classifyWriteError(err)
+	}
+	if err := queries.DeleteRunCheckpoint(ctx, DeleteRunCheckpointParams{
+		RunID: input.ID, UserID: userID,
+	}); err != nil {
+		return RunAggregate{}, err
 	}
 	aggregate, err := loadRun(ctx, queries, userID, input.ID)
 	if err != nil {

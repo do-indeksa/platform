@@ -78,6 +78,7 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 	}
 
 	assertLearningRunBackfill(t, ctx, database, pool, createdAt)
+	assertRunCheckpointMigrationRoundTrip(t, ctx, database, pool, userID, createdAt)
 }
 
 func assertLearningRunBackfill(
@@ -103,5 +104,84 @@ func assertLearningRunBackfill(
 	if publicID == uuid.Nil || outcome != "correct" || gradingKind != "auto" ||
 		!startedAt.Equal(createdAt) || !submittedAt.Equal(createdAt) {
 		t.Fatalf("unexpected backfill: %s %q %q %v %v", publicID, outcome, gradingKind, startedAt, submittedAt)
+	}
+}
+
+func assertRunCheckpointMigrationRoundTrip(
+	t *testing.T,
+	ctx context.Context,
+	database *sql.DB,
+	pool *pgxpool.Pool,
+	userID uuid.UUID,
+	startedAt time.Time,
+) {
+	t.Helper()
+	runID := uuid.New()
+	itemID := uuid.New()
+	if _, err := pool.Exec(ctx, `
+		insert into runs (id, user_id, kind, blueprint_version, content_revision, started_at)
+		values ($1, $2, 'diagnostic', 'diagnostic-v1', 'content-revision', $3)`,
+		runID, userID, startedAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into run_items (id, run_id, user_id, task_id, ordinal, exam_position, topic, task_revision)
+		values ($1, $2, $3, 'log-001', 1, 3, 'logaritmi', 'task-revision')`,
+		itemID, runID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if err := goose.UpTo(database, "migrations", 5); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into run_checkpoints (run_id, user_id, version, current_ordinal)
+		values ($1, $2, 1, 1)`, runID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into run_checkpoint_drafts (run_id, run_item_id, user_id, answer)
+		values ($1, $2, $3, '["42"]')`, runID, itemID, userID); err != nil {
+		t.Fatal(err)
+	}
+	otherRunID := uuid.New()
+	otherItemID := uuid.New()
+	if _, err := pool.Exec(ctx, `
+		insert into runs (id, user_id, kind, blueprint_version, content_revision, started_at)
+		values ($1, $2, 'diagnostic', 'diagnostic-v1', 'content-revision', $3)`,
+		otherRunID, userID, startedAt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into run_items (id, run_id, user_id, task_id, ordinal, exam_position, topic, task_revision)
+		values ($1, $2, $3, 'eks-001', 1, 4, 'eksponencijalne', 'task-revision')`,
+		otherItemID, otherRunID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `
+		insert into run_checkpoint_drafts (run_id, run_item_id, user_id, answer)
+		values ($1, $2, $3, '["wrong run"]')`, runID, otherItemID, userID); err == nil {
+		t.Fatal("checkpoint accepted a draft from another run")
+	}
+
+	if err := goose.DownTo(database, "migrations", 4); err != nil {
+		t.Fatal(err)
+	}
+	var storedItem uuid.UUID
+	if err := pool.QueryRow(ctx, "select id from run_items where run_id = $1", runID).Scan(&storedItem); err != nil {
+		t.Fatal(err)
+	}
+	if storedItem != itemID {
+		t.Fatalf("rollback changed run item: %s", storedItem)
+	}
+	if err := goose.UpTo(database, "migrations", 5); err != nil {
+		t.Fatal(err)
+	}
+	var checkpoints int
+	if err := pool.QueryRow(ctx, "select count(*) from run_checkpoints where run_id = $1", runID).
+		Scan(&checkpoints); err != nil {
+		t.Fatal(err)
+	}
+	if checkpoints != 0 {
+		t.Fatalf("checkpoint survived migration rollback: %d", checkpoints)
 	}
 }

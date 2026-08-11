@@ -13,6 +13,39 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const abandonRun = `-- name: AbandonRun :one
+update runs
+set status = 'abandoned',
+    updated_at = now()
+where id = $1 and user_id = $2 and status = 'active'
+returning id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+`
+
+type AbandonRunParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) AbandonRun(ctx context.Context, arg AbandonRunParams) (Run, error) {
+	row := q.db.QueryRow(ctx, abandonRun, arg.ID, arg.UserID)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createAttempt = `-- name: CreateAttempt :one
 insert into attempts (
     public_id,
@@ -162,6 +195,74 @@ func (q *Queries) CreateRun(ctx context.Context, arg CreateRunParams) (Run, erro
 	return i, err
 }
 
+const createRunCheckpoint = `-- name: CreateRunCheckpoint :one
+insert into run_checkpoints (
+    run_id,
+    user_id,
+    version,
+    current_ordinal,
+    active_duration_ms
+)
+values ($1, $2, 1, $3, $4)
+returning run_id, user_id, version, current_ordinal, active_duration_ms, updated_at
+`
+
+type CreateRunCheckpointParams struct {
+	RunID            uuid.UUID
+	UserID           uuid.UUID
+	CurrentOrdinal   int16
+	ActiveDurationMs *int64
+}
+
+func (q *Queries) CreateRunCheckpoint(ctx context.Context, arg CreateRunCheckpointParams) (RunCheckpoint, error) {
+	row := q.db.QueryRow(ctx, createRunCheckpoint,
+		arg.RunID,
+		arg.UserID,
+		arg.CurrentOrdinal,
+		arg.ActiveDurationMs,
+	)
+	var i RunCheckpoint
+	err := row.Scan(
+		&i.RunID,
+		&i.UserID,
+		&i.Version,
+		&i.CurrentOrdinal,
+		&i.ActiveDurationMs,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createRunCheckpointDraft = `-- name: CreateRunCheckpointDraft :one
+insert into run_checkpoint_drafts (run_id, run_item_id, user_id, answer)
+values ($1, $2, $3, $4)
+returning run_id, run_item_id, user_id, answer
+`
+
+type CreateRunCheckpointDraftParams struct {
+	RunID     uuid.UUID
+	RunItemID uuid.UUID
+	UserID    uuid.UUID
+	Answer    string
+}
+
+func (q *Queries) CreateRunCheckpointDraft(ctx context.Context, arg CreateRunCheckpointDraftParams) (RunCheckpointDraft, error) {
+	row := q.db.QueryRow(ctx, createRunCheckpointDraft,
+		arg.RunID,
+		arg.RunItemID,
+		arg.UserID,
+		arg.Answer,
+	)
+	var i RunCheckpointDraft
+	err := row.Scan(
+		&i.RunID,
+		&i.RunItemID,
+		&i.UserID,
+		&i.Answer,
+	)
+	return i, err
+}
+
 const createRunItem = `-- name: CreateRunItem :one
 insert into run_items (
     id,
@@ -216,6 +317,36 @@ func (q *Queries) CreateRunItem(ctx context.Context, arg CreateRunItemParams) (R
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const deleteRunCheckpoint = `-- name: DeleteRunCheckpoint :exec
+delete from run_checkpoints
+where run_id = $1 and user_id = $2
+`
+
+type DeleteRunCheckpointParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteRunCheckpoint(ctx context.Context, arg DeleteRunCheckpointParams) error {
+	_, err := q.db.Exec(ctx, deleteRunCheckpoint, arg.RunID, arg.UserID)
+	return err
+}
+
+const deleteRunCheckpointDrafts = `-- name: DeleteRunCheckpointDrafts :exec
+delete from run_checkpoint_drafts
+where run_id = $1 and user_id = $2
+`
+
+type DeleteRunCheckpointDraftsParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteRunCheckpointDrafts(ctx context.Context, arg DeleteRunCheckpointDraftsParams) error {
+	_, err := q.db.Exec(ctx, deleteRunCheckpointDrafts, arg.RunID, arg.UserID)
+	return err
 }
 
 const getAttempt = `-- name: GetAttempt :one
@@ -282,6 +413,32 @@ func (q *Queries) GetRun(ctx context.Context, arg GetRunParams) (Run, error) {
 		&i.SubmittedAt,
 		&i.DurationMs,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRunCheckpointForUpdate = `-- name: GetRunCheckpointForUpdate :one
+select run_id, user_id, version, current_ordinal, active_duration_ms, updated_at
+from run_checkpoints
+where run_id = $1 and user_id = $2
+for update
+`
+
+type GetRunCheckpointForUpdateParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetRunCheckpointForUpdate(ctx context.Context, arg GetRunCheckpointForUpdateParams) (RunCheckpoint, error) {
+	row := q.db.QueryRow(ctx, getRunCheckpointForUpdate, arg.RunID, arg.UserID)
+	var i RunCheckpoint
+	err := row.Scan(
+		&i.RunID,
+		&i.UserID,
+		&i.Version,
+		&i.CurrentOrdinal,
+		&i.ActiveDurationMs,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -667,6 +824,113 @@ func (q *Queries) ListRunAttempts(ctx context.Context, arg ListRunAttemptsParams
 	return items, nil
 }
 
+const listRunCheckpointDrafts = `-- name: ListRunCheckpointDrafts :many
+select draft.run_id, draft.run_item_id, draft.user_id, draft.answer
+from run_checkpoint_drafts draft
+join run_items item
+  on item.run_id = draft.run_id
+ and item.id = draft.run_item_id
+ and item.user_id = draft.user_id
+where draft.run_id = $1 and draft.user_id = $2
+order by item.ordinal
+`
+
+type ListRunCheckpointDraftsParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) ListRunCheckpointDrafts(ctx context.Context, arg ListRunCheckpointDraftsParams) ([]RunCheckpointDraft, error) {
+	rows, err := q.db.Query(ctx, listRunCheckpointDrafts, arg.RunID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunCheckpointDraft
+	for rows.Next() {
+		var i RunCheckpointDraft
+		if err := rows.Scan(
+			&i.RunID,
+			&i.RunItemID,
+			&i.UserID,
+			&i.Answer,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRunCheckpointRows = `-- name: ListRunCheckpointRows :many
+select checkpoint.run_id,
+       checkpoint.user_id,
+       checkpoint.version,
+       checkpoint.current_ordinal,
+       checkpoint.active_duration_ms,
+       checkpoint.updated_at,
+       draft.run_item_id,
+       draft.answer
+from run_checkpoints checkpoint
+left join run_checkpoint_drafts draft
+  on draft.run_id = checkpoint.run_id
+ and draft.user_id = checkpoint.user_id
+left join run_items item
+  on item.run_id = draft.run_id
+ and item.id = draft.run_item_id
+ and item.user_id = draft.user_id
+where checkpoint.run_id = $1 and checkpoint.user_id = $2
+order by item.ordinal nulls last
+`
+
+type ListRunCheckpointRowsParams struct {
+	RunID  uuid.UUID
+	UserID uuid.UUID
+}
+
+type ListRunCheckpointRowsRow struct {
+	RunID            uuid.UUID
+	UserID           uuid.UUID
+	Version          int64
+	CurrentOrdinal   int16
+	ActiveDurationMs *int64
+	UpdatedAt        time.Time
+	RunItemID        pgtype.UUID
+	Answer           *string
+}
+
+func (q *Queries) ListRunCheckpointRows(ctx context.Context, arg ListRunCheckpointRowsParams) ([]ListRunCheckpointRowsRow, error) {
+	rows, err := q.db.Query(ctx, listRunCheckpointRows, arg.RunID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListRunCheckpointRowsRow
+	for rows.Next() {
+		var i ListRunCheckpointRowsRow
+		if err := rows.Scan(
+			&i.RunID,
+			&i.UserID,
+			&i.Version,
+			&i.CurrentOrdinal,
+			&i.ActiveDurationMs,
+			&i.UpdatedAt,
+			&i.RunItemID,
+			&i.Answer,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRunItems = `-- name: ListRunItems :many
 select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
 from run_items
@@ -837,6 +1101,60 @@ func (q *Queries) SubmitRun(ctx context.Context, arg SubmitRunParams) (Run, erro
 		&i.SubmittedAt,
 		&i.DurationMs,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const touchRun = `-- name: TouchRun :exec
+update runs
+set updated_at = now()
+where id = $1 and user_id = $2
+`
+
+type TouchRunParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) TouchRun(ctx context.Context, arg TouchRunParams) error {
+	_, err := q.db.Exec(ctx, touchRun, arg.ID, arg.UserID)
+	return err
+}
+
+const updateRunCheckpoint = `-- name: UpdateRunCheckpoint :one
+update run_checkpoints
+set version = version + 1,
+    current_ordinal = $4,
+    active_duration_ms = $5,
+    updated_at = now()
+where run_id = $1 and user_id = $2 and version = $3
+returning run_id, user_id, version, current_ordinal, active_duration_ms, updated_at
+`
+
+type UpdateRunCheckpointParams struct {
+	RunID            uuid.UUID
+	UserID           uuid.UUID
+	Version          int64
+	CurrentOrdinal   int16
+	ActiveDurationMs *int64
+}
+
+func (q *Queries) UpdateRunCheckpoint(ctx context.Context, arg UpdateRunCheckpointParams) (RunCheckpoint, error) {
+	row := q.db.QueryRow(ctx, updateRunCheckpoint,
+		arg.RunID,
+		arg.UserID,
+		arg.Version,
+		arg.CurrentOrdinal,
+		arg.ActiveDurationMs,
+	)
+	var i RunCheckpoint
+	err := row.Scan(
+		&i.RunID,
+		&i.UserID,
+		&i.Version,
+		&i.CurrentOrdinal,
+		&i.ActiveDurationMs,
 		&i.UpdatedAt,
 	)
 	return i, err
