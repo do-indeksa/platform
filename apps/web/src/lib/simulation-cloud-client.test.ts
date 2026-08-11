@@ -129,6 +129,63 @@ describe("simulation cloud client", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("uploads rubric selections as mutable checkpoint data", async () => {
+    const calls: GraphQLBody[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string) as GraphQLBody;
+        calls.push(body);
+        if (body.operationName === "StartRun") {
+          return response({ startRun: { id: runId, status: "ACTIVE" } });
+        }
+        return response({
+          checkpointRun: { version: 3, currentOrdinal: 4 },
+        });
+      }),
+    );
+
+    await expect(
+      uploadSimulationCloudRun(
+        {
+          state: reviewingState(),
+          tasks,
+          blueprintVersion: "ftn-p1:2026.1",
+          contentRevision: revision("f"),
+        },
+        () => true,
+      ),
+    ).resolves.toBe(3);
+
+    expect(calls[1].variables.input).toMatchObject({
+      expectedVersion: 2,
+      activeDurationMs: 180_000,
+      drafts: [
+        {
+          answer: JSON.stringify({
+            version: 1,
+            answers: ["42"],
+            rubricScore: 3,
+          }),
+        },
+        {
+          answer: JSON.stringify({
+            version: 1,
+            answers: [""],
+            rubricScore: null,
+          }),
+        },
+        {
+          answer: JSON.stringify({
+            version: 1,
+            answers: ["draft"],
+            rubricScore: null,
+          }),
+        },
+      ],
+    });
+  });
+
   it("uploads stable auto attempts without submitting the active run", async () => {
     const calls: GraphQLBody[] = [];
     vi.stubGlobal(
@@ -216,6 +273,27 @@ function activeState(): PersistedSimulationState {
     startedAt,
     endsAt: startedAt + 240 * 60_000,
     currentIndex: 3,
+  };
+}
+
+function reviewingState(): PersistedSimulationState {
+  return {
+    ...activeState(),
+    phase: "reviewing",
+    submittedAt: startedAt + 3 * 60_000,
+    results: taskViews.map((task) => ({
+      taskId: task.id,
+      outcome: "incorrect",
+      earnedPoints: 0,
+      maxPoints: task.maxPoints,
+    })),
+    review: taskViews.map((task) => ({
+      taskId: task.id,
+      correctAnswer: "42",
+      solution: "Solution",
+      rubric: [{ id: "method", points: 5, text: "Method" }],
+    })),
+    rubricScores: [3, ...Array(9).fill(null)],
   };
 }
 

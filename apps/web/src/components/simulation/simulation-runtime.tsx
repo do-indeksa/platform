@@ -10,6 +10,7 @@ import type { ProgressCloudCatalog } from "@/lib/progress-cloud-types";
 import {
   finishSimulationCloudUpload,
   hydrateDiscoveredSimulationRun,
+  resumeSimulationRubricCloudUpload,
   scheduleSimulationCloudUpload,
   syncSimulationAutoGradeRun,
 } from "@/lib/simulation-cloud-sync";
@@ -108,6 +109,36 @@ export function SimulationRuntime({
     router.replace(resultHref);
     return true;
   }, [resultHref, router, run.blueprintVersion, run.runId]);
+
+  const setRubricScore = useCallback(
+    (taskIndex: number, score: number) => {
+      const state = useSimulation.getState();
+      if (
+        state.runId !== run.runId ||
+        state.blueprintVersion !== run.blueprintVersion ||
+        !state.setRubricScore(taskIndex, score)
+      ) {
+        return false;
+      }
+      scheduleSimulationCloudUpload(
+        {
+          state: useSimulation.getState(),
+          tasks: syncTasks,
+          blueprintVersion: progressCatalog.blueprintVersion,
+          contentRevision,
+        },
+        true,
+      );
+      return true;
+    },
+    [
+      contentRevision,
+      progressCatalog.blueprintVersion,
+      run.blueprintVersion,
+      run.runId,
+      syncTasks,
+    ],
+  );
 
   useEffect(() => {
     submissionAttempted.current = false;
@@ -239,7 +270,11 @@ export function SimulationRuntime({
       ) {
         throw new Error("invalid grade transition");
       }
-      if (simulationRubricIndexes(results, review).length === 0) finishReview();
+      if (simulationRubricIndexes(results, review).length === 0) {
+        finishReview();
+      } else {
+        resumeSimulationRubricCloudUpload(run.runId);
+      }
     } catch {
       submissionAttempted.current = false;
       setSubmissionError(true);
@@ -351,7 +386,12 @@ export function SimulationRuntime({
     );
   }
   if (phase === "reviewing" && activeRunId === run.runId) {
-    return <SimulationRubricReview onComplete={finishReview} />;
+    return (
+      <SimulationRubricReview
+        onScore={setRubricScore}
+        onComplete={finishReview}
+      />
+    );
   }
   if (phase === "running" && activeRunId === run.runId) {
     return (

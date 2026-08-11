@@ -105,7 +105,7 @@ export function scheduleSimulationCloudUpload(
   const cloud = useSimulationCloud.getState();
   if (
     context === null ||
-    state.phase !== "running" ||
+    (state.phase !== "running" && state.phase !== "reviewing") ||
     state.runId === null ||
     state.runOwnerId !== context.ownerId ||
     cloud.status === "loading" ||
@@ -118,6 +118,11 @@ export function scheduleSimulationCloudUpload(
 
 export function finishSimulationCloudUpload(runId: string): void {
   uploadQueue.finish(runId);
+}
+
+export function resumeSimulationRubricCloudUpload(runId: string): void {
+  uploadQueue.delete(runId);
+  uploadQueue.unblock(runId);
 }
 
 export async function syncSimulationAutoGradeRun(

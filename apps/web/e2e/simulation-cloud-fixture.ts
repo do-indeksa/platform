@@ -128,11 +128,19 @@ export async function installSimulationCloudRoutes(
       return;
     }
     if (call.operationName === "CheckpointRun") {
+      const version = Number(input.expectedVersion) + 1;
+      fixture.run.checkpoint = {
+        version,
+        currentOrdinal: Number(input.currentOrdinal),
+        activeDurationMs: Number(input.activeDurationMs),
+        updatedAt: new Date().toISOString(),
+        drafts: input.drafts as { runItemId: string; answer: string }[],
+      };
       await route.fulfill({
         json: {
           data: {
             checkpointRun: {
-              version: Number(input.expectedVersion) + 1,
+              version,
               currentOrdinal: input.currentOrdinal,
             },
           },

@@ -117,19 +117,39 @@ test("a fresh browser recovers an interrupted rubric review", async ({
       }),
     ];
   }
-  const first = fixture.run.items[0];
-  first.recentAttempts.push(
-    simulationAttempt(first, fixture.run.startedAt, submittedAt, {
-      id: firstRubricAttemptId,
-      answer: '["wrong","","",""]',
-      outcome: "PARTIAL",
-      gradingKind: "RUBRIC_SELF",
-      earnedPoints: 2,
-    }),
-  );
   await installSimulationCloudRoutes(page, fixture, mutations);
 
   await page.goto(simulationRunUrl);
+
+  await expect(
+    page.getByRole("heading", { name: "Compare your written work" }),
+  ).toBeVisible();
+  await expect(page.getByText("Task 1 of 3", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "2", exact: true }).click();
+  await expect
+    .poll(
+      () =>
+        mutations.filter((call) => call.operationName === "CheckpointRun")
+          .length,
+    )
+    .toBe(1);
+  const checkpoint = mutations.find(
+    (call) => call.operationName === "CheckpointRun",
+  );
+  const drafts = checkpoint?.variables.input?.drafts as
+    | {
+        answer: string;
+      }[]
+    | undefined;
+  expect(drafts).toBeDefined();
+  expect(JSON.parse(drafts![0].answer)).toEqual({
+    version: 1,
+    answers: ["wrong", "", "", ""],
+    rubricScore: 2,
+  });
+
+  await page.evaluate(() => localStorage.removeItem("do-indeksa-simulation"));
+  await page.reload();
 
   await expect(
     page.getByRole("heading", { name: "Compare your written work" }),
@@ -145,7 +165,7 @@ test("a fresh browser recovers an interrupted rubric review", async ({
   });
   expect(
     mutations.filter((call) => call.operationName === "RecordAttempt"),
-  ).toHaveLength(10);
+  ).toHaveLength(20);
   expect(mutations.some((call) => call.operationName === "SubmitRun")).toBe(
     false,
   );
@@ -163,7 +183,6 @@ const simulationAutoAttemptIds = [
   "3fc8ce4f-602e-59d2-a093-fa60106703e5",
   "2ed2ae6d-f9a6-5d51-8663-e5c371c642e2",
 ];
-const firstRubricAttemptId = "f8a93730-6c4e-59e1-827e-5099c95710ef";
 
 function simulationAttempt(
   item: Awaited<

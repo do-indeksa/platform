@@ -210,22 +210,26 @@ export function parseSimulationCloudRun(
   const rubricScores = Array<number | null>(tasks.length).fill(null);
   for (const [index, draft] of checkpoint.drafts.entries()) {
     if (draft === null) continue;
-    answers[index] = draft;
-    skipped[index] = draft.every((answer) => answer === "");
+    answers[index] = draft.answers;
+    skipped[index] = draft.answers.every((answer) => answer === "");
+    rubricScores[index] = draft.rubricScore;
   }
   for (const [index, attempt] of attempts.entries()) {
     if (attempt === null) continue;
     const draft = checkpoint.drafts[index];
     if (
       draft !== null &&
-      (!sameValues(draft, attempt.answers) ||
-        skipped[index] !== attempt.skipped)
+      (!sameValues(draft.answers, attempt.answers) ||
+        skipped[index] !== attempt.skipped ||
+        (draft.rubricScore !== null &&
+          attempt.rubricScore !== null &&
+          draft.rubricScore !== attempt.rubricScore))
     ) {
       return null;
     }
     answers[index] = attempt.answers;
     skipped[index] = attempt.skipped;
-    rubricScores[index] = attempt.rubricScore;
+    rubricScores[index] = attempt.rubricScore ?? rubricScores[index];
   }
 
   const phase = attemptCount > 0 ? "submitting" : "running";
@@ -302,7 +306,12 @@ type ParsedCheckpoint = {
   currentIndex: number | null;
   updatedAt: number | null;
   updatedAtIso: string | null;
-  drafts: (string[] | null)[];
+  drafts: (ParsedCheckpointDraft | null)[];
+};
+
+type ParsedCheckpointDraft = {
+  answers: string[];
+  rubricScore: number | null;
 };
 
 function parseCheckpoint(
@@ -333,16 +342,16 @@ function parseCheckpoint(
   ) {
     return null;
   }
-  const drafts = Array<string[] | null>(tasks.length).fill(null);
+  const drafts = Array<ParsedCheckpointDraft | null>(tasks.length).fill(null);
   for (const rawDraft of value.drafts) {
     if (!isRecord(rawDraft) || typeof rawDraft.runItemId !== "string") {
       return null;
     }
     const index = runItemIds.indexOf(rawDraft.runItemId);
     if (index < 0 || drafts[index] !== null) return null;
-    const answers = parseAnswers(rawDraft.answer, tasks[index].answerPartCount);
-    if (answers === null) return null;
-    drafts[index] = answers;
+    const draft = parseCheckpointDraft(rawDraft.answer, tasks[index]);
+    if (draft === null) return null;
+    drafts[index] = draft;
   }
   return {
     version: value.version,
@@ -351,6 +360,32 @@ function parseCheckpoint(
     updatedAtIso: value.updatedAt,
     drafts,
   };
+}
+
+function parseCheckpointDraft(
+  value: unknown,
+  task: Pick<SimulationCloudTask, "answerPartCount" | "maxPoints">,
+): ParsedCheckpointDraft | null {
+  const parsed = parseSerializedAnswer(value);
+  if (parsed === null) return null;
+  if (Array.isArray(parsed)) {
+    const answers = parseAnswerParts(parsed, task.answerPartCount);
+    return answers === null ? null : { answers, rubricScore: null };
+  }
+  if (
+    !isRecord(parsed) ||
+    Object.keys(parsed).toSorted().join(",") !==
+      "answers,rubricScore,version" ||
+    parsed.version !== 1 ||
+    (parsed.rubricScore !== null &&
+      !isIntegerBetween(parsed.rubricScore, 0, task.maxPoints - 1))
+  ) {
+    return null;
+  }
+  const answers = parseAnswerParts(parsed.answers, task.answerPartCount);
+  return answers === null
+    ? null
+    : { answers, rubricScore: parsed.rubricScore as number | null };
 }
 
 type ParsedAttempt = {
@@ -432,6 +467,11 @@ function parseAttempt(
 }
 
 function parseAnswers(value: unknown, partCount: number): string[] | null {
+  const parsed = parseSerializedAnswer(value);
+  return parsed === null ? null : parseAnswerParts(parsed, partCount);
+}
+
+function parseSerializedAnswer(value: unknown): unknown | null {
   if (
     typeof value !== "string" ||
     value.length > MAX_SERIALIZED_ANSWER_LENGTH
@@ -439,21 +479,21 @@ function parseAnswers(value: unknown, partCount: number): string[] | null {
     return null;
   }
   try {
-    const answers: unknown = JSON.parse(value);
-    if (
-      !Array.isArray(answers) ||
-      answers.length !== partCount ||
-      !answers.every(
-        (answer) =>
-          typeof answer === "string" && answer.length <= MAX_ANSWER_LENGTH,
-      )
-    ) {
-      return null;
-    }
-    return [...answers];
+    return JSON.parse(value) as unknown;
   } catch {
     return null;
   }
+}
+
+function parseAnswerParts(value: unknown, partCount: number): string[] | null {
+  return Array.isArray(value) &&
+    value.length === partCount &&
+    value.every(
+      (answer) =>
+        typeof answer === "string" && answer.length <= MAX_ANSWER_LENGTH,
+    )
+    ? [...value]
+    : null;
 }
 
 function sameTaskView(

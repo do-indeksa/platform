@@ -165,6 +165,35 @@ describe("simulation cloud parser", () => {
     });
   });
 
+  it("recovers a mutable rubric score before the final rubric attempt", () => {
+    const run = cloudRun();
+    run.checkpoint = checkpoint(1, [
+      draft(
+        run,
+        0,
+        JSON.stringify({
+          version: 1,
+          answers: ["wrong"],
+          rubricScore: 4,
+        }),
+      ),
+    ]);
+    addAttempt(run, 0, "INCORRECT", '["wrong"]', 0);
+
+    expect(
+      parseSimulationCloudRun(run, catalog, ownerId)?.runtime,
+    ).toMatchObject({
+      phase: "submitting",
+      answers: [
+        ["wrong"],
+        [""],
+        ["", ""],
+        ...Array.from({ length: 7 }, () => [""]),
+      ],
+      rubricScores: [4, ...Array(9).fill(null)],
+    });
+  });
+
   it("keeps an unanswered final answer eligible for rubric partial credit", () => {
     const run = cloudRun();
     run.checkpoint = checkpoint(1, [draft(run, 0, '[""]')]);
@@ -222,6 +251,24 @@ describe("simulation cloud parser", () => {
         run.checkpoint = checkpoint(1, [
           draft(run, 0, JSON.stringify(["x".repeat(201)])),
         ]);
+      },
+    ],
+    [
+      "rubric attempt that differs from its mutable checkpoint",
+      (run: CloudRun) => {
+        run.checkpoint = checkpoint(1, [
+          draft(
+            run,
+            0,
+            JSON.stringify({
+              version: 1,
+              answers: ["wrong"],
+              rubricScore: 4,
+            }),
+          ),
+        ]);
+        addAttempt(run, 0, "INCORRECT", '["wrong"]', 0);
+        addRubricAttempt(run, 0, 3, '["wrong"]');
       },
     ],
   ])("rejects %s", (_name, mutate) => {
