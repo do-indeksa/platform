@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock3, Flag, X } from "lucide-react";
+import { Check, Clock3, Flag, LoaderCircle, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { simulationTaskStatus } from "@/lib/simulation-types";
@@ -13,6 +13,8 @@ export function SimulationHeader({
   onSelect,
   onFinish,
   onAbandon,
+  disabled,
+  abandoning,
 }: {
   answers: string[][];
   skipped: boolean[];
@@ -21,6 +23,8 @@ export function SimulationHeader({
   onSelect: (index: number) => void;
   onFinish: () => void;
   onAbandon: () => void;
+  disabled: boolean;
+  abandoning: boolean;
 }) {
   const t = useTranslations("simulation");
   const lowTime = remainingSeconds <= 15 * 60;
@@ -39,6 +43,7 @@ export function SimulationHeader({
           skipped={skipped}
           currentIndex={currentIndex}
           onSelect={onSelect}
+          disabled={disabled}
         />
         <span
           role="timer"
@@ -53,8 +58,9 @@ export function SimulationHeader({
         <div className="flex items-center gap-1">
           <button
             type="button"
+            disabled={disabled}
             onClick={onFinish}
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold hover:border-brand hover:text-brand-ink"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-line px-3 text-sm font-semibold hover:border-brand hover:text-brand-ink disabled:cursor-wait disabled:opacity-50"
           >
             <Flag aria-hidden className="h-4 w-4" />
             <span className="hidden sm:inline">{t("finishExam")}</span>
@@ -62,12 +68,17 @@ export function SimulationHeader({
           </button>
           <button
             type="button"
+            disabled={disabled}
             onClick={onAbandon}
             title={t("abandon")}
             aria-label={t("abandon")}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-page hover:text-ink disabled:cursor-wait disabled:opacity-50"
           >
-            <X aria-hidden className="h-5 w-5" />
+            {abandoning ? (
+              <LoaderCircle aria-hidden className="h-5 w-5 animate-spin" />
+            ) : (
+              <X aria-hidden className="h-5 w-5" />
+            )}
           </button>
         </div>
       </div>
@@ -80,11 +91,13 @@ function TaskNavigator({
   skipped,
   currentIndex,
   onSelect,
+  disabled,
 }: {
   answers: string[][];
   skipped: boolean[];
   currentIndex: number;
   onSelect: (index: number) => void;
+  disabled: boolean;
 }) {
   const t = useTranslations("simulation");
   return (
@@ -99,13 +112,14 @@ function TaskNavigator({
           <button
             key={index}
             type="button"
+            disabled={disabled}
             onClick={() => onSelect(index)}
             aria-current={current ? "step" : undefined}
             aria-label={t("taskNavLabel", {
               task: index + 1,
               status: t(`taskStatus.${status}`),
             })}
-            className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold transition-colors ${
+            className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold transition-colors disabled:cursor-wait disabled:opacity-50 ${
               current
                 ? "border-brand bg-brand text-on-brand"
                 : status === "answered"

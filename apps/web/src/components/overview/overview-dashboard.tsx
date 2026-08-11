@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { useAttempts } from "@/lib/attempts-store";
-import type { DiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-types";
 import type {
   OverviewExam,
   OverviewPosition,
@@ -13,6 +12,7 @@ import {
   mapAttemptsToPositions,
 } from "@/lib/prep-readiness";
 import type { PrepTopicSlot } from "@/lib/prep-plan";
+import type { ProgressCloudCatalog } from "@/lib/progress-cloud-types";
 import { useHydrated } from "@/lib/use-hydrated";
 import { ContinueRun } from "./continue-run";
 import { DailyTask, type DailyTaskCandidate } from "./daily-task";
@@ -29,7 +29,7 @@ export function OverviewDashboard({
   topicSlots,
   programs,
   programSource,
-  diagnosticCatalog,
+  progressCatalog,
 }: {
   exam: OverviewExam;
   positions: OverviewPosition[];
@@ -37,7 +37,7 @@ export function OverviewDashboard({
   topicSlots: PrepTopicSlot[];
   programs: string[];
   programSource: string;
-  diagnosticCatalog: DiagnosticCloudCatalog;
+  progressCatalog: ProgressCloudCatalog;
 }) {
   const hydrated = useHydrated();
   const attempts = useAttempts();
@@ -66,7 +66,7 @@ export function OverviewDashboard({
         tasks={tasks}
         attempts={mappedAttempts}
       />
-      <ContinueRun diagnosticCatalog={diagnosticCatalog} />
+      <ContinueRun progressCatalog={progressCatalog} />
       <PositionOverview positions={progress} pending={pending} />
       <ExamResources exam={exam} />
       <P1Programs programs={programs} source={programSource} />

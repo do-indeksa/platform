@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { SimulationEntry } from "@/components/simulation";
+import { getProgressCloudCatalog } from "@/lib/progress-cloud-catalog";
 import { simulationRunHref } from "@/lib/simulation-run";
 import { generateVariant } from "@/lib/variant";
 
@@ -12,7 +13,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SimulationPage() {
-  const variant = await generateVariant();
+  const [variant, progressCatalog] = await Promise.all([
+    generateVariant(),
+    getProgressCloudCatalog(),
+  ]);
   const freshStartHref = simulationRunHref("/simulation/new", {
     runId: crypto.randomUUID(),
     blueprintVersion: variant.blueprint.version,
@@ -25,6 +29,7 @@ export default async function SimulationPage() {
       taskCount={variant.blueprint.taskCount}
       durationMinutes={variant.blueprint.durationMinutes}
       maxPoints={variant.blueprint.maxPoints}
+      progressCatalog={progressCatalog}
     />
   );
 }
