@@ -15,4 +15,4 @@ docker run --rm --init --platform linux/amd64 \
   --tmpfs /workspace/apps/web/.next:exec,mode=1777 \
   --workdir /workspace/apps/web \
   "${image}" \
-  bash -lc 'npm ci && npm run build && npm run test:visual -- --update-snapshots && npm run test:visual'
+  bash -lc 'npm ci && npm run build && npm run test:visual -- --update-snapshots=all && npm run test:visual'
