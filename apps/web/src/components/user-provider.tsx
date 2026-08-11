@@ -53,7 +53,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user === undefined) return;
     let current = true;
-    void syncAttempts(user !== null).then(() => {
+    void syncAttempts(user?.id ?? null).then(() => {
       if (current) return syncProgress(user?.id ?? null);
     });
     return () => {

@@ -168,7 +168,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
 | Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
 | Решение отдельной задачи | готов для preview      | exact checker, 1-6 частей, 2 подсказки, решение, resume и история         |
-| Журнал попыток           | переходный             | local-first + REST sync; богатый GraphQL contract еще не подключен web    |
+| Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim   |
 | Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
 | Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |
 | Пробный экзамен          | готов для preview      | 4 часа, blueprint 2025/2026, autosave, trainer estimate и разбор позиций  |
@@ -187,10 +187,10 @@ EN и SR, гостевые и авторизованные состояния.
 `/simulation/new`, `/simulation/result`, `/history`, `/exams`,
 `/exams/[examId]`, `/faculties/ftn`, `/calculator` во всех трех locale.
 
-HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v1/attempts`.
-Product API на `/graphql` уже поддерживает `Run`, `RunItem`, расширенный
-`Attempt`, start/record/submit lifecycle и recent history; web пока использует
-его не во всех local-first сценариях.
+HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v1/attempts` только
+для дренирования старых локальных записей. Новые попытки, история, диагностика
+и пробный экзамен используют product API на `/graphql`: `Run`, `RunItem`,
+расширенный `Attempt`, start/record/submit lifecycle и recent history.
 
 ## 6. Разбор PDF и Figma
 
@@ -237,10 +237,11 @@ machine-check, подсказки и решение. Для полного P1 е
 
 ### Attempt
 
-GraphQL/Postgres уже хранят стабильные ID, run item, ответ, время, outcome,
-help level, grading kind, earned/max points и task revision. Оставшийся разрыв -
-перевести web с совместимого boolean REST sync на этот lifecycle и определить
-безопасное объединение guest-истории после входа.
+GraphQL/Postgres и web sync хранят стабильные ID, run item или standalone task,
+ответ, время, outcome, help level, grading kind, earned/max points и task
+revision. Гостевая очередь атомарно получает owner при входе, повторы используют
+тот же UUID, а данные другого аккаунта не попадают в активное представление.
+Оставшийся разрыв - полноценный rich history UI поверх всех полей журнала.
 
 ### Run
 

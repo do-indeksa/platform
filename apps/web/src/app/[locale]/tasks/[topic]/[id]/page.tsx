@@ -139,6 +139,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
         key={task.id}
         taskId={task.id}
         slot={task.slot}
+        taskRevision={task.revision}
         check={task.check}
         hintsHtml={hintsHtml}
         solutionHtml={solutionHtml}

@@ -1,93 +1,315 @@
 import { useSyncExternalStore } from "react";
 import { validate as isUuid } from "uuid";
-import type { Attempt, NewAttempt } from "@/lib/knowledge";
+import {
+  fetchAttemptJournal,
+  sendLegacyAttempts,
+  sendPracticeAttempt,
+} from "./attempt-client";
+import type { Attempt } from "./knowledge";
+import {
+  MAX_STORED_ATTEMPTS,
+  claimAttemptOwner,
+  createPendingPracticeAttempt,
+  isAttemptVisible,
+  isPublicAttempt,
+  toPublicAttempt,
+  type PendingLegacyAttempt,
+  type PendingPracticeAttempt,
+  type PracticeAttemptInput,
+  type ServerAttempt,
+  type StoredAttempt,
+} from "./attempt-journal";
+import { loadStoredAttempts, writeStoredAttempts } from "./attempt-storage";
 
-const STORAGE_KEY = "do-indeksa-attempts";
-const MAX_BATCH = 500;
-const MAX_TASK_ID = 64;
-const TASK_ID_PATTERN = /^[a-z0-9-]+$/;
-const SOURCES = new Set(["diagnostic", "practice", "simulation"]);
+const LEGACY_BATCH_SIZE = 500;
 
-type StoredAttempt = Attempt & {
-  transport?: "graphql";
-  runId?: string;
-};
+type ServerViewAttempt = ServerAttempt | { id: null; attempt: Attempt };
 
 let localAttempts: StoredAttempt[] | null = null;
-let serverAttempts: Attempt[] | null = null;
+let serverAttempts: ServerViewAttempt[] | null = null;
 let authKnown = false;
-let signedIn = false;
+let activeOwnerId: string | null | undefined;
+let authGeneration = 0;
 let serverUnavailable = false;
-let inFlightAttempts = new Set<StoredAttempt>();
 let flushChain: Promise<void> = Promise.resolve();
+let fetchSequence = 0;
 let view: Attempt[] | null = null;
 const listeners = new Set<() => void>();
 
-function isAttempt(value: unknown): value is StoredAttempt {
-  if (typeof value !== "object" || value === null) return false;
-  const attempt = value as Record<string, unknown>;
-  return (
-    typeof attempt.taskId === "string" &&
-    attempt.taskId.length <= MAX_TASK_ID &&
-    TASK_ID_PATTERN.test(attempt.taskId) &&
-    typeof attempt.slot === "number" &&
-    Number.isInteger(attempt.slot) &&
-    attempt.slot >= 1 &&
-    attempt.slot <= 10 &&
-    typeof attempt.correct === "boolean" &&
-    typeof attempt.source === "string" &&
-    SOURCES.has(attempt.source) &&
-    typeof attempt.helpLevel === "number" &&
-    Number.isInteger(attempt.helpLevel) &&
-    attempt.helpLevel >= 0 &&
-    attempt.helpLevel <= 3 &&
-    typeof attempt.at === "string" &&
-    !Number.isNaN(Date.parse(attempt.at)) &&
-    ((attempt.transport === undefined && attempt.runId === undefined) ||
-      (attempt.transport === "graphql" &&
-        typeof attempt.runId === "string" &&
-        isUuid(attempt.runId)))
-  );
-}
-
-function loadLocal(): StoredAttempt[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const { attempts } = JSON.parse(raw) as { attempts?: unknown[] };
-    return (attempts ?? [])
-      .map((value) =>
-        typeof value === "object" && value !== null
-          ? { helpLevel: 0, ...value }
-          : value,
-      )
-      .filter(isAttempt);
-  } catch {
-    return [];
-  }
-}
-
-function saveLocal(attempts: StoredAttempt[]): void {
-  localAttempts = attempts;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, attempts }));
-  } catch {}
-}
-
 export function attemptsView(): Attempt[] | null {
   if (!authKnown) return null;
-  localAttempts ??= loadLocal();
-  if (signedIn && serverAttempts === null && !serverUnavailable) return null;
+  localAttempts ??= loadStoredAttempts();
+  if (
+    activeOwnerId !== null &&
+    activeOwnerId !== undefined &&
+    serverAttempts === null &&
+    !serverUnavailable
+  ) {
+    return null;
+  }
   view ??= merged();
   return view;
 }
 
+export async function syncAttempts(userId: string | null): Promise<void> {
+  authKnown = true;
+  const generation = ++authGeneration;
+  if (userId !== null && !isUuid(userId)) {
+    activeOwnerId = null;
+    fetchSequence += 1;
+    serverAttempts = null;
+    serverUnavailable = false;
+    emit();
+    return;
+  }
+
+  const ownerChanged = activeOwnerId !== userId;
+  activeOwnerId = userId;
+  if (userId === null) {
+    fetchSequence += 1;
+    serverAttempts = null;
+    serverUnavailable = false;
+    emit();
+    return;
+  }
+
+  localAttempts ??= loadStoredAttempts();
+  const claimed = localAttempts.map((attempt) =>
+    claimAttemptOwner(attempt, userId),
+  );
+  if (claimed.some((attempt, index) => attempt !== localAttempts?.[index])) {
+    if (!saveLocal(claimed)) {
+      serverUnavailable = true;
+      emit();
+      return;
+    }
+  }
+  if (ownerChanged) {
+    serverAttempts = null;
+    serverUnavailable = false;
+    emit();
+  }
+
+  await scheduleFlush(userId, generation);
+  try {
+    await fetchServer(userId, generation);
+  } catch {
+    if (isCurrentOwner(userId, generation)) serverUnavailable = true;
+  }
+  if (isCurrentOwner(userId, generation)) emit();
+}
+
+export function recordPracticeAttempt(value: PracticeAttemptInput): boolean {
+  localAttempts ??= loadStoredAttempts();
+  if (localAttempts.length >= MAX_STORED_ATTEMPTS) return false;
+  const ownerId = activeOwnerId ?? null;
+  const attempt = createPendingPracticeAttempt(value, ownerId);
+  if (attempt === null) return false;
+  if (!saveLocal([...localAttempts, attempt])) return false;
+  emit();
+
+  if (activeOwnerId) {
+    const userId = activeOwnerId;
+    const generation = authGeneration;
+    void scheduleFlush(userId, generation)
+      .then(() => fetchServer(userId, generation))
+      .then(emit, () => emit());
+  }
+  return true;
+}
+
+export function recordGraphQLAttempts(
+  runId: string,
+  entries: Attempt[],
+): boolean {
+  if (!isUuid(runId) || !entries.every(isPublicAttempt)) return false;
+  localAttempts ??= loadStoredAttempts();
+  const ownerId = activeOwnerId ?? null;
+  const retained = localAttempts.filter(
+    (attempt) =>
+      attempt.transport !== "graphql" ||
+      attempt.runId !== runId ||
+      attempt.ownerId !== ownerId,
+  );
+  if (retained.length + entries.length > MAX_STORED_ATTEMPTS) return false;
+  retained.push(
+    ...entries.map((entry) => ({
+      ...toPublicAttempt(entry),
+      transport: "graphql" as const,
+      runId,
+      ownerId,
+    })),
+  );
+  if (!saveLocal(retained)) return false;
+  emit();
+  return true;
+}
+
+export async function acknowledgeGraphQLRun(runId: string): Promise<boolean> {
+  const userId = activeOwnerId;
+  const generation = authGeneration;
+  if (!userId || !isUuid(runId)) return false;
+  try {
+    if (!(await fetchServer(userId, generation))) return false;
+  } catch {
+    if (isCurrentOwner(userId, generation)) {
+      serverUnavailable = true;
+      emit();
+    }
+    return false;
+  }
+  if (!isCurrentOwner(userId, generation)) return false;
+  localAttempts ??= loadStoredAttempts();
+  if (
+    !saveLocal(
+      localAttempts.filter(
+        (attempt) =>
+          attempt.transport !== "graphql" ||
+          attempt.runId !== runId ||
+          attempt.ownerId !== userId,
+      ),
+    )
+  ) {
+    return false;
+  }
+  emit();
+  return true;
+}
+
+export function clearLocalAttempts(): void {
+  authGeneration += 1;
+  activeOwnerId = null;
+  fetchSequence += 1;
+  serverAttempts = null;
+  serverUnavailable = false;
+  authKnown = true;
+  saveLocal([]);
+  emit();
+}
+
+export function useAttempts(): Attempt[] | null {
+  return useSyncExternalStore(subscribe, attemptsView, () => null);
+}
+
 function merged(): Attempt[] {
-  const local = (localAttempts ?? []).map(toPublicAttempt);
-  if (!signedIn || serverAttempts === null) return local;
-  return [...serverAttempts, ...local].toSorted(
+  const ownerId = activeOwnerId ?? null;
+  const serverIds = new Set(
+    (serverAttempts ?? []).flatMap((entry) =>
+      entry.id === null ? [] : [entry.id],
+    ),
+  );
+  const local = (localAttempts ?? [])
+    .filter((attempt) => isAttemptVisible(attempt, ownerId))
+    .filter(
+      (attempt) =>
+        attempt.transport !== "graphql-standalone" ||
+        !serverIds.has(attempt.input.id),
+    )
+    .flatMap(toMasteryAttempt);
+  if (!activeOwnerId || serverAttempts === null) return local;
+  return [...serverAttempts.map(({ attempt }) => attempt), ...local].toSorted(
     (a, b) => Date.parse(a.at) - Date.parse(b.at),
   );
+}
+
+function scheduleFlush(userId: string, generation: number): Promise<void> {
+  flushChain = flushChain
+    .then(() => flushOwner(userId, generation))
+    .catch(() => {});
+  return flushChain;
+}
+
+async function flushOwner(userId: string, generation: number): Promise<void> {
+  while (isCurrentOwner(userId, generation)) {
+    localAttempts ??= loadStoredAttempts();
+    const legacy = localAttempts
+      .filter(
+        (attempt): attempt is PendingLegacyAttempt =>
+          attempt.transport === "rest-legacy" && attempt.ownerId === userId,
+      )
+      .slice(0, LEGACY_BATCH_SIZE);
+    if (legacy.length > 0) {
+      const accepted = await sendLegacyAttempts(legacy);
+      const sent = new Set<StoredAttempt>(legacy);
+      if (!saveLocal(localAttempts.filter((attempt) => !sent.has(attempt)))) {
+        throw new Error("could not persist the legacy attempt flush");
+      }
+      if (!isCurrentOwner(userId, generation)) return;
+      if (accepted) {
+        appendServer(
+          legacy.map((attempt) => ({
+            id: null,
+            attempt: toPublicAttempt(attempt),
+          })),
+        );
+      }
+      continue;
+    }
+
+    const pending = localAttempts.find(
+      (attempt): attempt is PendingPracticeAttempt =>
+        attempt.transport === "graphql-standalone" &&
+        attempt.ownerId === userId,
+    );
+    if (pending === undefined) return;
+    await sendPracticeAttempt(pending);
+    if (!saveLocal(localAttempts.filter((attempt) => attempt !== pending))) {
+      throw new Error("could not persist the practice attempt flush");
+    }
+    if (!isCurrentOwner(userId, generation)) return;
+    if (pending.input.outcome !== "SKIPPED") {
+      appendServer([
+        { id: pending.input.id, attempt: toPublicAttempt(pending) },
+      ]);
+    }
+  }
+}
+
+async function fetchServer(
+  userId: string,
+  generation: number,
+): Promise<boolean> {
+  const sequence = ++fetchSequence;
+  const parsed = await fetchAttemptJournal();
+  if (sequence !== fetchSequence || !isCurrentOwner(userId, generation)) {
+    return false;
+  }
+  serverAttempts = parsed;
+  serverUnavailable = false;
+  return true;
+}
+
+function appendServer(entries: ServerViewAttempt[]): void {
+  const current = serverAttempts ?? [];
+  const ids = new Set(
+    current.flatMap((entry) => (entry.id === null ? [] : [entry.id])),
+  );
+  serverAttempts = [...current];
+  for (const entry of entries) {
+    if (entry.id !== null && ids.has(entry.id)) continue;
+    serverAttempts.push(entry);
+    if (entry.id !== null) ids.add(entry.id);
+  }
+  serverAttempts.sort(
+    (a, b) => Date.parse(a.attempt.at) - Date.parse(b.attempt.at),
+  );
+}
+
+function isCurrentOwner(userId: string, generation: number): boolean {
+  return activeOwnerId === userId && authGeneration === generation;
+}
+
+function saveLocal(attempts: StoredAttempt[]): boolean {
+  if (!writeStoredAttempts(attempts)) return false;
+  localAttempts = attempts;
+  return true;
+}
+
+function toMasteryAttempt(attempt: StoredAttempt): Attempt[] {
+  return attempt.transport === "graphql-standalone" &&
+    attempt.input.outcome === "SKIPPED"
+    ? []
+    : [toPublicAttempt(attempt)];
 }
 
 function subscribe(listener: () => void): () => void {
@@ -98,174 +320,4 @@ function subscribe(listener: () => void): () => void {
 function emit(): void {
   view = null;
   for (const listener of listeners) listener();
-}
-
-async function flushAll(): Promise<void> {
-  localAttempts ??= loadLocal();
-  while (true) {
-    const chunk = localAttempts
-      .filter((attempt) => attempt.transport !== "graphql")
-      .slice(0, MAX_BATCH);
-    if (chunk.length === 0) return;
-    inFlightAttempts = new Set(chunk);
-    try {
-      const res = await fetch("/api/v1/attempts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(chunk.map(toPublicAttempt)),
-      });
-      if (!res.ok && res.status !== 400) {
-        throw new Error(`flush failed with status ${res.status}`);
-      }
-      if (res.ok) {
-        serverAttempts = [
-          ...(serverAttempts ?? []),
-          ...chunk.map(toPublicAttempt),
-        ];
-      }
-      saveLocal(
-        localAttempts.filter((attempt) => !inFlightAttempts.has(attempt)),
-      );
-    } finally {
-      inFlightAttempts = new Set();
-    }
-  }
-}
-
-function scheduleFlush(): Promise<void> {
-  flushChain = flushChain.then(flushAll).catch(() => {});
-  return flushChain;
-}
-
-let fetchSeq = 0;
-
-async function fetchServer(): Promise<boolean> {
-  const seq = ++fetchSeq;
-  try {
-    const res = await fetch("/api/v1/attempts");
-    if (seq !== fetchSeq) return false;
-    if (!res.ok)
-      throw new Error(`attempts fetch failed with status ${res.status}`);
-    const value: unknown = await res.json();
-    if (seq !== fetchSeq) return false;
-    if (!Array.isArray(value) || !value.every(isAttempt)) {
-      throw new Error("attempts fetch returned an invalid response");
-    }
-    serverAttempts = value.map(toPublicAttempt);
-    serverUnavailable = false;
-    return true;
-  } catch (error) {
-    if (seq !== fetchSeq) return false;
-    throw error;
-  }
-}
-
-export async function syncAttempts(isSignedIn: boolean): Promise<void> {
-  authKnown = true;
-  const signingIn = isSignedIn && !signedIn;
-  signedIn = isSignedIn;
-  if (!isSignedIn) {
-    fetchSeq += 1;
-    serverAttempts = null;
-    serverUnavailable = false;
-    emit();
-    return;
-  }
-  if (signingIn) {
-    serverAttempts = null;
-    serverUnavailable = false;
-    emit();
-  }
-  await scheduleFlush();
-  try {
-    await fetchServer();
-  } catch {
-    serverUnavailable = true;
-  }
-  emit();
-}
-
-export function recordAttempts(entries: Omit<NewAttempt, "at">[]): void {
-  localAttempts ??= loadLocal();
-  const at = new Date().toISOString();
-  const next = [...localAttempts];
-  for (const { helpLevel = 0, ...entry } of entries) {
-    const last = next.at(-1);
-    if (
-      entry.source === "practice" &&
-      last?.source === "practice" &&
-      last.taskId === entry.taskId &&
-      !inFlightAttempts.has(last)
-    ) {
-      next.pop();
-    }
-    next.push({ ...entry, helpLevel, at });
-  }
-  saveLocal(next);
-  emit();
-  if (signedIn) {
-    void scheduleFlush()
-      .then(fetchServer)
-      .then(emit, () => emit());
-  }
-}
-
-export function recordGraphQLAttempts(
-  runId: string,
-  entries: Attempt[],
-): boolean {
-  if (!isUuid(runId) || !entries.every(isAttempt)) return false;
-  localAttempts ??= loadLocal();
-  const next = localAttempts.filter(
-    (attempt) => attempt.transport !== "graphql" || attempt.runId !== runId,
-  );
-  next.push(
-    ...entries.map((entry) => ({
-      ...toPublicAttempt(entry),
-      transport: "graphql" as const,
-      runId,
-    })),
-  );
-  saveLocal(next);
-  emit();
-  return true;
-}
-
-export async function acknowledgeGraphQLRun(runId: string): Promise<boolean> {
-  if (!signedIn || !isUuid(runId)) return false;
-  try {
-    if (!(await fetchServer())) return false;
-  } catch {
-    serverUnavailable = true;
-    emit();
-    return false;
-  }
-  localAttempts ??= loadLocal();
-  saveLocal(
-    localAttempts.filter(
-      (attempt) => attempt.transport !== "graphql" || attempt.runId !== runId,
-    ),
-  );
-  emit();
-  return true;
-}
-
-export function clearLocalAttempts(): void {
-  saveLocal([]);
-  emit();
-}
-
-export function useAttempts(): Attempt[] | null {
-  return useSyncExternalStore(subscribe, attemptsView, () => null);
-}
-
-function toPublicAttempt(attempt: StoredAttempt): Attempt {
-  return {
-    taskId: attempt.taskId,
-    slot: attempt.slot,
-    correct: attempt.correct,
-    source: attempt.source,
-    helpLevel: attempt.helpLevel,
-    at: attempt.at,
-  };
 }

@@ -127,7 +127,7 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
 }) => {
   type GraphQLCall = {
     operationName: string;
-    variables: { input: Record<string, unknown> };
+    variables: { input: Record<string, unknown>; limit?: number };
   };
   const graphQLCalls: GraphQLCall[] = [];
   const attemptMethods: string[] = [];
@@ -144,14 +144,35 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
   );
   await page.route("**/api/v1/attempts", (route) => {
     attemptMethods.push(route.request().method());
-    return route.fulfill({
-      json: submitted
-        ? [legacyAttempt("kb-001", 1, true), legacyAttempt("kv-001", 2, false)]
-        : [],
-    });
+    return route.fulfill({ status: 410 });
   });
   await page.route("**/graphql", async (route) => {
     const call = route.request().postDataJSON() as GraphQLCall;
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({
+        json: {
+          data: {
+            attempts: submitted
+              ? [
+                  journalAttempt(
+                    "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91",
+                    "kb-001",
+                    1,
+                    true,
+                  ),
+                  journalAttempt(
+                    "89f60fb8-521a-48f6-becd-3ba25ef9898e",
+                    "kv-001",
+                    2,
+                    false,
+                  ),
+                ]
+              : [],
+          },
+        },
+      });
+      return;
+    }
     graphQLCalls.push(call);
     const input = call.variables.input;
     const field =
@@ -212,7 +233,7 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
     ),
   ).toBe(true);
   expect(JSON.stringify(graphQLCalls)).not.toMatch(/expected|solution/i);
-  expect(attemptMethods.every((method) => method === "GET")).toBe(true);
+  expect(attemptMethods).toEqual([]);
 
   await page.reload({ waitUntil: "networkidle" });
   await expect(
@@ -275,13 +296,19 @@ async function answerFirstTask(page: Page): Promise<void> {
   ).toBeVisible();
 }
 
-function legacyAttempt(taskId: string, slot: number, correct: boolean) {
+function journalAttempt(
+  id: string,
+  taskId: string,
+  slot: number,
+  correct: boolean,
+) {
   return {
+    id,
     taskId,
-    slot,
-    correct,
-    source: "diagnostic",
+    examPosition: slot,
+    mode: "DIAGNOSTIC",
+    submittedAt: "2026-08-10T10:10:00.000Z",
+    outcome: correct ? "CORRECT" : "INCORRECT",
     helpLevel: 0,
-    at: "2026-08-10T10:10:00.000Z",
   };
 }

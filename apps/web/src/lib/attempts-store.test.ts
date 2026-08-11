@@ -2,17 +2,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Attempt } from "./knowledge";
 
 const STORAGE_KEY = "do-indeksa-attempts";
-const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+const USER_A = "a0209703-275b-4c6e-b815-25025b923ae8";
+const USER_B = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
+const RUN_ID = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+const REVISION = `sha256:${"a".repeat(64)}`;
+const ATTEMPT_ID = "cb973bed-6f86-410b-89fa-26bedc57cf1e";
+const SERVER_ID = "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91";
 
-type StoredAttempt = Attempt & {
-  transport?: "graphql";
-  runId?: string;
-};
+type FetchCall = { url: string; init?: RequestInit };
 
-function mockStorage(initial: unknown[] = []) {
+function mockStorage(initial: unknown[] = [], version = 2) {
   const map = new Map<string, string>();
   if (initial.length > 0) {
-    map.set(STORAGE_KEY, JSON.stringify({ version: 1, attempts: initial }));
+    map.set(STORAGE_KEY, JSON.stringify({ version, attempts: initial }));
   }
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => map.get(key) ?? null,
@@ -21,8 +23,6 @@ function mockStorage(initial: unknown[] = []) {
   });
   return map;
 }
-
-type FetchCall = { url: string; init?: RequestInit };
 
 function mockFetch(respond: (call: FetchCall) => Response | Promise<Response>) {
   const calls: FetchCall[] = [];
@@ -37,14 +37,18 @@ function mockFetch(respond: (call: FetchCall) => Response | Promise<Response>) {
   return calls;
 }
 
-function posts(calls: FetchCall[]): FetchCall[] {
-  return calls.filter((call) => call.init?.method === "POST");
+function body(call: FetchCall): Record<string, unknown> {
+  return JSON.parse(String(call.init?.body)) as Record<string, unknown>;
 }
 
-function stored(map: Map<string, string>): StoredAttempt[] {
+function operation(call: FetchCall): string | undefined {
+  return body(call).operationName as string | undefined;
+}
+
+function stored(map: Map<string, string>): Record<string, unknown>[] {
   const raw = map.get(STORAGE_KEY);
   if (!raw) return [];
-  return (JSON.parse(raw) as { attempts: StoredAttempt[] }).attempts;
+  return (JSON.parse(raw) as { attempts: Record<string, unknown>[] }).attempts;
 }
 
 function attempt(taskId: string, overrides: Partial<Attempt> = {}): Attempt {
@@ -59,6 +63,72 @@ function attempt(taskId: string, overrides: Partial<Attempt> = {}): Attempt {
   };
 }
 
+function practiceInput(taskId = "kb-001") {
+  return {
+    taskId,
+    slot: 1,
+    taskRevision: REVISION,
+    startedAt: "2026-07-12T09:59:50.000Z",
+    submittedAt: "2026-07-12T10:00:00.000Z",
+    activeDurationMs: 10_000,
+    answer: JSON.stringify(["2", "3"]),
+    outcome: "CORRECT" as const,
+    helpLevel: 1,
+  };
+}
+
+function pendingAttempt(
+  ownerId: string | null,
+  id = ATTEMPT_ID,
+  taskId = "kb-001",
+) {
+  return {
+    ...attempt(taskId, { helpLevel: 1 }),
+    transport: "graphql-standalone",
+    ownerId,
+    input: {
+      id,
+      standalone: {
+        taskId,
+        examPosition: 1,
+        taskRevision: REVISION,
+      },
+      startedAt: "2026-07-12T09:59:50.000Z",
+      submittedAt: "2026-07-12T10:00:00.000Z",
+      activeDurationMs: 10_000,
+      answer: JSON.stringify(["2", "3"]),
+      outcome: "CORRECT",
+      helpLevel: 1,
+      gradingKind: "AUTO",
+    },
+  };
+}
+
+function serverAttempt(
+  id = SERVER_ID,
+  taskId = "kb-001",
+  overrides: Record<string, unknown> = {},
+) {
+  return {
+    id,
+    taskId,
+    examPosition: 1,
+    mode: "PRACTICE",
+    submittedAt: "2026-07-12T10:00:00.000Z",
+    outcome: "CORRECT",
+    helpLevel: 1,
+    ...overrides,
+  };
+}
+
+function journal(entries: unknown[] = []): Response {
+  return Response.json({ data: { attempts: entries } });
+}
+
+function recorded(id: string): Response {
+  return Response.json({ data: { recordAttempt: { id } } });
+}
+
 async function loadStore() {
   vi.resetModules();
   return import("./attempts-store");
@@ -68,109 +138,267 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("recordAttempts", () => {
-  it("replaces a consecutive practice re-mark of the same task", async () => {
+describe("recordPracticeAttempt", () => {
+  it("stores a rich v2 journal entry for a guest", async () => {
     const map = mockStorage();
-    mockFetch(() => new Response(null, { status: 204 }));
+    mockFetch(() => journal());
     const store = await loadStore();
+    await store.syncAttempts(null);
 
-    store.recordAttempts([
-      { taskId: "kb-001", slot: 1, correct: true, source: "practice" },
-    ]);
-    store.recordAttempts([
-      { taskId: "kb-001", slot: 1, correct: false, source: "practice" },
-    ]);
+    expect(store.recordPracticeAttempt(practiceInput())).toBe(true);
 
-    const journal = stored(map);
-    expect(journal).toHaveLength(1);
-    expect(journal[0].correct).toBe(false);
-  });
-
-  it("keeps a non-zero helpLevel through the dedup replacement", async () => {
-    const map = mockStorage();
-    mockFetch(() => new Response(null, { status: 204 }));
-    const store = await loadStore();
-
-    store.recordAttempts([
-      { taskId: "kb-001", slot: 1, correct: false, source: "practice" },
-    ]);
-    store.recordAttempts([
-      {
-        taskId: "kb-001",
-        slot: 1,
-        correct: true,
-        source: "practice",
-        helpLevel: 2,
+    const [entry] = stored(map);
+    expect(JSON.parse(map.get(STORAGE_KEY) ?? "{}").version).toBe(2);
+    expect(entry).toMatchObject({
+      taskId: "kb-001",
+      correct: true,
+      source: "practice",
+      helpLevel: 1,
+      transport: "graphql-standalone",
+      ownerId: null,
+      input: {
+        standalone: { taskRevision: REVISION },
+        activeDurationMs: 10_000,
+        answer: '["2","3"]',
+        outcome: "CORRECT",
+        gradingKind: "AUTO",
       },
-    ]);
-
-    const journal = stored(map);
-    expect(journal).toHaveLength(1);
-    expect(journal[0].helpLevel).toBe(2);
+    });
+    expect((entry.input as { id: string }).id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("rejects a fractional helpLevel from storage", async () => {
-    mockStorage([attempt("kb-001", { helpLevel: 1.5 })]);
-    mockFetch(() => Response.json([]));
-    const store = await loadStore();
-
-    await store.syncAttempts(false);
-
-    expect(store.attemptsView()).toHaveLength(0);
-  });
-
-  it("appends across different tasks and sources", async () => {
+  it("keeps each checked answer as a separate journal event", async () => {
     const map = mockStorage();
-    mockFetch(() => new Response(null, { status: 204 }));
+    mockFetch(() => journal());
     const store = await loadStore();
+    await store.syncAttempts(null);
 
-    store.recordAttempts([
-      { taskId: "kb-001", slot: 1, correct: true, source: "practice" },
-    ]);
-    store.recordAttempts([
-      { taskId: "kb-002", slot: 1, correct: true, source: "practice" },
-    ]);
-    store.recordAttempts([
-      { taskId: "kb-002", slot: 1, correct: true, source: "diagnostic" },
-    ]);
+    store.recordPracticeAttempt(practiceInput());
+    store.recordPracticeAttempt({
+      ...practiceInput(),
+      outcome: "INCORRECT",
+      helpLevel: 2,
+    });
 
-    expect(stored(map)).toHaveLength(3);
+    expect(stored(map)).toHaveLength(2);
+    expect(
+      stored(map).map((entry) => (entry.input as { outcome: string }).outcome),
+    ).toEqual(["CORRECT", "INCORRECT"]);
+  });
+
+  it("rejects malformed client metadata", async () => {
+    const map = mockStorage();
+    mockFetch(() => journal());
+    const store = await loadStore();
+    await store.syncAttempts(null);
+
+    expect(
+      store.recordPracticeAttempt({
+        ...practiceInput(),
+        taskRevision: "latest",
+      }),
+    ).toBe(false);
+    expect(stored(map)).toEqual([]);
+  });
+
+  it("keeps a solution reveal in the rich journal but out of mastery", async () => {
+    const map = mockStorage();
+    mockFetch(() => journal());
+    const store = await loadStore();
+    await store.syncAttempts(null);
+
+    expect(
+      store.recordPracticeAttempt({
+        ...practiceInput(),
+        outcome: "SKIPPED",
+        helpLevel: 3,
+      }),
+    ).toBe(true);
+
+    expect(stored(map)).toHaveLength(1);
+    expect(store.attemptsView()).toEqual([]);
   });
 });
 
 describe("syncAttempts", () => {
-  it("flushes the journal in chunks of 500 and clears sent entries", async () => {
-    const journal = Array.from({ length: 501 }, (_, i) => attempt(`t-${i}`));
-    const map = mockStorage(journal);
-    const calls = mockFetch((call) =>
-      call.init?.method === "POST"
-        ? new Response(null, { status: 204 })
-        : Response.json([]),
+  it("claims a guest attempt and submits it exactly once", async () => {
+    const map = mockStorage([pendingAttempt(null)]);
+    let saved = false;
+    const calls = mockFetch((call) => {
+      if (operation(call) === "RecordPracticeAttempt") {
+        saved = true;
+        const input = (body(call).variables as { input: { id: string } }).input;
+        return recorded(input.id);
+      }
+      return journal(saved ? [serverAttempt(ATTEMPT_ID)] : []);
+    });
+    const store = await loadStore();
+
+    await store.syncAttempts(USER_A);
+    await store.syncAttempts(USER_A);
+
+    expect(
+      calls.filter((call) => operation(call) === "RecordPracticeAttempt"),
+    ).toHaveLength(1);
+    expect(stored(map)).toEqual([]);
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+  });
+
+  it("reuses the same UUID after a transient mutation failure", async () => {
+    const map = mockStorage([pendingAttempt(null)]);
+    let mutations = 0;
+    let saved = false;
+    const ids: string[] = [];
+    mockFetch((call) => {
+      if (operation(call) === "RecordPracticeAttempt") {
+        mutations += 1;
+        const input = (body(call).variables as { input: { id: string } }).input;
+        ids.push(input.id);
+        if (mutations === 1) return new Response(null, { status: 502 });
+        saved = true;
+        return recorded(input.id);
+      }
+      return journal(saved ? [serverAttempt(ATTEMPT_ID)] : []);
+    });
+    const store = await loadStore();
+
+    await store.syncAttempts(USER_A);
+    expect(stored(map)).toHaveLength(1);
+    await store.syncAttempts(USER_A);
+
+    expect(ids).toEqual([ATTEMPT_ID, ATTEMPT_ID]);
+    expect(stored(map)).toEqual([]);
+  });
+
+  it("deduplicates an ambiguous mutation already present in the journal", async () => {
+    const map = mockStorage([pendingAttempt(null)]);
+    mockFetch((call) =>
+      operation(call) === "RecordPracticeAttempt"
+        ? new Response(null, { status: 502 })
+        : journal([serverAttempt(ATTEMPT_ID)]),
     );
     const store = await loadStore();
 
-    await store.syncAttempts(true);
+    await store.syncAttempts(USER_A);
 
-    const sent = posts(calls);
-    expect(sent).toHaveLength(2);
-    expect(JSON.parse(sent[0].init?.body as string)).toHaveLength(500);
-    expect(JSON.parse(sent[1].init?.body as string)).toHaveLength(1);
-    expect(stored(map)).toHaveLength(0);
+    expect(stored(map)).toHaveLength(1);
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
   });
 
-  it("keeps entries locally and degrades to the local view when the server fails", async () => {
-    const journal = [attempt("kb-001"), attempt("kb-002")];
-    const map = mockStorage(journal);
-    mockFetch(() => new Response(null, { status: 502 }));
+  it("drains legacy v1 entries through REST in bounded batches", async () => {
+    const legacy = Array.from({ length: 501 }, (_, index) =>
+      attempt(`t-${index}`),
+    );
+    const map = mockStorage(legacy, 1);
+    const calls = mockFetch((call) =>
+      call.url === "/api/v1/attempts"
+        ? new Response(null, { status: 204 })
+        : journal(),
+    );
     const store = await loadStore();
 
-    await store.syncAttempts(true);
+    await store.syncAttempts(USER_A);
 
-    expect(stored(map)).toHaveLength(2);
-    expect(store.attemptsView()).toHaveLength(2);
+    const restCalls = calls.filter((call) => call.url === "/api/v1/attempts");
+    expect(restCalls).toHaveLength(2);
+    expect(JSON.parse(String(restCalls[0].init?.body))).toHaveLength(500);
+    expect(JSON.parse(String(restCalls[1].init?.body))).toHaveLength(1);
+    expect(stored(map)).toEqual([]);
+    expect(calls.some((call) => operation(call) === "AttemptJournal")).toBe(
+      true,
+    );
   });
 
-  it("invalidates an in-flight server view across sign-out", async () => {
+  it("keeps a failed rich attempt in the local signed-in view", async () => {
+    const map = mockStorage([pendingAttempt(null)]);
+    mockFetch((call) =>
+      operation(call) === "AttemptJournal"
+        ? new Response(null, { status: 502 })
+        : new Response(null, { status: 503 }),
+    );
+    const store = await loadStore();
+
+    await store.syncAttempts(USER_A);
+
+    expect(stored(map)).toHaveLength(1);
+    expect(stored(map)[0].ownerId).toBe(USER_A);
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+  });
+
+  it("does not expose or submit another account's pending entries", async () => {
+    const map = mockStorage([pendingAttempt(USER_A)]);
+    const calls = mockFetch(() => journal());
+    const store = await loadStore();
+
+    await store.syncAttempts(USER_B);
+
+    expect(
+      calls.filter((call) => operation(call) === "RecordPracticeAttempt"),
+    ).toHaveLength(0);
+    expect(store.attemptsView()).toEqual([]);
+    expect(stored(map)).toHaveLength(1);
+  });
+
+  it("finishes a stale rich mutation without exposing it to the next account", async () => {
+    const map = mockStorage([pendingAttempt(null)]);
+    let resolveMutation: ((response: Response) => void) | undefined;
+    const calls = mockFetch((call) => {
+      if (operation(call) === "RecordPracticeAttempt") {
+        return new Promise<Response>((resolve) => {
+          resolveMutation = resolve;
+        });
+      }
+      return journal();
+    });
+    const store = await loadStore();
+
+    const first = store.syncAttempts(USER_A);
+    await vi.waitFor(() => expect(resolveMutation).toBeTypeOf("function"));
+    const second = store.syncAttempts(USER_B);
+    expect(stored(map)[0]).toMatchObject({ ownerId: USER_A });
+    resolveMutation?.(recorded(ATTEMPT_ID));
+    await first;
+    await second;
+
+    expect(
+      calls.filter((call) => operation(call) === "RecordPracticeAttempt"),
+    ).toHaveLength(1);
+    expect(stored(map)).toEqual([]);
+    expect(store.attemptsView()).toEqual([]);
+  });
+
+  it("claims a legacy row before REST so an account switch cannot resend it", async () => {
+    const map = mockStorage([attempt("kb-001")], 1);
+    let resolveLegacy: ((response: Response) => void) | undefined;
+    const calls = mockFetch((call) => {
+      if (call.url === "/api/v1/attempts") {
+        return new Promise<Response>((resolve) => {
+          resolveLegacy = resolve;
+        });
+      }
+      return journal();
+    });
+    const store = await loadStore();
+
+    const first = store.syncAttempts(USER_A);
+    await vi.waitFor(() => expect(resolveLegacy).toBeTypeOf("function"));
+    const second = store.syncAttempts(USER_B);
+    expect(stored(map)[0]).toMatchObject({
+      transport: "rest-legacy",
+      ownerId: USER_A,
+    });
+    resolveLegacy?.(new Response(null, { status: 204 }));
+    await first;
+    await second;
+
+    expect(
+      calls.filter((call) => call.url === "/api/v1/attempts"),
+    ).toHaveLength(1);
+    expect(stored(map)).toEqual([]);
+    expect(store.attemptsView()).toEqual([]);
+  });
+
+  it("invalidates an in-flight journal across sign-out and account change", async () => {
     mockStorage();
     const resolvers: ((response: Response) => void)[] = [];
     mockFetch(
@@ -181,242 +409,119 @@ describe("syncAttempts", () => {
     );
     const store = await loadStore();
 
-    const firstSignIn = store.syncAttempts(true);
+    const first = store.syncAttempts(USER_A);
     await vi.waitFor(() => expect(resolvers).toHaveLength(1));
-    await store.syncAttempts(false);
-    resolvers[0](Response.json([attempt("previous-user")]));
-    await firstSignIn;
+    await store.syncAttempts(null);
+    resolvers[0](journal([serverAttempt()]));
+    await first;
     expect(store.attemptsView()).toEqual([]);
 
-    const secondSignIn = store.syncAttempts(true);
+    const second = store.syncAttempts(USER_B);
     await vi.waitFor(() => expect(resolvers).toHaveLength(2));
     expect(store.attemptsView()).toBeNull();
-    resolvers[1](Response.json([]));
-    await secondSignIn;
+    resolvers[1](journal());
+    await second;
     expect(store.attemptsView()).toEqual([]);
   });
 
-  it("drops a chunk the server rejects as invalid", async () => {
-    const map = mockStorage([attempt("kb-001")]);
-    mockFetch((call) =>
-      call.init?.method === "POST"
-        ? Response.json(
-            { code: "invalid_attempt", message: "" },
-            { status: 400 },
-          )
-        : Response.json([]),
-    );
-    const store = await loadStore();
-
-    await store.syncAttempts(true);
-
-    expect(stored(map)).toHaveLength(0);
-  });
-
-  it("defaults helpLevel for entries stored before the field existed", async () => {
-    const legacy = Object.fromEntries(
-      Object.entries(attempt("kb-001")).filter(([key]) => key !== "helpLevel"),
-    );
-    mockStorage([legacy]);
-    mockFetch(() => Response.json([]));
-    const store = await loadStore();
-
-    await store.syncAttempts(false);
-
-    expect(store.attemptsView()).toEqual([{ ...legacy, helpLevel: 0 }]);
-  });
-
-  it("filters corrupt localStorage entries", async () => {
-    const map = mockStorage([
-      attempt("kb-001"),
-      attempt("", {}),
-      attempt("kb-003", { slot: 99 }),
-      "garbage",
-    ]);
-    mockFetch(() => Response.json([]));
-    const store = await loadStore();
-
-    await store.syncAttempts(false);
-
-    expect(store.attemptsView()).toHaveLength(1);
-    expect(stored(map)).toHaveLength(4);
-  });
-
-  it("keeps flushed attempts visible when the follow-up fetch fails", async () => {
-    const map = mockStorage([attempt("kb-001"), attempt("kb-002")]);
-    mockFetch((call) =>
-      call.init?.method === "POST"
-        ? new Response(null, { status: 204 })
-        : new Response(null, { status: 502 }),
-    );
-    const store = await loadStore();
-
-    await store.syncAttempts(true);
-
-    expect(stored(map)).toHaveLength(0);
-    expect(store.attemptsView()).toHaveLength(2);
-  });
-
-  it("flushes REST attempts without duplicating GraphQL-owned attempts", async () => {
-    const map = mockStorage();
-    const calls = mockFetch((call) =>
-      call.init?.method === "POST"
-        ? new Response(null, { status: 204 })
-        : Response.json([]),
-    );
-    const store = await loadStore();
-
-    expect(
-      store.recordGraphQLAttempts(runId, [
-        attempt("kb-001", { source: "diagnostic" }),
-      ]),
-    ).toBe(true);
-    store.recordAttempts([
-      { taskId: "kb-002", slot: 1, correct: true, source: "practice" },
-    ]);
-    await store.syncAttempts(true);
-
-    expect(posts(calls)).toHaveLength(1);
-    expect(JSON.parse(posts(calls)[0].init?.body as string)).toEqual([
-      expect.objectContaining({ taskId: "kb-002" }),
-    ]);
-    expect(stored(map)).toEqual([
-      expect.objectContaining({
-        taskId: "kb-001",
-        transport: "graphql",
-        runId,
-      }),
-    ]);
-    expect(store.attemptsView()).toEqual([
-      expect.not.objectContaining({ transport: expect.anything() }),
-    ]);
-  });
-
-  it("removes a GraphQL fallback only after refreshing the server view", async () => {
-    const map = mockStorage();
-    let reads = 0;
-    mockFetch(() => {
-      reads += 1;
-      return Response.json(
-        reads === 1 ? [] : [attempt("kb-001", { source: "diagnostic" })],
-      );
-    });
-    const store = await loadStore();
-
-    await store.syncAttempts(true);
-    store.recordGraphQLAttempts(runId, [
-      attempt("kb-001", { source: "diagnostic" }),
-    ]);
-
-    expect(await store.acknowledgeGraphQLRun(runId)).toBe(true);
-    expect(stored(map)).toHaveLength(0);
-    expect(store.attemptsView()).toEqual([
-      attempt("kb-001", { source: "diagnostic" }),
-    ]);
-  });
-
-  it("retains a GraphQL fallback when the server view cannot refresh", async () => {
-    const map = mockStorage();
-    let reads = 0;
-    mockFetch(() =>
-      ++reads === 1 ? Response.json([]) : new Response(null, { status: 502 }),
-    );
-    const store = await loadStore();
-
-    await store.syncAttempts(true);
-    store.recordGraphQLAttempts(runId, [
-      attempt("kb-001", { source: "diagnostic" }),
-    ]);
-
-    expect(await store.acknowledgeGraphQLRun(runId)).toBe(false);
-    expect(stored(map)).toHaveLength(1);
-    expect(store.attemptsView()).toHaveLength(1);
-  });
-
-  it("retains a GraphQL fallback when its refresh is superseded", async () => {
-    const map = mockStorage();
-    let reads = 0;
-    let resolveStale: ((response: Response) => void) | undefined;
-    let resolveCurrent: ((response: Response) => void) | undefined;
-    mockFetch(() => {
-      reads += 1;
-      if (reads === 1) return Response.json([]);
-      return new Promise<Response>((resolve) => {
-        if (reads === 2) resolveStale = resolve;
-        else resolveCurrent = resolve;
-      });
-    });
-    const store = await loadStore();
-    await store.syncAttempts(true);
-    store.recordGraphQLAttempts(runId, [
-      attempt("kb-001", { source: "diagnostic" }),
-    ]);
-
-    const acknowledgment = store.acknowledgeGraphQLRun(runId);
-    await vi.waitFor(() => expect(reads).toBe(2));
-    const currentRefresh = store.syncAttempts(true);
-    await vi.waitFor(() => expect(reads).toBe(3));
-    resolveStale?.(
-      Response.json([attempt("kb-001", { source: "diagnostic" })]),
-    );
-
-    expect(await acknowledgment).toBe(false);
-    expect(stored(map)).toHaveLength(1);
-
-    resolveCurrent?.(
-      Response.json([attempt("kb-001", { source: "diagnostic" })]),
-    );
-    await currentRefresh;
-    expect(stored(map)).toHaveLength(1);
-  });
-
-  it("filters malformed GraphQL ownership metadata", async () => {
+  it("merges the server journal and local fallback chronologically", async () => {
     mockStorage([
+      pendingAttempt(USER_A, ATTEMPT_ID, "local-1"),
       {
-        ...attempt("kb-001", { source: "diagnostic" }),
+        ...attempt("run-local", {
+          source: "diagnostic",
+          at: "2026-07-12T12:00:00.000Z",
+        }),
         transport: "graphql",
-        runId: "not-a-uuid",
+        runId: RUN_ID,
+        ownerId: USER_A,
       },
     ]);
-    mockFetch(() => Response.json([]));
-    const store = await loadStore();
-
-    await store.syncAttempts(false);
-
-    expect(store.attemptsView()).toHaveLength(0);
-  });
-
-  it("merges server and local views sorted by time", async () => {
-    mockStorage([attempt("local-1", { at: "2026-07-12T12:00:00.000Z" })]);
     mockFetch((call) =>
-      call.init?.method === "POST"
+      operation(call) === "RecordPracticeAttempt"
         ? new Response(null, { status: 502 })
-        : Response.json([
-            attempt("server-1", { at: "2026-07-12T11:00:00.000Z" }),
-            attempt("server-2", { at: "2026-07-12T13:00:00.000Z" }),
+        : journal([
+            serverAttempt(SERVER_ID, "server-1", {
+              submittedAt: "2026-07-12T11:00:00.000Z",
+            }),
+            serverAttempt("89f60fb8-521a-48f6-becd-3ba25ef9898e", "server-2", {
+              submittedAt: "2026-07-12T13:00:00.000Z",
+            }),
           ]),
     );
     const store = await loadStore();
 
-    await store.syncAttempts(true);
+    await store.syncAttempts(USER_A);
 
-    const view = store.attemptsView();
-    expect(view?.map((entry) => entry.taskId)).toEqual([
-      "server-1",
+    expect(store.attemptsView()?.map((entry) => entry.taskId)).toEqual([
       "local-1",
+      "server-1",
+      "run-local",
       "server-2",
     ]);
   });
 });
 
+describe("GraphQL run fallback", () => {
+  it("removes a run fallback only after a valid journal refresh", async () => {
+    const map = mockStorage();
+    let reads = 0;
+    mockFetch(() => {
+      reads += 1;
+      return journal(
+        reads === 1
+          ? []
+          : [
+              serverAttempt(SERVER_ID, "kb-001", {
+                mode: "DIAGNOSTIC",
+                helpLevel: 0,
+              }),
+            ],
+      );
+    });
+    const store = await loadStore();
+    await store.syncAttempts(USER_A);
+    expect(
+      store.recordGraphQLAttempts(RUN_ID, [
+        attempt("kb-001", { source: "diagnostic" }),
+      ]),
+    ).toBe(true);
+
+    expect(await store.acknowledgeGraphQLRun(RUN_ID)).toBe(true);
+
+    expect(stored(map)).toEqual([]);
+    expect(store.attemptsView()).toEqual([
+      attempt("kb-001", { source: "diagnostic" }),
+    ]);
+  });
+
+  it("retains a run fallback when the journal cannot refresh", async () => {
+    const map = mockStorage();
+    let reads = 0;
+    mockFetch(() =>
+      ++reads === 1 ? journal() : new Response(null, { status: 502 }),
+    );
+    const store = await loadStore();
+    await store.syncAttempts(USER_A);
+    store.recordGraphQLAttempts(RUN_ID, [
+      attempt("kb-001", { source: "diagnostic" }),
+    ]);
+
+    expect(await store.acknowledgeGraphQLRun(RUN_ID)).toBe(false);
+    expect(stored(map)).toHaveLength(1);
+    expect(store.attemptsView()).toHaveLength(1);
+  });
+});
+
 describe("clearLocalAttempts", () => {
-  it("empties the local journal", async () => {
-    const map = mockStorage([attempt("kb-001")]);
-    mockFetch(() => Response.json([]));
+  it("empties the journal and invalidates the signed-in view", async () => {
+    const map = mockStorage([pendingAttempt(USER_A)]);
+    mockFetch(() => journal());
     const store = await loadStore();
 
     store.clearLocalAttempts();
 
-    expect(stored(map)).toHaveLength(0);
+    expect(stored(map)).toEqual([]);
+    expect(store.attemptsView()).toEqual([]);
   });
 });
