@@ -17,7 +17,7 @@ Jednake šanse za upis — bez obzira na mesto i prihode. Kvalitetna priprema da
 - Dijagnostika sa nastavkom i izolacijom po nalogu, deterministički plan pripreme, zadatak dana i niz dana, i četvoročasovni probni ispit sa nastavkom na drugom uređaju i jasnom samoprocenom postupka za delimične bodove.
 - Sinhronizovana istorija sa deljivim filterima zadataka, obnovljivim poreklom ocene i trendom bodova potpunih probnih ispita.
 - Aktuelan katalog prijemnih ispita FTN-a za 29 programa i zvanične grupe P1/P3-P8; izmišljeni P2 i prijemni iz fizike ne postoje u proizvodu.
-- 30 nezavisno napisanih zadataka u svih deset P1 oblasti. Prva tri kompletna paketa tema (9 zadataka) imaju verzionisanu matematičku verifikaciju; preostalih 21 su jasno označeni za pregled.
+- 30 nezavisno napisanih zadataka u svih deset P1 oblasti. Prva četiri kompletna paketa tema (12 zadataka) imaju verzionisanu matematičku verifikaciju; preostalih 18 su jasno označeni za pregled.
 - Responsive interfejs na srpskom (`sr-Latn`), engleskom i ruskom. Kanonski obrazovni sadržaj ostaje na srpskoj latinici, kao na ispitu.
 - Go API sa Google OAuth-om, sigurnim cookie sesijama, Postgres migracijama i gqlgen životnim ciklusom pokušaja i testova.
 
