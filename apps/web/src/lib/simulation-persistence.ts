@@ -27,6 +27,7 @@ export { SIMULATION_HISTORY_LIMIT } from "./simulation-history-persistence";
 export type PersistedSimulationState = {
   runId: string | null;
   runOwnerId: string | null;
+  checkpointVersion: number;
   blueprintVersion: string | null;
   contentRevision: string | null;
   tasks: SimulationTaskView[];
@@ -55,6 +56,7 @@ export function emptySimulationState(
   return {
     runId: null,
     runOwnerId: null,
+    checkpointVersion: 0,
     blueprintVersion: null,
     contentRevision: null,
     tasks: [],
@@ -92,6 +94,9 @@ export function migrateSimulationState(
       : emptySimulationState();
     return emptySimulationState(legacy.history);
   }
+  if (version === 8 && isRecord(value)) {
+    return parsePersistedSimulationState({ ...value, checkpointVersion: 0 });
+  }
   return parsePersistedSimulationState(value);
 }
 
@@ -104,6 +109,7 @@ export function parsePersistedSimulationState(
   if (
     !isSimulationRunId(value.runId) ||
     !isLearningRunOwner(value.runOwnerId) ||
+    !isSimulationCheckpointVersion(value.checkpointVersion) ||
     !isSimulationBlueprintVersion(value.blueprintVersion) ||
     !isRevision(value.contentRevision) ||
     !Array.isArray(value.tasks) ||
@@ -149,6 +155,7 @@ export function parsePersistedSimulationState(
   return {
     runId: value.runId,
     runOwnerId: value.runOwnerId,
+    checkpointVersion: value.checkpointVersion,
     blueprintVersion: value.blueprintVersion,
     contentRevision: value.contentRevision,
     tasks: tasks.map(cloneTask),
@@ -171,6 +178,10 @@ export function parsePersistedSimulationState(
         : [],
     history,
   };
+}
+
+export function isSimulationCheckpointVersion(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function isTaskView(value: unknown): value is SimulationTaskView {

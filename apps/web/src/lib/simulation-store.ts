@@ -5,11 +5,13 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
   emptySimulationState,
+  isSimulationCheckpointVersion,
   migrateSimulationState,
   parsePersistedSimulationState,
   SIMULATION_HISTORY_LIMIT,
   type PersistedSimulationState,
 } from "./simulation-persistence";
+import { isSimulationRunId } from "./simulation-run";
 import {
   parseSimulationGradeItems,
   parseSimulationReviewItems,
@@ -27,7 +29,7 @@ import {
   type LearningRunOwnerId,
 } from "./learning-run-owner";
 
-export const SIMULATION_STORE_VERSION = 8;
+export const SIMULATION_STORE_VERSION = 9;
 
 export type SimulationStart = {
   runId: string;
@@ -51,6 +53,9 @@ type SimulationState = PersistedSimulationState & {
     review: SimulationReviewItem[],
     finishedAt: number,
   ) => boolean;
+  restore: (state: PersistedSimulationState) => boolean;
+  adoptCheckpointVersion: (runId: string, version: number) => boolean;
+  fork: (runId: string) => boolean;
   reset: () => void;
 };
 
@@ -84,6 +89,7 @@ export const useSimulation = create<SimulationState>()(
           ...emptySimulationState(current.history),
           runId,
           runOwnerId: current.authOwnerId,
+          checkpointVersion: 0,
           blueprintVersion,
           contentRevision,
           tasks: tasks.map((task) => ({
@@ -210,6 +216,40 @@ export const useSimulation = create<SimulationState>()(
             ...state.history.filter((item) => item.id !== entry.id),
           ].slice(0, SIMULATION_HISTORY_LIMIT),
         });
+        return true;
+      },
+      restore: (state) => {
+        const current = get();
+        const parsed = parsePersistedSimulationState(state);
+        if (
+          current.authOwnerId === undefined ||
+          !isSimulationActive(parsed.phase) ||
+          parsed.runOwnerId !== current.authOwnerId
+        ) {
+          return false;
+        }
+        set({ ...parsed, history: current.history });
+        return true;
+      },
+      adoptCheckpointVersion: (runId, version) => {
+        const current = get();
+        if (
+          !isSimulationActive(current.phase) ||
+          current.runId !== runId ||
+          !isSimulationCheckpointVersion(version) ||
+          version < current.checkpointVersion
+        ) {
+          return false;
+        }
+        set({ checkpointVersion: version });
+        return true;
+      },
+      fork: (runId) => {
+        const current = get();
+        if (!isSimulationActive(current.phase) || !isSimulationRunId(runId)) {
+          return false;
+        }
+        set({ runId, checkpointVersion: 0 });
         return true;
       },
       reset: () => set(emptySimulationState(get().history)),
@@ -344,6 +384,7 @@ function persisted(state: PersistedSimulationState): PersistedSimulationState {
   return {
     runId: state.runId,
     runOwnerId: state.runOwnerId,
+    checkpointVersion: state.checkpointVersion,
     blueprintVersion: state.blueprintVersion,
     contentRevision: state.contentRevision,
     tasks: state.tasks,

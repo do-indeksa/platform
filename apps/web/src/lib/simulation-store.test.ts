@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   emptySimulationState,
   migrateSimulationState,
@@ -9,6 +9,8 @@ import {
   isSimulationActive,
   reconcileSimulationOwner,
   simulationHistoryForOwner,
+  syncSimulationOwner,
+  useSimulation,
 } from "./simulation-store";
 import type { SimulationTaskView } from "./simulation-types";
 
@@ -45,12 +47,25 @@ function runningState() {
 }
 
 describe("simulation persistence", () => {
+  beforeEach(() => {
+    useSimulation.setState({
+      ...emptySimulationState(),
+      authOwnerId: undefined,
+    });
+  });
+
   it("accepts a bounded active run and rejects incompatible answers", () => {
     expect(parsePersistedSimulationState(runningState())).toMatchObject({
       runId,
       phase: "running",
       currentIndex: 0,
     });
+    expect(
+      parsePersistedSimulationState({
+        ...runningState(),
+        checkpointVersion: -1,
+      }),
+    ).toEqual(emptySimulationState());
     expect(
       parsePersistedSimulationState({
         ...runningState(),
@@ -333,6 +348,69 @@ describe("simulation persistence", () => {
     expect(migrateSimulationState({ ...runningState(), history }, 7)).toEqual(
       emptySimulationState(history),
     );
+  });
+
+  it("preserves a version-eight active run with checkpoint version zero", () => {
+    const { checkpointVersion, ...legacy } = runningState();
+    expect(checkpointVersion).toBe(0);
+
+    expect(migrateSimulationState(legacy, 8)).toMatchObject({
+      phase: "running",
+      runId,
+      checkpointVersion: 0,
+    });
+  });
+
+  it("adopts a cloud version and forks an active run explicitly", () => {
+    syncSimulationOwner(userA);
+    useSimulation.getState().start({
+      runId,
+      blueprintVersion: "2026.1",
+      contentRevision: `sha256:${"b".repeat(64)}`,
+      durationMinutes: 240,
+      tasks: [task],
+    });
+
+    expect(useSimulation.getState().adoptCheckpointVersion(runId, 4)).toBe(
+      true,
+    );
+    expect(useSimulation.getState().adoptCheckpointVersion(runId, 3)).toBe(
+      false,
+    );
+    const forkedId = crypto.randomUUID();
+    expect(useSimulation.getState().fork(forkedId)).toBe(true);
+    expect(useSimulation.getState()).toMatchObject({
+      runId: forkedId,
+      checkpointVersion: 0,
+      phase: "running",
+    });
+  });
+
+  it("restores an owner-scoped active cloud run without replacing history", () => {
+    const history = [
+      { ...emptyHistoryEntry(`legacy-${startedAt}`), ownerId: userA },
+    ];
+    syncSimulationOwner(userA);
+    useSimulation.setState({ history });
+    const restored = parsePersistedSimulationState({
+      ...runningState(),
+      runOwnerId: userA,
+      checkpointVersion: 2,
+      answers: [["2"]],
+    });
+
+    expect(useSimulation.getState().restore(restored)).toBe(true);
+    expect(useSimulation.getState()).toMatchObject({
+      runId,
+      runOwnerId: userA,
+      checkpointVersion: 2,
+      phase: "running",
+      answers: [["2"]],
+      history,
+    });
+    expect(
+      useSimulation.getState().restore({ ...restored, runOwnerId: userB }),
+    ).toBe(false);
   });
 });
 
