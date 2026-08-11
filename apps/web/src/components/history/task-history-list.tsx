@@ -259,5 +259,8 @@ function detailHref(
   returnTo: string,
 ): string {
   const query = new URLSearchParams({ attempt: entry.id, returnTo });
+  if (entry.taskRevision !== undefined) {
+    query.set("revision", entry.taskRevision);
+  }
   return `/history/tasks/${task.topic}/${task.id}?${query}`;
 }

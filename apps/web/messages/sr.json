@@ -448,6 +448,7 @@
     "gradingLabel": "Provera",
     "pointsLabel": "Bodovi",
     "revisionLabel": "Revizija sadržaja",
+    "archivedRevision": "Tekst i rešenje odgovaraju nepromenljivoj reviziji sadržaja zabeleženoj za ovaj pokušaj.",
     "revisionMismatch": "Zadatak je promenjen nakon ovog pokušaja. Ispod su tekst i rešenje iz trenutne verzije.",
     "grading": {
       "auto": "Automatska provera",
