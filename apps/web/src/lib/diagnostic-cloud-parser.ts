@@ -72,6 +72,7 @@ export function parseDiagnosticCloudRun(
   const outcomes: PersistedDiagnosticState["outcomes"] = [];
   const completedAt: PersistedDiagnosticState["completedAt"] = [];
   const runItemIds: string[] = [];
+  const resolvedTasks: DiagnosticCloudTask[] = [];
   const seenTasks = new Set<string>();
   let completedCount = 0;
   let previousSubmittedAt = runStartedAt;
@@ -106,6 +107,7 @@ export function parseDiagnosticCloudRun(
     taskIds.push(task.id);
     slots.push(task.slot);
     runItemIds.push(expectedItemId as string);
+    resolvedTasks.push(task);
 
     const rawAttempt = rawItem.recentAttempts[0];
     if (rawAttempt === undefined) {
@@ -131,23 +133,70 @@ export function parseDiagnosticCloudRun(
     answers.push(attempt.answers);
   }
 
-  if (completedCount >= value.items.length) return null;
+  if (completedCount === value.items.length) {
+    const lastIndex = completedCount - 1;
+    const checkpoint = parseCompletedCheckpoint(
+      value.checkpoint,
+      runItemIds,
+      resolvedTasks,
+    );
+    if (checkpoint === null) return null;
+    return cloudRunResult(
+      value,
+      ownerId,
+      checkpoint,
+      taskIds,
+      slots,
+      answers,
+      outcomes,
+      completedAt,
+      "done",
+      lastIndex,
+      runStartedAt,
+    );
+  }
   const checkpoint = parseCheckpoint(
     value.checkpoint,
     completedCount,
     runItemIds[completedCount],
-    catalog.positions[completedCount].candidates.find(
-      (candidate) => candidate.id === taskIds[completedCount],
-    ) as DiagnosticCloudTask,
+    resolvedTasks[completedCount],
   );
   if (checkpoint === null) return null;
   if (checkpoint.answers !== null) {
     answers[completedCount] = checkpoint.answers;
   }
 
+  return cloudRunResult(
+    value,
+    ownerId,
+    checkpoint,
+    taskIds,
+    slots,
+    answers,
+    outcomes,
+    completedAt,
+    "running",
+    completedCount,
+    runStartedAt,
+  );
+}
+
+function cloudRunResult(
+  value: Record<string, unknown>,
+  ownerId: string,
+  checkpoint: { version: number; updatedAt: string | null },
+  taskIds: string[],
+  slots: number[],
+  answers: string[][],
+  outcomes: PersistedDiagnosticState["outcomes"],
+  completedAt: PersistedDiagnosticState["completedAt"],
+  phase: "running" | "done",
+  currentIndex: number,
+  startedAt: number,
+): DiagnosticCloudRun {
   return {
     runtime: {
-      runId: value.id,
+      runId: value.id as string,
       runOwnerId: ownerId,
       checkpointVersion: checkpoint.version,
       taskIds,
@@ -155,14 +204,49 @@ export function parseDiagnosticCloudRun(
       answers,
       outcomes,
       completedAt,
-      phase: "running",
-      currentIndex: completedCount,
-      startedAt: runStartedAt,
+      phase,
+      currentIndex,
+      startedAt,
     },
-    blueprintVersion: value.blueprintVersion,
-    contentRevision: value.contentRevision,
+    blueprintVersion: value.blueprintVersion as string,
+    contentRevision: value.contentRevision as string,
     checkpointUpdatedAt: checkpoint.updatedAt,
   };
+}
+
+function parseCompletedCheckpoint(
+  value: unknown,
+  runItemIds: string[],
+  tasks: DiagnosticCloudTask[],
+): { version: number; updatedAt: string | null } | null {
+  if (value === null || value === undefined) {
+    return { version: 0, updatedAt: null };
+  }
+  if (
+    !isRecord(value) ||
+    !isPositiveVersion(value.version) ||
+    !Number.isInteger(value.currentOrdinal) ||
+    (value.currentOrdinal as number) < 1 ||
+    (value.currentOrdinal as number) > runItemIds.length ||
+    !isOptionalDuration(value.activeDurationMs) ||
+    !isRemoteTime(value.updatedAt) ||
+    !Array.isArray(value.drafts) ||
+    value.drafts.length > 1
+  ) {
+    return null;
+  }
+  const draft = value.drafts[0];
+  if (draft !== undefined) {
+    const index = (value.currentOrdinal as number) - 1;
+    if (
+      !isRecord(draft) ||
+      draft.runItemId !== runItemIds[index] ||
+      parseAnswers(draft.answer, tasks[index].answerPartCount) === null
+    ) {
+      return null;
+    }
+  }
+  return { version: value.version, updatedAt: value.updatedAt };
 }
 
 function parseAttempt(
