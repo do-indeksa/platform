@@ -181,6 +181,13 @@ export function parseSimulationCloudRun(
     startedAt,
   );
   if (checkpoint === null) return null;
+  if (
+    attemptCount > 0 &&
+    attemptCount < tasks.length &&
+    checkpoint.version === 0
+  ) {
+    return null;
+  }
   const answers = tasks.map(emptyAnswers);
   const skipped = Array<boolean>(tasks.length).fill(false);
   for (const [index, draft] of checkpoint.drafts.entries()) {
