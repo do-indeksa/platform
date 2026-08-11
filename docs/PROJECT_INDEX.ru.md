@@ -256,7 +256,8 @@ Backend-модель `Run`/`RunItem` реализована. Диагности�
 guest-run, а logout, смена аккаунта или невалидный owner синхронно удаляют чужой
 runtime до сетевой синхронизации; owner-scoped история при этом сохраняется.
 Завершённые пробники имеют bounded cross-device archive с batch-загрузкой
-run/items/latest attempts. Активный server-backed cross-device resume и полная
+run/items/latest attempts. ADR 0016 отделяет versioned mutable checkpoint от
+append-only attempts, но активный server-backed cross-device resume и полная
 копия старого content revision еще не замыкают полный контур.
 
 ## 8. Зафиксированные продуктовые решения

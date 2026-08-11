@@ -379,8 +379,9 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 1. После выпуска Google OAuth credentials завершить private Kubernetes rollout
    через Cloudflare Tunnel и доказать auth, GraphQL, Neon migration, backup и
    rollback на `doindeksa.rs` без публикации origin.
-2. Добавить server-backed resume активных run и исторические snapshots условий
-   и решений; завершённые пробники и standalone attempts уже синхронизируются.
+2. Реализовать versioned active-run checkpoints и explicit abandon по ADR 0016,
+   начиная с backend-контракта и диагностики; исторические snapshots условий и
+   решений остаются отдельным immutable-срезом.
 3. Спроектировать rubric self-check и частичные баллы, не смешивая trainer
    estimate с официальным оцениванием FTN.
 4. Расширять verified-банк от текущих 9 задач и сохранять независимый
