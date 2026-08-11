@@ -6,11 +6,15 @@ describe("diagnostic cloud catalog", () => {
     const catalog = await getDiagnosticCloudCatalog();
 
     expect(catalog.blueprintVersion).toMatch(/^ftn-p1:\d{4}\.\d+$/);
+    expect(catalog.durationMinutes).toBeGreaterThan(0);
+    expect(catalog.taskCount).toBe(10);
+    expect(catalog.maxPoints).toBe(60);
     expect(catalog.positions).toHaveLength(10);
     for (const [index, position] of catalog.positions.entries()) {
       expect(position).toMatchObject({
         ordinal: index + 1,
         examPosition: index + 1,
+        maxPoints: expect.any(Number),
       });
       expect(position.candidates.length).toBeGreaterThan(0);
       for (const task of position.candidates) {

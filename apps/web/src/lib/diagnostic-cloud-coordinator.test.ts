@@ -51,9 +51,13 @@ const taskIds = [
 ];
 const catalog: DiagnosticCloudCatalog = {
   blueprintVersion: "ftn-p1:2026.1",
+  durationMinutes: 240,
+  taskCount: 10,
+  maxPoints: 60,
   positions: taskIds.map((id, index) => ({
     ordinal: index + 1,
     examPosition: index + 1,
+    maxPoints: 6,
     candidates: [
       {
         id,
