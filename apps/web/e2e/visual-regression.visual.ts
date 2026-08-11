@@ -1,4 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  completeSimulationRubricReview,
+  diagnosticResultPath,
+  prepareDiagnosticResult,
+  prepareSimulationRubricReview,
+  simulationRunPath,
+} from "./visual-regression-fixture";
 
 const FIXED_TIME = new Date("2026-08-11T10:00:00.000Z");
 
@@ -69,6 +76,57 @@ const surfaces: readonly VisualSurface[] = [
       ).toBeVisible();
     },
   },
+  {
+    name: "diagnostic-result",
+    path: diagnosticResultPath,
+    prepare: prepareDiagnosticResult,
+    ready: async (page) => {
+      await expect(
+        page.getByRole("heading", { name: "Tvoj početni nivo", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Sigurno", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Počni ovde", exact: true }),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: "rubric-review",
+    path: simulationRunPath,
+    prepare: prepareSimulationRubricReview,
+    ready: async (page) => {
+      await expect(
+        page.getByRole("heading", {
+          name: "Kriterijumi bodovanja",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("group", {
+          name: "Potkrepljeni bodovi za postupak",
+          exact: true,
+        }),
+      ).toBeVisible();
+    },
+  },
+  {
+    name: "simulation-result",
+    path: simulationRunPath,
+    prepare: async (page) => {
+      await prepareSimulationRubricReview(page);
+      await completeSimulationRubricReview(page);
+    },
+    ready: async (page) => {
+      await expect(
+        page.getByRole("heading", { name: "Tvoj rezultat", exact: true }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Vežbaj slabe pozicije", exact: true }),
+      ).toBeVisible();
+    },
+  },
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -85,6 +143,7 @@ for (const viewport of viewports) {
     for (const surface of surfaces) {
       test(surface.name, async ({ page }) => {
         await page.goto(surface.path, { waitUntil: "networkidle" });
+        await surface.prepare?.(page);
         await surface.ready(page);
         await page.evaluate(async () => {
           await document.fonts.ready;
@@ -102,5 +161,6 @@ for (const viewport of viewports) {
 type VisualSurface = {
   name: string;
   path: string;
+  prepare?: (page: Page) => Promise<void>;
   ready: (page: Page) => Promise<void>;
 };
