@@ -670,6 +670,7 @@
     "resultColumn": "Result",
     "outcome": {
       "correct": "Correct",
+      "partial": "Partial",
       "incorrect": "Incorrect",
       "unanswered": "Unanswered"
     },

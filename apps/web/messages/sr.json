@@ -670,6 +670,7 @@
     "resultColumn": "Rezultat",
     "outcome": {
       "correct": "Tačno",
+      "partial": "Delimično",
       "incorrect": "Netačno",
       "unanswered": "Bez odgovora"
     },

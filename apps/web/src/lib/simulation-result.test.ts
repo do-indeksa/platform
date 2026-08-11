@@ -20,6 +20,7 @@ const tasks = [1, 2, 3].map((position): SimulationResultTaskView => ({
   fields: [{ kind: "value" }],
   correctAnswerHtml: "<p>2</p>",
   solutionHtml: "<p>Solution</p>",
+  rubric: [],
 }));
 
 function entry(

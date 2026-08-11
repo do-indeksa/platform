@@ -187,6 +187,7 @@ function OutcomeBadge({ outcome }: { outcome: SimulationOutcome }) {
   const t = useTranslations("simulation");
   const styles = {
     correct: "bg-emerald-50 text-emerald-800",
+    partial: "bg-amber-50 text-amber-900",
     incorrect: "bg-red-50 text-red-700",
     unanswered: "bg-amber-50 text-amber-900",
   }[outcome];

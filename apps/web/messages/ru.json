@@ -670,6 +670,7 @@
     "resultColumn": "Результат",
     "outcome": {
       "correct": "Верно",
+      "partial": "Частично",
       "incorrect": "Неверно",
       "unanswered": "Без ответа"
     },
