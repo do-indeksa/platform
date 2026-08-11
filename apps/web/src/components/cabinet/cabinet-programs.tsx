@@ -6,13 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { cabinetProgram } from "./cabinet-model";
 import { CabinetLinkButton } from "./cabinet-link-button";
 
-export function CabinetPrograms({
-  programs,
-  source,
-}: {
-  programs: readonly string[];
-  source: string;
-}) {
+export function CabinetPrograms({ programs }: { programs: readonly string[] }) {
   const t = useTranslations("cabinet.programs");
   const visible = programs.slice(0, 3).map(cabinetProgram);
 
@@ -79,9 +73,6 @@ export function CabinetPrograms({
           {t("cta.button")}
         </CabinetLinkButton>
       </div>
-      <a href={source} className="sr-only">
-        {t("officialSource")}
-      </a>
     </section>
   );
 }

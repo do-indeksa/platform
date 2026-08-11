@@ -40,7 +40,6 @@ export function CabinetDashboard({
   tasks,
   topicSlots,
   programs,
-  programSource,
   progressCatalog,
 }: {
   exam: CabinetExam;
@@ -48,7 +47,6 @@ export function CabinetDashboard({
   tasks: CabinetTask[];
   topicSlots: PrepTopicSlot[];
   programs: string[];
-  programSource: string;
   progressCatalog: ProgressCloudCatalog;
 }) {
   const positionT = useTranslations("cabinet.positionNames");
@@ -157,7 +155,7 @@ export function CabinetDashboard({
             />
           </>
         )}
-        <CabinetPrograms programs={programs} source={programSource} />
+        <CabinetPrograms programs={programs} />
       </div>
     </main>
   );

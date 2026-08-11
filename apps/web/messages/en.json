@@ -522,8 +522,7 @@
         "title": "Not sure which program to choose?",
         "description": "Compare programs and admission requirements in the FTN guide.",
         "button": "Browse programs"
-      },
-      "officialSource": "Official FTN program source"
+      }
     }
   },
   "tasks": {

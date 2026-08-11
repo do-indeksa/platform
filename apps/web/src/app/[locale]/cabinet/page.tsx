@@ -66,7 +66,6 @@ export default async function Cabinet({ params }: Props) {
       )}
       topicSlots={topics.map(({ slug, slot }) => ({ slug, slot }))}
       programs={programGuide.programs}
-      programSource={programGuide.source}
       progressCatalog={progressCatalog}
     />
   );
