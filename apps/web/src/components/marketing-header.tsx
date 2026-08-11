@@ -47,9 +47,15 @@ export function MarketingHeader() {
         >
           <MarketingNavLink item={items[0]} width="w-[68px]" />
           <MarketingNavLink item={items[1]} width="w-[90px]" />
-          <MarketingNavLink item={items[2]} width="w-[93px]" />
+          <MarketingNavLink
+            item={items[2]}
+            width={locale === "ru" ? "w-24" : "w-[93px]"}
+          />
           <div className="hidden xl:contents">
-            <MarketingNavLink item={items[3]} width="w-20" />
+            <MarketingNavLink
+              item={items[3]}
+              width={locale === "ru" ? "w-[85px]" : "w-20"}
+            />
             <MarketingNavLink
               item={items[4]}
               width={locale === "en" ? "w-10" : "w-[38px]"}
