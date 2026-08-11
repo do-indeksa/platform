@@ -14,8 +14,10 @@ import {
 import { SubmissionStatus } from "./simulation-status";
 
 export function SimulationRubricReview({
+  onScore,
   onComplete,
 }: {
+  onScore: (taskIndex: number, score: number) => boolean;
   onComplete: () => boolean;
 }) {
   const t = useTranslations("simulation");
@@ -24,7 +26,6 @@ export function SimulationRubricReview({
   const results = useSimulation((state) => state.results);
   const review = useSimulation((state) => state.review);
   const scores = useSimulation((state) => state.rubricScores);
-  const setRubricScore = useSimulation((state) => state.setRubricScore);
   const indexes = useMemo(
     () => simulationRubricIndexes(results, review),
     [results, review],
@@ -119,7 +120,7 @@ export function SimulationRubricReview({
           item={item}
           score={score}
           maxPoints={task.maxPoints}
-          onScore={(value) => setRubricScore(taskIndex, value)}
+          onScore={(value) => onScore(taskIndex, value)}
         />
       </div>
 

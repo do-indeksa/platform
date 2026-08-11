@@ -58,7 +58,7 @@ export class SimulationCloudUploadQueue<Context extends QueueContext> {
   ): void {
     const runId = state.runId;
     if (
-      state.phase !== "running" ||
+      (state.phase !== "running" && state.phase !== "reviewing") ||
       runId === null ||
       state.runOwnerId !== context.ownerId ||
       this.blockedRuns.has(runId)
@@ -276,11 +276,14 @@ function uploadFingerprint(
 ): string {
   return JSON.stringify({
     runId: state.runId,
+    phase: state.phase,
     answers: state.answers,
     skipped: state.skipped,
+    rubricScores: state.rubricScores,
     currentIndex: state.currentIndex,
     startedAt: state.startedAt,
     endsAt: state.endsAt,
+    submittedAt: state.submittedAt,
     blueprintVersion: upload.blueprintVersion,
     contentRevision: upload.contentRevision,
     tasks: upload.tasks.map((task) => [

@@ -202,19 +202,29 @@ export async function uploadSimulationCloudRun(
         expectedVersion: state.checkpointVersion,
         currentOrdinal: state.currentIndex + 1,
         activeDurationMs: activeDuration(state),
-        drafts: state.answers.flatMap((answers, index) =>
-          state.skipped[index] || answers.some((answer) => answer.length > 0)
+        drafts: state.answers.flatMap((answers, index) => {
+          const rubricScore = state.rubricScores[index] ?? null;
+          return state.skipped[index] ||
+            answers.some((answer) => answer.length > 0) ||
+            rubricScore !== null
             ? [
                 {
                   runItemId: progressRunItemId(
                     runId,
                     upload.tasks[index].taskId,
                   ),
-                  answer: JSON.stringify(answers),
+                  answer:
+                    state.phase === "reviewing"
+                      ? JSON.stringify({
+                          version: 1,
+                          answers,
+                          rubricScore,
+                        })
+                      : JSON.stringify(answers),
                 },
               ]
-            : [],
-        ),
+            : [];
+        }),
       },
     },
     "checkpointRun",
@@ -316,7 +326,9 @@ function matchesUpload(
   upload: SimulationCloudUpload,
 ): boolean {
   return (
-    (state.phase === "running" || state.phase === "submitting") &&
+    (state.phase === "running" ||
+      state.phase === "submitting" ||
+      state.phase === "reviewing") &&
     state.runId !== null &&
     state.startedAt !== null &&
     state.endsAt !== null &&
@@ -340,7 +352,8 @@ function matchesUpload(
 function activeDuration(state: PersistedSimulationState): number {
   const startedAt = state.startedAt as number;
   const endsAt = state.endsAt as number;
-  return Math.max(0, Math.min(Date.now(), endsAt) - startedAt);
+  const measuredAt = state.submittedAt ?? Date.now();
+  return Math.max(0, Math.min(measuredAt, endsAt) - startedAt);
 }
 
 function requireCurrentOwner(isCurrentOwner: () => boolean): void {
