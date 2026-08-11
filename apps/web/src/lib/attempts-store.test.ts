@@ -524,4 +524,26 @@ describe("clearLocalAttempts", () => {
     expect(stored(map)).toEqual([]);
     expect(store.attemptsView()).toEqual([]);
   });
+
+  it("clears the in-memory guest view when browser removal fails", async () => {
+    const raw = JSON.stringify({
+      version: 1,
+      attempts: [attempt("kb-001")],
+    });
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn(() => raw),
+      setItem: vi.fn(),
+      removeItem: vi.fn(() => {
+        throw new DOMException("blocked", "SecurityError");
+      }),
+    });
+    mockFetch(() => journal());
+    const store = await loadStore();
+    await store.syncAttempts(null);
+    expect(store.attemptsView()).toHaveLength(1);
+
+    store.clearLocalAttempts();
+
+    expect(store.attemptsView()).toEqual([]);
+  });
 });

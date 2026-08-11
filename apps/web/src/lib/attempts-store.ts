@@ -183,7 +183,8 @@ export function clearLocalAttempts(): void {
   serverAttempts = null;
   serverUnavailable = false;
   authKnown = true;
-  saveLocal([]);
+  writeStoredAttempts([]);
+  localAttempts = [];
   emit();
 }
 
