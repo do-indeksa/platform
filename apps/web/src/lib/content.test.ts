@@ -250,6 +250,9 @@ describe("task files", () => {
       "log-001",
       "log-002",
       "log-003",
+      "plan-001",
+      "plan-002",
+      "plan-003",
       "trig-001",
       "trig-002",
       "trig-003",
@@ -333,6 +336,35 @@ describe("task files", () => {
       "incorrect",
     );
     expect(checkAnswer(tasks.get("vek-003")!.check[1], "1/2")).toBe(
+      "incorrect",
+    );
+  });
+
+  it("roundtrips independently verified planimetry answers", async () => {
+    const tasks = new Map(
+      (await getTasks("planimetrija")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["plan-001", 0, "15*8"],
+      ["plan-001", 1, "120/26"],
+      ["plan-002", 0, "sqrt(36)"],
+      ["plan-002", 1, "12*13"],
+      ["plan-002", 2, "10^2"],
+      ["plan-003", 0, "14, 6, 10"],
+      ["plan-003", 1, "sqrt(675)"],
+      ["plan-003", 2, "sqrt(12)/2"],
+      ["plan-003", 3, "14/sqrt(3)"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("plan-002")!.check[2], "50")).toBe(
+      "incorrect",
+    );
+    expect(checkAnswer(tasks.get("plan-003")!.check[0], "6,10,13")).toBe(
       "incorrect",
     );
   });

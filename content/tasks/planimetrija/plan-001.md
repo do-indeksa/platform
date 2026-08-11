@@ -5,7 +5,7 @@ topic: planimetrija
 difficulty: 3
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 7, zadatak 3a'
-status: review
+status: verified
 answer: '$d_1=24$, $d_2=10$, $P=120$, $r=\frac{60}{13}$'
 check:
   - label: 'P'
@@ -14,6 +14,16 @@ check:
   - label: 'r'
     kind: value
     expected: '60/13'
+rubric:
+  - id: diagonal-system
+    points: 2
+    text: 'Iskorišćeni su uslovi $d_1-d_2=14$ i $d_1^2+d_2^2=4\cdot13^2$ za dijagonale romba.'
+  - id: diagonals-and-area
+    points: 2
+    text: 'Sistem je rešen sa pozitivnim dijagonalama $d_1=24$, $d_2=10$ i površinom $P=d_1d_2/2=120$.'
+  - id: inradius
+    points: 1
+    text: 'Iz visine $h=P/13$ i jednakosti $2r=h$ dobijeno je $r=60/13$.'
 ---
 
 ## Zadatak
