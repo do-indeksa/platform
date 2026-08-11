@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { progressAttemptId, progressRunItemId } from "./progress-run";
-import { buildCompletedSimulationRun } from "./simulation-progress";
+import {
+  progressAttemptId,
+  progressRubricAttemptId,
+  progressRunItemId,
+} from "./progress-run";
+import {
+  buildCompletedSimulationRun,
+  buildSimulationAutoGradeRun,
+} from "./simulation-progress";
+import { emptySimulationState } from "./simulation-persistence";
 import type { SimulationHistoryEntry } from "./simulation-types";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
@@ -94,5 +102,84 @@ describe("simulation progress projection", () => {
     const corrupt = historyEntry();
     if (corrupt.progress) corrupt.progress.items[0].taskRevision = "mutable";
     expect(buildCompletedSimulationRun(corrupt)).toBeNull();
+  });
+
+  it("keeps auto and rubric attempts on separate deterministic IDs", () => {
+    const entry = historyEntry();
+    entry.results[1] = {
+      ...entry.results[1],
+      outcome: "partial",
+      earnedPoints: 4,
+    };
+    entry.score = 10;
+    entry.rubricScores = [null, 4, ...Array<null>(8).fill(null)];
+    const completed = buildCompletedSimulationRun(entry);
+    const secondItemId = progressRunItemId(runId, "task-2");
+
+    expect(completed?.items[1].attempt).toMatchObject({
+      id: progressRubricAttemptId(secondItemId),
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      earnedPoints: 4,
+    });
+
+    const task = {
+      id: "task-1",
+      revision: `sha256:${"0".repeat(64)}`,
+      slot: 1,
+      examPosition: 1,
+      maxPoints: 6,
+      topic: "topic-1",
+      topicName: "Topic 1",
+      statementHtml: "<p>Task</p>",
+      fields: [{ kind: "value" as const }],
+    };
+    const state = {
+      ...emptySimulationState(),
+      runId,
+      runOwnerId: null,
+      blueprintVersion: "2026.1",
+      contentRevision: `sha256:${"a".repeat(64)}`,
+      tasks: [task],
+      answers: [["wrong"]],
+      skipped: [false],
+      phase: "submitting" as const,
+      startedAt,
+      endsAt: startedAt + 240 * 60_000,
+      submittedAt: startedAt + 10 * 60_000,
+    };
+    expect(
+      buildSimulationAutoGradeRun(state, [
+        {
+          taskId: task.id,
+          outcome: "incorrect",
+          earnedPoints: 0,
+          maxPoints: 6,
+        },
+      ])?.items[0].attempt,
+    ).toMatchObject({
+      id: progressAttemptId(progressRunItemId(runId, task.id)),
+      outcome: "INCORRECT",
+      gradingKind: "AUTO",
+    });
+  });
+
+  it("preserves method credit when no final answer was entered", () => {
+    const entry = historyEntry();
+    entry.results[2] = {
+      ...entry.results[2],
+      outcome: "partial",
+      earnedPoints: 3,
+    };
+    entry.score = 9;
+    entry.answeredCount = 3;
+    entry.rubricScores = [null, null, 3, ...Array<null>(7).fill(null)];
+
+    expect(buildCompletedSimulationRun(entry)?.items[2].attempt).toMatchObject({
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      earnedPoints: 3,
+      answer: '[""]',
+    });
   });
 });

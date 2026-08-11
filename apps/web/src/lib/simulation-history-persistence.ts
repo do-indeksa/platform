@@ -126,6 +126,19 @@ function isHistoryEntry(value: unknown): value is SimulationHistoryEntry {
     return false;
   }
   const results = value.results as SimulationGradeItem[];
+  const rubricScores =
+    value.rubricScores === undefined
+      ? Array<null>(results.length).fill(null)
+      : value.rubricScores;
+  if (
+    !Array.isArray(rubricScores) ||
+    rubricScores.length !== results.length ||
+    !rubricScores.every((score, index) =>
+      isHistoryRubricScore(score, results[index]),
+    )
+  ) {
+    return false;
+  }
   const metricsMatch =
     value.maxPoints ===
       results.reduce((sum, result) => sum + result.maxPoints, 0) &&
@@ -176,14 +189,29 @@ function isHistoryGradeItem(value: unknown, taskId: string): boolean {
   return (
     value.taskId === taskId &&
     (value.outcome === "correct" ||
+      value.outcome === "partial" ||
       value.outcome === "incorrect" ||
       value.outcome === "unanswered") &&
     isFiniteInteger(value.maxPoints, 1, 1_000) &&
     isFiniteInteger(value.earnedPoints, 0, value.maxPoints as number) &&
     (value.outcome === "correct"
       ? value.earnedPoints === value.maxPoints
-      : value.earnedPoints === 0)
+      : value.outcome === "partial"
+        ? value.earnedPoints > 0 && value.earnedPoints < value.maxPoints
+        : value.earnedPoints === 0)
   );
+}
+
+function isHistoryRubricScore(
+  value: unknown,
+  result: SimulationGradeItem,
+): boolean {
+  if (value === null) return result.outcome !== "partial";
+  if (!isFiniteInteger(value, 0, result.maxPoints - 1)) return false;
+  if (value === 0) {
+    return result.outcome === "incorrect" || result.outcome === "unanswered";
+  }
+  return result.outcome === "partial" && result.earnedPoints === value;
 }
 
 function cloneHistoryEntry(
@@ -203,6 +231,9 @@ function cloneHistoryEntry(
     taskIds: [...entry.taskIds],
     answers: entry.answers.map((answers) => [...answers]),
     results: entry.results.map((result) => ({ ...result })),
+    ...(entry.rubricScores === undefined
+      ? {}
+      : { rubricScores: entry.rubricScores.map((score) => score) }),
     ...(entry.ownerId === undefined ? {} : { ownerId: entry.ownerId }),
     ...(entry.progress === undefined
       ? {}

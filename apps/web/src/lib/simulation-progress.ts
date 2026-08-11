@@ -2,6 +2,7 @@ import { recordGraphQLAttempts } from "./attempts-store";
 import {
   parseCompletedProgressRun,
   progressAttemptId,
+  progressRubricAttemptId,
   progressRunItemId,
   type CompletedProgressRun,
 } from "./progress-run";
@@ -10,10 +11,16 @@ import {
   queueCompletedProgressRun,
 } from "./progress-sync";
 import { parseSimulationHistory } from "./simulation-history-persistence";
+import {
+  parsePersistedSimulationState,
+  type PersistedSimulationState,
+} from "./simulation-persistence";
 import type {
+  SimulationGradeItem,
   SimulationHistoryEntry,
   SimulationProgressMetadata,
 } from "./simulation-types";
+import { parseSimulationGradeItems } from "./simulation-types";
 
 type SyncableHistoryEntry = SimulationHistoryEntry & {
   progress: SimulationProgressMetadata;
@@ -59,6 +66,76 @@ export function buildCompletedSimulationRun(
   return buildValidatedSimulationRun(snapshot);
 }
 
+export function buildSimulationAutoGradeRun(
+  value: PersistedSimulationState,
+  results: readonly SimulationGradeItem[],
+): CompletedProgressRun | null {
+  const state = parsePersistedSimulationState(value);
+  const grade = parseSimulationGradeItems(results, state.tasks);
+  if (
+    state.phase !== "submitting" ||
+    state.runId === null ||
+    state.blueprintVersion === null ||
+    state.contentRevision === null ||
+    state.startedAt === null ||
+    state.endsAt === null ||
+    state.submittedAt === null ||
+    grade === null ||
+    grade.some((result) => result.outcome === "partial")
+  ) {
+    return null;
+  }
+  try {
+    const startedAt = new Date(state.startedAt).toISOString();
+    const submittedAt = new Date(state.submittedAt).toISOString();
+    return parseCompletedProgressRun({
+      id: state.runId,
+      kind: "SIMULATION",
+      blueprintVersion: `ftn-p1:${state.blueprintVersion}`,
+      contentRevision: state.contentRevision,
+      startedAt,
+      submittedAt,
+      activeDurationMs: Math.max(
+        0,
+        Math.min(state.submittedAt, state.endsAt) - state.startedAt,
+      ),
+      items: state.tasks.map((task, index) => {
+        const result = grade[index];
+        const itemId = progressRunItemId(state.runId as string, task.id);
+        return {
+          id: itemId,
+          taskId: task.id,
+          examPosition: task.examPosition,
+          topic: task.topic,
+          maxPoints: task.maxPoints,
+          taskRevision: task.revision,
+          attempt: {
+            id: progressAttemptId(itemId),
+            startedAt,
+            submittedAt,
+            ...(result.outcome === "unanswered"
+              ? {}
+              : { answer: JSON.stringify(state.answers[index]) }),
+            outcome:
+              result.outcome === "correct"
+                ? "CORRECT"
+                : result.outcome === "incorrect"
+                  ? "INCORRECT"
+                  : "SKIPPED",
+            helpLevel: 0,
+            gradingKind: "AUTO",
+            ...(result.outcome === "unanswered"
+              ? {}
+              : { earnedPoints: result.earnedPoints }),
+          },
+        };
+      }),
+    });
+  } catch {
+    return null;
+  }
+}
+
 function buildValidatedSimulationRun(
   entry: SyncableHistoryEntry,
 ): CompletedProgressRun | null {
@@ -85,6 +162,9 @@ function buildValidatedSimulationRun(
       items: progress.items.map((item, index) => {
         const result = entry.results[index];
         const itemId = progressRunItemId(entry.id, item.taskId);
+        const rubricScore = entry.rubricScores?.[index];
+        const rubricAssessed =
+          rubricScore !== undefined && rubricScore !== null;
         return {
           id: itemId,
           taskId: item.taskId,
@@ -93,7 +173,9 @@ function buildValidatedSimulationRun(
           maxPoints: item.maxPoints,
           taskRevision: item.taskRevision,
           attempt: {
-            id: progressAttemptId(itemId),
+            id: rubricAssessed
+              ? progressRubricAttemptId(itemId)
+              : progressAttemptId(itemId),
             startedAt,
             submittedAt,
             ...(result.outcome === "unanswered"
@@ -102,11 +184,13 @@ function buildValidatedSimulationRun(
             outcome:
               result.outcome === "correct"
                 ? "CORRECT"
-                : result.outcome === "incorrect"
-                  ? "INCORRECT"
-                  : "SKIPPED",
+                : result.outcome === "partial"
+                  ? "PARTIAL"
+                  : result.outcome === "incorrect"
+                    ? "INCORRECT"
+                    : "SKIPPED",
             helpLevel: 0,
-            gradingKind: "AUTO",
+            gradingKind: rubricAssessed ? "RUBRIC_SELF" : "AUTO",
             ...(result.outcome === "unanswered"
               ? {}
               : { earnedPoints: result.earnedPoints }),

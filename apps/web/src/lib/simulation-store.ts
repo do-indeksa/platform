@@ -13,6 +13,11 @@ import {
 } from "./simulation-persistence";
 import { isSimulationRunId } from "./simulation-run";
 import {
+  applySimulationRubric,
+  normalizeSimulationRubricScores,
+  simulationRubricIndexes,
+} from "./simulation-rubric";
+import {
   parseSimulationGradeItems,
   parseSimulationReviewItems,
   type SimulationGradeItem,
@@ -29,7 +34,7 @@ import {
   type LearningRunOwnerId,
 } from "./learning-run-owner";
 
-export const SIMULATION_STORE_VERSION = 9;
+export const SIMULATION_STORE_VERSION = 10;
 
 export type SimulationStart = {
   runId: string;
@@ -47,12 +52,13 @@ type SimulationState = PersistedSimulationState & {
   goTo: (index: number) => void;
   saveAndNext: () => void;
   skipCurrent: () => void;
-  beginSubmission: (timedOut: boolean) => boolean;
-  finish: (
+  beginSubmission: (timedOut: boolean, submittedAt: number) => boolean;
+  receiveGrade: (
     results: SimulationGradeItem[],
     review: SimulationReviewItem[],
-    finishedAt: number,
   ) => boolean;
+  setRubricScore: (taskIndex: number, score: number) => boolean;
+  finishReview: () => boolean;
   restore: (state: PersistedSimulationState) => boolean;
   adoptCheckpointVersion: (runId: string, version: number) => boolean;
   fork: (runId: string) => boolean;
@@ -77,10 +83,7 @@ export const useSimulation = create<SimulationState>()(
       }) => {
         const current = get();
         if (current.authOwnerId === undefined) return;
-        if (
-          (current.phase === "running" || current.phase === "submitting") &&
-          current.runId !== runId
-        ) {
+        if (isSimulationActive(current.phase) && current.runId !== runId) {
           return;
         }
         if (current.runId === runId && current.phase !== null) return;
@@ -167,26 +170,103 @@ export const useSimulation = create<SimulationState>()(
           ),
         });
       },
-      beginSubmission: (timedOut) => {
-        if (get().phase !== "running") return false;
-        set({ phase: "submitting", timedOut });
+      beginSubmission: (timedOut, submittedAt) => {
+        const state = get();
+        if (
+          state.phase !== "running" ||
+          state.startedAt === null ||
+          state.endsAt === null ||
+          !Number.isSafeInteger(submittedAt) ||
+          submittedAt < state.startedAt
+        ) {
+          return false;
+        }
+        set({
+          phase: "submitting",
+          submittedAt,
+          timedOut: timedOut || submittedAt >= state.endsAt,
+          rubricScores: [],
+        });
         return true;
       },
-      finish: (results, review, finishedAt) => {
+      receiveGrade: (results, review) => {
         const state = get();
+        const parsedResults = parseSimulationGradeItems(results, state.tasks);
+        const parsedReview = parseSimulationReviewItems(review, state.tasks);
         if (
           state.phase !== "submitting" ||
           state.runId === null ||
           state.blueprintVersion === null ||
           state.contentRevision === null ||
           state.startedAt === null ||
-          !Number.isFinite(finishedAt) ||
-          finishedAt < state.startedAt ||
-          parseSimulationGradeItems(results, state.tasks) === null ||
-          parseSimulationReviewItems(review, state.tasks) === null
+          state.submittedAt === null ||
+          parsedResults === null ||
+          parsedReview === null
         ) {
           return false;
         }
+        const recoveredScores =
+          state.rubricScores.length === state.tasks.length
+            ? state.rubricScores
+            : Array<null>(state.tasks.length).fill(null);
+        const rubricScores = normalizeSimulationRubricScores(
+          parsedResults,
+          parsedReview,
+          recoveredScores,
+        );
+        if (rubricScores === null) return false;
+        const indexes = simulationRubricIndexes(parsedResults, parsedReview);
+        set({
+          phase: "reviewing",
+          currentIndex: indexes[0] ?? 0,
+          results: parsedResults.map((result) => ({ ...result })),
+          review: parsedReview.map(cloneReviewItem),
+          rubricScores,
+        });
+        return true;
+      },
+      setRubricScore: (taskIndex, score) => {
+        const state = get();
+        if (
+          state.phase !== "reviewing" ||
+          taskIndex < 0 ||
+          taskIndex >= state.tasks.length ||
+          !Number.isInteger(score)
+        ) {
+          return false;
+        }
+        const scores = state.rubricScores.with(taskIndex, score);
+        if (
+          normalizeSimulationRubricScores(
+            state.results,
+            state.review,
+            scores,
+          ) === null
+        ) {
+          return false;
+        }
+        set({ rubricScores: scores, savedAt: Date.now() });
+        return true;
+      },
+      finishReview: () => {
+        const state = get();
+        if (
+          state.phase !== "reviewing" ||
+          state.submittedAt === null ||
+          state.runId === null ||
+          state.blueprintVersion === null ||
+          state.contentRevision === null ||
+          state.startedAt === null
+        ) {
+          return false;
+        }
+        const results = applySimulationRubric(
+          state.results,
+          state.review,
+          state.rubricScores,
+        );
+        if (results === null) return false;
+        const finishedAt = state.submittedAt;
         recordTaskHistory(
           results.flatMap((result, index) =>
             result.outcome === "partial"
@@ -212,13 +292,14 @@ export const useSimulation = create<SimulationState>()(
           results,
           finishedAt,
           state.runOwnerId,
+          state.rubricScores,
         );
         set({
           phase: "done",
           endsAt: null,
           submittedAt: finishedAt,
           results: results.map((result) => ({ ...result })),
-          review: review.map((item) => ({ ...item })),
+          review: state.review.map(cloneReviewItem),
           history: [
             entry,
             ...state.history.filter((item) => item.id !== entry.id),
@@ -276,7 +357,7 @@ export const useSimulation = create<SimulationState>()(
 );
 
 export function isSimulationActive(phase: SimulationPhase | null): boolean {
-  return phase === "running" || phase === "submitting";
+  return phase === "running" || phase === "submitting" || phase === "reviewing";
 }
 
 export function syncSimulationOwner(userId: string | null): void {
@@ -349,6 +430,7 @@ function buildHistoryEntry(
   results: SimulationGradeItem[],
   finishedAt: number,
   ownerId: string | null,
+  rubricScores: (number | null)[],
 ): SimulationHistoryEntry {
   const maxDuration = Math.max(
     0,
@@ -373,6 +455,7 @@ function buildHistoryEntry(
     taskIds: state.tasks.map((task) => task.id),
     answers: state.answers.map((answers) => [...answers]),
     results: results.map((result) => ({ ...result })),
+    rubricScores: rubricScores.map((score) => score),
     ownerId,
     progress: {
       contentRevision: state.contentRevision as string,
@@ -407,7 +490,15 @@ function persisted(state: PersistedSimulationState): PersistedSimulationState {
     timedOut: state.timedOut,
     results: state.results,
     review: state.review,
+    rubricScores: state.rubricScores,
     history: state.history,
+  };
+}
+
+function cloneReviewItem(item: SimulationReviewItem): SimulationReviewItem {
+  return {
+    ...item,
+    rubric: item.rubric.map((criterion) => ({ ...criterion })),
   };
 }
 

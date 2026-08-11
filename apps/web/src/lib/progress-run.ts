@@ -58,6 +58,11 @@ export function progressAttemptId(runItemId: string): string {
   return uuidV5("attempt:1", runItemId);
 }
 
+export function progressRubricAttemptId(runItemId: string): string {
+  if (!isUuid(runItemId)) throw new TypeError("run item ID must be valid");
+  return uuidV5("attempt:rubric-self:1", runItemId);
+}
+
 export function parseCompletedProgressRun(
   value: unknown,
 ): CompletedProgressRun | null {
@@ -151,7 +156,11 @@ function parseItem(
     runStartedAt,
     runSubmittedAt,
   );
-  if (attempt === null || attempt.id !== progressAttemptId(value.id)) {
+  const expectedAttemptId =
+    attempt?.gradingKind === "RUBRIC_SELF"
+      ? progressRubricAttemptId(value.id)
+      : progressAttemptId(value.id);
+  if (attempt === null || attempt.id !== expectedAttemptId) {
     return null;
   }
   return {

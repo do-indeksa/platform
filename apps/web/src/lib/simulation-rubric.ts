@@ -20,20 +20,63 @@ export function applySimulationRubric(
   review: readonly SimulationReviewItem[],
   scores: readonly (number | null)[],
 ): SimulationGradeItem[] | null {
-  if (!sameComposition(results, review) || scores.length !== results.length) {
-    return null;
-  }
+  const normalized = normalizeSimulationRubricScores(
+    results,
+    review,
+    scores,
+    true,
+  );
+  if (normalized === null) return null;
   const final: SimulationGradeItem[] = [];
   for (const [index, result] of results.entries()) {
     const rubricMax = review[index].rubric.reduce(
       (sum, criterion) => sum + criterion.points,
       0,
     );
-    const score = scores[index];
+    const score = normalized[index];
     const eligible = result.outcome !== "correct" && rubricMax > 0;
     if (!eligible) {
-      if (score !== null) return null;
       final.push({ ...result });
+      continue;
+    }
+    if (score === null) return null;
+    final.push(
+      score === 0
+        ? { ...result }
+        : { ...result, outcome: "partial", earnedPoints: score },
+    );
+  }
+  return final;
+}
+
+export function normalizeSimulationRubricScores(
+  results: readonly SimulationGradeItem[],
+  review: readonly SimulationReviewItem[],
+  scores: unknown,
+  requireComplete = false,
+): (number | null)[] | null {
+  if (
+    !sameComposition(results, review) ||
+    !Array.isArray(scores) ||
+    scores.length !== results.length
+  ) {
+    return null;
+  }
+  const normalized: (number | null)[] = [];
+  for (const [index, result] of results.entries()) {
+    const rubricMax = review[index].rubric.reduce(
+      (sum, criterion) => sum + criterion.points,
+      0,
+    );
+    const eligible = result.outcome !== "correct" && rubricMax > 0;
+    const score = scores[index];
+    if (!eligible) {
+      if (score !== null) return null;
+      normalized.push(null);
+      continue;
+    }
+    if (score === null && !requireComplete) {
+      normalized.push(null);
       continue;
     }
     if (
@@ -45,13 +88,9 @@ export function applySimulationRubric(
     ) {
       return null;
     }
-    final.push(
-      score === 0
-        ? { ...result }
-        : { ...result, outcome: "partial", earnedPoints: score },
-    );
+    normalized.push(score);
   }
-  return final;
+  return normalized;
 }
 
 function sameComposition(

@@ -6,7 +6,7 @@ export const SIMULATION_MAX_ANSWER_PARTS = MAX_TASK_ANSWER_PARTS;
 export const SIMULATION_MAX_RENDERED_HTML_LENGTH = 500_000;
 export const SIMULATION_MAX_REVIEW_MARKDOWN_LENGTH = 100_000;
 
-export type SimulationPhase = "running" | "submitting" | "done";
+export type SimulationPhase = "running" | "submitting" | "reviewing" | "done";
 export type SimulationTaskStatus = "empty" | "answered" | "skipped";
 export type SimulationOutcome =
   "correct" | "partial" | "incorrect" | "unanswered";

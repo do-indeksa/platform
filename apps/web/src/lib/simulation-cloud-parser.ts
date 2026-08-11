@@ -4,7 +4,11 @@ import {
   parsePersistedSimulationState,
   type PersistedSimulationState,
 } from "./simulation-persistence";
-import { progressAttemptId, progressRunItemId } from "./progress-run";
+import {
+  progressAttemptId,
+  progressRubricAttemptId,
+  progressRunItemId,
+} from "./progress-run";
 import type {
   ProgressCloudCatalog,
   ProgressCloudTask,
@@ -31,9 +35,11 @@ export type SimulationCloudRuntime = {
   tasks: SimulationCloudTask[];
   answers: string[][];
   skipped: boolean[];
+  rubricScores: (number | null)[];
   phase: "running" | "submitting";
   startedAt: number;
   endsAt: number;
+  submittedAt: number | null;
   currentIndex: number;
   savedAt: number | null;
   timedOut: boolean;
@@ -137,7 +143,7 @@ export function parseSimulationCloudRun(
       rawItem.topic !== task.topic ||
       rawItem.taskRevision !== task.revision ||
       !Array.isArray(rawItem.recentAttempts) ||
-      rawItem.recentAttempts.length > 1
+      rawItem.recentAttempts.length > 2
     ) {
       return null;
     }
@@ -150,21 +156,32 @@ export function parseSimulationCloudRun(
     tasks.push(resolvedTask);
     runItemIds.push(runItemId as string);
 
-    const rawAttempt = rawItem.recentAttempts[0];
-    if (rawAttempt === undefined) {
+    if (rawItem.recentAttempts.length === 0) {
       attemptGap = true;
       attempts.push(null);
       continue;
     }
     if (attemptGap) return null;
-    const attempt = parseAttempt(
-      rawAttempt,
-      runItemId as string,
-      resolvedTask,
-      startedAt,
+    const parsedAttempts = rawItem.recentAttempts.map((rawAttempt) =>
+      parseAttempt(rawAttempt, runItemId as string, resolvedTask, startedAt),
     );
+    if (parsedAttempts.some((attempt) => attempt === null)) return null;
+    const concrete = parsedAttempts as ParsedAttempt[];
+    const auto = concrete.find((attempt) => attempt.kind === "auto");
+    const rubric = concrete.find((attempt) => attempt.kind === "rubric");
     if (
-      attempt === null ||
+      (concrete.length === 2 && (auto === undefined || rubric === undefined)) ||
+      (auto !== undefined &&
+        rubric !== undefined &&
+        (!sameValues(auto.answers, rubric.answers) ||
+          auto.skipped !== rubric.skipped ||
+          auto.submittedAt !== rubric.submittedAt))
+    ) {
+      return null;
+    }
+    const attempt = rubric ?? auto;
+    if (
+      attempt === undefined ||
       (submissionAt !== null && submissionAt !== attempt.submittedAt)
     ) {
       return null;
@@ -190,6 +207,7 @@ export function parseSimulationCloudRun(
   }
   const answers = tasks.map(emptyAnswers);
   const skipped = Array<boolean>(tasks.length).fill(false);
+  const rubricScores = Array<number | null>(tasks.length).fill(null);
   for (const [index, draft] of checkpoint.drafts.entries()) {
     if (draft === null) continue;
     answers[index] = draft;
@@ -207,6 +225,7 @@ export function parseSimulationCloudRun(
     }
     answers[index] = attempt.answers;
     skipped[index] = attempt.skipped;
+    rubricScores[index] = attempt.rubricScore;
   }
 
   const phase = attemptCount > 0 ? "submitting" : "running";
@@ -223,9 +242,13 @@ export function parseSimulationCloudRun(
       tasks,
       answers,
       skipped,
+      rubricScores: rubricScores.some((score) => score !== null)
+        ? rubricScores
+        : [],
       phase,
       startedAt,
       endsAt: expectedEndsAt,
+      submittedAt: phase === "submitting" ? submissionAt : null,
       currentIndex,
       savedAt: checkpoint.updatedAt,
       timedOut:
@@ -262,9 +285,11 @@ export function materializeSimulationCloudRun(
     tasks,
     answers: remote.answers,
     skipped: remote.skipped,
+    rubricScores: remote.rubricScores,
     phase: remote.phase,
     startedAt: remote.startedAt,
     endsAt: remote.endsAt,
+    submittedAt: remote.submittedAt,
     currentIndex: remote.currentIndex,
     savedAt: remote.savedAt,
     timedOut: remote.timedOut,
@@ -329,9 +354,11 @@ function parseCheckpoint(
 }
 
 type ParsedAttempt = {
+  kind: "auto" | "rubric";
   answers: string[];
   skipped: boolean;
   submittedAt: number;
+  rubricScore: number | null;
 };
 
 function parseAttempt(
@@ -342,19 +369,25 @@ function parseAttempt(
 ): ParsedAttempt | null {
   if (
     !isRecord(value) ||
-    value.id !== progressAttemptId(runItemId) ||
     value.runItemId !== runItemId ||
     value.taskId !== task.id ||
     value.examPosition !== task.examPosition ||
     value.mode !== "SIMULATION" ||
     value.helpLevel !== 0 ||
-    value.gradingKind !== "AUTO" ||
+    (value.gradingKind !== "AUTO" && value.gradingKind !== "RUBRIC_SELF") ||
     value.taskRevision !== task.revision ||
     value.maxPoints !== task.maxPoints ||
     !isRemoteTime(value.startedAt) ||
     Date.parse(value.startedAt) !== runStartedAt ||
     !isRemoteTime(value.submittedAt) ||
     !isOptionalDuration(value.activeDurationMs, runStartedAt)
+  ) {
+    return null;
+  }
+  const rubric = value.gradingKind === "RUBRIC_SELF";
+  if (
+    value.id !==
+    (rubric ? progressRubricAttemptId(runItemId) : progressAttemptId(runItemId))
   ) {
     return null;
   }
@@ -367,16 +400,35 @@ function parseAttempt(
     ) {
       return null;
     }
-    return { answers: emptyAnswers(task), skipped: true, submittedAt };
+    return {
+      kind: rubric ? "rubric" : "auto",
+      answers: emptyAnswers(task),
+      skipped: true,
+      submittedAt,
+      rubricScore: rubric ? 0 : null,
+    };
   }
-  if (value.outcome !== "CORRECT" && value.outcome !== "INCORRECT") {
+  if (
+    (!rubric && value.outcome !== "CORRECT" && value.outcome !== "INCORRECT") ||
+    (rubric && value.outcome !== "PARTIAL" && value.outcome !== "INCORRECT")
+  ) {
     return null;
   }
   const answers = parseAnswers(value.answer, task.answerPartCount);
-  const expectedPoints = value.outcome === "CORRECT" ? task.maxPoints : 0;
-  return answers === null || value.earnedPoints !== expectedPoints
+  const validPoints = rubric
+    ? value.outcome === "PARTIAL"
+      ? isIntegerBetween(value.earnedPoints, 1, task.maxPoints - 1)
+      : value.earnedPoints === 0
+    : value.earnedPoints === (value.outcome === "CORRECT" ? task.maxPoints : 0);
+  return answers === null || !validPoints
     ? null
-    : { answers, skipped: false, submittedAt };
+    : {
+        kind: rubric ? "rubric" : "auto",
+        answers,
+        skipped: answers.every((answer) => answer === ""),
+        submittedAt,
+        rubricScore: rubric ? (value.earnedPoints as number) : null,
+      };
 }
 
 function parseAnswers(value: unknown, partCount: number): string[] | null {
@@ -467,6 +519,15 @@ function isOptionalDuration(value: unknown, startedAt: number): boolean {
 
 function isPositiveVersion(value: unknown): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function isIntegerBetween(value: unknown, min: number, max: number): boolean {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= min &&
+    value <= max
+  );
 }
 
 function isUuidString(value: unknown): value is string {
