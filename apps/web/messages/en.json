@@ -337,6 +337,11 @@
       "synced": "This journal is synced to your account and available on your other devices.",
       "degraded": "Sync is not up to date yet. Any pending attempts remain safe on this device."
     },
+    "variantSyncNotice": {
+      "guest": "Mock-exam results stay on this device until you sign in.",
+      "synced": "Mock-exam results are synced to your account and available on your other devices.",
+      "degraded": "Mock-exam sync is not up to date yet. Pending results remain safe on this device."
+    },
     "loading": "Loading your history...",
     "loadingAttempt": "Opening the attempt...",
     "tabsLabel": "History views",
@@ -384,12 +389,14 @@
     "startMock": "Start a mock exam",
     "variantName": "P1 mock exam",
     "scoreValue": "{score} / {max}",
+    "scorePending": "Review pending / {max}",
     "durationHoursMinutes": "{hours} h {minutes} min",
     "durationMinutes": "{minutes} min",
     "durationSeconds": "{seconds} sec",
     "complete": "Complete",
     "partial": "{answered}/{total} answered",
     "timedOut": "Time expired",
+    "awaitingReview": "Awaiting review",
     "activeVariantNotice": "The active mock exam will appear here after it is submitted.",
     "attemptTitle": "Attempt for task {id}",
     "detailKicker": "Attempt details",
@@ -525,9 +532,10 @@
     "viewLatestResult": "View latest result",
     "startCta": "Start mock exam",
     "startAnother": "Start another variant",
-    "entryDisclaimer": "Answers and results are stored only in this browser. Automatic checking compares final answers and cannot assess your method or partial credit.",
+    "entryDisclaimer": "Guest results stay in this browser; signed-in results sync to your account. Automatic checking compares final answers and cannot assess your method or partial credit.",
     "historyTitle": "Your attempts",
     "estimateHistory": "{score} / {max} estimate",
+    "estimateHistoryPending": "review pending / {max}",
     "viewHistory": "View complete history",
     "assembling": "Assembling your exam...",
     "taskNav": "Tasks in this exam",
@@ -572,6 +580,7 @@
     "resultIntro": "Use the position breakdown to decide what to practise next, then inspect every submitted answer.",
     "timeExpiredResult": "The time limit expired, so the attempt was submitted with the answers saved at that moment.",
     "partialResult": "You answered {answered} of {total} tasks. This is shown as a partial attempt and is not compared with earlier results.",
+    "historicalContentChanged": "This mock exam used an older content revision. Its stored score and answers are unchanged; the statements, expected answers and solutions below show the current version.",
     "scoreMetric": "Score",
     "binaryEstimate": "Final-answer estimate",
     "correctMetric": "Correct",
@@ -611,7 +620,7 @@
     },
     "loadingResult": "Loading your result...",
     "resultUnavailableTitle": "Result unavailable",
-    "resultUnavailableDescription": "This result belongs to a completed attempt stored in the browser where it was taken.",
+    "resultUnavailableDescription": "This stored attempt cannot be safely reconstructed from the current content or is waiting for a grading format not supported here.",
     "back": "Back to mock exams"
   }
 }

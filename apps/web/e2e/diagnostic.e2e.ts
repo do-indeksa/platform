@@ -173,6 +173,12 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       });
       return;
     }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
+      });
+      return;
+    }
     graphQLCalls.push(call);
     const input = call.variables.input;
     const field =

@@ -11,6 +11,11 @@ import { useRouter } from "@/i18n/navigation";
 import type { components } from "@/lib/api/schema";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
 import { clearProgressSync, syncProgress } from "@/lib/progress-sync";
+import {
+  prepareSimulationArchive,
+  syncSimulationArchive,
+} from "@/lib/simulation-archive-store";
+import { syncSimulationHistoryOwner } from "@/lib/simulation-store";
 import { syncTaskHistory } from "@/lib/task-history-store";
 
 type User = components["schemas"]["User"];
@@ -53,11 +58,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (user === undefined) return;
+    syncSimulationHistoryOwner(user?.id ?? null);
+    prepareSimulationArchive(user?.id ?? null);
     syncTaskHistory(user?.id ?? null);
     let current = true;
-    void syncAttempts(user?.id ?? null).then(() => {
-      if (current) return syncProgress(user?.id ?? null);
-    });
+    void (async () => {
+      try {
+        await syncAttempts(user?.id ?? null);
+      } catch {}
+      if (!current) return;
+      try {
+        await syncProgress(user?.id ?? null);
+      } catch {}
+      if (current) await syncSimulationArchive(user?.id ?? null);
+    })();
     return () => {
       current = false;
     };
@@ -71,6 +85,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         clearLocalAttempts();
         clearProgressSync();
         syncTaskHistory(null);
+        syncSimulationHistoryOwner(null);
+        prepareSimulationArchive(null);
         setUser(null);
         router.refresh();
       }

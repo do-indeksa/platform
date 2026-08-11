@@ -4,7 +4,11 @@ import { ArrowRight, Clock3, FileCheck2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SimulationHistory } from "@/components/simulation-history";
 import { Link } from "@/i18n/navigation";
-import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
+import {
+  isSimulationActive,
+  useSimulation,
+  useSimulationHistory,
+} from "@/lib/simulation-store";
 import { simulationRunHref } from "@/lib/simulation-run";
 import { useHydrated } from "@/lib/use-hydrated";
 
@@ -25,9 +29,13 @@ export function SimulationEntry({
   const runId = useSimulation((state) => state.runId);
   const blueprintVersion = useSimulation((state) => state.blueprintVersion);
   const tasks = useSimulation((state) => state.tasks);
+  const history = useSimulationHistory();
   const taskIds = tasks.map((task) => task.id);
   const active = hydrated && isSimulationActive(phase);
-  const completed = hydrated && phase === "done";
+  const completed =
+    hydrated &&
+    phase === "done" &&
+    history?.some((entry) => entry.id === runId) === true;
   const storedRun =
     runId && blueprintVersion && taskIds.length > 0
       ? { runId, blueprintVersion, taskIds }

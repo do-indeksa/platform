@@ -2,12 +2,18 @@
 
 import { AlertTriangle, ArrowRight, RotateCcw, SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
+import {
+  compatibleSimulationHistory,
+  mergeSimulationArchive,
+  simulationContentChanged,
+} from "@/lib/simulation-archive";
+import { useSimulationArchive } from "@/lib/simulation-archive-store";
 import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
 import { renderSimulationReview } from "@/lib/simulation-review";
 import { buildSimulationResultSummary } from "@/lib/simulation-result";
-import { useSimulation } from "@/lib/simulation-store";
+import { useSimulation, useSimulationHistory } from "@/lib/simulation-store";
 import {
   simulationRunHref,
   type SimulationRunQuery,
@@ -30,20 +36,37 @@ import { ResultPositions } from "./simulation-result-positions";
 export function SimulationResult({
   run,
   tasks: taskViews,
+  contentRevision,
 }: {
   run: SimulationRunQuery;
   tasks: SimulationTaskView[];
+  contentRevision: string;
 }) {
   const t = useTranslations("simulation");
   const router = useRouter();
   const hydrated = useHydrated();
-  const history = useSimulation((state) => state.history);
+  const localHistory = useSimulationHistory();
+  const archive = useSimulationArchive();
   const activeRunId = useSimulation((state) => state.runId);
   const activeVersion = useSimulation((state) => state.blueprintVersion);
   const review = useSimulation((state) => state.review);
   const reset = useSimulation((state) => state.reset);
   const [rendered, setRendered] = useState<RenderedReviewState>(null);
+  const mergedArchive = useMemo(
+    () =>
+      archive === null || localHistory === null
+        ? []
+        : mergeSimulationArchive(localHistory, archive.entries),
+    [archive, localHistory],
+  );
+  const history = useMemo(
+    () => compatibleSimulationHistory(mergedArchive),
+    [mergedArchive],
+  );
   const entry = history.find((candidate) => candidate.id === run.runId);
+  const contentChanged = entry
+    ? simulationContentChanged(entry, contentRevision, taskViews)
+    : false;
   const matchingStoredReview =
     activeRunId === run.runId &&
     activeVersion === run.blueprintVersion &&
@@ -53,6 +76,7 @@ export function SimulationResult({
         matchingStoredReview ? "stored" : "history",
         entry.id,
         entry.finishedAt,
+        contentChanged,
         run.blueprintVersion,
         run.taskIds.join(","),
       ].join(":")
@@ -67,7 +91,7 @@ export function SimulationResult({
     const load = matchingStoredReview
       ? renderSimulationReview(review)
       : entry
-        ? loadHistoricalReview(run, entry, taskViews)
+        ? loadHistoricalReview(run, entry, taskViews, contentChanged)
         : Promise.resolve(null);
     void load.then(
       (items) => {
@@ -80,9 +104,24 @@ export function SimulationResult({
     return () => {
       current = false;
     };
-  }, [entry, matchingStoredReview, review, reviewSource, run, taskViews]);
+  }, [
+    contentChanged,
+    entry,
+    matchingStoredReview,
+    review,
+    reviewSource,
+    run,
+    taskViews,
+  ]);
 
-  if (!hydrated || rendered?.source !== reviewSource) return <ResultLoading />;
+  if (
+    !hydrated ||
+    archive === null ||
+    localHistory === null ||
+    rendered?.source !== reviewSource
+  ) {
+    return <ResultLoading />;
+  }
   const tasks = rendered.items
     ? attachSimulationReview(taskViews, rendered.items)
     : null;
@@ -123,6 +162,9 @@ export function SimulationResult({
             total: summary.totalCount,
           })}
         </ResultNotice>
+      )}
+      {contentChanged && (
+        <ResultNotice>{t("historicalContentChanged")}</ResultNotice>
       )}
 
       <div className="mt-8">
@@ -187,6 +229,7 @@ async function loadHistoricalReview(
   run: SimulationRunQuery,
   entry: SimulationHistoryEntry,
   tasks: SimulationTaskView[],
+  allowGradeMismatch: boolean,
 ): Promise<SimulationRenderedReviewItem[] | null> {
   const response = await fetch("/api/content/simulation-grade", {
     method: "POST",
@@ -194,7 +237,11 @@ async function loadHistoricalReview(
     body: JSON.stringify({
       blueprintVersion: run.blueprintVersion,
       taskIds: run.taskIds,
-      answers: entry.answers,
+      answers: entry.answers.map((answers, index) =>
+        entry.results[index].outcome === "unanswered"
+          ? tasks[index].fields.map((_, part) => answers[part] ?? "")
+          : answers,
+      ),
     }),
   });
   if (!response.ok) return null;
@@ -209,7 +256,13 @@ async function loadHistoricalReview(
   const candidate = payload as Record<string, unknown>;
   const results = parseSimulationGradeItems(candidate.results, tasks);
   const review = parseSimulationReviewItems(candidate.review, tasks);
-  if (!results || !review || !sameGrade(results, entry.results)) return null;
+  if (
+    !results ||
+    !review ||
+    (!allowGradeMismatch && !sameGrade(results, entry.results))
+  ) {
+    return null;
+  }
   return renderSimulationReview(review);
 }
 

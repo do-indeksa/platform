@@ -15,6 +15,8 @@ import {
 export const SIMULATION_HISTORY_LIMIT = 20;
 const REVISION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const TOPIC_PATTERN = /^[a-z0-9-]{1,64}$/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function parseSimulationHistory(
   value: unknown,
@@ -89,7 +91,10 @@ function isHistoryEntry(value: unknown): value is SimulationHistoryEntry {
     value.taskIds.every(isSimulationTaskId) &&
     new Set(value.taskIds).size === value.taskIds.length &&
     Array.isArray(value.answers) &&
-    Array.isArray(value.results)
+    Array.isArray(value.results) &&
+    (value.ownerId === undefined ||
+      value.ownerId === null ||
+      (typeof value.ownerId === "string" && UUID_PATTERN.test(value.ownerId)))
   )) {
     return false;
   }
@@ -198,6 +203,7 @@ function cloneHistoryEntry(
     taskIds: [...entry.taskIds],
     answers: entry.answers.map((answers) => [...answers]),
     results: entry.results.map((result) => ({ ...result })),
+    ...(entry.ownerId === undefined ? {} : { ownerId: entry.ownerId }),
     ...(entry.progress === undefined
       ? {}
       : {

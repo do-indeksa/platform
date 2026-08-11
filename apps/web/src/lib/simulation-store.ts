@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+import { validate as isUuid } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
@@ -21,7 +23,7 @@ import {
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import { recordTaskHistory } from "./task-history-store";
 
-export const SIMULATION_STORE_VERSION = 6;
+export const SIMULATION_STORE_VERSION = 7;
 
 export type SimulationStart = {
   runId: string;
@@ -32,6 +34,8 @@ export type SimulationStart = {
 };
 
 type SimulationState = PersistedSimulationState & {
+  historyOwnerId: string | null | undefined;
+  syncHistoryOwner: (userId: string | null) => void;
   start: (input: SimulationStart) => void;
   setAnswer: (taskIndex: number, partIndex: number, value: string) => void;
   goTo: (index: number) => void;
@@ -50,6 +54,12 @@ export const useSimulation = create<SimulationState>()(
   persist(
     (set, get) => ({
       ...emptySimulationState(),
+      historyOwnerId: undefined,
+      syncHistoryOwner: (userId) => {
+        const ownerId = userId === null || isUuid(userId) ? userId : null;
+        const history = claimSimulationHistoryOwner(get().history, ownerId);
+        set({ historyOwnerId: ownerId, history });
+      },
       start: ({
         runId,
         blueprintVersion,
@@ -178,7 +188,12 @@ export const useSimulation = create<SimulationState>()(
             at: new Date(finishedAt).toISOString(),
           })),
         );
-        const entry = buildHistoryEntry(state, results, finishedAt);
+        const entry = buildHistoryEntry(
+          state,
+          results,
+          finishedAt,
+          state.historyOwnerId ?? null,
+        );
         set({
           phase: "done",
           endsAt: null,
@@ -211,10 +226,44 @@ export function isSimulationActive(phase: SimulationPhase | null): boolean {
   return phase === "running" || phase === "submitting";
 }
 
+export function syncSimulationHistoryOwner(userId: string | null): void {
+  useSimulation.getState().syncHistoryOwner(userId);
+}
+
+export function useSimulationHistory(): SimulationHistoryEntry[] | null {
+  const history = useSimulation((state) => state.history);
+  const ownerId = useSimulation((state) => state.historyOwnerId);
+  return useMemo(
+    () => simulationHistoryForOwner(history, ownerId),
+    [history, ownerId],
+  );
+}
+
+export function simulationHistoryForOwner(
+  history: readonly SimulationHistoryEntry[],
+  ownerId: string | null | undefined,
+): SimulationHistoryEntry[] | null {
+  if (ownerId === undefined) return null;
+  return history.filter((entry) => (entry.ownerId ?? null) === ownerId);
+}
+
+export function claimSimulationHistoryOwner(
+  history: readonly SimulationHistoryEntry[],
+  ownerId: string | null,
+): SimulationHistoryEntry[] {
+  if (ownerId === null) return [...history];
+  return history.map((entry) =>
+    entry.ownerId === undefined || entry.ownerId === null
+      ? { ...entry, ownerId }
+      : entry,
+  );
+}
+
 function buildHistoryEntry(
   state: PersistedSimulationState,
   results: SimulationGradeItem[],
   finishedAt: number,
+  ownerId: string | null,
 ): SimulationHistoryEntry {
   const maxDuration = Math.max(
     0,
@@ -239,6 +288,7 @@ function buildHistoryEntry(
     taskIds: state.tasks.map((task) => task.id),
     answers: state.answers.map((answers) => [...answers]),
     results: results.map((result) => ({ ...result })),
+    ownerId,
     progress: {
       contentRevision: state.contentRevision as string,
       items: state.tasks.map((task) => ({
