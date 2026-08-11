@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
+import type { DiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-types";
 import {
   DIAGNOSTIC_ESTIMATED_MINUTES,
   DIAGNOSTIC_TASK_COUNT,
@@ -18,25 +19,35 @@ import {
 } from "@/lib/diagnostic-run";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useDiagnosticCloudBootstrap } from "@/lib/use-diagnostic-cloud";
 import {
   isSimulationActive,
   useSimulation,
   useSimulationOwnerKnown,
 } from "@/lib/simulation-store";
+import { DiagnosticCloudConflictNotice } from "./diagnostic-cloud-conflict";
 
 export function DiagnosticEntry({
   freshStartHref,
+  diagnosticCatalog,
 }: {
   freshStartHref: string;
+  diagnosticCatalog: DiagnosticCloudCatalog;
 }) {
   const t = useTranslations("diagnostic");
   const router = useRouter();
+  const cloud = useDiagnosticCloudBootstrap(diagnosticCatalog);
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const simulationOwnerKnown = useSimulationOwnerKnown();
   const diagnostic = useDiagnostic();
   const simulationPhase = useSimulation((state) => state.phase);
-  const ready = hydrated && diagnosticOwnerKnown && simulationOwnerKnown;
+  const ready =
+    hydrated &&
+    diagnosticOwnerKnown &&
+    simulationOwnerKnown &&
+    cloud.status !== "idle" &&
+    cloud.status !== "loading";
   const activeMock = ready && isSimulationActive(simulationPhase);
   const completed = diagnostic.outcomes.filter(Boolean).length;
   const resumeHref = diagnostic.runId
@@ -46,6 +57,14 @@ export function DiagnosticEntry({
         diagnostic.taskIds,
       )
     : null;
+
+  if (ready && cloud.status === "conflict") {
+    return (
+      <main className="mx-auto flex min-h-[32rem] w-full max-w-5xl items-center px-5 py-10 sm:px-8">
+        <DiagnosticCloudConflictNotice />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-16">
@@ -120,6 +139,9 @@ export function DiagnosticEntry({
                 total: DIAGNOSTIC_TASK_COUNT,
               })}
             </p>
+          )}
+          {ready && cloud.enabled && cloud.status === "offline" && (
+            <p className="mt-3 text-sm text-amber-800">{t("cloudOffline")}</p>
           )}
           {ready && diagnostic.phase === "done" && !activeMock && (
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">

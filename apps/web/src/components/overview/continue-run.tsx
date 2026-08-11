@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
+import type { DiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-types";
 import { simulationRunHref } from "@/lib/simulation-run";
 import {
   isSimulationActive,
@@ -12,9 +13,16 @@ import {
   useSimulationOwnerKnown,
 } from "@/lib/simulation-store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useDiagnosticCloudBootstrap } from "@/lib/use-diagnostic-cloud";
 
-export function ContinueRun() {
+export function ContinueRun({
+  diagnosticCatalog,
+}: {
+  diagnosticCatalog: DiagnosticCloudCatalog;
+}) {
   const t = useTranslations("home.continue");
+  const diagnosticT = useTranslations("diagnostic");
+  const cloud = useDiagnosticCloudBootstrap(diagnosticCatalog);
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const simulationOwnerKnown = useSimulationOwnerKnown();
@@ -28,7 +36,32 @@ export function ContinueRun() {
   const simulationTasks = useSimulation((state) => state.tasks);
   const simulationIndex = useSimulation((state) => state.currentIndex);
 
-  if (!hydrated || !diagnosticOwnerKnown || !simulationOwnerKnown) return null;
+  if (
+    !hydrated ||
+    !diagnosticOwnerKnown ||
+    !simulationOwnerKnown ||
+    cloud.status === "idle" ||
+    cloud.status === "loading"
+  ) {
+    return null;
+  }
+
+  if (cloud.status === "conflict") {
+    return (
+      <section className="border-b border-line bg-subtle px-5 py-5 sm:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-medium">{diagnosticT("cloudConflictShort")}</p>
+          <Link
+            href="/diagnostic"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-brand px-4 py-2.5 text-sm font-semibold text-brand-ink hover:bg-surface"
+          >
+            {diagnosticT("resolveCloudConflict")}
+            <ArrowRight aria-hidden className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   const simulationHref =
     isSimulationActive(simulationPhase) &&

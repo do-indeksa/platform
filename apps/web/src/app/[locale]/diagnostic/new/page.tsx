@@ -6,6 +6,7 @@ import {
 } from "@/components/diagnostic";
 import { redirect } from "@/i18n/navigation";
 import { taskSetRevision } from "@/lib/content";
+import { getDiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-catalog";
 import {
   DIAGNOSTIC_TASK_COUNT,
   parseDiagnosticRunQuery,
@@ -46,7 +47,10 @@ export default async function NewDiagnosticPage({
     });
   }
 
-  const topicT = await getTranslations({ locale, namespace: "topics" });
+  const [topicT, diagnosticCatalog] = await Promise.all([
+    getTranslations({ locale, namespace: "topics" }),
+    getDiagnosticCloudCatalog(),
+  ]);
   const tasks: DiagnosticTaskView[] = await Promise.all(
     variant.tasks.map(async ({ examPosition, task }) => ({
       id: task.id,
@@ -66,6 +70,7 @@ export default async function NewDiagnosticPage({
       tasks={tasks}
       blueprintVersion={`${variant.blueprint.examId}:${variant.blueprint.version}`}
       contentRevision={taskSetRevision(variant.tasks.map(({ task }) => task))}
+      diagnosticCatalog={diagnosticCatalog}
     />
   );
 }
