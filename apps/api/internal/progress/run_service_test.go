@@ -142,6 +142,75 @@ func TestRunDataIsScopedToUser(t *testing.T) {
 	}
 }
 
+func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	ownerID := seedProgressUser(t, "-owner")
+	otherID := seedProgressUser(t, "-other")
+
+	archived := sampleRunInput(RunKindSimulation)
+	firstAttempt := sampleAttemptInput(archived.Items[0].ID, archived.StartedAt)
+	if _, err := service.StartRun(ctx, ownerID, archived); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RecordAttempt(ctx, ownerID, firstAttempt); err != nil {
+		t.Fatal(err)
+	}
+	latestAttempt := sampleAttemptInput(archived.Items[0].ID, archived.StartedAt)
+	latestAnswer := "[\"latest\"]"
+	latestAttempt.Answer = &latestAnswer
+	latestAttempt.Outcome = AttemptOutcomeIncorrect
+	latestAttempt.StartedAt = archived.StartedAt.Add(3 * time.Minute)
+	latestAttempt.SubmittedAt = archived.StartedAt.Add(4 * time.Minute)
+	if _, err := service.RecordAttempt(ctx, ownerID, latestAttempt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, ownerID, SubmitRunInput{
+		ID:          archived.ID,
+		SubmittedAt: archived.StartedAt.Add(20 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	active := sampleRunInput(RunKindSimulation)
+	if _, err := service.StartRun(ctx, ownerID, active); err != nil {
+		t.Fatal(err)
+	}
+	practice := sampleRunInput(RunKindPractice)
+	if _, err := service.StartRun(ctx, ownerID, practice); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, ownerID, SubmitRunInput{
+		ID:          practice.ID,
+		SubmittedAt: practice.StartedAt.Add(20 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	other := sampleRunInput(RunKindSimulation)
+	if _, err := service.StartRun(ctx, otherID, other); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, otherID, SubmitRunInput{
+		ID:          other.ID,
+		SubmittedAt: other.StartedAt.Add(20 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	runs, err := service.ListCompletedSimulationRuns(ctx, ownerID, MaxCompletedSimulationRuns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(runs) != 1 || runs[0].Run.ID != archived.ID || len(runs[0].Items) != 2 ||
+		len(runs[0].Attempts) != 1 || runs[0].Attempts[0].Answer == nil ||
+		*runs[0].Attempts[0].Answer != latestAnswer {
+		t.Fatalf("unexpected completed simulation archive: %+v", runs)
+	}
+	if _, err := service.ListCompletedSimulationRuns(ctx, ownerID, MaxCompletedSimulationRuns+1); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("oversized archive limit: got %v", err)
+	}
+}
+
 func TestAttemptClientIDRejectsDifferentPayload(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(testPool)

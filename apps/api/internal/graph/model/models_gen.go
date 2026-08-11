@@ -28,6 +28,28 @@ type Attempt struct {
 	TaskRevision     *string        `json:"taskRevision,omitempty"`
 }
 
+type CompletedSimulationRun struct {
+	ID               string                       `json:"id"`
+	BlueprintVersion string                       `json:"blueprintVersion"`
+	ContentRevision  string                       `json:"contentRevision"`
+	StartedAt        time.Time                    `json:"startedAt"`
+	DeadlineAt       *time.Time                   `json:"deadlineAt,omitempty"`
+	SubmittedAt      time.Time                    `json:"submittedAt"`
+	ActiveDurationMs *int64                       `json:"activeDurationMs,omitempty"`
+	Items            []CompletedSimulationRunItem `json:"items"`
+}
+
+type CompletedSimulationRunItem struct {
+	TaskID       string          `json:"taskId"`
+	ExamPosition int32           `json:"examPosition"`
+	Topic        string          `json:"topic"`
+	MaxPoints    *int32          `json:"maxPoints,omitempty"`
+	TaskRevision string          `json:"taskRevision"`
+	Answer       *string         `json:"answer,omitempty"`
+	Outcome      *AttemptOutcome `json:"outcome,omitempty"`
+	EarnedPoints *int32          `json:"earnedPoints,omitempty"`
+}
+
 type Mutation struct {
 }
 

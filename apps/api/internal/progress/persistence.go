@@ -41,6 +41,61 @@ func loadRun(ctx context.Context, queries *Queries, userID, runID uuid.UUID) (Ru
 	return RunAggregate{Run: run, Items: items, Attempts: attempts}, nil
 }
 
+func loadCompletedSimulationRuns(
+	ctx context.Context,
+	queries *Queries,
+	userID uuid.UUID,
+	runs []Run,
+) ([]RunAggregate, error) {
+	aggregates := make([]RunAggregate, len(runs))
+	if len(runs) == 0 {
+		return aggregates, nil
+	}
+
+	runIDs := make([]uuid.UUID, len(runs))
+	runIndexes := make(map[uuid.UUID]int, len(runs))
+	for index, run := range runs {
+		runIDs[index] = run.ID
+		runIndexes[run.ID] = index
+		aggregates[index] = RunAggregate{Run: run, Items: []RunItem{}, Attempts: []Attempt{}}
+	}
+	items, err := queries.ListRunItemsByRunIDs(ctx, ListRunItemsByRunIDsParams{
+		UserID: userID,
+		RunIds: runIDs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	itemRunIndexes := make(map[uuid.UUID]int, len(items))
+	for _, item := range items {
+		index, ok := runIndexes[item.RunID]
+		if !ok {
+			return nil, fmt.Errorf("run item %s belongs to an unrequested run", item.ID)
+		}
+		aggregates[index].Items = append(aggregates[index].Items, item)
+		itemRunIndexes[item.ID] = index
+	}
+	attempts, err := queries.ListLatestRunAttemptsByRunIDs(ctx, ListLatestRunAttemptsByRunIDsParams{
+		RunIds: runIDs,
+		UserID: userID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, attempt := range attempts {
+		if !attempt.RunItemID.Valid {
+			return nil, fmt.Errorf("run attempt %s has no run item", attempt.PublicID)
+		}
+		itemID := uuid.UUID(attempt.RunItemID.Bytes)
+		index, ok := itemRunIndexes[itemID]
+		if !ok {
+			return nil, fmt.Errorf("run attempt %s belongs to an unrequested item", attempt.PublicID)
+		}
+		aggregates[index].Attempts = append(aggregates[index].Attempts, attempt)
+	}
+	return aggregates, nil
+}
+
 func sameRunInput(existing RunAggregate, input StartRunInput) bool {
 	if existing.Run.ID != input.ID || existing.Run.Kind != string(input.Kind) ||
 		existing.Run.BlueprintVersion != input.BlueprintVersion ||

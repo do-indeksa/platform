@@ -57,6 +57,28 @@ type ComplexityRoot struct {
 		TaskRevision     func(childComplexity int) int
 	}
 
+	CompletedSimulationRun struct {
+		ActiveDurationMs func(childComplexity int) int
+		BlueprintVersion func(childComplexity int) int
+		ContentRevision  func(childComplexity int) int
+		DeadlineAt       func(childComplexity int) int
+		ID               func(childComplexity int) int
+		Items            func(childComplexity int) int
+		StartedAt        func(childComplexity int) int
+		SubmittedAt      func(childComplexity int) int
+	}
+
+	CompletedSimulationRunItem struct {
+		Answer       func(childComplexity int) int
+		EarnedPoints func(childComplexity int) int
+		ExamPosition func(childComplexity int) int
+		MaxPoints    func(childComplexity int) int
+		Outcome      func(childComplexity int) int
+		TaskID       func(childComplexity int) int
+		TaskRevision func(childComplexity int) int
+		Topic        func(childComplexity int) int
+	}
+
 	Mutation struct {
 		RecordAttempt func(childComplexity int, input model.RecordAttemptInput) int
 		StartRun      func(childComplexity int, input model.StartRunInput) int
@@ -64,9 +86,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Attempts func(childComplexity int, limit int32) int
-		Run      func(childComplexity int, id string) int
-		Runs     func(childComplexity int, limit int32) int
+		Attempts                func(childComplexity int, limit int32) int
+		CompletedSimulationRuns func(childComplexity int, limit int32) int
+		Run                     func(childComplexity int, id string) int
+		Runs                    func(childComplexity int, limit int32) int
 	}
 
 	Run struct {
@@ -118,6 +141,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
 	Runs(ctx context.Context, limit int32) ([]model.RunSummary, error)
+	CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error)
 	Attempts(ctx context.Context, limit int32) ([]model.Attempt, error)
 }
 type RunItemResolver interface {
@@ -233,6 +257,104 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Attempt.TaskRevision(childComplexity), true
 
+	case "CompletedSimulationRun.activeDurationMs":
+		if e.ComplexityRoot.CompletedSimulationRun.ActiveDurationMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.ActiveDurationMs(childComplexity), true
+	case "CompletedSimulationRun.blueprintVersion":
+		if e.ComplexityRoot.CompletedSimulationRun.BlueprintVersion == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.BlueprintVersion(childComplexity), true
+	case "CompletedSimulationRun.contentRevision":
+		if e.ComplexityRoot.CompletedSimulationRun.ContentRevision == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.ContentRevision(childComplexity), true
+	case "CompletedSimulationRun.deadlineAt":
+		if e.ComplexityRoot.CompletedSimulationRun.DeadlineAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.DeadlineAt(childComplexity), true
+	case "CompletedSimulationRun.id":
+		if e.ComplexityRoot.CompletedSimulationRun.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.ID(childComplexity), true
+	case "CompletedSimulationRun.items":
+		if e.ComplexityRoot.CompletedSimulationRun.Items == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.Items(childComplexity), true
+	case "CompletedSimulationRun.startedAt":
+		if e.ComplexityRoot.CompletedSimulationRun.StartedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.StartedAt(childComplexity), true
+	case "CompletedSimulationRun.submittedAt":
+		if e.ComplexityRoot.CompletedSimulationRun.SubmittedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRun.SubmittedAt(childComplexity), true
+
+	case "CompletedSimulationRunItem.answer":
+		if e.ComplexityRoot.CompletedSimulationRunItem.Answer == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.Answer(childComplexity), true
+	case "CompletedSimulationRunItem.earnedPoints":
+		if e.ComplexityRoot.CompletedSimulationRunItem.EarnedPoints == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.EarnedPoints(childComplexity), true
+	case "CompletedSimulationRunItem.examPosition":
+		if e.ComplexityRoot.CompletedSimulationRunItem.ExamPosition == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.ExamPosition(childComplexity), true
+	case "CompletedSimulationRunItem.maxPoints":
+		if e.ComplexityRoot.CompletedSimulationRunItem.MaxPoints == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.MaxPoints(childComplexity), true
+	case "CompletedSimulationRunItem.outcome":
+		if e.ComplexityRoot.CompletedSimulationRunItem.Outcome == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.Outcome(childComplexity), true
+	case "CompletedSimulationRunItem.taskId":
+		if e.ComplexityRoot.CompletedSimulationRunItem.TaskID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.TaskID(childComplexity), true
+	case "CompletedSimulationRunItem.taskRevision":
+		if e.ComplexityRoot.CompletedSimulationRunItem.TaskRevision == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.TaskRevision(childComplexity), true
+	case "CompletedSimulationRunItem.topic":
+		if e.ComplexityRoot.CompletedSimulationRunItem.Topic == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.Topic(childComplexity), true
+
 	case "Mutation.recordAttempt":
 		if e.ComplexityRoot.Mutation.RecordAttempt == nil {
 			break
@@ -278,6 +400,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Attempts(childComplexity, args["limit"].(int32)), true
+	case "Query.completedSimulationRuns":
+		if e.ComplexityRoot.Query.CompletedSimulationRuns == nil {
+			break
+		}
+
+		args, err := ec.field_Query_completedSimulationRuns_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.CompletedSimulationRuns(childComplexity, args["limit"].(int32)), true
 
 	case "Query.run":
 		if e.ComplexityRoot.Query.Run == nil {
@@ -615,6 +748,50 @@ func (ec *executionContext) childFields_Attempt(ctx context.Context, field graph
 	return nil, fmt.Errorf("no field named %q was found under type Attempt", field.Name)
 }
 
+func (ec *executionContext) childFields_CompletedSimulationRun(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_CompletedSimulationRun_id(ctx, field)
+	case "blueprintVersion":
+		return ec.fieldContext_CompletedSimulationRun_blueprintVersion(ctx, field)
+	case "contentRevision":
+		return ec.fieldContext_CompletedSimulationRun_contentRevision(ctx, field)
+	case "startedAt":
+		return ec.fieldContext_CompletedSimulationRun_startedAt(ctx, field)
+	case "deadlineAt":
+		return ec.fieldContext_CompletedSimulationRun_deadlineAt(ctx, field)
+	case "submittedAt":
+		return ec.fieldContext_CompletedSimulationRun_submittedAt(ctx, field)
+	case "activeDurationMs":
+		return ec.fieldContext_CompletedSimulationRun_activeDurationMs(ctx, field)
+	case "items":
+		return ec.fieldContext_CompletedSimulationRun_items(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CompletedSimulationRun", field.Name)
+}
+
+func (ec *executionContext) childFields_CompletedSimulationRunItem(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "taskId":
+		return ec.fieldContext_CompletedSimulationRunItem_taskId(ctx, field)
+	case "examPosition":
+		return ec.fieldContext_CompletedSimulationRunItem_examPosition(ctx, field)
+	case "topic":
+		return ec.fieldContext_CompletedSimulationRunItem_topic(ctx, field)
+	case "maxPoints":
+		return ec.fieldContext_CompletedSimulationRunItem_maxPoints(ctx, field)
+	case "taskRevision":
+		return ec.fieldContext_CompletedSimulationRunItem_taskRevision(ctx, field)
+	case "answer":
+		return ec.fieldContext_CompletedSimulationRunItem_answer(ctx, field)
+	case "outcome":
+		return ec.fieldContext_CompletedSimulationRunItem_outcome(ctx, field)
+	case "earnedPoints":
+		return ec.fieldContext_CompletedSimulationRunItem_earnedPoints(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type CompletedSimulationRunItem", field.Name)
+}
+
 func (ec *executionContext) childFields_Run(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -860,6 +1037,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 }
 
 func (ec *executionContext) field_Query_attempts_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (int32, error) {
+			return ec.unmarshalNInt2int32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_completedSimulationRuns_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
@@ -1320,6 +1511,383 @@ func (ec *executionContext) fieldContext_Attempt_taskRevision(_ context.Context,
 	return graphql.NewScalarFieldContext("Attempt", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _CompletedSimulationRun_id(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_blueprintVersion(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_blueprintVersion(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BlueprintVersion, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_blueprintVersion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_contentRevision(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_contentRevision(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ContentRevision, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_contentRevision(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_startedAt(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_startedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.StartedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_startedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_deadlineAt(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_deadlineAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DeadlineAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_deadlineAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_submittedAt(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_submittedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SubmittedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_submittedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_activeDurationMs(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_activeDurationMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ActiveDurationMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int64) graphql.Marshaler {
+			return ec.marshalOInt642ᚖint64(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_activeDurationMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRun", field, false, false, errors.New("field of type Int64 does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRun_items(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRun_items(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Items, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []model.CompletedSimulationRunItem) graphql.Marshaler {
+			return ec.marshalNCompletedSimulationRunItem2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRunItemᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRun_items(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CompletedSimulationRun",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CompletedSimulationRunItem(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_taskId(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_taskId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TaskID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_taskId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_examPosition(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_examPosition(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ExamPosition, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_examPosition(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_topic(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_topic(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Topic, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_topic(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_maxPoints(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_maxPoints(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxPoints, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_maxPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_taskRevision(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_taskRevision(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TaskRevision, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_taskRevision(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_answer(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_answer(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Answer, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_answer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_outcome(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_outcome(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Outcome, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.AttemptOutcome) graphql.Marshaler {
+			return ec.marshalOAttemptOutcome2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐAttemptOutcome(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_outcome(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type AttemptOutcome does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_earnedPoints(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_earnedPoints(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EarnedPoints, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_earnedPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
 func (ec *executionContext) _Mutation_startRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1534,6 +2102,50 @@ func (ec *executionContext) fieldContext_Query_runs(ctx context.Context, field g
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_runs_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_completedSimulationRuns(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_completedSimulationRuns(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().CompletedSimulationRuns(ctx, fc.Args["limit"].(int32))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []model.CompletedSimulationRun) graphql.Marshaler {
+			return ec.marshalNCompletedSimulationRun2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRunᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_completedSimulationRuns(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_CompletedSimulationRun(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_completedSimulationRuns_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3822,6 +4434,152 @@ func (ec *executionContext) _Attempt(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var completedSimulationRunImplementors = []string{"CompletedSimulationRun"}
+
+func (ec *executionContext) _CompletedSimulationRun(ctx context.Context, sel ast.SelectionSet, obj *model.CompletedSimulationRun) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, completedSimulationRunImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CompletedSimulationRun")
+		case "id":
+			out.Values[i] = ec._CompletedSimulationRun_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "blueprintVersion":
+			out.Values[i] = ec._CompletedSimulationRun_blueprintVersion(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "contentRevision":
+			out.Values[i] = ec._CompletedSimulationRun_contentRevision(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startedAt":
+			out.Values[i] = ec._CompletedSimulationRun_startedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deadlineAt":
+			out.Values[i] = ec._CompletedSimulationRun_deadlineAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "submittedAt":
+			out.Values[i] = ec._CompletedSimulationRun_submittedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "activeDurationMs":
+			out.Values[i] = ec._CompletedSimulationRun_activeDurationMs(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "items":
+			out.Values[i] = ec._CompletedSimulationRun_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var completedSimulationRunItemImplementors = []string{"CompletedSimulationRunItem"}
+
+func (ec *executionContext) _CompletedSimulationRunItem(ctx context.Context, sel ast.SelectionSet, obj *model.CompletedSimulationRunItem) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, completedSimulationRunItemImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CompletedSimulationRunItem")
+		case "taskId":
+			out.Values[i] = ec._CompletedSimulationRunItem_taskId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "examPosition":
+			out.Values[i] = ec._CompletedSimulationRunItem_examPosition(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "topic":
+			out.Values[i] = ec._CompletedSimulationRunItem_topic(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxPoints":
+			out.Values[i] = ec._CompletedSimulationRunItem_maxPoints(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "taskRevision":
+			out.Values[i] = ec._CompletedSimulationRunItem_taskRevision(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "answer":
+			out.Values[i] = ec._CompletedSimulationRunItem_answer(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "outcome":
+			out.Values[i] = ec._CompletedSimulationRunItem_outcome(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "earnedPoints":
+			out.Values[i] = ec._CompletedSimulationRunItem_earnedPoints(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3936,6 +4694,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_runs(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "completedSimulationRuns":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_completedSimulationRuns(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4730,6 +5510,46 @@ func (ec *executionContext) marshalNClientGradingKind2githubᚗcomᚋdoᚑindeks
 	return v
 }
 
+func (ec *executionContext) marshalNCompletedSimulationRun2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRun(ctx context.Context, sel ast.SelectionSet, v model.CompletedSimulationRun) graphql.Marshaler {
+	return ec._CompletedSimulationRun(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCompletedSimulationRun2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRunᚄ(ctx context.Context, sel ast.SelectionSet, v []model.CompletedSimulationRun) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCompletedSimulationRun2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRun(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCompletedSimulationRunItem2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRunItem(ctx context.Context, sel ast.SelectionSet, v model.CompletedSimulationRunItem) graphql.Marshaler {
+	return ec._CompletedSimulationRunItem(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCompletedSimulationRunItem2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRunItemᚄ(ctx context.Context, sel ast.SelectionSet, v []model.CompletedSimulationRunItem) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCompletedSimulationRunItem2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐCompletedSimulationRunItem(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNGradingKind2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐGradingKind(ctx context.Context, v any) (model.GradingKind, error) {
 	var res model.GradingKind
 	err := res.UnmarshalGQL(v)
@@ -5050,6 +5870,22 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalOAttemptOutcome2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐAttemptOutcome(ctx context.Context, v any) (*model.AttemptOutcome, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.AttemptOutcome)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAttemptOutcome2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐAttemptOutcome(ctx context.Context, sel ast.SelectionSet, v *model.AttemptOutcome) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {

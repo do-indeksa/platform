@@ -88,6 +88,28 @@ type RunSummary {
   activeDurationMs: Int64
 }
 
+type CompletedSimulationRunItem {
+  taskId: ID!
+  examPosition: Int!
+  topic: ID!
+  maxPoints: Int
+  taskRevision: String!
+  answer: String
+  outcome: AttemptOutcome
+  earnedPoints: Int
+}
+
+type CompletedSimulationRun {
+  id: ID!
+  blueprintVersion: String!
+  contentRevision: String!
+  startedAt: Time!
+  deadlineAt: Time
+  submittedAt: Time!
+  activeDurationMs: Int64
+  items: [CompletedSimulationRunItem!]!
+}
+
 input NewRunItemInput {
   id: ID!
   taskId: ID!
@@ -137,6 +159,8 @@ input SubmitRunInput {
 type Query {
   run(id: ID!): Run
   runs(limit: Int! = 20): [RunSummary!]!
+  """Returns the latest submitted simulation runs, up to a limit of 20."""
+  completedSimulationRuns(limit: Int! = 20): [CompletedSimulationRun!]!
   """Returns the most recent attempts in chronological order, up to a limit of 1000."""
   attempts(limit: Int! = 100): [Attempt!]!
 }

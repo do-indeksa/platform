@@ -265,6 +265,92 @@ func TestGraphQLStandaloneAttemptJournal(t *testing.T) {
 	}
 }
 
+func TestGraphQLCompletedSimulationArchive(t *testing.T) {
+	owner := seedGraphSession(t, "-owner")
+	other := seedGraphSession(t, "-other")
+	startedAt := time.Now().Add(-time.Hour).UTC().Truncate(time.Microsecond)
+	runID := uuid.New().String()
+	itemID := uuid.New().String()
+	_, payload := graphRequest(t, startRunMutation, map[string]any{"input": map[string]any{
+		"id":               runID,
+		"kind":             "SIMULATION",
+		"blueprintVersion": "ftn-p1:2026.1",
+		"contentRevision":  "sha256:" + strings.Repeat("a", 64),
+		"startedAt":        startedAt,
+		"deadlineAt":       startedAt.Add(4 * time.Hour),
+		"items": []map[string]any{{
+			"id":           itemID,
+			"taskId":       "log-001",
+			"examPosition": 1,
+			"topic":        "logaritmi",
+			"maxPoints":    6,
+			"taskRevision": "sha256:" + strings.Repeat("b", 64),
+		}},
+	}}, owner)
+	requireGraphSuccess(t, payload)
+
+	attemptID := uuid.New().String()
+	_, payload = graphRequest(t, recordAttemptMutation, map[string]any{"input": map[string]any{
+		"id":               attemptID,
+		"runItemId":        itemID,
+		"startedAt":        startedAt.Add(time.Minute),
+		"submittedAt":      startedAt.Add(2 * time.Minute),
+		"activeDurationMs": 60_000,
+		"answer":           "[\"42\"]",
+		"outcome":          "CORRECT",
+		"gradingKind":      "AUTO",
+		"earnedPoints":     6,
+	}}, owner)
+	requireGraphSuccess(t, payload)
+	_, payload = graphRequest(t, submitRunMutation, map[string]any{"input": map[string]any{
+		"id":               runID,
+		"submittedAt":      startedAt.Add(20 * time.Minute),
+		"activeDurationMs": 18 * 60_000,
+	}}, owner)
+	requireGraphSuccess(t, payload)
+
+	query := `query {
+		completedSimulationRuns {
+			id blueprintVersion contentRevision startedAt deadlineAt submittedAt activeDurationMs
+			items { taskId examPosition topic maxPoints taskRevision answer outcome earnedPoints }
+		}
+	}`
+	_, payload = graphRequest(t, query, nil, owner)
+	requireGraphSuccess(t, payload)
+	var queried struct {
+		Runs []struct {
+			ID               string `json:"id"`
+			BlueprintVersion string `json:"blueprintVersion"`
+			ActiveDurationMs int64  `json:"activeDurationMs"`
+			Items            []struct {
+				TaskID       string `json:"taskId"`
+				Answer       string `json:"answer"`
+				Outcome      string `json:"outcome"`
+				EarnedPoints int    `json:"earnedPoints"`
+			} `json:"items"`
+		} `json:"completedSimulationRuns"`
+	}
+	if err := json.Unmarshal(payload.Data, &queried); err != nil {
+		t.Fatal(err)
+	}
+	if len(queried.Runs) != 1 || queried.Runs[0].ID != runID ||
+		queried.Runs[0].BlueprintVersion != "ftn-p1:2026.1" ||
+		queried.Runs[0].ActiveDurationMs != 18*60_000 || len(queried.Runs[0].Items) != 1 ||
+		queried.Runs[0].Items[0].TaskID != "log-001" || queried.Runs[0].Items[0].Answer != "[\"42\"]" ||
+		queried.Runs[0].Items[0].Outcome != "CORRECT" || queried.Runs[0].Items[0].EarnedPoints != 6 {
+		t.Fatalf("unexpected completed simulation GraphQL payload: %+v", queried.Runs)
+	}
+
+	_, payload = graphRequest(t, query, nil, other)
+	requireGraphSuccess(t, payload)
+	if err := json.Unmarshal(payload.Data, &queried); err != nil {
+		t.Fatal(err)
+	}
+	if len(queried.Runs) != 0 {
+		t.Fatalf("cross-user completed simulations leaked: %+v", queried.Runs)
+	}
+}
+
 func TestGraphQLRunOwnershipIsNotDisclosed(t *testing.T) {
 	owner := seedGraphSession(t, "-owner")
 	other := seedGraphSession(t, "-other")
