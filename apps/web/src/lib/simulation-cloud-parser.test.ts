@@ -175,12 +175,7 @@ describe("simulation cloud parser", () => {
       parseSimulationCloudRun(run, catalog, ownerId)?.runtime,
     ).toMatchObject({
       phase: "submitting",
-      answers: [
-        [""],
-        [""],
-        ["", ""],
-        ...Array.from({ length: 7 }, () => [""]),
-      ],
+      answers: [[""], [""], ["", ""], ...Array.from({ length: 7 }, () => [""])],
       skipped: [true, ...Array(9).fill(false)],
       rubricScores: [3, ...Array(9).fill(null)],
     });
