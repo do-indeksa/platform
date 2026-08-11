@@ -253,6 +253,9 @@ describe("task files", () => {
       "trig-001",
       "trig-002",
       "trig-003",
+      "vek-001",
+      "vek-002",
+      "vek-003",
     ]);
   });
 
@@ -304,6 +307,34 @@ describe("task files", () => {
     expect(
       checkAnswer(tasks.get("trig-003")!.check[2], "(-pi,-pi/2)u(pi/2,pi)"),
     ).toBe("incorrect");
+  });
+
+  it("roundtrips independently verified vector answers", async () => {
+    const tasks = new Map(
+      (await getTasks("vektori-analitika")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["vek-001", 0, "sqrt(27)"],
+      ["vek-002", 0, "120/2"],
+      ["vek-002", 1, "sqrt(27)/2"],
+      ["vek-002", 2, "(0, 1, 2)"],
+      ["vek-003", 0, "sqrt(20)/2"],
+      ["vek-003", 1, "-2/4"],
+      ["vek-003", 2, "6/3"],
+      ["vek-003", 3, "3-2"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("vek-001")!.check[0], "6sqrt(3)")).toBe(
+      "incorrect",
+    );
+    expect(checkAnswer(tasks.get("vek-003")!.check[1], "1/2")).toBe(
+      "incorrect",
+    );
   });
 
   it("statements and solutions render without KaTeX errors", async () => {
