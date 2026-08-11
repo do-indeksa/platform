@@ -29,7 +29,9 @@ export function ResultMetrics({
         icon={Gauge}
         label={t("scoreMetric")}
         value={`${summary.score} / ${summary.maxPoints}`}
-        detail={t("binaryEstimate")}
+        detail={t(
+          summary.rubricAssessedCount > 0 ? "rubricEstimate" : "binaryEstimate",
+        )}
       />
       <Metric
         icon={CircleCheck}

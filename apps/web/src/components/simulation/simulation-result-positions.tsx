@@ -1,26 +1,40 @@
 "use client";
 
-import { AlertCircle, CircleCheck, CircleDashed } from "lucide-react";
+import {
+  AlertCircle,
+  CircleCheck,
+  CircleDashed,
+  CircleDotDashed,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 
 export function ResultPositions({
   strong,
+  partial,
   weak,
   unanswered,
 }: {
   strong: number[];
+  partial: number[];
   weak: number[];
   unanswered: number[];
 }) {
   const t = useTranslations("simulation");
   return (
-    <section className="mt-8 grid gap-4 lg:grid-cols-3">
+    <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <PositionPanel
         icon={CircleCheck}
         title={t("strongPositions")}
         positions={strong}
         empty={t("noStrongPositions")}
         tone="green"
+      />
+      <PositionPanel
+        icon={CircleDotDashed}
+        title={t("partialPositions")}
+        positions={partial}
+        empty={t("noPartialPositions")}
+        tone="amber"
       />
       <PositionPanel
         icon={AlertCircle}
@@ -34,7 +48,7 @@ export function ResultPositions({
         title={t("unansweredPositions")}
         positions={unanswered}
         empty={t("noUnansweredPositions")}
-        tone="amber"
+        tone="neutral"
       />
     </section>
   );
@@ -51,12 +65,13 @@ function PositionPanel({
   title: string;
   positions: number[];
   empty: string;
-  tone: "green" | "red" | "amber";
+  tone: "green" | "red" | "amber" | "neutral";
 }) {
   const styles = {
     green: "bg-emerald-50 text-emerald-900",
     red: "bg-red-50 text-red-900",
     amber: "bg-amber-50 text-amber-950",
+    neutral: "bg-zinc-100 text-zinc-800",
   }[tone];
   return (
     <div className={`rounded-lg p-5 ${styles}`}>

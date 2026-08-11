@@ -104,6 +104,18 @@ describe("simulation archive merge", () => {
     expect(merged[0].historyEntry?.results[0].outcome).toBe("incorrect");
   });
 
+  it("does not replace archive grading provenance with a local mismatch", () => {
+    const sharedId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+    const local = history(sharedId, 20, 0);
+    local.rubricScores = [0];
+    const server = history(sharedId, 20, 0);
+    server.rubricScores = [null];
+
+    const merged = mergeSimulationArchive([local], [remote(server)]);
+
+    expect(merged[0].historyEntry?.rubricScores).toEqual([null]);
+  });
+
   it("detects both set-level and task-level content changes", () => {
     const entry = history("5ff78318-3436-4b4e-99b8-77ef34366ad3", 20, 6);
     entry.archiveSnapshot = {

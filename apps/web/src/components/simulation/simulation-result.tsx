@@ -139,7 +139,8 @@ export function SimulationResult({
     resultHref,
     summary.practiceTaskIds,
   );
-  const hasErrors = summary.weakPositions.length > 0;
+  const hasErrors =
+    summary.weakPositions.length > 0 || summary.partialPositions.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-9 sm:px-8 sm:py-14">
@@ -173,6 +174,7 @@ export function SimulationResult({
       </div>
       <ResultPositions
         strong={summary.strongPositions}
+        partial={summary.partialPositions}
         weak={summary.weakPositions}
         unanswered={summary.unansweredPositions}
       />
@@ -211,7 +213,11 @@ export function SimulationResult({
           </button>
         </div>
         <p className="mt-4 max-w-3xl text-sm leading-6 text-muted">
-          {t("estimateDisclaimer")}
+          {t(
+            summary.rubricAssessedCount > 0
+              ? "rubricEstimateDisclaimer"
+              : "estimateDisclaimer",
+          )}
         </p>
       </section>
 
@@ -260,7 +266,8 @@ async function loadHistoricalReview(
   if (
     !results ||
     !review ||
-    (!allowGradeMismatch && !sameGrade(results, entry.results))
+    (!allowGradeMismatch &&
+      !sameGrade(results, entry.results, entry.rubricScores))
   ) {
     return null;
   }
@@ -270,15 +277,23 @@ async function loadHistoricalReview(
 function sameGrade(
   left: readonly SimulationGradeItem[],
   right: SimulationHistoryEntry["results"],
+  rubricScores: SimulationHistoryEntry["rubricScores"],
 ): boolean {
   return (
     left.length === right.length &&
     left.every(
       (result, index) =>
         result.taskId === right[index].taskId &&
-        result.outcome === right[index].outcome &&
-        result.earnedPoints === right[index].earnedPoints &&
-        result.maxPoints === right[index].maxPoints,
+        result.maxPoints === right[index].maxPoints &&
+        (rubricScores?.[index] === null || rubricScores?.[index] === undefined
+          ? result.outcome === right[index].outcome &&
+            result.earnedPoints === right[index].earnedPoints
+          : result.outcome !== "correct" &&
+            (rubricScores[index] === 0
+              ? right[index].outcome === result.outcome &&
+                right[index].earnedPoints === 0
+              : right[index].outcome === "partial" &&
+                right[index].earnedPoints === rubricScores[index])),
     )
   );
 }

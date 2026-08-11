@@ -13,9 +13,11 @@ export type SimulationResultSummary = {
   delta: number | null;
   complete: boolean;
   strongPositions: number[];
+  partialPositions: number[];
   weakPositions: number[];
   unansweredPositions: number[];
   practiceTaskIds: string[];
+  rubricAssessedCount: number;
 };
 
 export function buildSimulationResultSummary(
@@ -37,12 +39,16 @@ export function buildSimulationResultSummary(
       candidate.answeredCount === candidate.taskIds.length &&
       candidate.maxPoints === entry.maxPoints,
   );
-  const positions = (outcome: "correct" | "incorrect" | "unanswered") =>
+  const positions = (
+    outcome: "correct" | "partial" | "incorrect" | "unanswered",
+  ) =>
     entry.results.flatMap((result, index) =>
       result.outcome === outcome ? [tasks[index].examPosition] : [],
     );
   const weakTaskIds = entry.results.flatMap((result) =>
-    result.outcome === "incorrect" ? [result.taskId] : [],
+    result.outcome === "incorrect" || result.outcome === "partial"
+      ? [result.taskId]
+      : [],
   );
   const unansweredTaskIds = entry.results.flatMap((result) =>
     result.outcome === "unanswered" ? [result.taskId] : [],
@@ -58,9 +64,12 @@ export function buildSimulationResultSummary(
     delta: complete && previous ? entry.score - previous.score : null,
     complete,
     strongPositions: positions("correct"),
+    partialPositions: positions("partial"),
     weakPositions: positions("incorrect"),
     unansweredPositions: positions("unanswered"),
     practiceTaskIds: weakTaskIds.length > 0 ? weakTaskIds : unansweredTaskIds,
+    rubricAssessedCount:
+      entry.rubricScores?.filter((score) => score !== null).length ?? 0,
   };
 }
 

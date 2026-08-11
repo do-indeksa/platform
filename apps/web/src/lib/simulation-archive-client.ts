@@ -21,6 +21,7 @@ const COMPLETED_SIMULATION_ARCHIVE = `
         taskRevision
         answer
         outcome
+        gradingKind
         earnedPoints
       }
     }

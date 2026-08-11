@@ -25,7 +25,7 @@ const tasks = [1, 2, 3].map((position): SimulationResultTaskView => ({
 
 function entry(
   id: string,
-  outcomes: Array<"correct" | "incorrect" | "unanswered">,
+  outcomes: Array<"correct" | "partial" | "incorrect" | "unanswered">,
   score: number,
 ): SimulationHistoryEntry {
   const answeredCount = outcomes.filter(
@@ -47,7 +47,7 @@ function entry(
     results: outcomes.map((outcome, index) => ({
       taskId: tasks[index].id,
       outcome,
-      earnedPoints: outcome === "correct" ? 6 : 0,
+      earnedPoints: outcome === "correct" ? 6 : outcome === "partial" ? 3 : 0,
       maxPoints: 6,
     })),
   };
@@ -66,9 +66,30 @@ describe("simulation result summary", () => {
       complete: false,
       delta: null,
       strongPositions: [1],
+      partialPositions: [],
       weakPositions: [2],
       unansweredPositions: [3],
       practiceTaskIds: ["task-2"],
+      rubricAssessedCount: 0,
+    });
+  });
+
+  it("includes rubric partial credit in the score and practice set", () => {
+    const current = entry(
+      "5ff78318-3436-4b4e-99b8-77ef34366ad3",
+      ["correct", "partial", "incorrect"],
+      9,
+    );
+    current.rubricScores = [null, 3, 0];
+
+    expect(
+      buildSimulationResultSummary(current, [current], tasks),
+    ).toMatchObject({
+      score: 9,
+      partialPositions: [2],
+      weakPositions: [3],
+      practiceTaskIds: ["task-2", "task-3"],
+      rubricAssessedCount: 2,
     });
   });
 

@@ -17,7 +17,10 @@ export function ErrorReview({
 }) {
   const t = useTranslations("simulation");
   const errors = tasks.flatMap((task, index) =>
-    entry.results[index].outcome === "incorrect" ? [{ task, index }] : [],
+    entry.results[index].outcome === "incorrect" ||
+    entry.results[index].outcome === "partial"
+      ? [{ task, index }]
+      : [],
   );
   if (errors.length === 0) return null;
 
