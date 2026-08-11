@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { SimulationRuntime } from "@/components/simulation";
 import { redirect } from "@/i18n/navigation";
+import { taskSetRevision } from "@/lib/content";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
 import { buildSimulationTaskViews } from "@/lib/simulation-content";
 import {
@@ -57,6 +58,7 @@ export default async function NewSimulationPage({
       run={run}
       durationMinutes={variant.blueprint.durationMinutes}
       tasks={tasks}
+      contentRevision={taskSetRevision(variant.tasks.map(({ task }) => task))}
     />
   );
 }

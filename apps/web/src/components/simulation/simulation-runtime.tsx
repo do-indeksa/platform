@@ -24,10 +24,12 @@ export function SimulationRuntime({
   run,
   durationMinutes,
   tasks,
+  contentRevision,
 }: {
   run: SimulationRunQuery;
   durationMinutes: number;
   tasks: SimulationTaskView[];
+  contentRevision: string;
 }) {
   const t = useTranslations("simulation");
   const router = useRouter();
@@ -78,11 +80,13 @@ export function SimulationRuntime({
     useSimulation.getState().start({
       runId: run.runId,
       blueprintVersion: run.blueprintVersion,
+      contentRevision,
       durationMinutes,
       tasks,
     });
   }, [
     diagnosticPhase,
+    contentRevision,
     durationMinutes,
     hydrated,
     resultHref,
@@ -120,7 +124,8 @@ export function SimulationRuntime({
       };
       const results = parseSimulationGradeItems(payload.results, state.tasks);
       const review = parseSimulationReviewItems(payload.review, state.tasks);
-      if (!results || !review || !state.finish(results, review, Date.now())) {
+      const finishedAt = Date.now();
+      if (!results || !review || !state.finish(results, review, finishedAt)) {
         throw new Error("invalid grade response");
       }
       for (const [index, result] of results.entries()) {

@@ -9,9 +9,12 @@ import {
   SIMULATION_MAX_TASKS,
   type SimulationGradeItem,
   type SimulationHistoryEntry,
+  type SimulationProgressMetadata,
 } from "./simulation-types";
 
 export const SIMULATION_HISTORY_LIMIT = 20;
+const REVISION_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const TOPIC_PATTERN = /^[a-z0-9-]{1,64}$/;
 
 export function parseSimulationHistory(
   value: unknown,
@@ -112,7 +115,7 @@ function isHistoryEntry(value: unknown): value is SimulationHistoryEntry {
     return false;
   }
   const results = value.results as SimulationGradeItem[];
-  return (
+  const metricsMatch =
     value.maxPoints ===
       results.reduce((sum, result) => sum + result.maxPoints, 0) &&
     value.score ===
@@ -120,8 +123,41 @@ function isHistoryEntry(value: unknown): value is SimulationHistoryEntry {
     value.correctCount ===
       results.filter((result) => result.outcome === "correct").length &&
     value.answeredCount ===
-      results.filter((result) => result.outcome !== "unanswered").length
+      results.filter((result) => result.outcome !== "unanswered").length;
+  return (
+    metricsMatch &&
+    (value.progress === undefined ||
+      isProgressMetadata(value.progress, taskIds, results))
   );
+}
+
+function isProgressMetadata(
+  value: unknown,
+  taskIds: readonly string[],
+  results: readonly SimulationGradeItem[],
+): value is SimulationProgressMetadata {
+  if (
+    !isRecord(value) ||
+    typeof value.contentRevision !== "string" ||
+    !REVISION_PATTERN.test(value.contentRevision) ||
+    !Array.isArray(value.items) ||
+    value.items.length !== taskIds.length
+  ) {
+    return false;
+  }
+  return value.items.every((item, index) => {
+    if (!isRecord(item)) return false;
+    return (
+      item.taskId === taskIds[index] &&
+      typeof item.taskRevision === "string" &&
+      REVISION_PATTERN.test(item.taskRevision) &&
+      isFiniteInteger(item.slot, 1, 10) &&
+      item.examPosition === index + 1 &&
+      typeof item.topic === "string" &&
+      TOPIC_PATTERN.test(item.topic) &&
+      item.maxPoints === results[index].maxPoints
+    );
+  });
 }
 
 function isHistoryGradeItem(value: unknown, taskId: string): boolean {
@@ -147,6 +183,14 @@ function cloneHistoryEntry(
     taskIds: [...entry.taskIds],
     answers: entry.answers.map((answers) => [...answers]),
     results: entry.results.map((result) => ({ ...result })),
+    ...(entry.progress === undefined
+      ? {}
+      : {
+          progress: {
+            contentRevision: entry.progress.contentRevision,
+            items: entry.progress.items.map((item) => ({ ...item })),
+          },
+        }),
   };
 }
 

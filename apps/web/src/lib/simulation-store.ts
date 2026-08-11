@@ -22,11 +22,12 @@ import {
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import { recordTaskHistory } from "./task-history-store";
 
-export const SIMULATION_STORE_VERSION = 5;
+export const SIMULATION_STORE_VERSION = 6;
 
 export type SimulationStart = {
   runId: string;
   blueprintVersion: string;
+  contentRevision: string;
   durationMinutes: number;
   tasks: SimulationTaskView[];
 };
@@ -50,7 +51,13 @@ export const useSimulation = create<SimulationState>()(
   persist(
     (set, get) => ({
       ...emptySimulationState(),
-      start: ({ runId, blueprintVersion, durationMinutes, tasks }) => {
+      start: ({
+        runId,
+        blueprintVersion,
+        contentRevision,
+        durationMinutes,
+        tasks,
+      }) => {
         const current = get();
         if (
           (current.phase === "running" || current.phase === "submitting") &&
@@ -64,6 +71,7 @@ export const useSimulation = create<SimulationState>()(
           ...emptySimulationState(current.history),
           runId,
           blueprintVersion,
+          contentRevision,
           tasks: tasks.map((task) => ({
             ...task,
             fields: task.fields.map((field) => ({ ...field })),
@@ -150,6 +158,7 @@ export const useSimulation = create<SimulationState>()(
           state.phase !== "submitting" ||
           state.runId === null ||
           state.blueprintVersion === null ||
+          state.contentRevision === null ||
           state.startedAt === null ||
           !Number.isFinite(finishedAt) ||
           finishedAt < state.startedAt ||
@@ -243,6 +252,17 @@ function buildHistoryEntry(
     taskIds: state.tasks.map((task) => task.id),
     answers: state.answers.map((answers) => [...answers]),
     results: results.map((result) => ({ ...result })),
+    progress: {
+      contentRevision: state.contentRevision as string,
+      items: state.tasks.map((task) => ({
+        taskId: task.id,
+        taskRevision: task.revision,
+        slot: task.slot,
+        examPosition: task.examPosition,
+        topic: task.topic,
+        maxPoints: task.maxPoints,
+      })),
+    },
   };
 }
 
@@ -250,6 +270,7 @@ function persisted(state: PersistedSimulationState): PersistedSimulationState {
   return {
     runId: state.runId,
     blueprintVersion: state.blueprintVersion,
+    contentRevision: state.contentRevision,
     tasks: state.tasks,
     answers: state.answers,
     skipped: state.skipped,
