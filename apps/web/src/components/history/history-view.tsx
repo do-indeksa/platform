@@ -18,7 +18,15 @@ import { mergeSimulationArchive } from "@/lib/simulation-archive";
 import { useSimulationArchive } from "@/lib/simulation-archive-store";
 import { useTaskHistory } from "@/lib/task-history-store";
 import { taskPracticeHref } from "@/lib/task-bank";
+import {
+  defaultTaskHistoryFilters,
+  filterTaskHistory,
+  serializeTaskHistoryFilters,
+  taskHistoryHref,
+  type TaskHistoryFilters,
+} from "@/lib/task-history-filters";
 import { useHydrated } from "@/lib/use-hydrated";
+import type { TaskHistoryFilterTopic } from "./task-history-filters";
 import { TaskHistoryList } from "./task-history-list";
 import type { HistoryTaskMeta } from "./types";
 import { VariantHistoryList } from "./variant-history-list";
@@ -27,9 +35,11 @@ export type HistoryTab = "tasks" | "variants";
 
 export function HistoryView({
   initialTab,
+  initialTaskFilters,
   tasks,
 }: {
   initialTab: HistoryTab;
+  initialTaskFilters: TaskHistoryFilters;
   tasks: HistoryTaskMeta[];
 }) {
   const t = useTranslations("history");
@@ -40,10 +50,24 @@ export function HistoryView({
   const archive = useSimulationArchive();
   const simulationPhase = useSimulation((state) => state.phase);
   const [practiceId] = useState(() => crypto.randomUUID());
+  const [taskFilters, setTaskFilters] = useState(initialTaskFilters);
+  const [filterNow] = useState(() => Date.now());
   const taskById = useMemo(
     () => new Map(tasks.map((task) => [task.id, task])),
     [tasks],
   );
+  const filterTopics = useMemo<TaskHistoryFilterTopic[]>(() => {
+    const byTopic = new Map<string, TaskHistoryFilterTopic>();
+    for (const task of tasks.toSorted(
+      (left, right) =>
+        left.slot - right.slot || left.topic.localeCompare(right.topic),
+    )) {
+      if (!byTopic.has(task.topic)) {
+        byTopic.set(task.topic, { slug: task.topic, label: task.topicName });
+      }
+    }
+    return [...byTopic.values()];
+  }, [tasks]);
   const taskEntries = useMemo(
     () =>
       localTaskEntries === null || journal === null
@@ -58,10 +82,18 @@ export function HistoryView({
         : mergeSimulationArchive(localVariantEntries, archive.entries),
     [archive, localVariantEntries],
   );
+  const filteredTaskEntries = useMemo(
+    () =>
+      taskEntries === null
+        ? null
+        : filterTaskHistory(taskEntries, taskById, taskFilters, filterNow),
+    [filterNow, taskById, taskEntries, taskFilters],
+  );
 
   if (
     !hydrated ||
     taskEntries === null ||
+    filteredTaskEntries === null ||
     journal === null ||
     variantEntries === null ||
     archive === null
@@ -76,8 +108,18 @@ export function HistoryView({
     );
   }
 
-  const errorTaskIds = recentHistoryErrorTaskIds(taskEntries).filter((taskId) =>
-    taskById.has(taskId),
+  const commitTaskFilters = (nextFilters: TaskHistoryFilters) => {
+    setTaskFilters(nextFilters);
+    const query = serializeTaskHistoryFilters(nextFilters).toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}`,
+    );
+  };
+
+  const errorTaskIds = recentHistoryErrorTaskIds(filteredTaskEntries).filter(
+    (taskId) => taskById.has(taskId),
   );
   const firstError = taskById.get(errorTaskIds[0] ?? "");
   const practiceHref = firstError
@@ -111,7 +153,7 @@ export function HistoryView({
         className="mt-9 flex items-center gap-2 border-b border-line pb-4"
       >
         <HistoryTabLink
-          href="/history"
+          href={taskHistoryHref(taskFilters)}
           active={initialTab === "tasks"}
           label={t("tasksTab")}
         />
@@ -129,10 +171,17 @@ export function HistoryView({
       >
         {initialTab === "tasks" ? (
           <TaskHistoryList
-            entries={taskEntries}
+            entries={filteredTaskEntries}
+            totalCount={taskEntries.length}
             taskById={taskById}
+            filters={taskFilters}
+            filterTopics={filterTopics}
             practiceHref={practiceHref}
             errorCount={errorTaskIds.length}
+            onFiltersChange={commitTaskFilters}
+            onFiltersReset={() =>
+              commitTaskFilters({ ...defaultTaskHistoryFilters })
+            }
           />
         ) : (
           <VariantHistoryList entries={variantEntries} />

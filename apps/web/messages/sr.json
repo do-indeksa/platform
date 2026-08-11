@@ -349,6 +349,24 @@
     "tabsLabel": "Prikazi istorije",
     "tasksTab": "Zadaci",
     "variantsTab": "Probni ispiti",
+    "filters": {
+      "label": "Filteri istorije zadataka",
+      "topicLabel": "Oblast",
+      "allTopics": "Sve oblasti",
+      "outcomeLabel": "Rezultat",
+      "allOutcomes": "Svi rezultati",
+      "periodLabel": "Period",
+      "period": {
+        "allTime": "Sve vreme",
+        "last7Days": "Poslednjih 7 dana",
+        "last30Days": "Poslednjih 30 dana",
+        "last90Days": "Poslednjih 90 dana"
+      },
+      "showing": "Prikazano {visible} od {total} pokušaja",
+      "reset": "Poništi filtere",
+      "emptyTitle": "Nema pokušaja za ove filtere",
+      "emptyDescription": "Promeni ili poništi filtere da se vratiš na kompletnu istoriju zadataka."
+    },
     "dateColumn": "Datum",
     "taskColumn": "Zadatak",
     "topicColumn": "Tema",

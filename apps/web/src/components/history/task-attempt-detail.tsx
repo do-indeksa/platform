@@ -27,11 +27,13 @@ const GRADING_MESSAGE = {
 
 export function TaskAttemptDetail({
   attemptId,
+  backHref,
   task,
   solveAgainHref,
   similarTask,
 }: {
   attemptId: string;
+  backHref: string;
   task: {
     id: string;
     slot: number;
@@ -83,7 +85,7 @@ export function TaskAttemptDetail({
   return (
     <main className="mx-auto w-full max-w-4xl px-5 pt-7 pb-28 sm:px-8 sm:pt-10 md:pb-16">
       <Link
-        href="/history?tab=tasks"
+        href={backHref}
         className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-muted transition-colors hover:text-ink"
       >
         <ArrowLeft aria-hidden className="h-4 w-4" />

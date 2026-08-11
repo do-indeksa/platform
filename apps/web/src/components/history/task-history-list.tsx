@@ -5,33 +5,73 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import type { HistoryAttempt } from "@/lib/history-journal";
+import {
+  taskHistoryHref,
+  type TaskHistoryFilters,
+} from "@/lib/task-history-filters";
 import { HistoryEmpty } from "./history-empty";
 import { OutcomeBadge } from "./outcome-badge";
+import {
+  TaskHistoryFilterControls,
+  TaskHistoryFilteredEmpty,
+  type TaskHistoryFilterTopic,
+} from "./task-history-filters";
 import type { HistoryTaskMeta } from "./types";
 
 export function TaskHistoryList({
   entries,
+  totalCount,
   taskById,
+  filters,
+  filterTopics,
   practiceHref,
   errorCount,
+  onFiltersChange,
+  onFiltersReset,
 }: {
   entries: HistoryAttempt[];
+  totalCount: number;
   taskById: ReadonlyMap<string, HistoryTaskMeta>;
+  filters: TaskHistoryFilters;
+  filterTopics: readonly TaskHistoryFilterTopic[];
   practiceHref: string | null;
   errorCount: number;
+  onFiltersChange: (filters: TaskHistoryFilters) => void;
+  onFiltersReset: () => void;
 }) {
   const t = useTranslations("history");
   const locale = useLocale() as AppLocale;
 
-  if (entries.length === 0) return <HistoryEmpty kind="tasks" />;
+  if (totalCount === 0) return <HistoryEmpty kind="tasks" />;
+
+  const filterControls = (
+    <TaskHistoryFilterControls
+      filters={filters}
+      topics={filterTopics}
+      visibleCount={entries.length}
+      totalCount={totalCount}
+      onChange={onFiltersChange}
+      onReset={onFiltersReset}
+    />
+  );
+  if (entries.length === 0) {
+    return (
+      <div>
+        {filterControls}
+        <TaskHistoryFilteredEmpty onReset={onFiltersReset} />
+      </div>
+    );
+  }
 
   const dateFormatter = new Intl.DateTimeFormat(htmlLanguage(locale), {
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const returnTo = taskHistoryHref(filters);
 
   return (
     <div>
+      {filterControls}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full table-fixed border-collapse text-left text-sm">
           <thead className="border-b border-line text-xs font-semibold text-muted">
@@ -53,6 +93,7 @@ export function TaskHistoryList({
                 entry={entry}
                 task={taskById.get(entry.taskId)}
                 date={dateFormatter.format(new Date(entry.at))}
+                returnTo={returnTo}
               />
             ))}
           </tbody>
@@ -66,6 +107,7 @@ export function TaskHistoryList({
             entry={entry}
             task={taskById.get(entry.taskId)}
             date={dateFormatter.format(new Date(entry.at))}
+            returnTo={returnTo}
           />
         ))}
       </ul>
@@ -106,10 +148,12 @@ function TaskTableRow({
   entry,
   task,
   date,
+  returnTo,
 }: {
   entry: HistoryAttempt;
   task: HistoryTaskMeta | undefined;
   date: string;
+  returnTo: string;
 }) {
   const t = useTranslations("history");
   return (
@@ -133,7 +177,7 @@ function TaskTableRow({
       <td className="px-3 py-4 pr-0 text-right">
         {task ? (
           <Link
-            href={detailHref(entry, task)}
+            href={detailHref(entry, task, returnTo)}
             aria-label={t("openTaskAttempt", { id: entry.taskId })}
             className="inline-flex min-h-10 items-center gap-1 font-semibold text-brand-ink hover:text-brand"
           >
@@ -152,10 +196,12 @@ function TaskMobileRow({
   entry,
   task,
   date,
+  returnTo,
 }: {
   entry: HistoryAttempt;
   task: HistoryTaskMeta | undefined;
   date: string;
+  returnTo: string;
 }) {
   const t = useTranslations("history");
   const content = (
@@ -189,7 +235,7 @@ function TaskMobileRow({
     <li>
       {task ? (
         <Link
-          href={detailHref(entry, task)}
+          href={detailHref(entry, task, returnTo)}
           aria-label={t("openTaskAttempt", { id: entry.taskId })}
           className="block py-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
@@ -207,7 +253,11 @@ function answerLabel(entry: HistoryAttempt, fallback: string): string {
   return answers.length > 0 ? answers.join(" · ") : fallback;
 }
 
-function detailHref(entry: HistoryAttempt, task: HistoryTaskMeta): string {
-  const query = new URLSearchParams({ attempt: entry.id });
+function detailHref(
+  entry: HistoryAttempt,
+  task: HistoryTaskMeta,
+  returnTo: string,
+): string {
+  const query = new URLSearchParams({ attempt: entry.id, returnTo });
   return `/history/tasks/${task.topic}/${task.id}?${query}`;
 }

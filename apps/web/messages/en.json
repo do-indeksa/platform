@@ -349,6 +349,24 @@
     "tabsLabel": "History views",
     "tasksTab": "Tasks",
     "variantsTab": "Mock exams",
+    "filters": {
+      "label": "Task history filters",
+      "topicLabel": "Topic",
+      "allTopics": "All topics",
+      "outcomeLabel": "Result",
+      "allOutcomes": "All results",
+      "periodLabel": "Period",
+      "period": {
+        "allTime": "All time",
+        "last7Days": "Last 7 days",
+        "last30Days": "Last 30 days",
+        "last90Days": "Last 90 days"
+      },
+      "showing": "Showing {visible} of {total} attempts",
+      "reset": "Reset filters",
+      "emptyTitle": "No attempts match these filters",
+      "emptyDescription": "Change or reset the filters to return to your complete task history."
+    },
     "dateColumn": "Date",
     "taskColumn": "Task",
     "topicColumn": "Topic",

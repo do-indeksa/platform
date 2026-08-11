@@ -12,6 +12,7 @@ import {
 import { renderMarkdown } from "@/lib/markdown";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { isTaskHistoryId } from "@/lib/task-history";
+import { safeTaskHistoryReturnPath } from "@/lib/task-history-filters";
 
 type Props = {
   params: Promise<{ locale: string; topic: string; id: string }>;
@@ -64,13 +65,18 @@ export default async function TaskAttemptPage({ params, searchParams }: Props) {
     summaries.find(
       (candidate) => candidate.id !== task.id && candidate.slot === task.slot,
     );
-  const returnTo = "/history?tab=tasks";
+  const backHref =
+    safeTaskHistoryReturnPath(
+      firstQueryValue(query.returnTo),
+      new Set(summaries.map((summary) => summary.topic)),
+    ) ?? "/history";
   const practiceId = crypto.randomUUID();
   const attempt = firstQueryValue(query.attempt);
 
   return (
     <TaskAttemptDetail
       attemptId={isTaskHistoryId(attempt) ? attempt : ""}
+      backHref={backHref}
       task={{
         id: task.id,
         slot: task.slot,
@@ -82,12 +88,22 @@ export default async function TaskAttemptPage({ params, searchParams }: Props) {
         solutionHtml,
         fieldLabels: task.check.map((field) => field.label ?? null),
       }}
-      solveAgainHref={taskPracticeHref(task, returnTo, [], practiceId)}
+      solveAgainHref={taskPracticeHref(
+        task,
+        "/history?tab=tasks",
+        [],
+        practiceId,
+      )}
       similarTask={
         similar
           ? {
               label: t("taskShort", { id: similar.id }),
-              href: taskPracticeHref(similar, returnTo, [], practiceId),
+              href: taskPracticeHref(
+                similar,
+                "/history?tab=tasks",
+                [],
+                practiceId,
+              ),
             }
           : null
       }
