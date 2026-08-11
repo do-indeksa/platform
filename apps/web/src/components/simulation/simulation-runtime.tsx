@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { trackTaskSolved } from "@/lib/analytics";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic } from "@/lib/diagnostic-store";
+import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
 import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
 import {
   simulationRunHref,
@@ -128,6 +129,10 @@ export function SimulationRuntime({
       if (!results || !review || !state.finish(results, review, finishedAt)) {
         throw new Error("invalid grade response");
       }
+      const entry = useSimulation
+        .getState()
+        .history.find((candidate) => candidate.id === run.runId);
+      if (entry) persistCompletedSimulationRun(entry);
       for (const [index, result] of results.entries()) {
         if (result.outcome === "correct") {
           trackTaskSolved({
