@@ -15,22 +15,24 @@ export function MobileMenu() {
     <div className="md:hidden">
       <button
         type="button"
+        data-testid="mobile-menu-button"
         aria-label={t("menu")}
         aria-expanded={open}
         aria-controls="mobile-app-menu"
         onClick={() => setOpen((current) => !current)}
-        className="flex h-11 w-11 items-center justify-center rounded-lg text-ink transition-colors hover:bg-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-subtle text-ink transition-colors hover:bg-subtle-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         {open ? (
-          <X aria-hidden size={21} strokeWidth={1.8} />
+          <X aria-hidden size={16} strokeWidth={1.8} />
         ) : (
-          <Menu aria-hidden size={21} strokeWidth={1.8} />
+          <Menu aria-hidden size={16} strokeWidth={1.8} />
         )}
       </button>
       {open && (
         <div
           id="mobile-app-menu"
-          className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-64px)] overflow-y-auto border-b border-line bg-surface px-4 py-4 shadow-lg"
+          data-design-status="provisional"
+          className="fixed inset-x-0 top-16 z-50 max-h-[calc(100dvh-64px)] overflow-y-auto border-b border-line bg-surface px-4 py-4 shadow-lg"
         >
           <MobileMenuNavigation onNavigate={() => setOpen(false)} />
           <div className="mt-4 border-t border-line pt-4">

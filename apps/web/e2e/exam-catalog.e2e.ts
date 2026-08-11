@@ -65,9 +65,6 @@ test("planned exams remain informative instead of looking broken", async ({
   await expect(
     page.getByRole("heading", { name: "Matematika sa logikom" }),
   ).toBeVisible();
-  await expect(page.getByTestId("site-header")).toContainText(
-    "P3 · Matematika sa logikom",
-  );
   await expect(
     page.getByRole("heading", { name: "Priprema još nije dostupna" }),
   ).toBeVisible();

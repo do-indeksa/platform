@@ -2,15 +2,32 @@ import { expect, test, type Locator } from "@playwright/test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const locales = [
-  { path: "/tasks", heading: "Zadaci", htmlLang: "sr-Latn" },
-  { path: "/en/tasks", heading: "Tasks", htmlLang: "en" },
-  { path: "/ru/tasks", heading: "Задания", htmlLang: "ru" },
+  {
+    path: "/tasks",
+    heading: "Zadaci",
+    htmlLang: "sr-Latn",
+    headerItems: ["Moja priprema", "Zadaci", "Vežbanje"],
+  },
+  {
+    path: "/en/tasks",
+    heading: "Tasks",
+    htmlLang: "en",
+    headerItems: ["My preparation", "Tasks", "Training"],
+  },
+  {
+    path: "/ru/tasks",
+    heading: "Задания",
+    htmlLang: "ru",
+    headerItems: ["Моя подготовка", "Задания", "Тренировки"],
+  },
 ] as const;
 
 const viewports = [
-  { name: "mobile", width: 360, height: 800 },
-  { name: "tablet", width: 768, height: 1024 },
-  { name: "desktop", width: 1440, height: 900 },
+  { name: "mobile-360", width: 360, height: 800 },
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "tablet-768", width: 768, height: 1024 },
+  { name: "tablet-1024", width: 1024, height: 880 },
+  { name: "desktop-1440", width: 1440, height: 900 },
 ] as const;
 
 test("health check bypasses locale routing", async ({ request }) => {
@@ -53,13 +70,20 @@ for (const locale of locales) {
         ),
       ).toBe(true);
 
-      if (viewport.name === "mobile") {
-        await expect(page.getByTestId("mobile-navigation")).toBeVisible();
+      if (viewport.width < 768) {
         await expect(page.getByTestId("desktop-navigation")).toBeHidden();
+        await expect(page.getByTestId("mobile-menu-button")).toBeVisible();
       } else {
-        await expect(page.getByTestId("desktop-navigation")).toBeVisible();
-        await expect(page.getByTestId("mobile-navigation")).toBeHidden();
+        const navigation = page.getByTestId("desktop-navigation");
+        await expect(navigation).toBeVisible();
+        for (const item of locale.headerItems) {
+          await expect(
+            navigation.getByRole("link", { name: item, exact: true }),
+          ).toBeVisible();
+        }
+        await expect(page.getByTestId("mobile-menu-button")).toBeHidden();
       }
+      await expect(page.getByTestId("mobile-navigation")).toHaveCount(0);
     });
   }
 }
@@ -80,25 +104,27 @@ test("overview is a primary destination on desktop and mobile", async ({
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/ru");
+  await page.getByTestId("mobile-menu-button").click();
   await expect(
-    page.getByTestId("mobile-navigation").getByRole("link", { name: "Обзор" }),
+    page.getByRole("link", { name: "Обзор", exact: true }),
   ).toHaveAttribute("aria-current", "page");
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(
-    page.getByTestId("desktop-navigation").getByRole("link", { name: "Обзор" }),
+    page
+      .getByTestId("desktop-navigation")
+      .getByRole("link", { name: "Моя подготовка" }),
   ).toHaveAttribute("aria-current", "page");
 });
 
-test("secondary desktop navigation exposes active state and closes", async ({
+test("tablet overflow navigation exposes secondary routes and closes", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.setViewportSize({ width: 1024, height: 880 });
   await page.goto("/calculator");
 
   const more = page.getByTitle("Još");
   const menu = more.locator("..");
-  await expect(more).toHaveClass(/bg-subtle/);
   await more.click();
   await expect(page.getByRole("link", { name: "Kalkulator" })).toHaveAttribute(
     "aria-current",

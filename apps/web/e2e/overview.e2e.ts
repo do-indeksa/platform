@@ -79,12 +79,10 @@ for (const locale of localizedOverviews) {
     const dailyAction = await dailyTask
       .getByRole("link", { name: locale.dailySolve, exact: true })
       .boundingBox();
-    const mobileNavigation = await page
-      .getByTestId("mobile-navigation")
-      .boundingBox();
     expect(
-      (dailyAction?.y ?? 0) + (dailyAction?.height ?? 0),
-    ).toBeLessThanOrEqual(mobileNavigation?.y ?? 844);
+      (dailyAction?.x ?? 0) + (dailyAction?.width ?? 0),
+    ).toBeLessThanOrEqual(390);
+    await expect(page.getByTestId("mobile-navigation")).toHaveCount(0);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
