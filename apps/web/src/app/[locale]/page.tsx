@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { OverviewDashboard } from "@/components/overview";
 import { getTaskSummaries, getTopics } from "@/lib/content";
-import { getDiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-catalog";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
 import { getFtnP1Programs } from "@/lib/guide";
+import { getProgressCloudCatalog } from "@/lib/progress-cloud-catalog";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -18,14 +18,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Home({ params }: Props) {
   const { locale } = await params;
-  const [topics, tasks, blueprint, programGuide, topicT, diagnosticCatalog] =
+  const [topics, tasks, blueprint, programGuide, topicT, progressCatalog] =
     await Promise.all([
       getTopics(),
       getTaskSummaries(),
       getP1Blueprint(),
       getFtnP1Programs(),
       getTranslations({ locale, namespace: "topics" }),
-      getDiagnosticCloudCatalog(),
+      getProgressCloudCatalog(),
     ]);
   const officialVariant = blueprint.sources.find(
     (source) => source.role === "officialVariant",
@@ -67,7 +67,7 @@ export default async function Home({ params }: Props) {
       topicSlots={topics.map(({ slug, slot }) => ({ slug, slot }))}
       programs={programGuide.programs}
       programSource={programGuide.source}
-      diagnosticCatalog={diagnosticCatalog}
+      progressCatalog={progressCatalog}
     />
   );
 }

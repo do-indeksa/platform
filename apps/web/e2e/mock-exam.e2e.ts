@@ -100,7 +100,7 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
   const activePayload = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
-  expect(activePayload.version).toBe(8);
+  expect(activePayload.version).toBe(9);
   expect(activePayload.state.review).toEqual([]);
   expect(
     activePayload.state.tasks.every(
@@ -213,11 +213,12 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
 }) => {
   type GraphQLCall = {
     operationName: string;
-    variables: { input: Record<string, unknown>; limit?: number };
+    variables: { input?: Record<string, unknown>; limit?: number; id?: string };
   };
   const graphQLCalls: GraphQLCall[] = [];
   const attemptMethods: string[] = [];
   let submitted = false;
+  let checkpointVersion = 0;
 
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({
@@ -252,8 +253,31 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
       });
       return;
     }
+    if (call.operationName === "SimulationRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    if (call.operationName === "SimulationCloudRun") {
+      await route.fulfill({ json: { data: { run: null } } });
+      return;
+    }
     graphQLCalls.push(call);
-    const input = call.variables.input;
+    const input = call.variables.input as Record<string, unknown>;
+    if (call.operationName === "CheckpointRun") {
+      expect(input.expectedVersion).toBe(checkpointVersion);
+      checkpointVersion += 1;
+      await route.fulfill({
+        json: {
+          data: {
+            checkpointRun: {
+              version: checkpointVersion,
+              currentOrdinal: input.currentOrdinal,
+            },
+          },
+        },
+      });
+      return;
+    }
     const field =
       call.operationName === "StartRun"
         ? "startRun"
@@ -266,7 +290,11 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
         data: {
           [field]: {
             id: input.id,
-            ...(field === "submitRun" ? { status: "SUBMITTED" } : {}),
+            ...(field === "startRun"
+              ? { status: "ACTIVE" }
+              : field === "submitRun"
+                ? { status: "SUBMITTED" }
+                : {}),
           },
         },
       },
@@ -277,6 +305,18 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     `/en/simulation/new?run=${runId}&version=2026.1&set=${currentTaskIds.join("%2C")}`,
   );
   await page.getByRole("textbox").first().fill("definitely-wrong");
+  await expect
+    .poll(() =>
+      graphQLCalls.some(
+        (call) =>
+          call.operationName === "CheckpointRun" &&
+          JSON.stringify(call.variables.input).includes("definitely-wrong"),
+      ),
+    )
+    .toBe(true);
+  expect(
+    graphQLCalls.some((call) => call.operationName === "RecordAttempt"),
+  ).toBe(false);
   await page.getByRole("button", { name: "Finish", exact: true }).click();
   await page
     .getByRole("dialog")
@@ -284,7 +324,6 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     .click();
 
   await expect(page).toHaveURL(/\/en\/simulation\/result\?/);
-  await expect.poll(() => graphQLCalls.length).toBe(12);
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -294,21 +333,37 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     )
     .toBe(0);
 
-  expect(graphQLCalls.map((call) => call.operationName)).toEqual([
-    "StartRun",
-    ...Array(10).fill("RecordAttempt"),
-    "SubmitRun",
-  ]);
-  expect(graphQLCalls[0].variables.input).toMatchObject({
+  const operations = graphQLCalls.map((call) => call.operationName);
+  const firstAttempt = operations.indexOf("RecordAttempt");
+  expect(firstAttempt).toBeGreaterThan(0);
+  expect(
+    operations
+      .slice(0, firstAttempt)
+      .every(
+        (operation) =>
+          operation === "StartRun" || operation === "CheckpointRun",
+      ),
+  ).toBe(true);
+  expect(operations.slice(firstAttempt).includes("CheckpointRun")).toBe(false);
+  expect(
+    operations.filter((operation) => operation === "RecordAttempt"),
+  ).toHaveLength(10);
+  expect(operations.at(-1)).toBe("SubmitRun");
+  const startCall = graphQLCalls.find(
+    (call) => call.operationName === "StartRun",
+  )!;
+  expect(startCall.variables.input).toMatchObject({
     id: runId,
     kind: "SIMULATION",
     blueprintVersion: "ftn-p1:2026.1",
     contentRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
   });
   expect(
-    graphQLCalls.slice(1, 11).map((call) => call.variables.input.outcome),
+    graphQLCalls
+      .filter((call) => call.operationName === "RecordAttempt")
+      .map((call) => call.variables.input?.outcome),
   ).toEqual(["INCORRECT", ...Array(9).fill("SKIPPED")]);
-  const startItems = graphQLCalls[0].variables.input.items as {
+  const startItems = startCall.variables.input?.items as {
     taskRevision: string;
     maxPoints: number;
   }[];
@@ -319,16 +374,19 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
         /^sha256:[a-f0-9]{64}$/.test(item.taskRevision) && item.maxPoints > 0,
     ),
   ).toBe(true);
-  expect(JSON.stringify(graphQLCalls)).not.toMatch(
-    /correctAnswer|expected|review|solution/i,
+  expect(
+    JSON.stringify(graphQLCalls.map((call) => call.variables)),
+  ).not.toMatch(
+    /correctAnswer|expectedAnswer|review|solution|statementHtml|gradingRule/i,
   );
   expect(attemptMethods).toEqual([]);
 
+  const callCount = graphQLCalls.length;
   await page.reload({ waitUntil: "networkidle" });
   await expect(
     page.getByRole("heading", { name: "Your result", exact: true }),
   ).toBeVisible();
-  expect(graphQLCalls).toHaveLength(12);
+  expect(graphQLCalls).toHaveLength(callCount);
 });
 
 test("mock checker bounds bodies and returns only grading outcomes", async ({

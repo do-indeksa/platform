@@ -1,11 +1,17 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { trackTaskSolved } from "@/lib/analytics";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
+import type { ProgressCloudCatalog } from "@/lib/progress-cloud-types";
+import {
+  finishSimulationCloudUpload,
+  hydrateDiscoveredSimulationRun,
+  scheduleSimulationCloudUpload,
+} from "@/lib/simulation-cloud-sync";
 import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
 import {
   isSimulationActive,
@@ -22,6 +28,8 @@ import {
   type SimulationTaskView,
 } from "@/lib/simulation-types";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useSimulationCloudBootstrap } from "@/lib/use-simulation-cloud";
+import { SimulationCloudConflictNotice } from "./simulation-cloud-conflict";
 import { SimulationQuestion } from "./simulation-question";
 import { RunNotice, SubmissionStatus } from "./simulation-status";
 
@@ -30,14 +38,17 @@ export function SimulationRuntime({
   durationMinutes,
   tasks,
   contentRevision,
+  progressCatalog,
 }: {
   run: SimulationRunQuery;
   durationMinutes: number;
   tasks: SimulationTaskView[];
   contentRevision: string;
+  progressCatalog: ProgressCloudCatalog;
 }) {
   const t = useTranslations("simulation");
   const router = useRouter();
+  const cloud = useSimulationCloudBootstrap(progressCatalog);
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const simulationOwnerKnown = useSimulationOwnerKnown();
@@ -52,6 +63,18 @@ export function SimulationRuntime({
   const [submissionError, setSubmissionError] = useState(false);
   const submissionAttempted = useRef(false);
   const resultHref = simulationRunHref("/simulation/result", run);
+  const syncTasks = useMemo(
+    () =>
+      tasks.map((task) => ({
+        taskId: task.id,
+        taskRevision: task.revision,
+        slot: task.slot,
+        examPosition: task.examPosition,
+        topic: task.topic,
+        maxPoints: task.maxPoints,
+      })),
+    [tasks],
+  );
 
   useEffect(() => {
     submissionAttempted.current = false;
@@ -62,8 +85,38 @@ export function SimulationRuntime({
       !hydrated ||
       !diagnosticOwnerKnown ||
       !simulationOwnerKnown ||
+      cloud.status === "idle" ||
+      cloud.status === "loading" ||
+      cloud.status === "conflict" ||
       diagnosticPhase === "running"
     ) {
+      return;
+    }
+    const remote = cloud.remote?.runtime ?? null;
+    if (remote !== null) {
+      if (
+        remote.runId !== run.runId ||
+        remote.blueprintVersion !== run.blueprintVersion ||
+        !sameValues(
+          remote.tasks.map((task) => task.id),
+          run.taskIds,
+        )
+      ) {
+        router.replace(
+          simulationRunHref("/simulation/new", {
+            runId: remote.runId,
+            blueprintVersion: remote.blueprintVersion,
+            taskIds: remote.tasks.map((task) => task.id),
+          }),
+        );
+        return;
+      }
+      hydrateDiscoveredSimulationRun(
+        run.runId,
+        run.blueprintVersion,
+        contentRevision,
+        tasks,
+      );
       return;
     }
     const current = useSimulation.getState();
@@ -101,6 +154,8 @@ export function SimulationRuntime({
   }, [
     diagnosticPhase,
     diagnosticOwnerKnown,
+    cloud.remote,
+    cloud.status,
     contentRevision,
     durationMinutes,
     hydrated,
@@ -144,6 +199,7 @@ export function SimulationRuntime({
       if (!results || !review || !state.finish(results, review, finishedAt)) {
         throw new Error("invalid grade response");
       }
+      finishSimulationCloudUpload(run.runId);
       const entry = useSimulation
         .getState()
         .history.find((candidate) => candidate.id === run.runId);
@@ -185,13 +241,38 @@ export function SimulationRuntime({
 
   const beginSubmission = (expired: boolean) => {
     const state = useSimulation.getState();
+    scheduleSimulationCloudUpload(
+      {
+        state,
+        tasks: syncTasks,
+        blueprintVersion: progressCatalog.blueprintVersion,
+        contentRevision,
+      },
+      true,
+    );
     if (!state.beginSubmission(expired)) return;
     submissionAttempted.current = true;
     void submitCurrent();
   };
 
-  if (!hydrated || !diagnosticOwnerKnown || !simulationOwnerKnown) {
+  if (
+    !hydrated ||
+    !diagnosticOwnerKnown ||
+    !simulationOwnerKnown ||
+    cloud.status === "idle" ||
+    cloud.status === "loading"
+  ) {
     return <SubmissionStatus label={t("assembling")} />;
+  }
+  if (cloud.status === "conflict") {
+    return (
+      <main className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
+        <SimulationCloudConflictNotice />
+      </main>
+    );
+  }
+  if (cloud.remote !== null && cloud.remote.runtime.runId !== run.runId) {
+    return <SubmissionStatus label={t("redirecting")} />;
   }
   if (diagnosticPhase === "running" && !isSimulationActive(phase)) {
     const diagnosticHref =
@@ -243,7 +324,14 @@ export function SimulationRuntime({
     );
   }
   if (phase === "running" && activeRunId === run.runId) {
-    return <SimulationQuestion onSubmit={beginSubmission} />;
+    return (
+      <SimulationQuestion
+        onSubmit={beginSubmission}
+        syncTasks={syncTasks}
+        blueprintVersion={progressCatalog.blueprintVersion}
+        contentRevision={contentRevision}
+      />
+    );
   }
   return <SubmissionStatus label={t("redirecting")} />;
 }

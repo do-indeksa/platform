@@ -4,6 +4,7 @@ import { ArrowRight, Clock3, FileCheck2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { SimulationHistory } from "@/components/simulation-history";
 import { Link } from "@/i18n/navigation";
+import type { ProgressCloudCatalog } from "@/lib/progress-cloud-types";
 import {
   isSimulationActive,
   useSimulation,
@@ -12,19 +13,24 @@ import {
 } from "@/lib/simulation-store";
 import { simulationRunHref } from "@/lib/simulation-run";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useSimulationCloudBootstrap } from "@/lib/use-simulation-cloud";
+import { SimulationCloudConflictNotice } from "./simulation-cloud-conflict";
 
 export function SimulationEntry({
   freshStartHref,
   taskCount,
   durationMinutes,
   maxPoints,
+  progressCatalog,
 }: {
   freshStartHref: string;
   taskCount: number;
   durationMinutes: number;
   maxPoints: number;
+  progressCatalog: ProgressCloudCatalog;
 }) {
   const t = useTranslations("simulation");
+  const cloud = useSimulationCloudBootstrap(progressCatalog);
   const hydrated = useHydrated();
   const ownerKnown = useSimulationOwnerKnown();
   const phase = useSimulation((state) => state.phase);
@@ -33,21 +39,39 @@ export function SimulationEntry({
   const tasks = useSimulation((state) => state.tasks);
   const history = useSimulationHistory();
   const taskIds = tasks.map((task) => task.id);
-  const active = hydrated && ownerKnown && isSimulationActive(phase);
+  const localActive = hydrated && ownerKnown && isSimulationActive(phase);
+  const remoteRun = cloud.remote?.runtime ?? null;
+  const remoteStoredRun = remoteRun
+    ? {
+        runId: remoteRun.runId,
+        blueprintVersion: remoteRun.blueprintVersion,
+        taskIds: remoteRun.tasks.map((task) => task.id),
+      }
+    : null;
+  const active = localActive || remoteStoredRun !== null;
   const completed =
     hydrated &&
     phase === "done" &&
     history?.some((entry) => entry.id === runId) === true;
-  const storedRun =
+  const localStoredRun =
     runId && blueprintVersion && taskIds.length > 0
       ? { runId, blueprintVersion, taskIds }
       : null;
+  const storedRun = localActive || completed ? localStoredRun : remoteStoredRun;
   const primaryHref =
     active && storedRun
       ? simulationRunHref("/simulation/new", storedRun)
       : completed && storedRun
         ? simulationRunHref("/simulation/result", storedRun)
         : freshStartHref;
+
+  if (hydrated && ownerKnown && cloud.status === "conflict") {
+    return (
+      <main className="mx-auto flex min-h-[32rem] w-full max-w-5xl items-center px-5 py-10 sm:px-8">
+        <SimulationCloudConflictNotice />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
@@ -83,17 +107,23 @@ export function SimulationEntry({
           </p>
         )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link
-            href={primaryHref}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
-          >
-            {active
-              ? t("resumeMock")
-              : completed
-                ? t("viewLatestResult")
-                : t("startCta")}
-            <ArrowRight aria-hidden className="h-5 w-5" />
-          </Link>
+          {cloud.status === "idle" || cloud.status === "loading" ? (
+            <span className="inline-flex min-h-12 items-center justify-center rounded-lg bg-zinc-200 px-5 py-3 font-semibold text-muted">
+              {t("assembling")}
+            </span>
+          ) : (
+            <Link
+              href={primaryHref}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand hover:bg-brand-hover"
+            >
+              {active
+                ? t("resumeMock")
+                : completed
+                  ? t("viewLatestResult")
+                  : t("startCta")}
+              <ArrowRight aria-hidden className="h-5 w-5" />
+            </Link>
+          )}
           {completed && (
             <Link
               href={freshStartHref}

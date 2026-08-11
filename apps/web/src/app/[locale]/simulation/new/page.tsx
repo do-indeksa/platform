@@ -4,6 +4,7 @@ import { SimulationRuntime } from "@/components/simulation";
 import { redirect } from "@/i18n/navigation";
 import { taskSetRevision } from "@/lib/content";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
+import { getProgressCloudCatalog } from "@/lib/progress-cloud-catalog";
 import { buildSimulationTaskViews } from "@/lib/simulation-content";
 import {
   parseSimulationRunQuery,
@@ -27,7 +28,11 @@ export default async function NewSimulationPage({
   params,
   searchParams,
 }: Props) {
-  const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const [{ locale }, query, progressCatalog] = await Promise.all([
+    params,
+    searchParams,
+    getProgressCloudCatalog(),
+  ]);
   const requestedVersion =
     typeof query.version === "string" ? query.version : undefined;
   const blueprint = await loadBlueprint(requestedVersion);
@@ -59,6 +64,7 @@ export default async function NewSimulationPage({
       durationMinutes={variant.blueprint.durationMinutes}
       tasks={tasks}
       contentRevision={taskSetRevision(variant.tasks.map(({ task }) => task))}
+      progressCatalog={progressCatalog}
     />
   );
 }
