@@ -258,8 +258,11 @@ runtime до сетевой синхронизации; owner-scoped истор�
 Завершённые пробники имеют bounded cross-device archive с batch-загрузкой
 run/items/latest attempts. Backend-контракт ADR 0016 хранит versioned mutable
 checkpoint отдельно от append-only attempts и удаляет его при submit/abandon.
-Browser upload/hydration и полная копия старого content revision еще не замыкают
-полный контур.
+Диагностика загружает проверенные позиции как append-only attempts, debounce-ит
+текущий draft, гидратирует только совместимый актуальный blueprint и при
+расхождении предлагает явный выбор без last-write-wins. Пробник пока остаётся
+локальным во время прохождения. Полная копия старого content revision также
+остаётся отдельным immutable-срезом.
 
 ## 8. Зафиксированные продуктовые решения
 

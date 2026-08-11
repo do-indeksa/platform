@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { DiagnosticEntry } from "@/components/diagnostic";
+import { getDiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-catalog";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { generateVariant } from "@/lib/variant";
 
@@ -12,12 +13,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DiagnosticPage() {
-  const variant = await generateVariant();
+  const [variant, diagnosticCatalog] = await Promise.all([
+    generateVariant(),
+    getDiagnosticCloudCatalog(),
+  ]);
   const freshStartHref = diagnosticRunHref(
     "/diagnostic/new",
     crypto.randomUUID(),
     variant.tasks.map(({ task }) => task.id),
   );
 
-  return <DiagnosticEntry freshStartHref={freshStartHref} />;
+  return (
+    <DiagnosticEntry
+      freshStartHref={freshStartHref}
+      diagnosticCatalog={diagnosticCatalog}
+    />
+  );
 }

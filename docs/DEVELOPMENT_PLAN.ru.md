@@ -58,6 +58,8 @@ AI-оценивание остается вне критического пут�
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
+- активная диагностика синхронизирует append-only attempts и versioned draft,
+  восстанавливается на другом устройстве и требует явного решения CAS-конфликта;
 - история имеет allowlisted URL-фильтры по области, результату и периоду,
   сохраняет их при открытии детали и показывает score trend только по полным
   проверенным P1 на 60 баллов;
@@ -65,12 +67,12 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, первые 9 задач в 3 полных
   темах прошли versioned mathematical review;
-- blocking CI включает 386 unit-тестов, 61 Playwright-сценарий, container
+- blocking CI включает 416 unit-тестов, 65 Playwright-сценариев, container
   smoke, dependency audit и Trivy.
 
-Не завершены browser upload/hydration активного checkpoint, rubric partial
-scoring, исторические content snapshots, расширение verified-банка и production
-rollout. Analytics сознательно fail-closed до безопасного image.
+Не завершены active-checkpoint для пробника, rubric partial scoring,
+исторические content snapshots, расширение verified-банка и production rollout.
+Analytics сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
 
@@ -377,16 +379,16 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 Работа продолжается теми же небольшими независимыми PR:
 
-1. После выпуска Google OAuth credentials завершить private Kubernetes rollout
-   через Cloudflare Tunnel и доказать auth, GraphQL, Neon migration, backup и
-   rollback на `doindeksa.rs` без публикации origin.
-2. Подключить диагностику к versioned active-run checkpoint по ADR 0016:
-   upload, hydrate, conflict и explicit abandon; исторические snapshots условий
-   и решений остаются отдельным immutable-срезом.
-3. Спроектировать rubric self-check и частичные баллы, не смешивая trainer
+1. Перенести доказанный diagnostic checkpoint lifecycle на пробник с его иной
+   семантикой: ответы остаются drafts до общей сдачи и не становятся attempts
+   по одному заданию.
+2. Спроектировать rubric self-check и частичные баллы, не смешивая trainer
    estimate с официальным оцениванием FTN.
-4. Расширять verified-банк от текущих 9 задач и сохранять независимый
+3. Расширять verified-банк от текущих 9 задач и сохранять независимый
    review-record на каждую полную тему.
-5. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
+4. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
+5. После выпуска Google OAuth credentials и отдельного подтверждения завершить
+   private Kubernetes rollout через Cloudflare Tunnel; доказать auth, GraphQL,
+   Neon migration, backup и rollback без публикации origin.
 6. Закрыть analytics issue только после vulnerability-clean image или
    документированного перехода на другой privacy-friendly provider.

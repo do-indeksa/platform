@@ -2,14 +2,20 @@
 
 import { LoaderCircle, Send, SkipForward, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { AnswerField } from "@/components/task-check/answer-field";
 import { Link, useRouter } from "@/i18n/navigation";
 import { trackTaskSolved } from "@/lib/analytics";
+import {
+  abandonCurrentDiagnosticRun,
+  finishDiagnosticCloudUpload,
+  scheduleDiagnosticCloudUpload,
+} from "@/lib/diagnostic-cloud-sync";
 import { persistCompletedDiagnosticRun } from "@/lib/diagnostic-progress";
 import { useDiagnostic } from "@/lib/diagnostic-store";
 import { recordTaskHistory } from "@/lib/task-history-store";
+import { DiagnosticCloudStatus } from "./diagnostic-cloud-status";
 import type { DiagnosticTaskView } from "./types";
 
 export function DiagnosticQuestion({
@@ -23,15 +29,46 @@ export function DiagnosticQuestion({
 }) {
   const t = useTranslations("diagnostic");
   const router = useRouter();
-  const currentIndex = useDiagnostic((state) => state.currentIndex);
-  const answers = useDiagnostic((state) => state.answers[currentIndex] ?? []);
-  const setAnswer = useDiagnostic((state) => state.setAnswer);
-  const completeCurrent = useDiagnostic((state) => state.completeCurrent);
-  const reset = useDiagnostic((state) => state.reset);
+  const diagnostic = useDiagnostic();
+  const currentIndex = diagnostic.currentIndex;
+  const answers = diagnostic.answers[currentIndex] ?? [];
   const [submitting, setSubmitting] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastPositionKey = useRef<string | null>(null);
   const task = tasks[currentIndex];
   const progress = ((currentIndex + 1) / tasks.length) * 100;
+  const syncTasks = useMemo(
+    () =>
+      tasks.map(({ id, revision, slot, examPosition, topic }) => ({
+        id,
+        revision,
+        slot,
+        examPosition,
+        topic,
+      })),
+    [tasks],
+  );
+
+  useEffect(() => {
+    if (diagnostic.phase !== "running" || diagnostic.runId === null) return;
+    const positionKey = JSON.stringify({
+      runId: diagnostic.runId,
+      currentIndex: diagnostic.currentIndex,
+      outcomes: diagnostic.outcomes.slice(0, diagnostic.currentIndex),
+    });
+    const immediate = lastPositionKey.current !== positionKey;
+    lastPositionKey.current = positionKey;
+    scheduleDiagnosticCloudUpload(
+      {
+        state: diagnostic,
+        tasks: syncTasks,
+        blueprintVersion,
+        contentRevision,
+      },
+      immediate,
+    );
+  }, [blueprintVersion, contentRevision, diagnostic, syncTasks]);
 
   const submit = async () => {
     if (submitting) return;
@@ -85,9 +122,10 @@ export function DiagnosticQuestion({
   };
 
   const complete = (outcome: "correct" | "incorrect" | "skipped") => {
-    completeCurrent(task.id, outcome);
+    diagnostic.completeCurrent(task.id, outcome);
     const state = useDiagnostic.getState();
     if (state.phase === "done") {
+      finishDiagnosticCloudUpload(state.runId as string);
       persistCompletedDiagnosticRun(
         state,
         tasks,
@@ -97,10 +135,20 @@ export function DiagnosticQuestion({
     }
   };
 
-  const abandon = () => {
+  const abandon = async () => {
     if (!confirm(t("abandonConfirm"))) return;
-    reset();
-    router.push("/diagnostic");
+    const runId = useDiagnostic.getState().runId;
+    if (runId === null) return;
+    setAbandoning(true);
+    setError(null);
+    const abandoned = await abandonCurrentDiagnosticRun(runId);
+    if (abandoned) {
+      useDiagnostic.getState().reset();
+      router.push("/diagnostic");
+    } else {
+      setError(t("abandonUnavailable"));
+      setAbandoning(false);
+    }
   };
 
   return (
@@ -114,10 +162,18 @@ export function DiagnosticQuestion({
             type="button"
             title={t("abandon")}
             aria-label={t("abandon")}
-            onClick={abandon}
+            disabled={abandoning}
+            onClick={() => void abandon()}
             className="flex h-10 w-10 items-center justify-center rounded-lg text-muted transition-colors hover:bg-zinc-100 hover:text-ink"
           >
-            <X aria-hidden="true" className="h-5 w-5" />
+            {abandoning ? (
+              <LoaderCircle
+                aria-hidden="true"
+                className="h-5 w-5 animate-spin"
+              />
+            ) : (
+              <X aria-hidden="true" className="h-5 w-5" />
+            )}
           </button>
         </div>
       </header>
@@ -131,8 +187,11 @@ export function DiagnosticQuestion({
                 total: tasks.length,
               })}
             </span>
-            <span className="tabular-nums text-muted">
-              {currentIndex + 1} / {tasks.length}
+            <span className="flex flex-col items-end gap-1 tabular-nums text-muted">
+              <span>
+                {currentIndex + 1} / {tasks.length}
+              </span>
+              <DiagnosticCloudStatus />
             </span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200">
@@ -174,10 +233,10 @@ export function DiagnosticQuestion({
                 index={index}
                 value={answers[index] ?? ""}
                 result={null}
-                disabled={submitting}
+                disabled={submitting || abandoning}
                 onChange={(value) => {
                   setError(null);
-                  setAnswer(currentIndex, index, value);
+                  diagnostic.setAnswer(currentIndex, index, value);
                 }}
               />
             ))}
@@ -191,7 +250,7 @@ export function DiagnosticQuestion({
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || abandoning}
               onClick={submit}
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brand px-5 py-3 font-semibold text-on-brand transition-colors hover:bg-brand-hover disabled:cursor-wait disabled:opacity-60"
             >
@@ -207,7 +266,7 @@ export function DiagnosticQuestion({
             </button>
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || abandoning}
               onClick={() => {
                 setError(null);
                 recordTaskHistory([

@@ -54,3 +54,10 @@ meaning of attempts or exposing account state. Offline local work remains
 available after a conflict, but concurrent devices require a visible recovery
 decision. Mutable drafts are intentionally unavailable in completed history and
 cannot substitute for a future canonical content snapshot.
+
+**Implementation status - 2026-08-11.** The diagnostic browser slice now
+starts the immutable assignment, appends checked or skipped attempts, debounces
+the current draft, hydrates compatible current content, and exposes explicit
+cloud/device recovery. Completed upload is serialized behind active writes.
+Simulation upload and hydration remain a separate slice because its answers do
+not become attempts until the whole mock exam is submitted.

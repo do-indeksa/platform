@@ -127,11 +127,12 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
 }) => {
   type GraphQLCall = {
     operationName: string;
-    variables: { input: Record<string, unknown>; limit?: number };
+    variables: { input?: Record<string, unknown>; limit?: number };
   };
   const graphQLCalls: GraphQLCall[] = [];
   const attemptMethods: string[] = [];
   let submitted = false;
+  let checkpointVersion = 0;
 
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({
@@ -173,6 +174,10 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       });
       return;
     }
+    if (call.operationName === "DiagnosticRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
     if (call.operationName === "CompletedSimulationArchive") {
       await route.fulfill({
         json: { data: { completedSimulationRuns: [] } },
@@ -180,19 +185,35 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       return;
     }
     graphQLCalls.push(call);
-    const input = call.variables.input;
+    const input = call.variables.input as Record<string, unknown>;
+    if (call.operationName === "CheckpointRun") {
+      expect(input.expectedVersion).toBe(checkpointVersion);
+      checkpointVersion += 1;
+      await route.fulfill({
+        json: {
+          data: {
+            checkpointRun: {
+              version: checkpointVersion,
+              currentOrdinal: input.currentOrdinal,
+            },
+          },
+        },
+      });
+      return;
+    }
     const field =
       call.operationName === "StartRun"
         ? "startRun"
         : call.operationName === "RecordAttempt"
           ? "recordAttempt"
           : "submitRun";
-    if (field === "submitRun") submitted = true;
+    if (call.operationName === "SubmitRun") submitted = true;
     await route.fulfill({
       json: {
         data: {
           [field]: {
             id: input.id,
+            ...(field === "startRun" ? { status: "ACTIVE" } : {}),
             ...(field === "submitRun" ? { status: "SUBMITTED" } : {}),
           },
         },
@@ -209,7 +230,13 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
   }
 
   await expect(page).toHaveURL(/\/en\/diagnostic\/result\?/);
-  await expect.poll(() => graphQLCalls.length).toBe(12);
+  await expect
+    .poll(
+      () =>
+        graphQLCalls.filter((call) => call.operationName === "SubmitRun")
+          .length,
+    )
+    .toBe(1);
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -219,33 +246,54 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
     )
     .toBe(0);
 
-  expect(graphQLCalls.map((call) => call.operationName)).toEqual([
-    "StartRun",
-    ...Array(10).fill("RecordAttempt"),
-    "SubmitRun",
-  ]);
-  expect(graphQLCalls[0].variables.input).toMatchObject({
+  const startCalls = graphQLCalls.filter(
+    (call) => call.operationName === "StartRun",
+  );
+  const attemptCalls = graphQLCalls.filter(
+    (call) => call.operationName === "RecordAttempt",
+  );
+  const checkpointCalls = graphQLCalls.filter(
+    (call) => call.operationName === "CheckpointRun",
+  );
+  expect(startCalls.length).toBeGreaterThanOrEqual(1);
+  expect(checkpointCalls.length).toBeGreaterThanOrEqual(1);
+  expect(graphQLCalls.at(-1)?.operationName).toBe("SubmitRun");
+  expect(startCalls[0].variables.input).toMatchObject({
     id: runId,
     kind: "DIAGNOSTIC",
     blueprintVersion: expect.stringMatching(/^ftn-p1:\d{4}\.\d+$/),
     contentRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
   });
+  const uniqueAttempts = new Map(
+    attemptCalls.map((call) => [
+      call.variables.input?.id,
+      call.variables.input,
+    ]),
+  );
+  expect([...uniqueAttempts.values()].map((input) => input?.outcome)).toEqual([
+    "CORRECT",
+    "INCORRECT",
+    ...Array(8).fill("SKIPPED"),
+  ]);
   expect(
-    graphQLCalls.slice(1, 11).map((call) => call.variables.input.outcome),
-  ).toEqual(["CORRECT", "INCORRECT", ...Array(8).fill("SKIPPED")]);
-  expect(
-    (graphQLCalls[0].variables.input.items as { taskRevision: string }[]).every(
+    (startCalls[0].variables.input?.items as { taskRevision: string }[]).every(
       (item) => /^sha256:[a-f0-9]{64}$/.test(item.taskRevision),
     ),
   ).toBe(true);
-  expect(JSON.stringify(graphQLCalls)).not.toMatch(/expected|solution/i);
+  expect(
+    checkpointCalls.map((call) => call.variables.input?.expectedVersion),
+  ).toEqual(checkpointCalls.map((_, index) => index));
+  expect(JSON.stringify(graphQLCalls)).not.toMatch(
+    /statementHtml|solution|expectedAnswer|gradingRule/i,
+  );
   expect(attemptMethods).toEqual([]);
 
+  const mutationCount = graphQLCalls.length;
   await page.reload({ waitUntil: "networkidle" });
   await expect(
     page.getByRole("heading", { name: "Your starting level" }),
   ).toBeVisible();
-  expect(graphQLCalls).toHaveLength(12);
+  expect(graphQLCalls).toHaveLength(mutationCount);
 });
 
 test("diagnostic checker bounds request bodies and disables caching", async ({

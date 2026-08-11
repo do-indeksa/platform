@@ -3,14 +3,17 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
+import type { DiagnosticCloudCatalog } from "@/lib/diagnostic-cloud-types";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useDiagnosticCloudBootstrap } from "@/lib/use-diagnostic-cloud";
 import {
   isSimulationActive,
   useSimulation,
   useSimulationOwnerKnown,
 } from "@/lib/simulation-store";
+import { DiagnosticCloudConflictNotice } from "./diagnostic-cloud-conflict";
 import { DiagnosticQuestion } from "./diagnostic-question";
 import { LoadingState, RunNotice } from "./diagnostic-status";
 import type { DiagnosticTaskView } from "./types";
@@ -20,14 +23,17 @@ export function DiagnosticRuntime({
   tasks,
   blueprintVersion,
   contentRevision,
+  diagnosticCatalog,
 }: {
   runId: string;
   tasks: DiagnosticTaskView[];
   blueprintVersion: string;
   contentRevision: string;
+  diagnosticCatalog: DiagnosticCloudCatalog;
 }) {
   const t = useTranslations("diagnostic");
   const hydrated = useHydrated();
+  const cloud = useDiagnosticCloudBootstrap(diagnosticCatalog);
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const simulationOwnerKnown = useSimulationOwnerKnown();
   const router = useRouter();
@@ -50,6 +56,9 @@ export function DiagnosticRuntime({
       hydrated &&
       diagnosticOwnerKnown &&
       simulationOwnerKnown &&
+      cloud.status !== "idle" &&
+      cloud.status !== "loading" &&
+      cloud.status !== "conflict" &&
       !startedRef.current &&
       !activeMock
     ) {
@@ -78,6 +87,7 @@ export function DiagnosticRuntime({
   }, [
     activeMock,
     canonicalTaskIds,
+    cloud.status,
     diagnosticOwnerKnown,
     hydrated,
     runId,
@@ -98,8 +108,21 @@ export function DiagnosticRuntime({
     }
   }, [diagnosticOwnerKnown, hydrated, phase, resultHref, router, runId]);
 
-  if (!hydrated || !diagnosticOwnerKnown || !simulationOwnerKnown) {
+  if (
+    !hydrated ||
+    !diagnosticOwnerKnown ||
+    !simulationOwnerKnown ||
+    cloud.status === "idle" ||
+    cloud.status === "loading"
+  ) {
     return <LoadingState label={t("loading")} />;
+  }
+  if (cloud.status === "conflict") {
+    return (
+      <main className="flex min-h-dvh items-center justify-center px-5 py-10">
+        <DiagnosticCloudConflictNotice />
+      </main>
+    );
   }
   if (activeMock) {
     return (
