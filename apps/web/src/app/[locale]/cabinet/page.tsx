@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { OverviewDashboard } from "@/components/overview";
+import { CabinetDashboard } from "@/components/cabinet";
 import { getTaskSummaries, getTopics } from "@/lib/content";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
 import { getFtnP1Programs } from "@/lib/guide";
@@ -12,7 +12,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "home" });
+  const t = await getTranslations({ locale, namespace: "cabinet" });
   return { title: t("metadataTitle"), description: t("metadataDescription") };
 }
 
@@ -45,7 +45,7 @@ export default async function Cabinet({ params }: Props) {
   }));
 
   return (
-    <OverviewDashboard
+    <CabinetDashboard
       exam={{
         version: blueprint.version,
         taskCount: blueprint.taskCount,
