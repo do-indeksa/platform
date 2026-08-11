@@ -195,6 +195,15 @@ describe("task files", () => {
             (criterion.text as string).trim(),
             `${fileName}: rubric text`,
           ).not.toBe("");
+          const rubricHtml = await renderMarkdown(criterion.text as string);
+          expect(
+            rubricHtml.includes("katex-error"),
+            `${fileName}: rubric math`,
+          ).toBe(false);
+          expect(
+            rubricHtml.includes("#cc0000"),
+            `${fileName}: rubric command`,
+          ).toBe(false);
         }
       }
 
@@ -229,6 +238,9 @@ describe("task files", () => {
       }
     }
     expect([...rubricTasks].toSorted()).toEqual([
+      "eks-001",
+      "eks-002",
+      "eks-003",
       "kb-001",
       "kb-002",
       "kb-003",
@@ -239,6 +251,31 @@ describe("task files", () => {
       "log-002",
       "log-003",
     ]);
+  });
+
+  it("roundtrips independently verified exponential answers", async () => {
+    const tasks = new Map(
+      (await getTasks("eksponencijalne")).map((task) => [task.id, task]),
+    );
+    const equivalents = [
+      ["eks-001", 0, "4/2"],
+      ["eks-002", 0, "x1=0, x2=2"],
+      ["eks-002", 1, "1;-1"],
+      ["eks-003", 0, "x=+-3"],
+      ["eks-003", 1, "-1 <= x <= 3"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("eks-001")!.check[0], "-1")).toBe(
+      "incorrect",
+    );
+    expect(checkAnswer(tasks.get("eks-003")!.check[1], "(-1,3)")).toBe(
+      "incorrect",
+    );
   });
 
   it("statements and solutions render without KaTeX errors", async () => {
