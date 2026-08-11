@@ -269,6 +269,8 @@
     "openImage": "Увеличить изображение",
     "closeImage": "Закрыть изображение",
     "sourceLabel": "Источник: {source}",
+    "reportProblem": "Сообщить об ошибке",
+    "reportProblemLabel": "Сообщить об ошибке в задании {id} на GitHub (откроется в новой вкладке)",
     "difficulty": "Сложность: {level} из 5"
   },
   "topics": {

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Difficulty } from "@/components/difficulty";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
+import { TaskProblemReport } from "@/components/task-problem-report";
 import { TaskCheck } from "@/components/task-check";
 import { Link } from "@/i18n/navigation";
 import {
@@ -14,6 +15,7 @@ import {
   type TaskReference,
 } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
+import { buildTaskProblemReportUrl } from "@/lib/task-problem-report";
 import {
   parsePracticeId,
   parsePracticeSet,
@@ -22,7 +24,7 @@ import {
 } from "@/lib/task-bank";
 
 type Props = {
-  params: Promise<{ topic: string; id: string }>;
+  params: Promise<{ locale: string; topic: string; id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
@@ -45,7 +47,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function TaskPage({ params, searchParams }: Props) {
-  const { topic: topicSlug, id } = await params;
+  const { locale, topic: topicSlug, id } = await params;
   const [topic, tasks, references, query] = await Promise.all([
     getTopic(topicSlug),
     getTasks(topicSlug),
@@ -103,6 +105,12 @@ export default async function TaskPage({ params, searchParams }: Props) {
           practiceId,
         )
       : null;
+  const reportHref = buildTaskProblemReportUrl({
+    taskId: task.id,
+    taskRevision: task.revision,
+    topic: topic.slug,
+    locale,
+  });
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-8 sm:py-8">
       <nav className="mb-8 flex items-center justify-between border-b border-zinc-200 pb-4 text-sm">
@@ -146,9 +154,16 @@ export default async function TaskPage({ params, searchParams }: Props) {
         nextTaskHref={nextTaskHref}
         practiceId={practiceId}
       />
-      <p className="mt-6 text-sm text-zinc-500">
-        {t("sourceLabel", { source: task.source })}
-      </p>
+      <footer className="mt-6 flex flex-col gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-zinc-500">
+          {t("sourceLabel", { source: task.source })}
+        </p>
+        <TaskProblemReport
+          href={reportHref}
+          label={t("reportProblem")}
+          accessibleLabel={t("reportProblemLabel", { id: task.id })}
+        />
+      </footer>
     </main>
   );
 }

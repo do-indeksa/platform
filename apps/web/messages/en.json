@@ -269,6 +269,8 @@
     "openImage": "Enlarge image",
     "closeImage": "Close image",
     "sourceLabel": "Source: {source}",
+    "reportProblem": "Report a problem",
+    "reportProblemLabel": "Report a problem with task {id} on GitHub (opens in a new tab)",
     "difficulty": "Difficulty {level} of 5"
   },
   "topics": {

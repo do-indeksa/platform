@@ -1,0 +1,58 @@
+name: Content problem
+description: Report a mistake in a task, hint, answer check, or solution
+title: "[Content]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us improve the task bank. Do not include personal or account data.
+  - type: input
+    id: task
+    attributes:
+      label: Task ID
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Content revision
+    validations:
+      required: true
+  - type: input
+    id: locale
+    attributes:
+      label: Interface language
+    validations:
+      required: true
+  - type: input
+    id: path
+    attributes:
+      label: Task path
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the problem?
+      options:
+        - Statement
+        - Answer checker
+        - Hint
+        - Solution
+        - Translation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong?
+      description: Explain the problem and include the smallest useful example.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected correction
+      description: Describe the result or wording you expected, if known.
