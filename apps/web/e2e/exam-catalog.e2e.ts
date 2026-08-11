@@ -20,7 +20,7 @@ test("catalog exposes the official FTN exam model and P1 preparation", async ({
   await page.getByRole("link", { name: "Otvori P1" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(
-    page.getByRole("heading", { name: "Priprema za P1 iz matematike" }),
+    page.getByRole("heading", { name: "Spremi P1 za siguran upis" }),
   ).toBeVisible();
 });
 

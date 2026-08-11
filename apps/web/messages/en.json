@@ -25,6 +25,153 @@
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
+  "landing": {
+    "metadataTitle": "Prepare for FTN P1",
+    "metadataDescription": "Practice FTN P1 mathematics for free: 10 tasks, 4 hours, up to 60 points, a level check and a clear preparation plan.",
+    "header": {
+      "navigation": "Landing page navigation",
+      "brandHome": "Do indeksa home",
+      "exams": "Exams",
+      "about": "About platform",
+      "features": "Features",
+      "faculties": "Faculties",
+      "aboutUs": "About us",
+      "more": "More links",
+      "menu": "Open menu"
+    },
+    "hero": {
+      "eyebrow": "FTN Novi Sad · P1",
+      "titlePrimary": "Master FTN P1",
+      "titleAccent": "before exam day",
+      "desktopLine1": "Practice all 10 positions, check your answers and",
+      "desktopLine2": "follow a clear plan for the four-hour P1 exam.",
+      "mobileLine1": "Practice all 10 P1 positions,",
+      "mobileLine2": "check your answers and follow",
+      "mobileLine3": "a clear plan for the four-hour exam.",
+      "mobileLine4": "Build confidence across all P1 positions.",
+      "start": "Start for free",
+      "choose": "Choose a mode"
+    },
+    "benefits": {
+      "label": "Preparation benefits",
+      "guest": {
+        "title": "No registration",
+        "line1": "Solve the first task",
+        "line2": "without an account"
+      },
+      "tasks": {
+        "title": "Current tasks",
+        "line1": "{count} published tasks",
+        "line2": "across all 10 positions"
+      },
+      "plan": {
+        "title": "Personal plan",
+        "line1": "A next step based on",
+        "line2": "your actual attempts"
+      },
+      "mock": {
+        "title": "Full mock exam",
+        "line1": "{hours} hours without help",
+        "line2": "up to {points} rubric points"
+      }
+    },
+    "flows": {
+      "title": "Choose your P1 preparation mode",
+      "all": "P1 details",
+      "practice": {
+        "title": "P1 · Practice",
+        "subtitle": "{count} published tasks",
+        "status": "Start"
+      },
+      "diagnostic": {
+        "title": "Level check",
+        "subtitle": "{count} exam positions",
+        "status": "Check"
+      },
+      "mock": {
+        "title": "Full P1 mock",
+        "subtitle": "Full format · {hours} hours",
+        "status": "0–{points} points"
+      }
+    },
+    "programs": {
+      "title": "FTN programs using P1",
+      "description": "The Faculty of Technical Sciences currently lists {count} programs in the P1 mathematics group.",
+      "all": "All programs",
+      "facultyLabel": "FTN Novi Sad · P1",
+      "formatFact": "10 tasks · 4 hours · 60 points",
+      "openPrograms": "View programs",
+      "sourceTitle": "Official FTN catalog, checked {date}",
+      "groups": {
+        "software": {
+          "seal": "SW",
+          "title": "Software and IT",
+          "columns": {
+            "first": "Software",
+            "second": "Applied IT",
+            "third": "Computing"
+          }
+        },
+        "systems": {
+          "seal": "SYS",
+          "title": "Systems",
+          "columns": {
+            "first": "Energy",
+            "second": "Measurement",
+            "third": "Mechatronics"
+          }
+        },
+        "information": {
+          "seal": "INF",
+          "title": "Information",
+          "columns": {
+            "first": "Systems",
+            "second": "Engineering",
+            "third": "P1 format"
+          }
+        },
+        "interdisciplinary": {
+          "seal": "BIO",
+          "title": "Technology",
+          "columns": {
+            "first": "Biomedicine",
+            "second": "Animation",
+            "third": "P1 format"
+          }
+        }
+      }
+    },
+    "steps": {
+      "title": "How preparation works",
+      "items": {
+        "1": {
+          "title": "Choose a starting point",
+          "body": "Solve one task or check all 10 exam positions"
+        },
+        "2": {
+          "title": "Practice tasks",
+          "body": "Check answers, use hints and understand the solution"
+        },
+        "3": {
+          "title": "Review results",
+          "body": "See mistakes, help usage and positions needing attention"
+        },
+        "4": {
+          "title": "Take a full P1 mock",
+          "body": "Practice for 4 hours and self-score your work by rubric"
+        }
+      }
+    },
+    "cta": {
+      "title": "Try P1 now",
+      "desktopLine1": "Solve the first task without registering and check your answer.",
+      "desktopLine2": "Continue with a plan, a level check or a full P1 mock.",
+      "mobileLine1": "Solve the first task without an account.",
+      "mobileLine2": "Check your answer right away",
+      "mobileLine3": "and continue with a clear next step.",
+      "button": "Start practice"
+    }
+  },
   "prep": {
     "title": "Preparation plan",
     "description": "A personal FTN P1 preparation plan with one concrete next action.",
