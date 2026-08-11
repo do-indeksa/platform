@@ -65,17 +65,18 @@ AI-оценивание остается вне критического пут�
   восстанавливаемую самопроверку по rubric с отдельными `RUBRIC_SELF` attempts;
 - история имеет allowlisted URL-фильтры по области, результату и периоду,
   сохраняет их при открытии детали и показывает score trend только по полным
-  проверенным P1 на 60 баллов;
+  проверенным P1 на 60 баллов; detail восстанавливает архивную verified-ревизию
+  только после совпадения SHA-256 с owner-scoped hydrated attempt;
 - `Prijavi grešku` открывает предзаполненный content-report с task ID и revision,
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
-  прошли versioned mathematical review и сохранены в immutable SHA-256 archive;
-- blocking CI включает 493 web unit-теста, 29 тестов content pipeline,
+  прошли versioned mathematical review; архив содержит 31 immutable revision;
+- blocking CI включает 499 web unit-тестов, 29 тестов content pipeline,
   68 Playwright-сценариев, container smoke, dependency audit и Trivy.
 
-Остаются подключение server-side snapshot-resolver к history UI, расширение
-verified-банка, пилотная калибровка рекомендаций и production rollout.
-Analytics сознательно fail-closed до безопасного image.
+Остаются архивный разбор item пробника, расширение verified-банка, пилотная
+калибровка рекомендаций и production rollout. Analytics сознательно fail-closed
+до безопасного image.
 
 ## 3. Критический путь
 
@@ -391,9 +392,8 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 1. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
-2. Связать history attempt с server-side snapshot-resolver: передавать
-   allowlisted SHA-256 revision и показывать архив только после совпадения с
-   hydrated entry, не сохраняя HTML в БД.
+2. Применить тот же immutable resolver к item завершённого пробника, сохранив
+   проверку revision по owner-scoped run archive и текущие retry-ссылки.
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
 4. Добавить стабильные visual-regression эталоны для rubric review, результата,
    shell, task, plan и history на 360/768/1440 px.
