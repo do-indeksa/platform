@@ -30,6 +30,7 @@ function persisted(overrides: Record<string, unknown> = {}) {
   return {
     runId,
     runOwnerId: null,
+    checkpointVersion: 0,
     taskIds,
     slots,
     answers: answerPartCounts.map((count) => Array(count).fill("")),
@@ -55,6 +56,7 @@ describe("diagnostic persistence", () => {
     expect(useDiagnostic.getState()).toMatchObject({
       runId,
       runOwnerId: null,
+      checkpointVersion: 0,
       taskIds,
       slots,
       answers: [["1", ""], ...answerPartCounts.slice(1).map(() => [""])],
@@ -214,6 +216,35 @@ describe("diagnostic persistence", () => {
     });
   });
 
+  it("preserves an owner-scoped version-two runtime with version zero", () => {
+    const { checkpointVersion, ...legacy } = persisted({
+      runOwnerId: userA,
+    });
+    expect(checkpointVersion).toBe(0);
+
+    expect(migrateDiagnosticState(legacy, 2)).toMatchObject({
+      phase: "running",
+      runOwnerId: userA,
+      checkpointVersion: 0,
+    });
+  });
+
+  it("adopts a server version and forks a conflicting run explicitly", () => {
+    syncDiagnosticOwner(userA);
+    useDiagnostic.getState().start({ runId, taskIds, slots, answerPartCounts });
+
+    expect(useDiagnostic.getState().adoptCheckpointVersion(runId, 4)).toBe(
+      true,
+    );
+    const forkedId = crypto.randomUUID();
+    expect(useDiagnostic.getState().fork(forkedId)).toBe(true);
+    expect(useDiagnostic.getState()).toMatchObject({
+      runId: forkedId,
+      checkpointVersion: 0,
+      phase: "running",
+    });
+  });
+
   it("reconciles the live store before exposing another account", () => {
     useDiagnostic.getState().start({ runId, taskIds, slots, answerPartCounts });
     syncDiagnosticOwner(userA);
@@ -235,6 +266,7 @@ describe("diagnostic persistence", () => {
   it.each([
     persisted({ runId: "bad" }),
     persisted({ runOwnerId: "bad" }),
+    persisted({ checkpointVersion: -1 }),
     persisted({ taskIds: taskIds.with(1, "kb-001") }),
     persisted({ slots: slots.with(1, 1) }),
     persisted({ answers: [["1"]] }),

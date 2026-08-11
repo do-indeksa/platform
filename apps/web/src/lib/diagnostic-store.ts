@@ -15,7 +15,7 @@ import {
 } from "./learning-run-owner";
 import { MAX_ANSWER_LENGTH, MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
-export const DIAGNOSTIC_STORE_VERSION = 2;
+export const DIAGNOSTIC_STORE_VERSION = 3;
 
 export type DiagnosticOutcome = "correct" | "incorrect" | "skipped";
 export type DiagnosticPhase = "running" | "done";
@@ -30,6 +30,7 @@ export type DiagnosticStart = {
 export type PersistedDiagnosticState = {
   runId: string | null;
   runOwnerId: string | null;
+  checkpointVersion: number;
   taskIds: string[];
   slots: number[];
   answers: string[][];
@@ -46,6 +47,9 @@ type DiagnosticState = PersistedDiagnosticState & {
   start: (run: DiagnosticStart) => void;
   setAnswer: (taskIndex: number, partIndex: number, value: string) => void;
   completeCurrent: (taskId: string, outcome: DiagnosticOutcome) => void;
+  restore: (state: PersistedDiagnosticState) => boolean;
+  adoptCheckpointVersion: (runId: string, version: number) => boolean;
+  fork: (runId: string) => boolean;
   reset: () => void;
 };
 
@@ -58,6 +62,7 @@ const OUTCOMES = new Set<DiagnosticOutcome>([
 const emptyState = (): PersistedDiagnosticState => ({
   runId: null,
   runOwnerId: null,
+  checkpointVersion: 0,
   taskIds: [],
   slots: [],
   answers: [],
@@ -89,6 +94,7 @@ export const useDiagnostic = create<DiagnosticState>()(
         set({
           runId,
           runOwnerId: current.authOwnerId,
+          checkpointVersion: 0,
           taskIds: [...taskIds],
           slots: [...slots],
           answers: answerPartCounts.map((count) =>
@@ -141,6 +147,39 @@ export const useDiagnostic = create<DiagnosticState>()(
           currentIndex: done ? state.currentIndex : state.currentIndex + 1,
         });
       },
+      restore: (state) => {
+        const current = get();
+        const parsed = parsePersistedDiagnosticState(state);
+        if (
+          current.authOwnerId === undefined ||
+          parsed.phase !== "running" ||
+          parsed.runOwnerId !== current.authOwnerId
+        ) {
+          return false;
+        }
+        set(parsed);
+        return true;
+      },
+      adoptCheckpointVersion: (runId, version) => {
+        const current = get();
+        if (
+          current.phase !== "running" ||
+          current.runId !== runId ||
+          !isCheckpointVersion(version)
+        ) {
+          return false;
+        }
+        set({ checkpointVersion: version });
+        return true;
+      },
+      fork: (runId) => {
+        const current = get();
+        if (current.phase !== "running" || !isDiagnosticRunId(runId)) {
+          return false;
+        }
+        set({ runId, checkpointVersion: 0 });
+        return true;
+      },
       reset: () => set(emptyState()),
     }),
     {
@@ -149,6 +188,7 @@ export const useDiagnostic = create<DiagnosticState>()(
       partialize: (state): PersistedDiagnosticState => ({
         runId: state.runId,
         runOwnerId: state.runOwnerId,
+        checkpointVersion: state.checkpointVersion,
         taskIds: state.taskIds,
         slots: state.slots,
         answers: state.answers,
@@ -174,6 +214,7 @@ export function parsePersistedDiagnosticState(
   if (
     !isDiagnosticRunId(value.runId) ||
     !isLearningRunOwner(value.runOwnerId) ||
+    !isCheckpointVersion(value.checkpointVersion) ||
     !Array.isArray(value.taskIds) ||
     value.taskIds.length !== DIAGNOSTIC_TASK_COUNT ||
     !value.taskIds.every(isDiagnosticTaskId) ||
@@ -210,6 +251,7 @@ export function parsePersistedDiagnosticState(
   return {
     runId: value.runId,
     runOwnerId: value.runOwnerId,
+    checkpointVersion: value.checkpointVersion,
     taskIds: [...value.taskIds],
     slots: [...value.slots],
     answers: value.answers.map((answers) => [...answers]),
@@ -225,9 +267,11 @@ export function migrateDiagnosticState(
   value: unknown,
   version: number,
 ): PersistedDiagnosticState {
-  return version < DIAGNOSTIC_STORE_VERSION
-    ? emptyState()
-    : parsePersistedDiagnosticState(value);
+  if (version < 2) return emptyState();
+  if (version === 2 && isRecord(value)) {
+    return parsePersistedDiagnosticState({ ...value, checkpointVersion: 0 });
+  }
+  return parsePersistedDiagnosticState(value);
 }
 
 export function syncDiagnosticOwner(userId: string | null): void {
@@ -293,6 +337,10 @@ function isClientTime(value: unknown): value is number {
     value > 0 &&
     value <= Date.now() + 5 * 60_000
   );
+}
+
+function isCheckpointVersion(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 }
 
 function isSlots(value: unknown): value is number[] {
