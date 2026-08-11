@@ -134,7 +134,12 @@ export async function retryDiagnosticCloud(): Promise<void> {
   const context = ownerContext;
   if (context === null) return;
   await loadRemote(context);
-  if (!isCurrentContext(context)) return;
+  if (
+    !isCurrentContext(context) ||
+    useDiagnosticCloud.getState().status === "conflict"
+  ) {
+    return;
+  }
   uploadQueue.retryAll(context);
 }
 
@@ -166,8 +171,6 @@ export async function restoreCloudDiagnosticVersion(): Promise<boolean> {
     setReady(context);
     return true;
   } catch (error) {
-    uploadQueue.unblock(local.runId);
-    uploadQueue.resume(local.runId, context);
     if (!isAbortError(error) && isCurrentContext(context)) {
       useDiagnosticCloud.setState({ recoveryFailed: true });
     }
@@ -211,8 +214,6 @@ export async function keepLocalDiagnosticVersion(): Promise<boolean> {
     setReady(context);
     return true;
   } catch (error) {
-    uploadQueue.unblock(localRunId);
-    uploadQueue.resume(localRunId, context);
     if (!isAbortError(error) && isCurrentContext(context)) {
       useDiagnosticCloud.setState({ recoveryFailed: true });
     }
@@ -266,6 +267,7 @@ function reconcileRemote(
     setReady(context);
     return;
   }
+  uploadQueue.pause(local.runId as string);
   useDiagnosticCloud.setState({
     status: "conflict",
     conflict: {
