@@ -13,7 +13,7 @@ Equal chances for admission — regardless of city or income. Quality preparatio
 
 ## Current MVP
 
-- Unified FTN P1 task bank with search, filters, selected practice, exact answer checking, two-level hints, and worked solutions.
+- Unified FTN P1 task bank with search, filters, selected practice, exact answer checking, two-level hints, worked solutions, and prefilled task-specific content reports.
 - Owner-scoped resumable diagnostic, deterministic prep plan, task of the day and streak, four-hour blueprint-based mock exam, and account-synced history with an honest complete-mock score trend.
 - Current FTN entrance-exam catalog covering 29 programs and the official P1/P3-P8 groups; there is no fictional P2 or physics exam.
 - 30 independently authored tasks across all ten P1 areas. The first three complete topic packs (9 tasks) have versioned mathematical verification records; the remaining 21 stay explicitly in review.
