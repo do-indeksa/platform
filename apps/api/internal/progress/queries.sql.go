@@ -489,6 +489,119 @@ func (q *Queries) ListAttempts(ctx context.Context, userID uuid.UUID) ([]ListAtt
 	return items, nil
 }
 
+const listCompletedSimulationRuns = `-- name: ListCompletedSimulationRuns :many
+select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+from runs
+where user_id = $1
+  and kind = 'simulation'
+  and status = 'submitted'
+order by submitted_at desc, id
+limit $2
+`
+
+type ListCompletedSimulationRunsParams struct {
+	UserID uuid.UUID
+	Limit  int32
+}
+
+func (q *Queries) ListCompletedSimulationRuns(ctx context.Context, arg ListCompletedSimulationRunsParams) ([]Run, error) {
+	rows, err := q.db.Query(ctx, listCompletedSimulationRuns, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Run
+	for rows.Next() {
+		var i Run
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Kind,
+			&i.Status,
+			&i.BlueprintVersion,
+			&i.ContentRevision,
+			&i.StartedAt,
+			&i.DeadlineAt,
+			&i.SubmittedAt,
+			&i.DurationMs,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLatestRunAttemptsByRunIDs = `-- name: ListLatestRunAttemptsByRunIDs :many
+with ranked_attempt_ids as (
+    select
+        a.id,
+        row_number() over (
+            partition by a.run_item_id
+            order by coalesce(a.submitted_at, a.created_at) desc, a.id desc
+        ) as attempt_rank
+    from attempts a
+    join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+    where i.run_id = any($1::uuid[])
+      and a.user_id = $2
+)
+select a.id, a.user_id, a.task_id, a.slot, a.correct, a.source, a.created_at, a.help_level, a.public_id, a.run_item_id, a.started_at, a.submitted_at, a.active_duration_ms, a.answer, a.outcome, a.grading_kind, a.earned_points, a.max_points, a.task_revision
+from attempts a
+join ranked_attempt_ids latest on latest.id = a.id
+where latest.attempt_rank = 1
+order by coalesce(a.submitted_at, a.created_at), a.id
+`
+
+type ListLatestRunAttemptsByRunIDsParams struct {
+	RunIds []uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) ListLatestRunAttemptsByRunIDs(ctx context.Context, arg ListLatestRunAttemptsByRunIDsParams) ([]Attempt, error) {
+	rows, err := q.db.Query(ctx, listLatestRunAttemptsByRunIDs, arg.RunIds, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Attempt
+	for rows.Next() {
+		var i Attempt
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TaskID,
+			&i.Slot,
+			&i.Correct,
+			&i.Source,
+			&i.CreatedAt,
+			&i.HelpLevel,
+			&i.PublicID,
+			&i.RunItemID,
+			&i.StartedAt,
+			&i.SubmittedAt,
+			&i.ActiveDurationMs,
+			&i.Answer,
+			&i.Outcome,
+			&i.GradingKind,
+			&i.EarnedPoints,
+			&i.MaxPoints,
+			&i.TaskRevision,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listRunAttempts = `-- name: ListRunAttempts :many
 with ranked_attempt_ids as (
     select
@@ -568,6 +681,50 @@ type ListRunItemsParams struct {
 
 func (q *Queries) ListRunItems(ctx context.Context, arg ListRunItemsParams) ([]RunItem, error) {
 	rows, err := q.db.Query(ctx, listRunItems, arg.RunID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RunItem
+	for rows.Next() {
+		var i RunItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.RunID,
+			&i.UserID,
+			&i.TaskID,
+			&i.Ordinal,
+			&i.ExamPosition,
+			&i.Topic,
+			&i.MaxPoints,
+			&i.TaskRevision,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRunItemsByRunIDs = `-- name: ListRunItemsByRunIDs :many
+select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
+from run_items
+where user_id = $1
+  and run_id = any($2::uuid[])
+order by run_id, ordinal
+`
+
+type ListRunItemsByRunIDsParams struct {
+	UserID uuid.UUID
+	RunIds []uuid.UUID
+}
+
+func (q *Queries) ListRunItemsByRunIDs(ctx context.Context, arg ListRunItemsByRunIDsParams) ([]RunItem, error) {
+	rows, err := q.db.Query(ctx, listRunItemsByRunIDs, arg.UserID, arg.RunIds)
 	if err != nil {
 		return nil, err
 	}

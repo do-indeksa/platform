@@ -12,6 +12,7 @@ import (
 func TestGraphQLRequiresAuthentication(t *testing.T) {
 	for _, query := range []string{
 		`query { runs { id } }`,
+		`query { completedSimulationRuns { id } }`,
 		`query { attempts { id } }`,
 	} {
 		_, payload := graphRequest(t, query, nil, nil)
@@ -29,6 +30,8 @@ func TestGraphQLRejectsInvalidProductInput(t *testing.T) {
 	_, payload = graphRequest(t, `query { runs(limit: 101) { id } }`, nil, session)
 	requireGraphCode(t, payload, "BAD_USER_INPUT")
 	_, payload = graphRequest(t, `query { attempts(limit: 1001) { id } }`, nil, session)
+	requireGraphCode(t, payload, "BAD_USER_INPUT")
+	_, payload = graphRequest(t, `query { completedSimulationRuns(limit: 21) { id } }`, nil, session)
 	requireGraphCode(t, payload, "BAD_USER_INPUT")
 
 	_, payload = graphRequest(t, `mutation($input: RecordAttemptInput!) {
@@ -74,6 +77,17 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 	}`, nil, session)
 	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
 		t.Fatalf("wide attempt journal was accepted: %+v", payload)
+	}
+
+	archiveQuery := `completedSimulationRuns(limit: 20) {
+		id blueprintVersion contentRevision startedAt deadlineAt submittedAt activeDurationMs
+		items { taskId examPosition topic maxPoints taskRevision answer outcome earnedPoints }
+	}`
+	_, payload = graphRequest(t, "query {"+archiveQuery+"}", nil, session)
+	requireGraphSuccess(t, payload)
+	_, payload = graphRequest(t, "query { first:"+archiveQuery+" second:"+archiveQuery+"}", nil, session)
+	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
+		t.Fatalf("duplicated archive query was accepted: %+v", payload)
 	}
 
 	_, payload = graphRequest(t, `query { __schema { queryType { name } } }`, nil, session)

@@ -71,6 +71,15 @@ where user_id = $1
 order by started_at desc, id
 limit $2;
 
+-- name: ListCompletedSimulationRuns :many
+select *
+from runs
+where user_id = $1
+  and kind = 'simulation'
+  and status = 'submitted'
+order by submitted_at desc, id
+limit $2;
+
 -- name: CreateRunItem :one
 insert into run_items (
     id,
@@ -91,6 +100,13 @@ select *
 from run_items
 where run_id = $1 and user_id = $2
 order by ordinal;
+
+-- name: ListRunItemsByRunIDs :many
+select *
+from run_items
+where user_id = sqlc.arg(user_id)
+  and run_id = any(sqlc.arg(run_ids)::uuid[])
+order by run_id, ordinal;
 
 -- name: GetRunItemTarget :one
 select
@@ -156,6 +172,25 @@ select a.*
 from attempts a
 join ranked_attempt_ids recent on recent.id = a.id
 where recent.attempt_rank <= sqlc.arg(max_attempts)::integer
+order by coalesce(a.submitted_at, a.created_at), a.id;
+
+-- name: ListLatestRunAttemptsByRunIDs :many
+with ranked_attempt_ids as (
+    select
+        a.id,
+        row_number() over (
+            partition by a.run_item_id
+            order by coalesce(a.submitted_at, a.created_at) desc, a.id desc
+        ) as attempt_rank
+    from attempts a
+    join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+    where i.run_id = any(sqlc.arg(run_ids)::uuid[])
+      and a.user_id = sqlc.arg(user_id)
+)
+select a.*
+from attempts a
+join ranked_attempt_ids latest on latest.id = a.id
+where latest.attempt_rank = 1
 order by coalesce(a.submitted_at, a.created_at), a.id;
 
 -- name: SubmitRun :one

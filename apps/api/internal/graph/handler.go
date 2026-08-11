@@ -37,7 +37,19 @@ func NewHandler(resolver *Resolver) http.Handler {
 		}
 		return int(limit) * childComplexity
 	}
+	config.Complexity.Query.CompletedSimulationRuns = func(childComplexity int, limit int32) int {
+		if limit < 1 {
+			return childComplexity
+		}
+		if limit > progress.MaxCompletedSimulationRuns {
+			limit = progress.MaxCompletedSimulationRuns
+		}
+		return int(limit) * childComplexity
+	}
 	config.Complexity.Run.Items = func(childComplexity int) int {
+		return 10 * childComplexity
+	}
+	config.Complexity.CompletedSimulationRun.Items = func(childComplexity int) int {
 		return 10 * childComplexity
 	}
 	config.Complexity.RunItem.RecentAttempts = func(childComplexity int, limit int32) int {

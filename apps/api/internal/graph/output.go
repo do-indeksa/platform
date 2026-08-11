@@ -86,6 +86,81 @@ func graphRunSummary(run progress.Run) (model.RunSummary, error) {
 	}, nil
 }
 
+func graphCompletedSimulationRun(
+	aggregate progress.RunAggregate,
+) (model.CompletedSimulationRun, error) {
+	if progress.RunKind(aggregate.Run.Kind) != progress.RunKindSimulation ||
+		progress.RunStatus(aggregate.Run.Status) != progress.RunStatusSubmitted {
+		return model.CompletedSimulationRun{}, fmt.Errorf(
+			"run %s is not a completed simulation",
+			aggregate.Run.ID,
+		)
+	}
+	if !aggregate.Run.SubmittedAt.Valid {
+		return model.CompletedSimulationRun{}, fmt.Errorf(
+			"completed simulation %s has no submission time",
+			aggregate.Run.ID,
+		)
+	}
+
+	attemptsByItem := make(map[uuid.UUID]progress.Attempt, len(aggregate.Attempts))
+	for _, attempt := range aggregate.Attempts {
+		if !attempt.RunItemID.Valid {
+			return model.CompletedSimulationRun{}, fmt.Errorf(
+				"run attempt %s has no run item",
+				attempt.PublicID,
+			)
+		}
+		itemID := uuid.UUID(attempt.RunItemID.Bytes)
+		if _, duplicate := attemptsByItem[itemID]; duplicate {
+			return model.CompletedSimulationRun{}, fmt.Errorf(
+				"completed simulation item %s has multiple latest attempts",
+				itemID,
+			)
+		}
+		attemptsByItem[itemID] = attempt
+	}
+
+	items := make([]model.CompletedSimulationRunItem, len(aggregate.Items))
+	for index, item := range aggregate.Items {
+		mapped := model.CompletedSimulationRunItem{
+			TaskID:       item.TaskID,
+			ExamPosition: int32(item.ExamPosition),
+			Topic:        item.Topic,
+			MaxPoints:    graphInt16(item.MaxPoints),
+			TaskRevision: item.TaskRevision,
+		}
+		if attempt, ok := attemptsByItem[item.ID]; ok {
+			if progress.RunKind(attempt.Source) != progress.RunKindSimulation {
+				return model.CompletedSimulationRun{}, fmt.Errorf(
+					"completed simulation attempt %s has mode %q",
+					attempt.PublicID,
+					attempt.Source,
+				)
+			}
+			outcome, err := graphAttemptOutcome(attempt)
+			if err != nil {
+				return model.CompletedSimulationRun{}, err
+			}
+			mapped.Answer = attempt.Answer
+			mapped.Outcome = &outcome
+			mapped.EarnedPoints = graphInt16(attempt.EarnedPoints)
+		}
+		items[index] = mapped
+	}
+
+	return model.CompletedSimulationRun{
+		ID:               aggregate.Run.ID.String(),
+		BlueprintVersion: aggregate.Run.BlueprintVersion,
+		ContentRevision:  aggregate.Run.ContentRevision,
+		StartedAt:        aggregate.Run.StartedAt,
+		DeadlineAt:       graphTime(aggregate.Run.DeadlineAt),
+		SubmittedAt:      aggregate.Run.SubmittedAt.Time,
+		ActiveDurationMs: aggregate.Run.DurationMs,
+		Items:            items,
+	}, nil
+}
+
 func graphAttempt(attempt progress.Attempt, item *progress.RunItem) (model.Attempt, error) {
 	mode, err := graphRunKind(attempt.Source)
 	if err != nil {

@@ -86,6 +86,24 @@ func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) (
 	return runs, err
 }
 
+func (s *Service) ListCompletedSimulationRuns(
+	ctx context.Context,
+	userID uuid.UUID,
+	limit int32,
+) ([]RunAggregate, error) {
+	if limit < 1 || limit > MaxCompletedSimulationRuns {
+		return nil, invalidInput("limit")
+	}
+	runs, err := s.queries.ListCompletedSimulationRuns(ctx, ListCompletedSimulationRunsParams{
+		UserID: userID,
+		Limit:  limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return loadCompletedSimulationRuns(ctx, s.queries, userID, runs)
+}
+
 func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitRunInput) (RunAggregate, error) {
 	if input.ID == uuid.Nil {
 		return RunAggregate{}, invalidInput("id")

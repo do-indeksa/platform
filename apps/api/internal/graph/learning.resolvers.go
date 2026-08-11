@@ -120,6 +120,26 @@ func (r *queryResolver) Runs(ctx context.Context, limit int32) ([]model.RunSumma
 	return result, nil
 }
 
+// CompletedSimulationRuns is the resolver for the completedSimulationRuns field.
+func (r *queryResolver) CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	runs, err := r.progress.ListCompletedSimulationRuns(ctx, user.ID, limit)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result := make([]model.CompletedSimulationRun, len(runs))
+	for index, run := range runs {
+		result[index], err = graphCompletedSimulationRun(run)
+		if err != nil {
+			return nil, presentError(ctx, err)
+		}
+	}
+	return result, nil
+}
+
 // Attempts is the resolver for the attempts field.
 func (r *queryResolver) Attempts(ctx context.Context, limit int32) ([]model.Attempt, error) {
 	user, err := requestUser(ctx)

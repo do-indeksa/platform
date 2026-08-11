@@ -31,8 +31,9 @@ const (
 )
 
 const (
-	MaxRecentRunItemAttempts int32 = 20
-	MaxAttemptJournalEntries int32 = 1000
+	MaxRecentRunItemAttempts   int32 = 20
+	MaxAttemptJournalEntries   int32 = 1000
+	MaxCompletedSimulationRuns int32 = 20
 )
 
 type AttemptOutcome string
