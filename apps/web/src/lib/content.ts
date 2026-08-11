@@ -15,6 +15,12 @@ export type Topic = {
   prefix: string;
 };
 
+export type TaskRubricCriterion = {
+  id: string;
+  points: number;
+  text: string;
+};
+
 export type Task = {
   id: string;
   revision: string;
@@ -25,6 +31,7 @@ export type Task = {
   status: "draft" | "review" | "verified";
   answer: string;
   check: CheckPart[];
+  rubric: TaskRubricCriterion[];
   statement: string;
   hints: string[];
   solution: string;
@@ -150,14 +157,58 @@ async function readTask(filePath: string): Promise<Task> {
   const { data, content } = matter(raw);
   const sections = parseSections(content);
   return {
-    ...(data as Omit<Task, "revision" | "statement" | "hints" | "solution">),
+    ...(data as Omit<
+      Task,
+      "revision" | "rubric" | "statement" | "hints" | "solution"
+    >),
     revision: `sha256:${createHash("sha256").update(raw).digest("hex")}`,
+    rubric: parseTaskRubric(data.rubric, filePath),
     statement: sections.get("Zadatak") ?? "",
     hints: [sections.get("Nagoveštaj 1"), sections.get("Nagoveštaj 2")].filter(
       (hint) => hint !== undefined,
     ),
     solution: sections.get("Rešenje") ?? "",
   };
+}
+
+function parseTaskRubric(
+  value: unknown,
+  filePath: string,
+): TaskRubricCriterion[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length < 1 || value.length > 10) {
+    throw new Error(`${filePath}: rubric must contain 1-10 criteria`);
+  }
+  const ids = new Set<string>();
+  return value.map((candidate, index) => {
+    if (
+      typeof candidate !== "object" ||
+      candidate === null ||
+      Array.isArray(candidate)
+    ) {
+      throw new Error(`${filePath}: rubric criterion ${index + 1} is invalid`);
+    }
+    const criterion = candidate as Record<string, unknown>;
+    if (
+      typeof criterion.id !== "string" ||
+      !/^[a-z0-9-]{1,32}$/.test(criterion.id) ||
+      ids.has(criterion.id) ||
+      !Number.isInteger(criterion.points) ||
+      (criterion.points as number) < 1 ||
+      (criterion.points as number) > 60 ||
+      typeof criterion.text !== "string" ||
+      criterion.text.trim().length < 1 ||
+      criterion.text.length > 1_000
+    ) {
+      throw new Error(`${filePath}: rubric criterion ${index + 1} is invalid`);
+    }
+    ids.add(criterion.id);
+    return {
+      id: criterion.id,
+      points: criterion.points as number,
+      text: criterion.text,
+    };
+  });
 }
 
 function parseSections(content: string): Map<string, string> {

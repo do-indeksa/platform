@@ -10,6 +10,7 @@ import {
   getTopics,
   taskSetRevision,
 } from "./content";
+import { getP1Blueprint } from "./exam-blueprint";
 import { markdownToPlainText, renderMarkdown } from "./markdown";
 import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
 
@@ -162,6 +163,41 @@ describe("task files", () => {
         expect(checkAnswer(part, part.expected), partName).toBe("correct");
       }
 
+      if (data.rubric !== undefined) {
+        expect(data.status, `${fileName}: rubric status`).toBe("verified");
+        expect(Array.isArray(data.rubric), `${fileName}: rubric`).toBe(true);
+        expect(data.rubric.length, `${fileName}: rubric`).toBeGreaterThan(0);
+        expect(data.rubric.length, `${fileName}: rubric`).toBeLessThanOrEqual(
+          10,
+        );
+        const criterionIds = new Set<string>();
+        for (const criterion of data.rubric as Record<string, unknown>[]) {
+          expect(criterion.id, `${fileName}: rubric id`).toMatch(
+            /^[a-z0-9-]{1,32}$/,
+          );
+          expect(
+            criterionIds.has(criterion.id as string),
+            `${fileName}: duplicate rubric id`,
+          ).toBe(false);
+          criterionIds.add(criterion.id as string);
+          expect(
+            Number.isInteger(criterion.points),
+            `${fileName}: rubric points`,
+          ).toBe(true);
+          expect(
+            criterion.points,
+            `${fileName}: rubric points`,
+          ).toBeGreaterThan(0);
+          expect(typeof criterion.text, `${fileName}: rubric text`).toBe(
+            "string",
+          );
+          expect(
+            (criterion.text as string).trim(),
+            `${fileName}: rubric text`,
+          ).not.toBe("");
+        }
+      }
+
       const hintCount = (content.match(/^## Nagoveštaj [12]$/gm) ?? []).length;
       expect(hintCount, `${fileName}: hints`).toBeLessThanOrEqual(2);
       if (hintCount === 2) {
@@ -170,6 +206,39 @@ describe("task files", () => {
         );
       }
     }
+  });
+
+  it("bounds reviewed rubric totals to one point below an exact answer", async () => {
+    const blueprints = await Promise.all([
+      getP1Blueprint("2025.1"),
+      getP1Blueprint("2026.1"),
+    ]);
+    const rubricTasks = new Set<string>();
+    for (const blueprint of blueprints) {
+      for (const position of blueprint.positions) {
+        for (const topic of position.topicSlugs) {
+          for (const task of await getTasks(topic)) {
+            if (task.rubric.length === 0) continue;
+            rubricTasks.add(task.id);
+            expect(
+              task.rubric.reduce((sum, criterion) => sum + criterion.points, 0),
+              `${blueprint.version}: ${task.id}`,
+            ).toBe(position.maxPoints - 1);
+          }
+        }
+      }
+    }
+    expect([...rubricTasks].toSorted()).toEqual([
+      "kb-001",
+      "kb-002",
+      "kb-003",
+      "kv-001",
+      "kv-002",
+      "kv-003",
+      "log-001",
+      "log-002",
+      "log-003",
+    ]);
   });
 
   it("statements and solutions render without KaTeX errors", async () => {
