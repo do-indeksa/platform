@@ -9,6 +9,7 @@ import {
   parseSimulationHistory,
 } from "./simulation-history-persistence";
 import { isLearningRunOwner } from "./learning-run-owner";
+import { normalizeSimulationRubricScores } from "./simulation-rubric";
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import {
   SIMULATION_MAX_ANSWER_PARTS,
@@ -42,6 +43,7 @@ export type PersistedSimulationState = {
   timedOut: boolean;
   results: SimulationGradeItem[];
   review: SimulationReviewItem[];
+  rubricScores: (number | null)[];
   history: SimulationHistoryEntry[];
 };
 
@@ -71,6 +73,7 @@ export function emptySimulationState(
     timedOut: false,
     results: [],
     review: [],
+    rubricScores: [],
     history,
   };
 }
@@ -94,8 +97,17 @@ export function migrateSimulationState(
       : emptySimulationState();
     return emptySimulationState(legacy.history);
   }
-  if (version === 8 && isRecord(value)) {
-    return parsePersistedSimulationState({ ...value, checkpointVersion: 0 });
+  if ((version === 8 || version === 9) && isRecord(value)) {
+    const resultCount = Array.isArray(value.results) ? value.results.length : 0;
+    return parsePersistedSimulationState({
+      ...value,
+      ...(version === 8 ? { checkpointVersion: 0 } : {}),
+      ...(value.phase === "submitting"
+        ? { phase: "running", submittedAt: null, timedOut: false }
+        : {}),
+      rubricScores:
+        value.phase === "done" ? Array<null>(resultCount).fill(null) : [],
+    });
   }
   return parsePersistedSimulationState(value);
 }
@@ -106,6 +118,12 @@ export function parsePersistedSimulationState(
   if (!isRecord(value)) return emptySimulationState();
   const history = parseSimulationHistory(value.history);
   if (value.phase === null) return emptySimulationState(history);
+  const rubricScores =
+    value.rubricScores === undefined
+      ? value.phase === "done" && Array.isArray(value.results)
+        ? Array<null>(value.results.length).fill(null)
+        : []
+      : value.rubricScores;
   if (
     !isSimulationRunId(value.runId) ||
     !isLearningRunOwner(value.runOwnerId) ||
@@ -121,6 +139,7 @@ export function parsePersistedSimulationState(
     !isSkipped(value.skipped, value.answers) ||
     (value.phase !== "running" &&
       value.phase !== "submitting" &&
+      value.phase !== "reviewing" &&
       value.phase !== "done") ||
     !isTimestamp(value.startedAt) ||
     !Number.isInteger(value.currentIndex) ||
@@ -129,25 +148,44 @@ export function parsePersistedSimulationState(
     !isOptionalTimestamp(value.savedAt) ||
     typeof value.timedOut !== "boolean" ||
     !Array.isArray(value.results) ||
-    !Array.isArray(value.review)
+    !Array.isArray(value.review) ||
+    !Array.isArray(rubricScores)
   ) {
     return emptySimulationState(history);
   }
 
   const tasks = value.tasks as SimulationTaskView[];
-  const active = value.phase === "running" || value.phase === "submitting";
+  const active =
+    value.phase === "running" ||
+    value.phase === "submitting" ||
+    value.phase === "reviewing";
+  const grade = isGradeItems(value.results, tasks)
+    ? (value.results as SimulationGradeItem[])
+    : null;
+  const review = parseSimulationReviewItems(value.review, tasks);
   if (
     (active && !isTimestamp(value.endsAt)) ||
     (active && (value.endsAt as number) <= (value.startedAt as number)) ||
-    (active && value.submittedAt !== null) ||
-    (active && value.results.length !== 0) ||
-    (active && value.review.length !== 0) ||
+    (value.phase === "running" && value.submittedAt !== null) ||
+    (value.phase !== "running" && !isTimestamp(value.submittedAt)) ||
+    ((value.phase === "running" || value.phase === "submitting") &&
+      value.results.length !== 0) ||
+    ((value.phase === "running" || value.phase === "submitting") &&
+      value.review.length !== 0) ||
+    (value.phase === "running" && rubricScores.length !== 0) ||
+    (value.phase === "submitting" &&
+      !isPendingRubricScores(rubricScores, tasks)) ||
     (value.phase === "running" && value.timedOut) ||
+    (value.phase === "reviewing" &&
+      (grade === null ||
+        review === null ||
+        normalizeSimulationRubricScores(grade, review, rubricScores) ===
+          null)) ||
     (value.phase === "done" && value.endsAt !== null) ||
-    (value.phase === "done" && !isTimestamp(value.submittedAt)) ||
-    (value.phase === "done" && !isGradeItems(value.results, tasks)) ||
     (value.phase === "done" &&
-      parseSimulationReviewItems(value.review, tasks) === null)
+      (grade === null ||
+        review === null ||
+        !isFinalRubricState(grade, review, rubricScores)))
   ) {
     return emptySimulationState(history);
   }
@@ -164,18 +202,23 @@ export function parsePersistedSimulationState(
     phase: value.phase,
     startedAt: value.startedAt,
     endsAt: active ? (value.endsAt as number) : null,
-    submittedAt: value.phase === "done" ? (value.submittedAt as number) : null,
+    submittedAt:
+      value.phase === "running" ? null : (value.submittedAt as number),
     currentIndex: value.currentIndex as number,
     savedAt: value.savedAt as number | null,
     timedOut: value.timedOut,
     results:
-      value.phase === "done"
-        ? (value.results as SimulationGradeItem[]).map((item) => ({ ...item }))
+      value.phase === "reviewing" || value.phase === "done"
+        ? (grade as SimulationGradeItem[]).map((item) => ({ ...item }))
         : [],
     review:
-      value.phase === "done"
-        ? (value.review as SimulationReviewItem[]).map((item) => ({ ...item }))
+      value.phase === "reviewing" || value.phase === "done"
+        ? (review as SimulationReviewItem[]).map(cloneReviewItem)
         : [],
+    rubricScores:
+      value.phase === "running"
+        ? []
+        : (rubricScores as (number | null)[]).map((score) => score),
     history,
   };
 }
@@ -263,16 +306,68 @@ function isGradeItems(
       return (
         item.taskId === task.id &&
         (item.outcome === "correct" ||
+          item.outcome === "partial" ||
           item.outcome === "incorrect" ||
           item.outcome === "unanswered") &&
         isFiniteInteger(item.earnedPoints, 0, task.maxPoints) &&
         item.maxPoints === task.maxPoints &&
         (item.outcome === "correct"
           ? item.earnedPoints === task.maxPoints
-          : item.earnedPoints === 0)
+          : item.outcome === "partial"
+            ? item.earnedPoints > 0 && item.earnedPoints < task.maxPoints
+            : item.earnedPoints === 0)
       );
     })
   );
+}
+
+function isPendingRubricScores(
+  value: unknown[],
+  tasks: SimulationTaskView[],
+): boolean {
+  return (
+    value.length === 0 ||
+    (value.length === tasks.length &&
+      value.every(
+        (score, index) =>
+          score === null ||
+          isFiniteInteger(score, 0, tasks[index].maxPoints - 1),
+      ))
+  );
+}
+
+function isFinalRubricState(
+  results: SimulationGradeItem[],
+  review: SimulationReviewItem[],
+  scores: unknown[],
+): boolean {
+  if (scores.length !== results.length) return false;
+  return results.every((result, index) => {
+    const score = scores[index];
+    const rubricMax = review[index].rubric.reduce(
+      (sum, criterion) => sum + criterion.points,
+      0,
+    );
+    const eligible = result.outcome !== "correct" && rubricMax > 0;
+    if (score === null) return !eligible && result.outcome !== "partial";
+    if (
+      !isFiniteInteger(score, 0, rubricMax) ||
+      result.outcome === "correct" ||
+      rubricMax >= result.maxPoints
+    ) {
+      return false;
+    }
+    return score === 0
+      ? result.outcome === "incorrect" || result.outcome === "unanswered"
+      : result.outcome === "partial" && result.earnedPoints === score;
+  });
+}
+
+function cloneReviewItem(item: SimulationReviewItem): SimulationReviewItem {
+  return {
+    ...item,
+    rubric: item.rubric.map((criterion) => ({ ...criterion })),
+  };
 }
 
 function cloneTask(task: SimulationTaskView): SimulationTaskView {

@@ -4,7 +4,11 @@ import {
   parseActiveSimulationRunIds,
   parseSimulationCloudRun,
 } from "./simulation-cloud-parser";
-import { progressAttemptId, progressRunItemId } from "./progress-run";
+import {
+  progressAttemptId,
+  progressRubricAttemptId,
+  progressRunItemId,
+} from "./progress-run";
 import type { ProgressCloudCatalog } from "./progress-cloud-types";
 import type { SimulationTaskView } from "./simulation-types";
 
@@ -63,9 +67,11 @@ describe("simulation cloud parser", () => {
           ...Array.from({ length: 7 }, () => [""]),
         ],
         skipped: [false, true, ...Array(8).fill(false)],
+        rubricScores: [],
         phase: "running",
         startedAt: Date.parse(startedAt),
         endsAt: Date.parse("2026-08-10T14:00:00.000Z"),
+        submittedAt: null,
         currentIndex: 3,
         savedAt: Date.parse("2026-08-10T10:02:00.000Z"),
         timedOut: false,
@@ -131,6 +137,52 @@ describe("simulation cloud parser", () => {
       skipped: [false, true, ...Array(8).fill(false)],
       currentIndex: 2,
       timedOut: false,
+    });
+  });
+
+  it("recovers a later rubric attempt without replacing the submitted answer", () => {
+    const run = cloudRun();
+    run.checkpoint = checkpoint(2, [
+      draft(run, 0, '["42"]'),
+      draft(run, 1, '["wrong"]'),
+    ]);
+    addAttempt(run, 0, "CORRECT", '["42"]', 6);
+    addAttempt(run, 1, "INCORRECT", '["wrong"]', 0);
+    addRubricAttempt(run, 1, 4, '["wrong"]');
+
+    expect(
+      parseSimulationCloudRun(run, catalog, ownerId)?.runtime,
+    ).toMatchObject({
+      phase: "submitting",
+      submittedAt: Date.parse(submittedAt),
+      answers: [
+        ["42"],
+        ["wrong"],
+        ["", ""],
+        ...Array.from({ length: 7 }, () => [""]),
+      ],
+      rubricScores: [null, 4, ...Array(8).fill(null)],
+    });
+  });
+
+  it("keeps an unanswered final answer eligible for rubric partial credit", () => {
+    const run = cloudRun();
+    run.checkpoint = checkpoint(1, [draft(run, 0, '[""]')]);
+    addAttempt(run, 0, "SKIPPED", null, null);
+    addRubricAttempt(run, 0, 3, '[""]');
+
+    expect(
+      parseSimulationCloudRun(run, catalog, ownerId)?.runtime,
+    ).toMatchObject({
+      phase: "submitting",
+      answers: [
+        [""],
+        [""],
+        ["", ""],
+        ...Array.from({ length: 7 }, () => [""]),
+      ],
+      skipped: [true, ...Array(9).fill(false)],
+      rubricScores: [3, ...Array(9).fill(null)],
     });
   });
 
@@ -317,6 +369,33 @@ function addAttempt(
       taskRevision: task.revision,
     },
   ];
+}
+
+function addRubricAttempt(
+  run: CloudRun,
+  index: number,
+  earnedPoints: number,
+  answer: string,
+): void {
+  const item = run.items[index];
+  const task = catalog.positions[index].candidates[0];
+  item.recentAttempts.push({
+    id: progressRubricAttemptId(item.id),
+    runItemId: item.id,
+    taskId: task.id,
+    examPosition: item.examPosition,
+    mode: "SIMULATION",
+    startedAt,
+    submittedAt,
+    activeDurationMs: null,
+    answer,
+    outcome: "PARTIAL",
+    helpLevel: 0,
+    gradingKind: "RUBRIC_SELF",
+    earnedPoints,
+    maxPoints: item.maxPoints,
+    taskRevision: task.revision,
+  });
 }
 
 function taskViews(): SimulationTaskView[] {

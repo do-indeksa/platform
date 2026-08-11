@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseCompletedProgressRun,
   progressAttemptId,
+  progressRubricAttemptId,
   progressRunItemId,
   type CompletedProgressRun,
 } from "./progress-run";
@@ -69,6 +70,22 @@ describe("completed progress runs", () => {
     expect(progressRunItemId(runId, "kb-001")).toBe(itemId);
     expect(progressRunItemId(runId, "kv-001")).not.toBe(itemId);
     expect(progressAttemptId(itemId)).toBe(progressAttemptId(itemId));
+    expect(progressRubricAttemptId(itemId)).not.toBe(progressAttemptId(itemId));
+  });
+
+  it("accepts a bounded self-assessed partial attempt on its own ID", () => {
+    const run = completedRun();
+    const item = run.items[0];
+    item.maxPoints = 6;
+    item.attempt = {
+      ...item.attempt,
+      id: progressRubricAttemptId(item.id),
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      earnedPoints: 4,
+    };
+
+    expect(parseCompletedProgressRun(run)).toEqual(run);
   });
 
   it.each([

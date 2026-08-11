@@ -25,13 +25,18 @@ export function mergeSimulationCloudState(
 ): PersistedSimulationState | null {
   const cloud = remote.runtime;
   if (
-    (local.phase !== "running" && local.phase !== "submitting") ||
+    (local.phase !== "running" &&
+      local.phase !== "submitting" &&
+      local.phase !== "reviewing") ||
     local.runId !== cloud.runId ||
     local.runOwnerId !== cloud.runOwnerId ||
     local.blueprintVersion !== cloud.blueprintVersion ||
     local.contentRevision !== cloud.contentRevision ||
     local.startedAt !== cloud.startedAt ||
     local.endsAt !== cloud.endsAt ||
+    (local.submittedAt !== null &&
+      cloud.submittedAt !== null &&
+      local.submittedAt !== cloud.submittedAt) ||
     local.checkpointVersion > cloud.checkpointVersion ||
     local.tasks.length !== cloud.tasks.length ||
     local.answers.length !== cloud.answers.length ||
@@ -73,6 +78,12 @@ export function mergeSimulationCloudState(
       skipped[index] = cloud.skipped[index];
     }
   }
+  const rubricScores = mergeRubricScores(
+    local.rubricScores,
+    cloud.rubricScores,
+    local.tasks.length,
+  );
+  if (rubricScores === null) return null;
 
   const remoteIsNewer = cloud.checkpointVersion > local.checkpointVersion;
   return {
@@ -80,14 +91,46 @@ export function mergeSimulationCloudState(
     checkpointVersion: cloud.checkpointVersion,
     answers,
     skipped,
+    rubricScores,
     phase:
-      local.phase === "submitting" || cloud.phase === "submitting"
-        ? "submitting"
-        : "running",
+      local.phase === "reviewing"
+        ? "reviewing"
+        : local.phase === "submitting" || cloud.phase === "submitting"
+          ? "submitting"
+          : "running",
+    submittedAt: local.submittedAt ?? cloud.submittedAt,
     currentIndex: remoteIsNewer ? cloud.currentIndex : local.currentIndex,
     savedAt: latestTimestamp(local.savedAt, cloud.savedAt),
     timedOut: local.timedOut || cloud.timedOut,
   };
+}
+
+function mergeRubricScores(
+  local: readonly (number | null)[],
+  remote: readonly (number | null)[],
+  taskCount: number,
+): (number | null)[] | null {
+  const localScores =
+    local.length === 0 ? Array<null>(taskCount).fill(null) : local;
+  const remoteScores =
+    remote.length === 0 ? Array<null>(taskCount).fill(null) : remote;
+  if (localScores.length !== taskCount || remoteScores.length !== taskCount) {
+    return null;
+  }
+  if (
+    localScores.some(
+      (score, index) =>
+        score !== null &&
+        remoteScores[index] !== null &&
+        score !== remoteScores[index],
+    )
+  ) {
+    return null;
+  }
+  const merged = localScores.map(
+    (score, index) => score ?? remoteScores[index],
+  );
+  return local.length === 0 && remote.length === 0 ? [] : merged;
 }
 
 function touched(answers: readonly string[], skipped: boolean): boolean {

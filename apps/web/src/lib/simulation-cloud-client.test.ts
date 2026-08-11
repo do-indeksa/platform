@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SimulationGraphQLError,
   abandonSimulationCloudRun,
+  uploadSimulationAutoGradeRun,
   uploadSimulationCloudRun,
 } from "./simulation-cloud-client";
 import {
@@ -12,6 +13,7 @@ import type {
   SimulationProgressItem,
   SimulationTaskView,
 } from "./simulation-types";
+import { buildSimulationAutoGradeRun } from "./simulation-progress";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const ownerId = "39ec4650-762d-437f-9917-c31ab167cb99";
@@ -125,6 +127,50 @@ describe("simulation cloud client", () => {
       ),
     ).rejects.toMatchObject({ name: "AbortError" });
     expect(calls).toHaveLength(1);
+  });
+
+  it("uploads stable auto attempts without submitting the active run", async () => {
+    const calls: GraphQLBody[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string) as GraphQLBody;
+        calls.push(body);
+        if (body.operationName === "StartRun") {
+          return response({ startRun: { id: runId, status: "ACTIVE" } });
+        }
+        const input = body.variables.input;
+        return response({ recordAttempt: { id: input.id } });
+      }),
+    );
+    const state = {
+      ...activeState(),
+      phase: "submitting" as const,
+      submittedAt: startedAt + 3 * 60_000,
+    };
+    const results = taskViews.map((task, index) => ({
+      taskId: task.id,
+      outcome: index === 1 ? ("unanswered" as const) : ("incorrect" as const),
+      earnedPoints: 0,
+      maxPoints: task.maxPoints,
+    }));
+    const run = buildSimulationAutoGradeRun(state, results);
+    expect(run).not.toBeNull();
+
+    await uploadSimulationAutoGradeRun(run!, () => true);
+
+    expect(calls.map(({ operationName }) => operationName)).toEqual([
+      "StartRun",
+      ...Array(10).fill("RecordAttempt"),
+    ]);
+    expect(
+      calls.some(({ operationName }) => operationName === "SubmitRun"),
+    ).toBe(false);
+    expect(
+      calls
+        .slice(1)
+        .every(({ variables }) => variables.input.gradingKind === "AUTO"),
+    ).toBe(true);
   });
 
   it("preserves coded GraphQL conflicts for explicit recovery", async () => {

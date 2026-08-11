@@ -11,8 +11,13 @@ import {
   finishSimulationCloudUpload,
   hydrateDiscoveredSimulationRun,
   scheduleSimulationCloudUpload,
+  syncSimulationAutoGradeRun,
 } from "@/lib/simulation-cloud-sync";
-import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
+import {
+  buildSimulationAutoGradeRun,
+  persistCompletedSimulationRun,
+} from "@/lib/simulation-progress";
+import { simulationRubricIndexes } from "@/lib/simulation-rubric";
 import {
   isSimulationActive,
   useSimulation,
@@ -31,6 +36,7 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { useSimulationCloudBootstrap } from "@/lib/use-simulation-cloud";
 import { SimulationCloudConflictNotice } from "./simulation-cloud-conflict";
 import { SimulationQuestion } from "./simulation-question";
+import { SimulationRubricReview } from "./simulation-rubric-review";
 import { RunNotice, SubmissionStatus } from "./simulation-status";
 
 export function SimulationRuntime({
@@ -75,6 +81,33 @@ export function SimulationRuntime({
       })),
     [tasks],
   );
+
+  const finishReview = useCallback(() => {
+    const state = useSimulation.getState();
+    if (
+      state.runId !== run.runId ||
+      state.blueprintVersion !== run.blueprintVersion ||
+      !state.finishReview()
+    ) {
+      return false;
+    }
+    finishSimulationCloudUpload(run.runId);
+    const completed = useSimulation.getState();
+    const entry = completed.history.find(
+      (candidate) => candidate.id === run.runId,
+    );
+    if (entry) persistCompletedSimulationRun(entry);
+    for (const [index, result] of completed.results.entries()) {
+      if (result.outcome === "correct") {
+        trackTaskSolved({
+          source: "mock",
+          position: completed.tasks[index].examPosition,
+        });
+      }
+    }
+    router.replace(resultHref);
+    return true;
+  }, [resultHref, router, run.blueprintVersion, run.runId]);
 
   useEffect(() => {
     submissionAttempted.current = false;
@@ -195,29 +228,23 @@ export function SimulationRuntime({
       };
       const results = parseSimulationGradeItems(payload.results, state.tasks);
       const review = parseSimulationReviewItems(payload.review, state.tasks);
-      const finishedAt = Date.now();
-      if (!results || !review || !state.finish(results, review, finishedAt)) {
+      if (!results || !review) {
         throw new Error("invalid grade response");
       }
-      finishSimulationCloudUpload(run.runId);
-      const entry = useSimulation
-        .getState()
-        .history.find((candidate) => candidate.id === run.runId);
-      if (entry) persistCompletedSimulationRun(entry);
-      for (const [index, result] of results.entries()) {
-        if (result.outcome === "correct") {
-          trackTaskSolved({
-            source: "mock",
-            position: state.tasks[index].examPosition,
-          });
-        }
+      const progressRun = buildSimulationAutoGradeRun(state, results);
+      if (
+        progressRun === null ||
+        !(await syncSimulationAutoGradeRun(progressRun)) ||
+        !useSimulation.getState().receiveGrade(results, review)
+      ) {
+        throw new Error("invalid grade transition");
       }
-      router.replace(resultHref);
+      if (simulationRubricIndexes(results, review).length === 0) finishReview();
     } catch {
       submissionAttempted.current = false;
       setSubmissionError(true);
     }
-  }, [resultHref, router, run.blueprintVersion, run.runId]);
+  }, [finishReview, run.blueprintVersion, run.runId]);
 
   useEffect(() => {
     if (
@@ -250,7 +277,7 @@ export function SimulationRuntime({
       },
       true,
     );
-    if (!state.beginSubmission(expired)) return;
+    if (!state.beginSubmission(expired, Date.now())) return;
     submissionAttempted.current = true;
     void submitCurrent();
   };
@@ -322,6 +349,9 @@ export function SimulationRuntime({
         }}
       />
     );
+  }
+  if (phase === "reviewing" && activeRunId === run.runId) {
+    return <SimulationRubricReview onComplete={finishReview} />;
   }
   if (phase === "running" && activeRunId === run.runId) {
     return (

@@ -7,7 +7,11 @@ import {
   parsePersistedSimulationState,
   type PersistedSimulationState,
 } from "./simulation-persistence";
-import { progressRunItemId } from "./progress-run";
+import {
+  parseCompletedProgressRun,
+  progressRunItemId,
+  type CompletedProgressRun,
+} from "./progress-run";
 import type { ProgressCloudCatalog } from "./progress-cloud-types";
 import type { SimulationProgressItem } from "./simulation-types";
 
@@ -77,6 +81,12 @@ const START_RUN = `
 const CHECKPOINT_RUN = `
   mutation CheckpointRun($input: CheckpointRunInput!) {
     checkpointRun(input: $input) { version currentOrdinal }
+  }
+`;
+
+const RECORD_ATTEMPT = `
+  mutation RecordAttempt($input: RecordAttemptInput!) {
+    recordAttempt(input: $input) { id }
   }
 `;
 
@@ -218,6 +228,73 @@ export async function uploadSimulationCloudRun(
     throw new Error("checkpoint mutation returned invalid data");
   }
   return checkpoint.version;
+}
+
+export async function uploadSimulationAutoGradeRun(
+  value: CompletedProgressRun,
+  isCurrentOwner: () => boolean,
+  signal?: AbortSignal,
+): Promise<void> {
+  const run = parseCompletedProgressRun(value);
+  if (
+    run === null ||
+    run.kind !== "SIMULATION" ||
+    run.items.some((item) => item.attempt.gradingKind !== "AUTO")
+  ) {
+    throw new TypeError("simulation auto grade is inconsistent");
+  }
+  requireCurrentOwner(isCurrentOwner);
+  const started = await requestGraphQL(
+    "StartRun",
+    START_RUN,
+    {
+      input: {
+        id: run.id,
+        kind: run.kind,
+        blueprintVersion: run.blueprintVersion,
+        contentRevision: run.contentRevision,
+        startedAt: run.startedAt,
+        items: run.items.map((item) => ({
+          id: item.id,
+          taskId: item.taskId,
+          examPosition: item.examPosition,
+          topic: item.topic,
+          maxPoints: item.maxPoints,
+          taskRevision: item.taskRevision,
+        })),
+      },
+    },
+    "startRun",
+    signal,
+  );
+  requireResult(started, run.id, "ACTIVE");
+
+  for (const item of run.items) {
+    requireCurrentOwner(isCurrentOwner);
+    const attempt = item.attempt;
+    const recorded = await requestGraphQL(
+      "RecordAttempt",
+      RECORD_ATTEMPT,
+      {
+        input: {
+          id: attempt.id,
+          runItemId: item.id,
+          startedAt: attempt.startedAt,
+          submittedAt: attempt.submittedAt,
+          ...(attempt.answer === undefined ? {} : { answer: attempt.answer }),
+          outcome: attempt.outcome,
+          helpLevel: attempt.helpLevel,
+          gradingKind: attempt.gradingKind,
+          ...(attempt.earnedPoints === undefined
+            ? {}
+            : { earnedPoints: attempt.earnedPoints }),
+        },
+      },
+      "recordAttempt",
+      signal,
+    );
+    requireResult(recorded, attempt.id);
+  }
 }
 
 export async function abandonSimulationCloudRun(

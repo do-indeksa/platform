@@ -6,6 +6,7 @@ import {
   abandonSimulationCloudRun,
   fetchLatestSimulationCloudRun,
   fetchSimulationCloudRun,
+  uploadSimulationAutoGradeRun,
   type SimulationCloudUpload,
 } from "./simulation-cloud-client";
 import {
@@ -24,6 +25,7 @@ import {
 } from "./simulation-persistence";
 import { isSimulationActive, useSimulation } from "./simulation-store";
 import type { ProgressCloudCatalog } from "./progress-cloud-types";
+import type { CompletedProgressRun } from "./progress-run";
 import { withRunSyncLock } from "./run-sync-lock";
 import type { SimulationTaskView } from "./simulation-types";
 
@@ -116,6 +118,39 @@ export function scheduleSimulationCloudUpload(
 
 export function finishSimulationCloudUpload(runId: string): void {
   uploadQueue.finish(runId);
+}
+
+export async function syncSimulationAutoGradeRun(
+  run: CompletedProgressRun,
+): Promise<boolean> {
+  const context = ownerContext;
+  if (context === null) return true;
+  const state = useSimulation.getState();
+  if (
+    state.runId !== run.id ||
+    state.runOwnerId !== context.ownerId ||
+    !isCurrentContext(context)
+  ) {
+    return false;
+  }
+  uploadQueue.pause(run.id);
+  try {
+    await withRunSyncLock(run.id, () =>
+      uploadSimulationAutoGradeRun(
+        run,
+        () => isCurrentContext(context),
+        context.controller.signal,
+      ),
+    );
+    if (!isCurrentContext(context)) return false;
+    setReady(context);
+    return true;
+  } catch (error) {
+    if (!isAbortError(error) && isCurrentContext(context)) {
+      useSimulationCloud.setState({ status: "offline" });
+    }
+    return false;
+  }
 }
 
 export function hydrateDiscoveredSimulationRun(

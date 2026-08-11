@@ -275,11 +275,97 @@ describe("simulation persistence", () => {
     ).toEqual(emptySimulationState([entry]));
   });
 
-  it("treats only running and submitting phases as active", () => {
+  it("treats the answer, submission, and rubric phases as active", () => {
     expect(isSimulationActive("running")).toBe(true);
     expect(isSimulationActive("submitting")).toBe(true);
+    expect(isSimulationActive("reviewing")).toBe(true);
     expect(isSimulationActive("done")).toBe(false);
     expect(isSimulationActive(null)).toBe(false);
+  });
+
+  it("keeps submission time stable and finalizes an explicit partial score", () => {
+    useSimulation.setState({
+      ...runningState(),
+      runOwnerId: userA,
+      answers: [["wrong"]],
+      authOwnerId: userA,
+    });
+    const submittedAt = startedAt + 60_000;
+    expect(useSimulation.getState().beginSubmission(false, submittedAt)).toBe(
+      true,
+    );
+    expect(useSimulation.getState()).toMatchObject({
+      phase: "submitting",
+      submittedAt,
+    });
+
+    expect(
+      useSimulation.getState().receiveGrade(
+        [
+          {
+            taskId: task.id,
+            outcome: "incorrect",
+            earnedPoints: 0,
+            maxPoints: 6,
+          },
+        ],
+        [
+          {
+            taskId: task.id,
+            correctAnswer: "2",
+            solution: "Solution",
+            rubric: [
+              { id: "model", points: 2, text: "Model" },
+              { id: "work", points: 2, text: "Work" },
+              { id: "check", points: 1, text: "Check" },
+            ],
+          },
+        ],
+      ),
+    ).toBe(true);
+    expect(useSimulation.getState()).toMatchObject({
+      phase: "reviewing",
+      submittedAt,
+      rubricScores: [null],
+    });
+    expect(useSimulation.getState().finishReview()).toBe(false);
+    expect(useSimulation.getState().setRubricScore(0, 3)).toBe(true);
+    expect(useSimulation.getState().finishReview()).toBe(true);
+    expect(useSimulation.getState()).toMatchObject({
+      phase: "done",
+      submittedAt,
+      rubricScores: [3],
+      results: [{ outcome: "partial", earnedPoints: 3 }],
+      history: [
+        {
+          id: runId,
+          finishedAt: submittedAt,
+          score: 3,
+          rubricScores: [3],
+          results: [{ outcome: "partial", earnedPoints: 3 }],
+        },
+      ],
+    });
+  });
+
+  it("derives timeout state from the stable submission timestamp", () => {
+    useSimulation.setState({
+      ...runningState(),
+      authOwnerId: null,
+    });
+    const deadline = runningState().endsAt;
+
+    expect(
+      useSimulation.getState().beginSubmission(false, deadline + 0.5),
+    ).toBe(false);
+    expect(useSimulation.getState().beginSubmission(false, deadline)).toBe(
+      true,
+    );
+    expect(useSimulation.getState()).toMatchObject({
+      phase: "submitting",
+      submittedAt: deadline,
+      timedOut: true,
+    });
   });
 
   it("isolates completed browser history by its claimed owner", () => {
@@ -358,6 +444,57 @@ describe("simulation persistence", () => {
       phase: "running",
       runId,
       checkpointVersion: 0,
+    });
+  });
+
+  it("migrates version-nine submission and completed states safely", () => {
+    const submittedAt = startedAt + 60_000;
+    expect(
+      migrateSimulationState(
+        {
+          ...runningState(),
+          phase: "submitting",
+          timedOut: true,
+        },
+        9,
+      ),
+    ).toMatchObject({
+      phase: "running",
+      submittedAt: null,
+      timedOut: false,
+      rubricScores: [],
+    });
+
+    expect(
+      migrateSimulationState(
+        {
+          ...runningState(),
+          answers: [["2"]],
+          phase: "done",
+          endsAt: null,
+          submittedAt,
+          results: [
+            {
+              taskId: task.id,
+              outcome: "correct",
+              earnedPoints: task.maxPoints,
+              maxPoints: task.maxPoints,
+            },
+          ],
+          review: [
+            {
+              taskId: task.id,
+              correctAnswer: "2",
+              solution: "Solution",
+            },
+          ],
+        },
+        9,
+      ),
+    ).toMatchObject({
+      phase: "done",
+      submittedAt,
+      rubricScores: [null],
     });
   });
 

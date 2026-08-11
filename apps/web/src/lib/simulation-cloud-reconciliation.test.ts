@@ -85,6 +85,23 @@ describe("simulation cloud reconciliation", () => {
     expect(merged?.answers[0]).toEqual(["42"]);
   });
 
+  it("recovers remote rubric scores and rejects score conflicts", () => {
+    const submittedAt = startedAt + 180_000;
+    const remote = cloud({
+      phase: "submitting",
+      submittedAt,
+      rubricScores: [null, 4, ...Array(8).fill(null)],
+    });
+    const localState = local({ phase: "submitting", submittedAt });
+
+    expect(mergeSimulationCloudState(localState, remote)?.rubricScores).toEqual(
+      remote.runtime.rubricScores,
+    );
+
+    localState.rubricScores = [null, 3, ...Array(8).fill(null)];
+    expect(mergeSimulationCloudState(localState, remote)).toBeNull();
+  });
+
   it("does not mix device-only drafts into a remote submission", () => {
     const localState = local({
       answers: [["42"], ["device-only"], ...Array(8).fill([""])],
@@ -185,9 +202,11 @@ function cloud(
       })),
       answers: Array.from({ length: 10 }, () => [""]),
       skipped: Array(10).fill(false),
+      rubricScores: [],
       phase: "running",
       startedAt,
       endsAt: startedAt + 240 * 60_000,
+      submittedAt: null,
       currentIndex: 0,
       savedAt: null,
       timedOut: false,
