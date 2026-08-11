@@ -27,7 +27,7 @@ const tasks: SimulationTaskView[] = Array.from({ length: 10 }, (_, index) => ({
 }));
 
 describe("simulation cloud reconciliation", () => {
-  it("discovers remote work only when no local run exists", () => {
+  it("discovers remote work unless it is the stale copy of a completed run", () => {
     expect(reconcileSimulationCloudState(emptySimulationState(), cloud())).toBe(
       "discover",
     );
@@ -37,6 +37,12 @@ describe("simulation cloud reconciliation", () => {
         cloud(),
       ),
     ).toBe("ignore-completed");
+    expect(
+      reconcileSimulationCloudState(
+        { ...local(), phase: "done", endsAt: null, submittedAt: startedAt },
+        cloud({ runId: crypto.randomUUID() }),
+      ),
+    ).toBe("discover");
   });
 
   it("merges disjoint local and remote drafts at the newest server version", () => {

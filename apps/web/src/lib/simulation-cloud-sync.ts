@@ -315,6 +315,7 @@ function reconcileRemote(
   }
   const reconciliation = reconcileSimulationCloudState(local, remote);
   if (reconciliation === "discover") {
+    if (local.phase === "done") local.reset();
     setReadyWithRemote(context, remote);
     return;
   }

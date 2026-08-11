@@ -9,7 +9,11 @@ export function reconcileSimulationCloudState(
   remote: SimulationCloudRun,
 ): SimulationCloudReconciliation {
   if (local.phase === null) return "discover";
-  if (local.phase === "done") return "ignore-completed";
+  if (local.phase === "done") {
+    return local.runId === remote.runtime.runId
+      ? "ignore-completed"
+      : "discover";
+  }
   return mergeSimulationCloudState(local, remote) === null
     ? "conflict"
     : "merge";
