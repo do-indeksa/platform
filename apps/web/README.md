@@ -13,8 +13,9 @@ npm run test:visual # compare canonical visual baselines on Linux
 
 ## Visual regression
 
-The blocking visual suite compares the first viewport of the Serbian overview,
-task, empty plan, and empty history at mobile, tablet, and desktop sizes. It is
+The blocking visual suite compares 21 first-viewport baselines across the
+Serbian overview, task, empty plan, empty history, diagnostic result, rubric
+review, and simulation result at mobile, tablet, and desktop sizes. It is
 separate from functional E2E so failures identify the affected surface and
 viewport.
 
