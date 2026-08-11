@@ -1,6 +1,6 @@
 # 0006 — Deployment: Vercel for web, own k3s for api
 
-**Status:** superseded by [0012](0012-vmcore-kargo-neon-deployment.md) - 2026-08-10
+**Status:** superseded by [0012](0012-kubernetes-kargo-neon-deployment.md) - 2026-08-10
 
 **Context.** The frontend benefits from per-PR preview deployments. The maintainer already operates k3s + ArgoCD in production and hosts several services on his own infrastructure; managed PaaS for the API would duplicate what he runs anyway.
 

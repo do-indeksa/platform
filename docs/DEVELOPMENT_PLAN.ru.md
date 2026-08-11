@@ -370,8 +370,9 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 Работа продолжается теми же небольшими независимыми PR:
 
-1. После выпуска Google OAuth credentials завершить VMCore GitOps rollout и
-   доказать auth, GraphQL, Neon migration, backup и rollback на canonical host.
+1. После выпуска Google OAuth credentials завершить private Kubernetes rollout
+   через Cloudflare Tunnel и доказать auth, GraphQL, Neon migration, backup и
+   rollback на `doindeksa.rs` без публикации origin.
 2. Расширить history UI поверх уже подключенного GraphQL run/attempt lifecycle:
    показать длительность, ответы, помощь и надежно привязанные content revisions.
 3. Спроектировать rubric self-check и частичные баллы, не смешивая trainer

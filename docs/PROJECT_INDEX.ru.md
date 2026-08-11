@@ -178,7 +178,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
 | Контентный pipeline      | готов                  | 30 provenance-ссылок, 9 verified-задач в 3 полных темах                   |
-| Production deploy        | ожидает OAuth          | VMCore manifests готовы; analytics остается fail-closed                   |
+| Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
 Текущие маршруты web:
 
@@ -269,8 +269,9 @@ immutable snapshot старого content revision еще не замыкают 
   отдельной калибровки.
 - Целевой продуктовый API - GraphQL на `gqlgen`; OAuth redirects, callback,
   logout и health остаются обычными HTTP endpoints в том же Go-монолите.
-- Целевой deploy - VMCore Kubernetes: прямой Gateway routing к web/api,
-  Kargo -> Git -> ArgoCD, private registry, SealedSecrets и Neon Postgres.
+- Целевой deploy - private Kubernetes: Cloudflare Tunnel напрямую к внутренним
+  web/api Services, Kargo -> Git -> ArgoCD, private registry, SealedSecrets и
+  Neon Postgres. Публичного app Gateway route и origin DNS быть не должно.
 
 ## 9. Открытые решения
 
@@ -296,10 +297,11 @@ immutable snapshot старого content revision еще не замыкают 
 ## 10. Release blockers
 
 1. Выпустить новый Google OAuth client для
-   `https://do-indeksa.coverflow.net/api/v1/auth/google/callback`, запечатать
-   credentials и доказать login/logout в production.
-2. Влить private GitOps workload, выполнить Kargo promotion и проверить
-   Gateway, health, GraphQL, cookie attributes, Neon migration и rollback.
+   `https://doindeksa.rs/api/v1/auth/google/callback`, запечатать credentials и
+   доказать login/logout в production.
+2. Влить private GitOps workload, поднять outbound-only Cloudflare Tunnel,
+   выполнить Kargo promotion и проверить private routing, health, GraphQL,
+   cookie attributes, Neon migration и rollback.
 3. Umami не блокирует запуск продукта: runtime config fail-closed. Issue #12
    остается открытым до появления vulnerability-clean image.
 4. 30 задач достаточно для portfolio-preview, но не для обещания устойчиво

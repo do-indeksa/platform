@@ -20,9 +20,12 @@ Jednake šanse za upis — bez obzira na mesto i prihode. Kvalitetna priprema da
 - Responsive interfejs na srpskom (`sr-Latn`), engleskom i ruskom. Kanonski obrazovni sadržaj ostaje na srpskoj latinici, kao na ispitu.
 - Go API sa Google OAuth-om, sigurnim cookie sesijama, Postgres migracijama i gqlgen životnim ciklusom pokušaja i testova.
 
-Priprema produkcionog izdanja je u toku. Kanonskom VMCore deploy-u još nedostaju
-novi Google OAuth podaci; analitika ostaje bezbedno isključena dok ne postoji
-self-hosted image bez poznatih kritičnih ranjivosti.
+Priprema produkcionog izdanja za [doindeksa.rs](https://doindeksa.rs) je u toku.
+Privatni Kubernetes origin biće objavljen isključivo kroz Cloudflare Tunnel i
+još zahteva nove Google OAuth podatke; analitika ostaje bezbedno isključena dok
+ne postoji self-hosted image bez poznatih kritičnih ranjivosti.
+Obavezne granice edge-a, izolacije origina, provere i rollback-a opisuje
+[production deployment contract](docs/DEPLOYMENT.md).
 
 ## Dva stuba platforme
 

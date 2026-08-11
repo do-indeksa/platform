@@ -20,9 +20,13 @@ Equal chances for admission — regardless of city or income. Quality preparatio
 - Responsive `sr-Latn`, English, and Russian interface. Canonical educational content remains Serbian Latin, matching the exam.
 - Go API with Google OAuth, secure cookie sessions, Postgres migrations, and a gqlgen run/attempt lifecycle.
 
-Production release preparation is in progress. The canonical VMCore deployment
-still requires freshly issued Google OAuth credentials; analytics remains
-disabled fail-closed until a vulnerability-clean self-hosted image is available.
+Production release preparation is in progress for
+[doindeksa.rs](https://doindeksa.rs). The private Kubernetes origin will be
+published only through Cloudflare Tunnel and still requires freshly issued
+Google OAuth credentials; analytics remains disabled fail-closed until a
+vulnerability-clean self-hosted image is available.
+See the [production deployment contract](docs/DEPLOYMENT.md) for the enforced
+edge, origin-isolation, verification, and rollback boundaries.
 
 ## Two pillars
 
