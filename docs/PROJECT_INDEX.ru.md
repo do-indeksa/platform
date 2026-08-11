@@ -163,22 +163,22 @@ EN и SR, гостевые и авторизованные состояния.
 
 ## 5. Что уже реализовано
 
-| Возможность              | Состояние              | Комментарий                                                                |
-| ------------------------ | ---------------------- | -------------------------------------------------------------------------- |
-| Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен  |
-| Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                       |
-| Решение отдельной задачи | готов для preview      | exact checker, 1-6 частей, 2 подсказки, решение, resume и история          |
-| Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim    |
-| Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки            |
-| Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла   |
-| Пробный экзамен          | готов для preview      | 4 часа, blueprint 2025/2026, autosave, trainer estimate и разбор позиций   |
-| История                  | готова для preview     | попытки задач синхронизируются между устройствами; архив пробников локален |
-| Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                      |
-| Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                            |
-| Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор       |
-| Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                      |
-| Контентный pipeline      | готов                  | 30 provenance-ссылок, 9 verified-задач в 3 полных темах                    |
-| Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed             |
+| Возможность              | Состояние              | Комментарий                                                               |
+| ------------------------ | ---------------------- | ------------------------------------------------------------------------- |
+| Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
+| Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
+| Решение отдельной задачи | готов для preview      | exact checker, 1-6 частей, 2 подсказки, решение, resume и история         |
+| Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim   |
+| Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
+| Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |
+| Пробный экзамен          | готов для preview      | 4 часа, blueprint 2025/2026, autosave, trainer estimate и разбор позиций  |
+| История                  | готова для preview     | попытки задач и завершённые пробники синхронизируются между устройствами  |
+| Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                     |
+| Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
+| Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
+| Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
+| Контентный pipeline      | готов                  | 30 provenance-ссылок, 9 verified-задач в 3 полных темах                   |
+| Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
 Текущие маршруты web:
 
@@ -190,7 +190,8 @@ EN и SR, гостевые и авторизованные состояния.
 HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v1/attempts` только
 для дренирования старых локальных записей. Новые попытки, история, диагностика
 и пробный экзамен используют product API на `/graphql`: `Run`, `RunItem`,
-расширенный `Attempt`, start/record/submit lifecycle и recent history.
+расширенный `Attempt`, start/record/submit lifecycle, recent history и
+bounded-проекцию `completedSimulationRuns` без N+1.
 
 ## 6. Разбор PDF и Figma
 
@@ -242,15 +243,19 @@ GraphQL/Postgres и web sync хранят стабильные ID, run item ил
 revision. Гостевая очередь атомарно получает owner при входе, повторы используют
 тот же UUID, а данные другого аккаунта не попадают в активное представление.
 History UI показывает ответы, длительность, способ проверки, баллы, revision и
-все outcomes; локальные legacy-детали также изолированы по owner. Оставшийся
-разрыв - перенос архива завершенных пробников и исторических task snapshots на
-другое устройство.
+все outcomes; локальные legacy-детали и архив пробников изолированы по owner.
+Завершённые пробники объединяются с серверным архивом по run UUID, поэтому их
+можно открыть на другом устройстве. Оставшийся разрыв - исторические snapshots
+самих условий и решений: сейчас сохраняются ответы, grading и ревизии, а при
+изменении Git-контента UI честно показывает предупреждение и текущую редакцию.
 
 ### Run
 
 Backend-модель `Run`/`RunItem` реализована. Диагностика и пробник уже имеют
-локальные resumable state machines, но server-backed cross-device resume и
-immutable snapshot старого content revision еще не замыкают полный контур.
+локальные resumable state machines, а завершённые пробники имеют bounded
+cross-device archive с batch-загрузкой run/items/latest attempts. Активный
+server-backed cross-device resume и полная копия старого content revision еще
+не замыкают полный контур.
 
 ## 8. Зафиксированные продуктовые решения
 

@@ -14,7 +14,7 @@ Jednake šanse za upis — bez obzira na mesto i prihode. Kvalitetna priprema da
 ## Trenutni MVP
 
 - Jedinstvena baza FTN P1 zadataka sa pretragom, filterima, izabranom vežbom, proverom tačnog odgovora, dvostepenim nagoveštajima i potpunim rešenjima.
-- Dijagnostika sa nastavkom, deterministički plan pripreme, zadatak dana i niz dana, četvoročasovni probni ispit po verzionisanom blueprint-u, istorija pokušaja zadataka sinhronizovana sa nalogom i lokalna arhiva probnih ispita.
+- Dijagnostika sa nastavkom, deterministički plan pripreme, zadatak dana i niz dana, četvoročasovni probni ispit po verzionisanom blueprint-u i istorija zadataka i probnih ispita sinhronizovana sa nalogom.
 - Aktuelan katalog prijemnih ispita FTN-a za 29 programa i zvanične grupe P1/P3-P8; izmišljeni P2 i prijemni iz fizike ne postoje u proizvodu.
 - 30 nezavisno napisanih zadataka u svih deset P1 oblasti. Prva tri kompletna paketa tema (9 zadataka) imaju verzionisanu matematičku verifikaciju; preostalih 21 su jasno označeni za pregled.
 - Responsive interfejs na srpskom (`sr-Latn`), engleskom i ruskom. Kanonski obrazovni sadržaj ostaje na srpskoj latinici, kao na ispitu.
