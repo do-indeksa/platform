@@ -302,8 +302,13 @@
     "kombinatorika": "Kombinatorika"
   },
   "taskBank": {
+    "favorites": "Omiljeno",
+    "mySets": "Moji skupovi",
+    "subjects": "Predmeti",
+    "allSubjects": "Svi predmeti",
+    "mathematics": "Matematika",
     "searchLabel": "Pretraži zadatke",
-    "searchPlaceholder": "Pretraži tekst, oblast ili oznaku zadatka",
+    "searchPlaceholder": "Pretraži zadatke",
     "filters": "Filteri",
     "closeFilters": "Zatvori filtere",
     "showResults": "Prikaži zadatke",
@@ -313,6 +318,12 @@
     "topicFilter": "Oblast",
     "difficultyFilter": "Težina",
     "progressFilter": "Napredak",
+    "topicsControl": "Oblasti",
+    "difficultyControl": "Težina",
+    "difficultyControlShort": "Težina",
+    "taskTypeControl": "Tip zadatka",
+    "taskTypeControlShort": "Tip",
+    "sourceControl": "Izvor",
     "difficulty": {
       "foundation": "Osnovni · 1–2",
       "exam": "Ispitni nivo · 3",
@@ -326,24 +337,30 @@
     },
     "resetFilters": "Poništi filtere",
     "reset": "Poništi",
+    "resetAll": "Poništi sve",
     "resultCount": "{count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
     "sortLabel": "Redosled",
     "sort": {
       "position": "Po poziciji",
       "difficulty": "Po težini"
     },
-    "selectVisible": "Izaberi vidljive zadatke",
-    "selectedCount": "{count, plural, one {Izabran # zadatak} few {Izabrana # zadatka} other {Izabrano # zadataka}}",
     "clearSelection": "Poništi izbor",
     "startPractice": "Vežbaj izabrane zadatke",
-    "start": "Počni",
+    "selectionCount": "Izabrano: {count}",
+    "addToSet": "Dodaj u skup",
+    "solveSelected": "Reši",
     "selectTask": "Izaberi zadatak {id}",
-    "taskCode": "Zadatak {id}",
-    "authoredSource": "Autorski",
+    "favoriteTask": "Dodaj zadatak u omiljene",
+    "difficultyShort": {
+      "easy": "Lako",
+      "medium": "Srednje",
+      "hard": "Teško"
+    },
     "loadingProgress": "Učitavam tvoj napredak…",
-    "emptyTitle": "Nema odgovarajućih zadataka",
+    "emptyTitle": "Nema rezultata",
     "emptyQuery": "Nema rezultata za „{query}“. Skrati upit ili promeni filtere.",
-    "emptyFilters": "Trenutno nijedan zadatak ne odgovara ovim filterima. Promeni ih ili poništi."
+    "emptyFilters": "Promeni ili poništi filtere",
+    "viewAllTasks": "Prikaži sve zadatke"
   },
   "history": {
     "title": "Istorija",

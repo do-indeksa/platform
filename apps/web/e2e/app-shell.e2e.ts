@@ -162,12 +162,6 @@ test("task-bank filters are shareable and expose an honest empty state", async (
   await page.goto("/ru/tasks");
 
   await expectMinimumHitArea(page.getByRole("link", { name: "Главная" }));
-  await expectMinimumHitArea(
-    page
-      .getByRole("checkbox", { name: "Выбрать видимые задания" })
-      .locator(".."),
-  );
-
   await page.getByRole("button", { name: "Фильтры", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Фильтры" });
   await expect(dialog).toBeVisible();
@@ -192,10 +186,10 @@ test("task-bank filters are shareable and expose an honest empty state", async (
     /q=%D0%BD%D0%B5%D1%82\+%D1%82%D0%B0%D0%BA%D0%BE%D0%B3%D0%BE/,
   );
   await expect(
-    page.getByRole("heading", { name: "Подходящих заданий нет" }),
+    page.getByRole("heading", { name: "Ничего не найдено" }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Сбросить фильтры" }).click();
+  await page.getByRole("button", { name: "Сбросить все фильтры" }).click();
   await expect(page).toHaveURL(/\/ru\/tasks$/);
   await expect(page.getByText("30 заданий", { exact: true })).toBeVisible();
 });
@@ -208,9 +202,7 @@ test("selected tasks form a bounded practice sequence and return intact", async 
   await page.goto("/ru/tasks");
   await page.getByRole("checkbox", { name: "Выбрать задание kb-001" }).check();
   await page.getByRole("checkbox", { name: "Выбрать задание kv-001" }).check();
-  await expect(
-    page.getByText("Выбрано 2 задания", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Выбрано: 2", { exact: true })).toBeVisible();
 
   await page.evaluate(() => window.scrollTo({ top: 600 }));
   await page.getByRole("link", { name: "Решать выбранные задания" }).click();
@@ -237,9 +229,7 @@ test("selected tasks form a bounded practice sequence and return intact", async 
 
   await page.getByRole("link", { name: "Выйти из задания" }).click();
   await expect(page).toHaveURL(/\/ru\/tasks\?selected=kb-001&selected=kv-001$/);
-  await expect(
-    page.getByText("Выбрано 2 задания", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Выбрано: 2", { exact: true })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => window.scrollY))
     .toBeGreaterThan(500);

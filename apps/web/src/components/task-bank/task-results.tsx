@@ -1,8 +1,7 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { ArrowRight, ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
 import type { Attempt } from "@/lib/knowledge";
 import type { TaskSummary } from "@/lib/content";
 import {
@@ -19,11 +18,8 @@ type TaskResultsProps = {
   filters: TaskBankFilters;
   attempts: Attempt[] | null;
   selectedTaskIds: ReadonlySet<string>;
-  allSelected: boolean;
-  mixedSelection: boolean;
   returnTo: string;
   onFiltersChange: (filters: TaskBankFilters) => void;
-  onToggleAll: () => void;
   onToggleTask: (taskId: string) => void;
   onOpenTask: () => void;
 };
@@ -34,63 +30,59 @@ export function TaskResults({
   filters,
   attempts,
   selectedTaskIds,
-  allSelected,
-  mixedSelection,
   returnTo,
   onFiltersChange,
-  onToggleAll,
   onToggleTask,
   onOpenTask,
 }: TaskResultsProps) {
   const t = useTranslations("taskBank");
   const progressPending = attempts === null && filters.progress !== "all";
+
   return (
-    <section aria-labelledby="task-results-title" className="min-w-0">
-      <div className="mb-3 flex min-h-11 flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <SelectAllCheckbox
-            checked={allSelected}
-            mixed={mixedSelection}
-            disabled={tasks.length === 0}
-            label={t("selectVisible")}
-            onChange={onToggleAll}
-          />
-          <h2
-            id="task-results-title"
-            className="text-sm font-semibold text-muted"
-          >
-            {progressPending
-              ? t("loadingProgress")
-              : t("resultCount", { count: tasks.length })}
-          </h2>
-        </div>
-        <label className="flex items-center gap-2 text-sm text-muted">
-          <span>{t("sortLabel")}</span>
-          <select
-            value={filters.sort}
-            onChange={(event) =>
-              onFiltersChange({
-                ...filters,
-                sort: event.currentTarget.value as TaskBankFilters["sort"],
-              })
-            }
-            className="h-11 rounded-lg border border-line bg-surface px-3 font-semibold text-ink outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
-          >
-            <option value="position">{t("sort.position")}</option>
-            <option value="difficulty">{t("sort.difficulty")}</option>
-          </select>
-        </label>
+    <section
+      aria-labelledby="task-results-title"
+      className="flex min-w-0 flex-col gap-2.5 md:gap-3"
+    >
+      <div className="flex h-8 items-center justify-between text-muted">
+        <h2 id="task-results-title" className="text-sm leading-5 font-normal">
+          {progressPending
+            ? t("loadingProgress")
+            : t("resultCount", { count: tasks.length })}
+        </h2>
+        {!progressPending && tasks.length > 0 && (
+          <label className="relative flex h-8 items-center text-xs leading-4 font-medium">
+            <span aria-hidden className="flex items-center gap-1">
+              {t(`sort.${filters.sort}`)}
+              <ChevronDown size={9} strokeWidth={1.5} />
+            </span>
+            <span className="sr-only">{t("sortLabel")}</span>
+            <select
+              aria-label={t("sortLabel")}
+              value={filters.sort}
+              onChange={(event) =>
+                onFiltersChange({
+                  ...filters,
+                  sort: event.currentTarget.value as TaskBankFilters["sort"],
+                })
+              }
+              className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+            >
+              <option value="position">{t("sort.position")}</option>
+              <option value="difficulty">{t("sort.difficulty")}</option>
+            </select>
+          </label>
+        )}
       </div>
 
       {progressPending ? (
         <div
           role="status"
-          className="flex min-h-40 items-center justify-center rounded-lg border border-line bg-surface px-6 text-sm font-medium text-muted"
+          className="flex min-h-40 items-center justify-center rounded-xl border border-line bg-surface px-6 text-sm font-medium text-muted"
         >
           {t("loadingProgress")}
         </div>
       ) : tasks.length > 0 ? (
-        <ul className="space-y-2.5" aria-busy={attempts === null}>
+        <ul className="flex flex-col" aria-busy={attempts === null}>
           {tasks.map((task) => (
             <TaskRow
               key={task.id}
@@ -114,39 +106,6 @@ export function TaskResults({
   );
 }
 
-function SelectAllCheckbox({
-  checked,
-  mixed,
-  disabled,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  mixed: boolean;
-  disabled: boolean;
-  label: string;
-  onChange: () => void;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (ref.current) ref.current.indeterminate = mixed;
-  }, [mixed]);
-  return (
-    <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 text-xs font-semibold text-muted sm:min-w-0 sm:justify-start">
-      <input
-        ref={ref}
-        type="checkbox"
-        checked={checked}
-        disabled={disabled}
-        onChange={onChange}
-        aria-label={label}
-        className="h-4 w-4 accent-brand"
-      />
-      <span className="hidden sm:inline">{label}</span>
-    </label>
-  );
-}
-
 function EmptyState({
   query,
   onReset,
@@ -156,18 +115,35 @@ function EmptyState({
 }) {
   const t = useTranslations("taskBank");
   return (
-    <div className="flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-line bg-surface px-6 text-center">
-      <Search aria-hidden size={28} className="text-muted" />
-      <h3 className="mt-4 text-lg font-bold">{t("emptyTitle")}</h3>
-      <p className="mt-2 max-w-md text-sm leading-6 text-muted">
+    <div className="flex h-[380px] flex-col items-center justify-center gap-3 overflow-hidden px-6 text-center">
+      <span
+        aria-hidden
+        className="flex h-[72px] w-[41px] items-center justify-center text-brand-ink"
+      >
+        <Search size={40} strokeWidth={4} className="-scale-x-100" />
+      </span>
+      <h3 className="text-[22px] leading-[30px] font-semibold text-ink">
+        {t("emptyTitle")}
+      </h3>
+      <p className="max-w-md text-sm leading-5 text-muted">
         {query ? t("emptyQuery", { query }) : t("emptyFilters")}
       </p>
       <button
         type="button"
         onClick={onReset}
-        className="mt-5 min-h-11 rounded-lg bg-brand px-4 text-sm font-bold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="h-[42px] w-[190px] rounded-[9px] border border-line bg-surface px-2.5 text-xs leading-4 font-medium text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         {t("resetFilters")}
+      </button>
+      <button
+        type="button"
+        onClick={onReset}
+        className="relative flex h-4 w-[165px] items-center justify-center text-xs leading-4 font-medium text-brand-ink before:absolute before:-inset-x-3 before:-inset-y-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap">
+          {t("viewAllTasks")}
+          <ArrowRight aria-hidden size={12} strokeWidth={1.6} />
+        </span>
       </button>
     </div>
   );

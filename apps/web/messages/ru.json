@@ -302,8 +302,13 @@
     "kombinatorika": "Комбинаторика"
   },
   "taskBank": {
+    "favorites": "Избранное",
+    "mySets": "Мои наборы",
+    "subjects": "Предметы",
+    "allSubjects": "Все предметы",
+    "mathematics": "Математика",
     "searchLabel": "Поиск заданий",
-    "searchPlaceholder": "Поиск по условию, теме или коду задания",
+    "searchPlaceholder": "Поиск по заданиям",
     "filters": "Фильтры",
     "closeFilters": "Закрыть фильтры",
     "showResults": "Показать задания",
@@ -313,6 +318,12 @@
     "topicFilter": "Тема",
     "difficultyFilter": "Сложность",
     "progressFilter": "Прогресс",
+    "topicsControl": "Темы",
+    "difficultyControl": "Сложность",
+    "difficultyControlShort": "Сложн.",
+    "taskTypeControl": "Тип задания",
+    "taskTypeControlShort": "Тип",
+    "sourceControl": "Источник",
     "difficulty": {
       "foundation": "Базовые · 1–2",
       "exam": "Экзаменационные · 3",
@@ -324,26 +335,32 @@
       "correct": "Решено",
       "incorrect": "Нужно повторить"
     },
-    "resetFilters": "Сбросить фильтры",
+    "resetFilters": "Сбросить все фильтры",
     "reset": "Сбросить",
+    "resetAll": "Сбросить все",
     "resultCount": "{count, plural, one {# задание} few {# задания} many {# заданий} other {# задания}}",
     "sortLabel": "Сортировка",
     "sort": {
       "position": "По позиции",
       "difficulty": "По сложности"
     },
-    "selectVisible": "Выбрать видимые задания",
-    "selectedCount": "{count, plural, one {Выбрано # задание} few {Выбрано # задания} many {Выбрано # заданий} other {Выбрано # задания}}",
     "clearSelection": "Очистить выбор",
     "startPractice": "Решать выбранные задания",
-    "start": "Начать",
+    "selectionCount": "Выбрано: {count}",
+    "addToSet": "Добавить в набор",
+    "solveSelected": "Решить",
     "selectTask": "Выбрать задание {id}",
-    "taskCode": "Задание {id}",
-    "authoredSource": "Авторское",
+    "favoriteTask": "Добавить задание в избранное",
+    "difficultyShort": {
+      "easy": "Лёгкая",
+      "medium": "Средняя",
+      "hard": "Сложная"
+    },
     "loadingProgress": "Загружаем ваш прогресс…",
-    "emptyTitle": "Подходящих заданий нет",
+    "emptyTitle": "Ничего не найдено",
     "emptyQuery": "По запросу «{query}» ничего не найдено. Сократите запрос или измените фильтры.",
-    "emptyFilters": "Текущим фильтрам не соответствует ни одно задание. Измените или сбросьте их."
+    "emptyFilters": "Попробуйте изменить или сбросить фильтры",
+    "viewAllTasks": "Посмотреть все задания"
   },
   "history": {
     "title": "История",
