@@ -14,9 +14,10 @@ flat projection stays within the global GraphQL complexity cap.
 The web client strictly validates the projection, keeps remote rows in memory,
 and merges them with owner-scoped local history by run UUID. A richer local row
 wins only when its immutable facts match the server projection; otherwise the
-server remains authoritative. Binary automatic outcomes can rebuild a full
-result; partial and ungraded outcomes remain visible without being coerced into
-a binary score or review.
+server remains authoritative. Binary automatic outcomes rebuild a full result.
+A partial or zero-point result is also reconstructable when the archive
+explicitly identifies the latest attempt as `RUBRIC_SELF`; ungraded or unknown
+grading remains visible without being coerced into a trusted review.
 
 **Snapshot boundary.** Assignments, answers, grading, points, and content/task
 revisions are immutable server data. Canonical statements and solutions remain
