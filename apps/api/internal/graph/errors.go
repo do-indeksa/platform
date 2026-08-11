@@ -28,7 +28,7 @@ func presentError(ctx context.Context, err error) error {
 	case errors.Is(err, progress.ErrInvalidInput):
 		return codedError("BAD_USER_INPUT", "input is invalid")
 	case errors.Is(err, progress.ErrConflict):
-		return codedError("CONFLICT", "client id conflicts with existing data")
+		return codedError("CONFLICT", "write conflicts with existing data")
 	case errors.Is(err, progress.ErrInvalidTransition):
 		return codedError("INVALID_STATE", "run state does not allow this operation")
 	case errors.Is(err, progress.ErrNotFound):

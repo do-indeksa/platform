@@ -55,6 +55,23 @@ func (r *mutationResolver) RecordAttempt(ctx context.Context, input model.Record
 	return &result, nil
 }
 
+// CheckpointRun is the resolver for the checkpointRun field.
+func (r *mutationResolver) CheckpointRun(ctx context.Context, input model.CheckpointRunInput) (*model.RunCheckpoint, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainInput, err := progressCheckpointRunInput(input)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	checkpoint, err := r.progress.CheckpointRun(ctx, user.ID, domainInput)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return graphRunCheckpoint(&checkpoint), nil
+}
+
 // SubmitRun is the resolver for the submitRun field.
 func (r *mutationResolver) SubmitRun(ctx context.Context, input model.SubmitRunInput) (*model.Run, error) {
 	user, err := requestUser(ctx)
@@ -66,6 +83,27 @@ func (r *mutationResolver) SubmitRun(ctx context.Context, input model.SubmitRunI
 		return nil, presentError(ctx, err)
 	}
 	aggregate, err := r.progress.SubmitRun(ctx, user.ID, domainInput)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphRun(aggregate)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return result, nil
+}
+
+// AbandonRun is the resolver for the abandonRun field.
+func (r *mutationResolver) AbandonRun(ctx context.Context, input model.AbandonRunInput) (*model.Run, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainInput, err := progressAbandonRunInput(input)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	aggregate, err := r.progress.AbandonRun(ctx, user.ID, domainInput)
 	if err != nil {
 		return nil, presentError(ctx, err)
 	}

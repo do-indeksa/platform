@@ -130,6 +130,43 @@ func progressSubmitRunInput(input model.SubmitRunInput) (progress.SubmitRunInput
 	}, nil
 }
 
+func progressCheckpointRunInput(input model.CheckpointRunInput) (progress.CheckpointRunInput, error) {
+	id, err := inputID(input.ID, "id")
+	if err != nil {
+		return progress.CheckpointRunInput{}, err
+	}
+	currentOrdinal, err := inputInt16(input.CurrentOrdinal, "currentOrdinal")
+	if err != nil {
+		return progress.CheckpointRunInput{}, err
+	}
+	drafts := make([]progress.RunCheckpointDraftInput, len(input.Drafts))
+	for index, draft := range input.Drafts {
+		runItemID, err := inputID(draft.RunItemID, "drafts.runItemId")
+		if err != nil {
+			return progress.CheckpointRunInput{}, err
+		}
+		drafts[index] = progress.RunCheckpointDraftInput{
+			RunItemID: runItemID,
+			Answer:    draft.Answer,
+		}
+	}
+	return progress.CheckpointRunInput{
+		ID:               id,
+		ExpectedVersion:  input.ExpectedVersion,
+		CurrentOrdinal:   currentOrdinal,
+		ActiveDurationMs: input.ActiveDurationMs,
+		Drafts:           drafts,
+	}, nil
+}
+
+func progressAbandonRunInput(input model.AbandonRunInput) (progress.AbandonRunInput, error) {
+	id, err := inputID(input.ID, "id")
+	if err != nil {
+		return progress.AbandonRunInput{}, err
+	}
+	return progress.AbandonRunInput{ID: id}, nil
+}
+
 func progressRunKind(kind model.RunKind) (progress.RunKind, error) {
 	switch kind {
 	case model.RunKindPractice:
