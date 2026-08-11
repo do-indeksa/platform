@@ -30,12 +30,14 @@ Latin text remains canonical; interface framing and warnings are localized to
 `sr-Latn`, `en`, and `ru`. The initial pilot covers nine tasks across complex
 numbers, quadratic equations, and logarithms.
 
-The browser persists the `reviewing` phase and selected scores. A signed-in run
-uploads the full automatic layer without calling `submitRun`, allowing another
-device to recover the frozen answers and submission time. Active-run reads may
-return at most the deterministic automatic and rubric attempts per item; a
-score disagreement is a conflict, never last-write-wins. Guests keep the same
-state locally and claim the final outbox after authentication.
+The browser persists the `reviewing` phase and selected scores. While review is
+active, selections use a bounded versioned checkpoint draft, so a score can be
+changed without mutating an append-only attempt. A signed-in run uploads the
+full automatic layer without calling `submitRun`, allowing another device to
+recover the frozen answers, submission time, and interrupted review. Active-run
+reads may return at most the deterministic automatic and rubric attempts per
+item; a score disagreement is a conflict, never last-write-wins. Guests keep the
+same state locally and claim the final outbox after authentication.
 
 Completed history stores explicit rubric scores, including zero. The bounded
 archive exposes the latest attempt's grading kind so a partial score can be

@@ -59,5 +59,6 @@ cannot substitute for a future canonical content snapshot.
 slices now start immutable assignments, debounce bounded drafts, hydrate only
 compatible current content, and expose explicit cloud/device conflict recovery.
 Diagnostic answers become attempts individually after checking. Simulation
-answers stay drafts until the whole mock is submitted; its automatic and rubric
-attempt uploads are serialized behind the final checkpoint.
+answers stay drafts until the whole mock is submitted; automatic attempts,
+mutable rubric-score checkpoints, final rubric attempts, and submission are
+serialized per run.
