@@ -12,9 +12,13 @@ const startedAt = "2026-08-10T10:00:00.000Z";
 const revision = (character: string) => `sha256:${character.repeat(64)}`;
 const catalog: DiagnosticCloudCatalog = {
   blueprintVersion: "ftn-p1:2026.1",
+  durationMinutes: 240,
+  taskCount: 10,
+  maxPoints: 60,
   positions: Array.from({ length: 10 }, (_, index) => ({
     ordinal: index + 1,
     examPosition: index + 1,
+    maxPoints: 6,
     candidates: [
       {
         id: `task-${index + 1}`,
