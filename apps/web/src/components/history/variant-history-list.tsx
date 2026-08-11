@@ -11,6 +11,7 @@ import {
 } from "@/lib/simulation-run";
 import type { SimulationArchiveRun } from "@/lib/simulation-archive";
 import { HistoryEmpty } from "./history-empty";
+import { VariantScoreTrend } from "./variant-score-trend";
 
 export function VariantHistoryList({
   entries,
@@ -29,6 +30,8 @@ export function VariantHistoryList({
 
   return (
     <>
+      <VariantScoreTrend entries={entries} />
+
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full table-fixed border-collapse text-left text-sm">
           <thead className="border-b border-line text-xs font-semibold text-muted">
