@@ -11,6 +11,7 @@ import { useRouter } from "@/i18n/navigation";
 import type { components } from "@/lib/api/schema";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
 import { clearProgressSync, syncProgress } from "@/lib/progress-sync";
+import { syncTaskHistory } from "@/lib/task-history-store";
 
 type User = components["schemas"]["User"];
 
@@ -52,6 +53,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (user === undefined) return;
+    syncTaskHistory(user?.id ?? null);
     let current = true;
     void syncAttempts(user?.id ?? null).then(() => {
       if (current) return syncProgress(user?.id ?? null);
@@ -68,6 +70,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         clearLocalAttempts();
         clearProgressSync();
+        syncTaskHistory(null);
         setUser(null);
         router.refresh();
       }

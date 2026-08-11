@@ -4,6 +4,7 @@ import {
   recentErrorTaskIds,
   TASK_HISTORY_LIMIT,
   type TaskHistoryEntry,
+  type StoredTaskHistoryEntry,
 } from "./task-history";
 
 function entry(
@@ -24,12 +25,12 @@ function entry(
 }
 
 describe("task history", () => {
-  it("accepts only bounded, internally valid entries", () => {
+  it("migrates valid v1 entries to unclaimed v2 rows", () => {
     const valid = entry(1);
     const parsed = parseTaskHistory({
       version: 1,
       entries: [
-        valid,
+        { ...valid, unknown: "drop-me" },
         { ...entry(2), taskId: "../secret" },
         { ...entry(3), answers: Array(7).fill("1") },
         { ...entry(4), helpLevel: 4 },
@@ -37,7 +38,7 @@ describe("task history", () => {
       ],
     });
 
-    expect(parsed).toEqual([valid]);
+    expect(parsed).toEqual([{ ...valid, ownerId: null }]);
     expect(parsed[0]).not.toBe(valid);
     expect(parsed[0].answers).not.toBe(valid.answers);
   });
@@ -56,6 +57,20 @@ describe("task history", () => {
     );
   });
 
+  it("accepts only valid v2 owners", () => {
+    const valid: StoredTaskHistoryEntry = {
+      ...entry(1),
+      ownerId: "a0209703-275b-4c6e-b815-25025b923ae8",
+    };
+
+    expect(
+      parseTaskHistory({
+        version: 2,
+        entries: [valid, { ...entry(2), ownerId: "not-a-user" }],
+      }),
+    ).toEqual([valid]);
+  });
+
   it("returns recent unique mistakes in journal order", () => {
     const entries = [
       entry(1, { taskId: "kb-001" }),
@@ -71,6 +86,6 @@ describe("task history", () => {
 
   it("rejects unknown or future storage versions", () => {
     expect(parseTaskHistory(null)).toEqual([]);
-    expect(parseTaskHistory({ version: 2, entries: [entry(1)] })).toEqual([]);
+    expect(parseTaskHistory({ version: 3, entries: [entry(1)] })).toEqual([]);
   });
 });

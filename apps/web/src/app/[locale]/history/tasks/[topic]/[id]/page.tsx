@@ -74,6 +74,7 @@ export default async function TaskAttemptPage({ params, searchParams }: Props) {
       task={{
         id: task.id,
         slot: task.slot,
+        revision: task.revision,
         topicName: topicT(topic.slug),
         statementHtml,
         correctAnswerHtml,

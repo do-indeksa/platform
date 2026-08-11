@@ -304,11 +304,22 @@ function journalAttempt(
 ) {
   return {
     id,
+    runItemId:
+      slot === 1
+        ? "15944dbd-61cb-4e13-9a2b-8e9cc1be3114"
+        : "b6c0ed64-5000-48bb-b9d0-2a89dd4252cf",
     taskId,
     examPosition: slot,
     mode: "DIAGNOSTIC",
+    startedAt: "2026-08-10T10:09:30.000Z",
     submittedAt: "2026-08-10T10:10:00.000Z",
+    activeDurationMs: 30_000,
+    answer: JSON.stringify([correct ? "1" : "0"]),
     outcome: correct ? "CORRECT" : "INCORRECT",
     helpLevel: 0,
+    gradingKind: "AUTO",
+    earnedPoints: null,
+    maxPoints: null,
+    taskRevision: `sha256:${"a".repeat(64)}`,
   };
 }

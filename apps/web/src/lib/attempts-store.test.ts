@@ -111,12 +111,20 @@ function serverAttempt(
 ) {
   return {
     id,
+    runItemId: null,
     taskId,
     examPosition: 1,
     mode: "PRACTICE",
+    startedAt: "2026-07-12T09:59:50.000Z",
     submittedAt: "2026-07-12T10:00:00.000Z",
+    activeDurationMs: 10_000,
+    answer: JSON.stringify(["2", "3"]),
     outcome: "CORRECT",
     helpLevel: 1,
+    gradingKind: "AUTO",
+    earnedPoints: null,
+    maxPoints: null,
+    taskRevision: REVISION,
     ...overrides,
   };
 }
@@ -165,6 +173,17 @@ describe("recordPracticeAttempt", () => {
       },
     });
     expect((entry.input as { id: string }).id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "guest",
+      entries: [
+        {
+          taskId: "kb-001",
+          answer: '["2","3"]',
+          outcome: "CORRECT",
+          taskRevision: REVISION,
+        },
+      ],
+    });
   });
 
   it("keeps each checked answer as a separate journal event", async () => {
@@ -217,6 +236,10 @@ describe("recordPracticeAttempt", () => {
 
     expect(stored(map)).toHaveLength(1);
     expect(store.attemptsView()).toEqual([]);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "guest",
+      entries: [{ outcome: "SKIPPED", helpLevel: 3 }],
+    });
   });
 });
 
@@ -242,6 +265,10 @@ describe("syncAttempts", () => {
     ).toHaveLength(1);
     expect(stored(map)).toEqual([]);
     expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "synced",
+      entries: [{ id: ATTEMPT_ID, answer: '["2","3"]' }],
+    });
   });
 
   it("reuses the same UUID after a transient mutation failure", async () => {
@@ -264,10 +291,12 @@ describe("syncAttempts", () => {
 
     await store.syncAttempts(USER_A);
     expect(stored(map)).toHaveLength(1);
+    expect(store.attemptJournalView()?.status).toBe("degraded");
     await store.syncAttempts(USER_A);
 
     expect(ids).toEqual([ATTEMPT_ID, ATTEMPT_ID]);
     expect(stored(map)).toEqual([]);
+    expect(store.attemptJournalView()?.status).toBe("synced");
   });
 
   it("deduplicates an ambiguous mutation already present in the journal", async () => {
@@ -283,6 +312,7 @@ describe("syncAttempts", () => {
 
     expect(stored(map)).toHaveLength(1);
     expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()?.status).toBe("synced");
   });
 
   it("drains legacy v1 entries through REST in bounded batches", async () => {
@@ -323,6 +353,10 @@ describe("syncAttempts", () => {
     expect(stored(map)).toHaveLength(1);
     expect(stored(map)[0].ownerId).toBe(USER_A);
     expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "degraded",
+      entries: [{ id: ATTEMPT_ID }],
+    });
   });
 
   it("does not expose or submit another account's pending entries", async () => {
@@ -336,6 +370,10 @@ describe("syncAttempts", () => {
       calls.filter((call) => operation(call) === "RecordPracticeAttempt"),
     ).toHaveLength(0);
     expect(store.attemptsView()).toEqual([]);
+    expect(store.attemptJournalView()).toEqual({
+      status: "synced",
+      entries: [],
+    });
     expect(stored(map)).toHaveLength(1);
   });
 

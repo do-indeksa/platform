@@ -372,12 +372,20 @@ test("mock checker bounds bodies and returns only grading outcomes", async ({
 function journalSimulationAttempt(taskId: string) {
   return {
     id: "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91",
+    runItemId: "15944dbd-61cb-4e13-9a2b-8e9cc1be3114",
     taskId,
     examPosition: 1,
     mode: "SIMULATION",
+    startedAt: "2026-08-10T10:09:30.000Z",
     submittedAt: "2026-08-10T10:10:00.000Z",
+    activeDurationMs: 30_000,
+    answer: JSON.stringify(["definitely-wrong"]),
     outcome: "INCORRECT",
     helpLevel: 0,
+    gradingKind: "AUTO",
+    earnedPoints: 0,
+    maxPoints: 6,
+    taskRevision: `sha256:${"a".repeat(64)}`,
   };
 }
 

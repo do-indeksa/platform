@@ -4,7 +4,7 @@ import { ArrowRight, RotateCcw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
-import type { TaskHistoryEntry } from "@/lib/task-history";
+import type { HistoryAttempt } from "@/lib/history-journal";
 import { HistoryEmpty } from "./history-empty";
 import { OutcomeBadge } from "./outcome-badge";
 import type { HistoryTaskMeta } from "./types";
@@ -15,7 +15,7 @@ export function TaskHistoryList({
   practiceHref,
   errorCount,
 }: {
-  entries: TaskHistoryEntry[];
+  entries: HistoryAttempt[];
   taskById: ReadonlyMap<string, HistoryTaskMeta>;
   practiceHref: string | null;
   errorCount: number;
@@ -107,7 +107,7 @@ function TaskTableRow({
   task,
   date,
 }: {
-  entry: TaskHistoryEntry;
+  entry: HistoryAttempt;
   task: HistoryTaskMeta | undefined;
   date: string;
 }) {
@@ -153,7 +153,7 @@ function TaskMobileRow({
   task,
   date,
 }: {
-  entry: TaskHistoryEntry;
+  entry: HistoryAttempt;
   task: HistoryTaskMeta | undefined;
   date: string;
 }) {
@@ -202,12 +202,12 @@ function TaskMobileRow({
   );
 }
 
-function answerLabel(entry: TaskHistoryEntry, fallback: string): string {
+function answerLabel(entry: HistoryAttempt, fallback: string): string {
   const answers = entry.answers.filter((answer) => answer.trim() !== "");
   return answers.length > 0 ? answers.join(" · ") : fallback;
 }
 
-function detailHref(entry: TaskHistoryEntry, task: HistoryTaskMeta): string {
+function detailHref(entry: HistoryAttempt, task: HistoryTaskMeta): string {
   const query = new URLSearchParams({ attempt: entry.id });
   return `/history/tasks/${task.topic}/${task.id}?${query}`;
 }

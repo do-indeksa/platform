@@ -332,7 +332,11 @@
     "description": "Completed task attempts and mock exams for FTN P1 preparation.",
     "kicker": "P1 · Your work",
     "intro": "Return to previous answers, inspect mistakes in context and turn them into a focused practice set.",
-    "localNotice": "Detailed answers are stored on this device. Signing in currently syncs progress summaries, not this full local journal.",
+    "syncNotice": {
+      "guest": "Detailed answers stay on this device until you sign in.",
+      "synced": "This journal is synced to your account and available on your other devices.",
+      "degraded": "Sync is not up to date yet. Any pending attempts remain safe on this device."
+    },
     "loading": "Loading your history...",
     "loadingAttempt": "Opening the attempt...",
     "tabsLabel": "History views",
@@ -359,7 +363,9 @@
     "outcome": {
       "correct": "Correct",
       "incorrect": "Mistake",
-      "skipped": "Skipped"
+      "partial": "Partial",
+      "skipped": "Skipped",
+      "ungraded": "Awaiting review"
     },
     "source": {
       "practice": "Practice",
@@ -380,6 +386,7 @@
     "scoreValue": "{score} / {max}",
     "durationHoursMinutes": "{hours} h {minutes} min",
     "durationMinutes": "{minutes} min",
+    "durationSeconds": "{seconds} sec",
     "complete": "Complete",
     "partial": "{answered}/{total} answered",
     "timedOut": "Time expired",
@@ -387,6 +394,17 @@
     "attemptTitle": "Attempt for task {id}",
     "detailKicker": "Attempt details",
     "backToHistory": "Back to history",
+    "activeTime": "Active time",
+    "gradingLabel": "Assessment",
+    "pointsLabel": "Points",
+    "revisionLabel": "Content revision",
+    "revisionMismatch": "This task changed after the attempt. The statement and solution below show the current version.",
+    "grading": {
+      "auto": "Automatic check",
+      "rubric_self": "Self-assessed rubric",
+      "ai_assisted": "AI-assisted review",
+      "human": "Human review"
+    },
     "statementTitle": "Task statement",
     "answerComparisonTitle": "Answer comparison",
     "yourAnswer": "Your answer",
