@@ -56,25 +56,26 @@ export function ActiveFilters({
   ];
 
   if (chips.length === 0) return null;
+
   return (
-    <div className="mt-4 flex flex-wrap items-center gap-2">
+    <div className="flex h-7 min-w-0 items-start gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {chips.map((chip) => (
         <button
           key={chip.key}
           type="button"
           onClick={chip.remove}
-          className="flex min-h-11 items-center gap-1.5 rounded-full bg-subtle px-3 text-xs font-semibold text-brand-ink transition-colors hover:bg-subtle-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg bg-subtle pr-2 pl-2.5 text-xs leading-4 font-medium text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
         >
           {chip.label}
-          <X aria-hidden size={13} />
+          <X aria-hidden size={11} strokeWidth={1.8} />
         </button>
       ))}
       <button
         type="button"
         onClick={() => onChange({ ...defaultTaskBankFilters })}
-        className="min-h-11 px-2 text-xs font-semibold text-muted hover:text-ink hover:underline"
+        className="hidden h-4 shrink-0 items-center px-0.5 text-xs leading-4 font-medium text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand md:flex"
       >
-        {t("reset")}
+        {t("resetAll")}
       </button>
     </div>
   );

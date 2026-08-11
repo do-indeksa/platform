@@ -43,12 +43,13 @@ export function MobileFilterDialog({
     <dialog
       ref={dialogRef}
       aria-labelledby="task-filter-title"
+      data-design-status="provisional"
       onCancel={(event) => {
         event.preventDefault();
         onClose();
       }}
       onClose={onClose}
-      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-[min(100%,26rem)] max-w-none border-0 bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/35 xl:hidden"
+      className="fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-none w-[min(100%,26rem)] max-w-none border-0 bg-surface p-0 text-ink shadow-2xl backdrop:bg-black/35"
     >
       <form
         method="dialog"

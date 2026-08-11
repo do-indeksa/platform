@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, X } from "lucide-react";
+import { Delete } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 
@@ -16,29 +16,36 @@ export function SelectionBar({
   onStart: () => void;
 }) {
   const t = useTranslations("taskBank");
+
   return (
-    <div className="fixed inset-x-3 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-30 mx-auto flex max-w-3xl items-center gap-3 rounded-lg bg-emphasis p-3 text-white shadow-xl md:bottom-6 md:px-4">
-      <p className="min-w-0 flex-1 text-sm font-semibold tabular-nums">
-        {t("selectedCount", { count })}
+    <div className="sticky top-[74px] z-20 flex h-10 min-w-0 items-center gap-2 bg-page text-xs leading-4 text-ink md:top-[76px] xl:top-[84px]">
+      <p className="mr-1 w-[71px] shrink-0 font-normal tabular-nums">
+        {t("selectionCount", { count })}
       </p>
-      <button
-        type="button"
-        onClick={onClear}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/75 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        aria-label={t("clearSelection")}
-        title={t("clearSelection")}
+      <span
+        aria-disabled="true"
+        data-design-status="provisional"
+        className="hidden h-10 w-[132px] shrink-0 items-center justify-center rounded-[9px] bg-brand px-2 font-medium text-on-brand min-[375px]:flex"
       >
-        <X aria-hidden size={19} />
-      </button>
+        {t("addToSet")}
+      </span>
       <Link
         href={href}
         onClick={onStart}
-        className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg bg-brand px-4 text-sm font-bold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+        aria-label={t("startPractice")}
+        className="flex h-10 w-[82px] shrink-0 items-center justify-center rounded-[9px] bg-brand px-2 font-medium text-on-brand focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
       >
-        <span className="hidden sm:inline">{t("startPractice")}</span>
-        <span className="sm:hidden">{t("start")}</span>
-        <ArrowRight aria-hidden size={17} />
+        {t("solveSelected")}
       </Link>
+      <button
+        type="button"
+        onClick={onClear}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[9px] border border-line bg-surface text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+        aria-label={t("clearSelection")}
+        title={t("clearSelection")}
+      >
+        <Delete aria-hidden size={15} strokeWidth={1.5} />
+      </button>
     </div>
   );
 }
