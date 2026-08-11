@@ -8,6 +8,7 @@ import {
   migrateLegacySimulationHistory,
   parseSimulationHistory,
 } from "./simulation-history-persistence";
+import { isLearningRunOwner } from "./learning-run-owner";
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import {
   SIMULATION_MAX_ANSWER_PARTS,
@@ -25,6 +26,7 @@ export { SIMULATION_HISTORY_LIMIT } from "./simulation-history-persistence";
 
 export type PersistedSimulationState = {
   runId: string | null;
+  runOwnerId: string | null;
   blueprintVersion: string | null;
   contentRevision: string | null;
   tasks: SimulationTaskView[];
@@ -52,6 +54,7 @@ export function emptySimulationState(
 ): PersistedSimulationState {
   return {
     runId: null,
+    runOwnerId: null,
     blueprintVersion: null,
     contentRevision: null,
     tasks: [],
@@ -83,6 +86,12 @@ export function migrateSimulationState(
       : [];
     return emptySimulationState(history);
   }
+  if (version < 8) {
+    const legacy = isRecord(value)
+      ? parsePersistedSimulationState({ ...value, runOwnerId: null })
+      : emptySimulationState();
+    return emptySimulationState(legacy.history);
+  }
   return parsePersistedSimulationState(value);
 }
 
@@ -94,6 +103,7 @@ export function parsePersistedSimulationState(
   if (value.phase === null) return emptySimulationState(history);
   if (
     !isSimulationRunId(value.runId) ||
+    !isLearningRunOwner(value.runOwnerId) ||
     !isSimulationBlueprintVersion(value.blueprintVersion) ||
     !isRevision(value.contentRevision) ||
     !Array.isArray(value.tasks) ||
@@ -138,6 +148,7 @@ export function parsePersistedSimulationState(
 
   return {
     runId: value.runId,
+    runOwnerId: value.runOwnerId,
     blueprintVersion: value.blueprintVersion,
     contentRevision: value.contentRevision,
     tasks: tasks.map(cloneTask),

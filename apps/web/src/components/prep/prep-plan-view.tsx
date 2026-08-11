@@ -8,7 +8,7 @@ import { useUser } from "@/components/user-provider";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useAttempts } from "@/lib/attempts-store";
 import type { TaskReference } from "@/lib/content";
-import { useDiagnostic } from "@/lib/diagnostic-store";
+import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import {
   buildPrepPlan,
   prepPracticeTaskCount,
@@ -43,6 +43,7 @@ export function PrepPlanView({
   const attempts = useAttempts();
   const hydrated = useHydrated();
   const { user, loading: userLoading } = useUser();
+  const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const diagnosticPhase = useDiagnostic((state) => state.phase);
   const diagnosticStartedAt = useDiagnostic((state) => state.startedAt);
   const goalPoints = usePrepSettings((state) => state.goalPoints);
@@ -65,7 +66,9 @@ export function PrepPlanView({
     diagnosticStartedAt >= day.startMs &&
     diagnosticStartedAt < day.endMs;
 
-  if (!hydrated || attempts === null) return <PrepLoading />;
+  if (!hydrated || attempts === null || !diagnosticOwnerKnown) {
+    return <PrepLoading />;
+  }
 
   const plan = buildPrepPlan({
     attempts,

@@ -12,6 +12,7 @@ const startedAt = Date.UTC(2026, 7, 10, 10);
 function completedState(): PersistedDiagnosticState {
   return {
     runId,
+    runOwnerId: null,
     taskIds: Array.from({ length: 10 }, (_, index) => `task-${index + 1}`),
     slots: Array.from({ length: 10 }, (_, index) => index + 1),
     answers: Array.from({ length: 10 }, (_, index) => [String(index + 1)]),

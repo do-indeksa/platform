@@ -248,9 +248,10 @@ test("an unfinished diagnostic is resumable from the overview", async ({
       localStorage.setItem(
         "do-indeksa-diagnostic",
         JSON.stringify({
-          version: 1,
+          version: 2,
           state: {
             runId,
+            runOwnerId: null,
             taskIds,
             slots: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             answers: taskIds.map(() => [""]),

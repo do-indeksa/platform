@@ -7,7 +7,15 @@ import {
   isDiagnosticRunId,
   isDiagnosticTaskId,
 } from "./diagnostic-run";
+import {
+  isLearningRunOwner,
+  learningRunOwnerTransition,
+  parseLearningRunOwner,
+  type LearningRunOwnerId,
+} from "./learning-run-owner";
 import { MAX_ANSWER_LENGTH, MAX_TASK_ANSWER_PARTS } from "./task-draft";
+
+export const DIAGNOSTIC_STORE_VERSION = 2;
 
 export type DiagnosticOutcome = "correct" | "incorrect" | "skipped";
 export type DiagnosticPhase = "running" | "done";
@@ -21,6 +29,7 @@ export type DiagnosticStart = {
 
 export type PersistedDiagnosticState = {
   runId: string | null;
+  runOwnerId: string | null;
   taskIds: string[];
   slots: number[];
   answers: string[][];
@@ -32,6 +41,8 @@ export type PersistedDiagnosticState = {
 };
 
 type DiagnosticState = PersistedDiagnosticState & {
+  authOwnerId: string | null | undefined;
+  syncOwner: (userId: string | null) => void;
   start: (run: DiagnosticStart) => void;
   setAnswer: (taskIndex: number, partIndex: number, value: string) => void;
   completeCurrent: (taskId: string, outcome: DiagnosticOutcome) => void;
@@ -46,6 +57,7 @@ const OUTCOMES = new Set<DiagnosticOutcome>([
 
 const emptyState = (): PersistedDiagnosticState => ({
   runId: null,
+  runOwnerId: null,
   taskIds: [],
   slots: [],
   answers: [],
@@ -60,8 +72,14 @@ export const useDiagnostic = create<DiagnosticState>()(
   persist(
     (set, get) => ({
       ...emptyState(),
+      authOwnerId: undefined,
+      syncOwner: (userId) => {
+        const reconciled = reconcileDiagnosticOwner(get(), userId);
+        set({ ...reconciled.runtime, authOwnerId: reconciled.ownerId });
+      },
       start: ({ runId, taskIds, slots, answerPartCounts }) => {
         const current = get();
+        if (current.authOwnerId === undefined) return;
         if (
           current.phase === "running" ||
           (current.phase === "done" && current.runId === runId)
@@ -70,6 +88,7 @@ export const useDiagnostic = create<DiagnosticState>()(
         }
         set({
           runId,
+          runOwnerId: current.authOwnerId,
           taskIds: [...taskIds],
           slots: [...slots],
           answers: answerPartCounts.map((count) =>
@@ -126,9 +145,10 @@ export const useDiagnostic = create<DiagnosticState>()(
     }),
     {
       name: "do-indeksa-diagnostic",
-      version: 1,
+      version: DIAGNOSTIC_STORE_VERSION,
       partialize: (state): PersistedDiagnosticState => ({
         runId: state.runId,
+        runOwnerId: state.runOwnerId,
         taskIds: state.taskIds,
         slots: state.slots,
         answers: state.answers,
@@ -138,6 +158,7 @@ export const useDiagnostic = create<DiagnosticState>()(
         currentIndex: state.currentIndex,
         startedAt: state.startedAt,
       }),
+      migrate: migrateDiagnosticState,
       merge: (persisted, current) => ({
         ...current,
         ...parsePersistedDiagnosticState(persisted),
@@ -152,6 +173,7 @@ export function parsePersistedDiagnosticState(
   if (!isRecord(value) || value.phase === null) return emptyState();
   if (
     !isDiagnosticRunId(value.runId) ||
+    !isLearningRunOwner(value.runOwnerId) ||
     !Array.isArray(value.taskIds) ||
     value.taskIds.length !== DIAGNOSTIC_TASK_COUNT ||
     !value.taskIds.every(isDiagnosticTaskId) ||
@@ -187,6 +209,7 @@ export function parsePersistedDiagnosticState(
 
   return {
     runId: value.runId,
+    runOwnerId: value.runOwnerId,
     taskIds: [...value.taskIds],
     slots: [...value.slots],
     answers: value.answers.map((answers) => [...answers]),
@@ -195,6 +218,46 @@ export function parsePersistedDiagnosticState(
     phase: value.phase,
     currentIndex,
     startedAt: value.startedAt,
+  };
+}
+
+export function migrateDiagnosticState(
+  value: unknown,
+  version: number,
+): PersistedDiagnosticState {
+  return version < DIAGNOSTIC_STORE_VERSION
+    ? emptyState()
+    : parsePersistedDiagnosticState(value);
+}
+
+export function syncDiagnosticOwner(userId: string | null): void {
+  useDiagnostic.getState().syncOwner(userId);
+}
+
+export function useDiagnosticOwnerKnown(): boolean {
+  return useDiagnostic((state) => state.authOwnerId !== undefined);
+}
+
+export function reconcileDiagnosticOwner(
+  state: PersistedDiagnosticState,
+  userId: string | null,
+): { ownerId: LearningRunOwnerId; runtime: PersistedDiagnosticState } {
+  const parsedOwnerId = parseLearningRunOwner(userId);
+  const ownerId = parsedOwnerId ?? null;
+  if (
+    parsedOwnerId === undefined ||
+    (state.phase !== null &&
+      learningRunOwnerTransition(state.runOwnerId, ownerId) === "clear")
+  ) {
+    return { ownerId, runtime: emptyState() };
+  }
+  if (state.phase === null) return { ownerId, runtime: state };
+  return {
+    ownerId,
+    runtime:
+      state.runOwnerId === null && ownerId !== null
+        ? { ...state, runOwnerId: ownerId }
+        : state,
   };
 }
 

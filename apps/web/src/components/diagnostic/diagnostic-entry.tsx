@@ -16,9 +16,13 @@ import {
   DIAGNOSTIC_TASK_COUNT,
   diagnosticRunHref,
 } from "@/lib/diagnostic-run";
-import { useDiagnostic } from "@/lib/diagnostic-store";
+import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
+import {
+  isSimulationActive,
+  useSimulation,
+  useSimulationOwnerKnown,
+} from "@/lib/simulation-store";
 
 export function DiagnosticEntry({
   freshStartHref,
@@ -28,9 +32,12 @@ export function DiagnosticEntry({
   const t = useTranslations("diagnostic");
   const router = useRouter();
   const hydrated = useHydrated();
+  const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
+  const simulationOwnerKnown = useSimulationOwnerKnown();
   const diagnostic = useDiagnostic();
   const simulationPhase = useSimulation((state) => state.phase);
-  const activeMock = hydrated && isSimulationActive(simulationPhase);
+  const ready = hydrated && diagnosticOwnerKnown && simulationOwnerKnown;
+  const activeMock = ready && isSimulationActive(simulationPhase);
   const completed = diagnostic.outcomes.filter(Boolean).length;
   const resumeHref = diagnostic.runId
     ? diagnosticRunHref(
@@ -61,7 +68,7 @@ export function DiagnosticEntry({
           </p>
 
           <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            {!hydrated ? (
+            {!ready ? (
               <span className="h-12 w-52 animate-pulse rounded-lg bg-zinc-200" />
             ) : activeMock ? (
               <Link
@@ -103,10 +110,10 @@ export function DiagnosticEntry({
             </Link>
           </div>
 
-          {hydrated && activeMock && (
+          {ready && activeMock && (
             <p className="mt-4 text-sm text-muted">{t("mockActive")}</p>
           )}
-          {hydrated && diagnostic.phase === "running" && !activeMock && (
+          {ready && diagnostic.phase === "running" && !activeMock && (
             <p className="mt-4 text-sm text-muted">
               {t("progressSaved", {
                 completed,
@@ -114,7 +121,7 @@ export function DiagnosticEntry({
               })}
             </p>
           )}
-          {hydrated && diagnostic.phase === "done" && !activeMock && (
+          {ready && diagnostic.phase === "done" && !activeMock && (
             <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <span className="text-muted">{t("resultReady")}</span>
               <button

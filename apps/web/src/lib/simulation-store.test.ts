@@ -7,12 +7,15 @@ import {
 import {
   claimSimulationHistoryOwner,
   isSimulationActive,
+  reconcileSimulationOwner,
   simulationHistoryForOwner,
 } from "./simulation-store";
 import type { SimulationTaskView } from "./simulation-types";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const startedAt = Date.UTC(2026, 7, 10, 10);
+const userA = "a0209703-275b-4c6e-b815-25025b923ae8";
+const userB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
 
 const task: SimulationTaskView = {
   id: "kb-001",
@@ -265,8 +268,6 @@ describe("simulation persistence", () => {
   });
 
   it("isolates completed browser history by its claimed owner", () => {
-    const userA = "a0209703-275b-4c6e-b815-25025b923ae8";
-    const userB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
     const entries = [
       { ...emptyHistoryEntry("guest"), ownerId: null },
       { ...emptyHistoryEntry("account-a"), ownerId: userA },
@@ -283,6 +284,55 @@ describe("simulation persistence", () => {
     expect(
       claimSimulationHistoryOwner(entries, userA).map(({ ownerId }) => ownerId),
     ).toEqual([userA, userA, userB]);
+  });
+
+  it("claims a guest runtime and clears foreign runtime without deleting history", () => {
+    const guestHistory = {
+      ...emptyHistoryEntry(`legacy-${startedAt}`),
+      ownerId: null,
+    };
+    const accountBHistory = {
+      ...emptyHistoryEntry(`legacy-${startedAt + 1}`),
+      ownerId: userB,
+    };
+    const claimed = reconcileSimulationOwner(
+      { ...runningState(), history: [guestHistory, accountBHistory] },
+      userA,
+    );
+
+    expect(claimed).toMatchObject({
+      ownerId: userA,
+      runtime: { phase: "running", runOwnerId: userA },
+    });
+    expect(claimed.runtime.history.map(({ ownerId }) => ownerId)).toEqual([
+      userA,
+      userB,
+    ]);
+
+    const switched = reconcileSimulationOwner(claimed.runtime, userB);
+    expect(switched.runtime).toMatchObject({ phase: null, runId: null });
+    expect(switched.runtime.history).toHaveLength(2);
+    expect(
+      simulationHistoryForOwner(switched.runtime.history, userB)?.map(
+        ({ id }) => id,
+      ),
+    ).toEqual([accountBHistory.id]);
+    expect(
+      reconcileSimulationOwner(claimed.runtime, null).runtime,
+    ).toMatchObject({ phase: null, runId: null });
+  });
+
+  it("fails closed for invalid owners and legacy unowned runtime", () => {
+    const history = [emptyHistoryEntry(`legacy-${startedAt}`)];
+    expect(
+      reconcileSimulationOwner(
+        { ...runningState(), runOwnerId: userA, history },
+        "not-a-user-id",
+      ).runtime,
+    ).toEqual(emptySimulationState(history));
+    expect(migrateSimulationState({ ...runningState(), history }, 7)).toEqual(
+      emptySimulationState(history),
+    );
   });
 });
 

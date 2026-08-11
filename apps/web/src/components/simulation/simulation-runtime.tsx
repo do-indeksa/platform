@@ -5,9 +5,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { trackTaskSolved } from "@/lib/analytics";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
-import { useDiagnostic } from "@/lib/diagnostic-store";
+import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
-import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
+import {
+  isSimulationActive,
+  useSimulation,
+  useSimulationOwnerKnown,
+} from "@/lib/simulation-store";
 import {
   simulationRunHref,
   type SimulationRunQuery,
@@ -35,6 +39,8 @@ export function SimulationRuntime({
   const t = useTranslations("simulation");
   const router = useRouter();
   const hydrated = useHydrated();
+  const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
+  const simulationOwnerKnown = useSimulationOwnerKnown();
   const phase = useSimulation((state) => state.phase);
   const activeRunId = useSimulation((state) => state.runId);
   const activeVersion = useSimulation((state) => state.blueprintVersion);
@@ -52,7 +58,14 @@ export function SimulationRuntime({
   }, [run.runId]);
 
   useEffect(() => {
-    if (!hydrated || diagnosticPhase === "running") return;
+    if (
+      !hydrated ||
+      !diagnosticOwnerKnown ||
+      !simulationOwnerKnown ||
+      diagnosticPhase === "running"
+    ) {
+      return;
+    }
     const current = useSimulation.getState();
     if (isSimulationActive(current.phase)) {
       if (
@@ -87,6 +100,7 @@ export function SimulationRuntime({
     });
   }, [
     diagnosticPhase,
+    diagnosticOwnerKnown,
     contentRevision,
     durationMinutes,
     hydrated,
@@ -95,6 +109,7 @@ export function SimulationRuntime({
     run.blueprintVersion,
     run.runId,
     run.taskIds,
+    simulationOwnerKnown,
     tasks,
   ]);
 
@@ -151,6 +166,7 @@ export function SimulationRuntime({
   useEffect(() => {
     if (
       hydrated &&
+      simulationOwnerKnown &&
       phase === "submitting" &&
       activeRunId === run.runId &&
       !submissionAttempted.current
@@ -158,7 +174,14 @@ export function SimulationRuntime({
       submissionAttempted.current = true;
       void submitCurrent();
     }
-  }, [activeRunId, hydrated, phase, run.runId, submitCurrent]);
+  }, [
+    activeRunId,
+    hydrated,
+    phase,
+    run.runId,
+    simulationOwnerKnown,
+    submitCurrent,
+  ]);
 
   const beginSubmission = (expired: boolean) => {
     const state = useSimulation.getState();
@@ -167,7 +190,9 @@ export function SimulationRuntime({
     void submitCurrent();
   };
 
-  if (!hydrated) return <SubmissionStatus label={t("assembling")} />;
+  if (!hydrated || !diagnosticOwnerKnown || !simulationOwnerKnown) {
+    return <SubmissionStatus label={t("assembling")} />;
+  }
   if (diagnosticPhase === "running" && !isSimulationActive(phase)) {
     const diagnosticHref =
       diagnosticRunId && diagnosticTaskIds.length > 0

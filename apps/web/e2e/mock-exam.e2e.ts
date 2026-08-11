@@ -100,7 +100,7 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
   const activePayload = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
-  expect(activePayload.version).toBe(7);
+  expect(activePayload.version).toBe(8);
   expect(activePayload.state.review).toEqual([]);
   expect(
     activePayload.state.tasks.every(

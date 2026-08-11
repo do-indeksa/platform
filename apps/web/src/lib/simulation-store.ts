@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { validate as isUuid } from "uuid";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
@@ -22,8 +21,13 @@ import {
 } from "./simulation-types";
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import { recordTaskHistory } from "./task-history-store";
+import {
+  learningRunOwnerTransition,
+  parseLearningRunOwner,
+  type LearningRunOwnerId,
+} from "./learning-run-owner";
 
-export const SIMULATION_STORE_VERSION = 7;
+export const SIMULATION_STORE_VERSION = 8;
 
 export type SimulationStart = {
   runId: string;
@@ -34,8 +38,8 @@ export type SimulationStart = {
 };
 
 type SimulationState = PersistedSimulationState & {
-  historyOwnerId: string | null | undefined;
-  syncHistoryOwner: (userId: string | null) => void;
+  authOwnerId: string | null | undefined;
+  syncOwner: (userId: string | null) => void;
   start: (input: SimulationStart) => void;
   setAnswer: (taskIndex: number, partIndex: number, value: string) => void;
   goTo: (index: number) => void;
@@ -54,11 +58,10 @@ export const useSimulation = create<SimulationState>()(
   persist(
     (set, get) => ({
       ...emptySimulationState(),
-      historyOwnerId: undefined,
-      syncHistoryOwner: (userId) => {
-        const ownerId = userId === null || isUuid(userId) ? userId : null;
-        const history = claimSimulationHistoryOwner(get().history, ownerId);
-        set({ historyOwnerId: ownerId, history });
+      authOwnerId: undefined,
+      syncOwner: (userId) => {
+        const reconciled = reconcileSimulationOwner(get(), userId);
+        set({ ...reconciled.runtime, authOwnerId: reconciled.ownerId });
       },
       start: ({
         runId,
@@ -68,6 +71,7 @@ export const useSimulation = create<SimulationState>()(
         tasks,
       }) => {
         const current = get();
+        if (current.authOwnerId === undefined) return;
         if (
           (current.phase === "running" || current.phase === "submitting") &&
           current.runId !== runId
@@ -79,6 +83,7 @@ export const useSimulation = create<SimulationState>()(
         set({
           ...emptySimulationState(current.history),
           runId,
+          runOwnerId: current.authOwnerId,
           blueprintVersion,
           contentRevision,
           tasks: tasks.map((task) => ({
@@ -192,7 +197,7 @@ export const useSimulation = create<SimulationState>()(
           state,
           results,
           finishedAt,
-          state.historyOwnerId ?? null,
+          state.runOwnerId,
         );
         set({
           phase: "done",
@@ -226,13 +231,17 @@ export function isSimulationActive(phase: SimulationPhase | null): boolean {
   return phase === "running" || phase === "submitting";
 }
 
-export function syncSimulationHistoryOwner(userId: string | null): void {
-  useSimulation.getState().syncHistoryOwner(userId);
+export function syncSimulationOwner(userId: string | null): void {
+  useSimulation.getState().syncOwner(userId);
+}
+
+export function useSimulationOwnerKnown(): boolean {
+  return useSimulation((state) => state.authOwnerId !== undefined);
 }
 
 export function useSimulationHistory(): SimulationHistoryEntry[] | null {
   const history = useSimulation((state) => state.history);
-  const ownerId = useSimulation((state) => state.historyOwnerId);
+  const ownerId = useSimulation((state) => state.authOwnerId);
   return useMemo(
     () => simulationHistoryForOwner(history, ownerId),
     [history, ownerId],
@@ -257,6 +266,34 @@ export function claimSimulationHistoryOwner(
       ? { ...entry, ownerId }
       : entry,
   );
+}
+
+export function reconcileSimulationOwner(
+  state: PersistedSimulationState,
+  userId: string | null,
+): { ownerId: LearningRunOwnerId; runtime: PersistedSimulationState } {
+  const parsedOwnerId = parseLearningRunOwner(userId);
+  const ownerId = parsedOwnerId ?? null;
+  const history = claimSimulationHistoryOwner(state.history, ownerId);
+  if (parsedOwnerId === undefined) {
+    return { ownerId, runtime: emptySimulationState(history) };
+  }
+  if (state.phase === null || state.runId === null) {
+    return { ownerId, runtime: { ...state, history } };
+  }
+
+  const transition = learningRunOwnerTransition(state.runOwnerId, ownerId);
+  if (transition === "clear") {
+    return { ownerId, runtime: emptySimulationState(history) };
+  }
+  return {
+    ownerId,
+    runtime: {
+      ...state,
+      history,
+      ...(transition === "claim" ? { runOwnerId: ownerId } : {}),
+    },
+  };
 }
 
 function buildHistoryEntry(
@@ -306,6 +343,7 @@ function buildHistoryEntry(
 function persisted(state: PersistedSimulationState): PersistedSimulationState {
   return {
     runId: state.runId,
+    runOwnerId: state.runOwnerId,
     blueprintVersion: state.blueprintVersion,
     contentRevision: state.contentRevision,
     tasks: state.tasks,
