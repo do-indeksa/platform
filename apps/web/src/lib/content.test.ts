@@ -270,9 +270,7 @@ describe("task files", () => {
         `${taskId}: ${answer}`,
       ).toBe("correct");
     }
-    expect(checkAnswer(tasks.get("eks-001")!.check[0], "-1")).toBe(
-      "incorrect",
-    );
+    expect(checkAnswer(tasks.get("eks-001")!.check[0], "-1")).toBe("incorrect");
     expect(checkAnswer(tasks.get("eks-003")!.check[1], "(-1,3)")).toBe(
       "incorrect",
     );
