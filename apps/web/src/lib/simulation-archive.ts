@@ -1,5 +1,8 @@
 import { SIMULATION_HISTORY_LIMIT } from "./simulation-history-persistence";
-import type { SimulationHistoryEntry } from "./simulation-types";
+import type {
+  SimulationArchiveSnapshot,
+  SimulationHistoryEntry,
+} from "./simulation-types";
 
 export type SimulationArchiveOutcome =
   "correct" | "incorrect" | "partial" | "unanswered" | "ungraded";
@@ -128,18 +131,29 @@ export function simulationContentChanged(
   currentContentRevision: string,
   tasks: readonly { revision: string }[],
 ): boolean {
-  const contentRevision =
-    entry.archiveSnapshot?.contentRevision ?? entry.progress?.contentRevision;
-  const taskRevisions =
-    entry.archiveSnapshot?.taskRevisions ??
-    entry.progress?.items.map(({ taskRevision }) => taskRevision);
-  if (contentRevision === undefined || taskRevisions === undefined)
-    return false;
+  const snapshot = simulationEntrySnapshot(entry);
+  if (snapshot === undefined) return false;
   return (
-    contentRevision !== currentContentRevision ||
-    taskRevisions.length !== tasks.length ||
-    taskRevisions.some((revision, index) => revision !== tasks[index].revision)
+    snapshot.contentRevision !== currentContentRevision ||
+    snapshot.taskRevisions.length !== tasks.length ||
+    snapshot.taskRevisions.some(
+      (revision, index) => revision !== tasks[index].revision,
+    )
   );
+}
+
+export function simulationEntrySnapshot(
+  entry: Pick<SimulationHistoryEntry, "archiveSnapshot" | "progress">,
+): SimulationArchiveSnapshot | undefined {
+  if (entry.archiveSnapshot !== undefined) return entry.archiveSnapshot;
+  return entry.progress === undefined
+    ? undefined
+    : {
+        contentRevision: entry.progress.contentRevision,
+        taskRevisions: entry.progress.items.map(
+          ({ taskRevision }) => taskRevision,
+        ),
+      };
 }
 
 function archiveLocalEntry(

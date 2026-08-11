@@ -7,9 +7,13 @@ import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import {
   isSimulationBlueprintVersion,
   isSimulationRunId,
-  simulationRunHref,
+  isSimulationTaskRevision,
+  simulationResultHref,
 } from "@/lib/simulation-run";
-import type { SimulationArchiveRun } from "@/lib/simulation-archive";
+import {
+  simulationEntrySnapshot,
+  type SimulationArchiveRun,
+} from "@/lib/simulation-archive";
 import { HistoryEmpty } from "./history-empty";
 import { VariantScoreTrend } from "./variant-score-trend";
 
@@ -167,11 +171,21 @@ function resultHref(entry: SimulationArchiveRun): string | null {
   ) {
     return null;
   }
-  return simulationRunHref("/simulation/result", {
-    runId: entry.id,
-    blueprintVersion: entry.blueprintVersion,
-    taskIds: entry.taskIds,
-  });
+  const snapshot = simulationEntrySnapshot(entry.historyEntry);
+  const revisions =
+    snapshot !== undefined &&
+    snapshot.taskRevisions.length === entry.taskIds.length &&
+    snapshot.taskRevisions.every(isSimulationTaskRevision)
+      ? snapshot.taskRevisions
+      : undefined;
+  return simulationResultHref(
+    {
+      runId: entry.id,
+      blueprintVersion: entry.blueprintVersion,
+      taskIds: entry.taskIds,
+    },
+    revisions,
+  );
 }
 
 function durationLabel(

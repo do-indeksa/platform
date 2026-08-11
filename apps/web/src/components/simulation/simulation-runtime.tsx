@@ -25,6 +25,7 @@ import {
   useSimulationOwnerKnown,
 } from "@/lib/simulation-store";
 import {
+  simulationResultHref,
   simulationRunHref,
   type SimulationRunQuery,
 } from "@/lib/simulation-run";
@@ -69,7 +70,10 @@ export function SimulationRuntime({
   const diagnosticTaskIds = useDiagnostic((state) => state.taskIds);
   const [submissionError, setSubmissionError] = useState(false);
   const submissionAttempted = useRef(false);
-  const resultHref = simulationRunHref("/simulation/result", run);
+  const resultHref = simulationResultHref(
+    run,
+    tasks.map(({ revision }) => revision),
+  );
   const syncTasks = useMemo(
     () =>
       tasks.map((task) => ({
