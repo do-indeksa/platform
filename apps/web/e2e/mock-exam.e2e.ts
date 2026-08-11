@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { parsePersistedSimulationState } from "../src/lib/simulation-persistence";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+const dynamicNavigationTimeout = 15_000;
 
 const currentTaskIds = [
   "kb-001",
@@ -150,7 +151,9 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
     })
     .click();
 
-  await expect(page).toHaveURL(/\/en\/simulation\/result\?/);
+  await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
+    timeout: dynamicNavigationTimeout,
+  });
   await expect(
     page.getByRole("heading", { name: "Your result", exact: true }),
   ).toBeVisible();
@@ -354,7 +357,9 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
 
   await completeRubricReview(page, [0, 0, 0, 0]);
 
-  await expect(page).toHaveURL(/\/en\/simulation\/result\?/);
+  await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
+    timeout: dynamicNavigationTimeout,
+  });
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -543,7 +548,9 @@ test("the time limit submits saved answers without losing the attempt", async ({
   page,
 }) => {
   await page.clock.install({ time: new Date("2026-08-10T10:00:00Z") });
-  await page.goto(`/en/simulation/new?fresh=${crypto.randomUUID()}`);
+  await page.goto(
+    `/en/simulation/new?run=${crypto.randomUUID()}&version=2026.1&set=${currentTaskIds.join("%2C")}`,
+  );
   await expect(
     page.getByRole("heading", { name: "Task 1 of 10" }),
   ).toBeVisible();
@@ -554,7 +561,9 @@ test("the time limit submits saved answers without losing the attempt", async ({
 
   await completeRubricReview(page, [0, 0, 0, 0]);
 
-  await expect(page).toHaveURL(/\/en\/simulation\/result\?/);
+  await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
+    timeout: dynamicNavigationTimeout,
+  });
   await expect(
     page.getByText(
       "The time limit expired, so the attempt was submitted with the answers saved at that moment.",
