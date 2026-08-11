@@ -165,7 +165,8 @@ export const useDiagnostic = create<DiagnosticState>()(
         if (
           current.phase !== "running" ||
           current.runId !== runId ||
-          !isCheckpointVersion(version)
+          !isCheckpointVersion(version) ||
+          version < current.checkpointVersion
         ) {
           return false;
         }

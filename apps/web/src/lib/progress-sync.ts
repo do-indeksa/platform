@@ -4,6 +4,7 @@ import {
   parseCompletedProgressRun,
   type CompletedProgressRun,
 } from "./progress-run";
+import { withRunSyncLock } from "./run-sync-lock";
 
 const STORAGE_KEY = "do-indeksa-progress-outbox";
 const RECEIPT_STORAGE_KEY = "do-indeksa-progress-receipts";
@@ -127,7 +128,9 @@ async function flushOwner(userId: string, generation: number): Promise<void> {
       continue;
     }
     try {
-      await sendRun(entry.run, () => isCurrentOwner(userId, generation));
+      await withRunSyncLock(entry.run.id, () =>
+        sendRun(entry.run, () => isCurrentOwner(userId, generation)),
+      );
     } catch {
       return;
     }
