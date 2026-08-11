@@ -372,8 +372,8 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 1. После выпуска Google OAuth credentials завершить VMCore GitOps rollout и
    доказать auth, GraphQL, Neon migration, backup и rollback на canonical host.
-2. Перевести web diagnostic/simulation/history на уже готовый GraphQL
-   run/attempt lifecycle с безопасным guest-to-user merge.
+2. Расширить history UI поверх уже подключенного GraphQL run/attempt lifecycle:
+   показать длительность, ответы, помощь и надежно привязанные content revisions.
 3. Спроектировать rubric self-check и частичные баллы, не смешивая trainer
    estimate с официальным оцениванием FTN.
 4. Расширять verified-банк от текущих 9 задач и сохранять независимый

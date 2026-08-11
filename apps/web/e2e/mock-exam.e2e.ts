@@ -213,7 +213,7 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
 }) => {
   type GraphQLCall = {
     operationName: string;
-    variables: { input: Record<string, unknown> };
+    variables: { input: Record<string, unknown>; limit?: number };
   };
   const graphQLCalls: GraphQLCall[] = [];
   const attemptMethods: string[] = [];
@@ -230,12 +230,22 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
   );
   await page.route("**/api/v1/attempts", (route) => {
     attemptMethods.push(route.request().method());
-    return route.fulfill({
-      json: submitted ? [legacySimulationAttempt(currentTaskIds[0])] : [],
-    });
+    return route.fulfill({ status: 410 });
   });
   await page.route("**/graphql", async (route) => {
     const call = route.request().postDataJSON() as GraphQLCall;
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({
+        json: {
+          data: {
+            attempts: submitted
+              ? [journalSimulationAttempt(currentTaskIds[0])]
+              : [],
+          },
+        },
+      });
+      return;
+    }
     graphQLCalls.push(call);
     const input = call.variables.input;
     const field =
@@ -306,7 +316,7 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
   expect(JSON.stringify(graphQLCalls)).not.toMatch(
     /correctAnswer|expected|review|solution/i,
   );
-  expect(attemptMethods.every((method) => method === "GET")).toBe(true);
+  expect(attemptMethods).toEqual([]);
 
   await page.reload({ waitUntil: "networkidle" });
   await expect(
@@ -359,14 +369,15 @@ test("mock checker bounds bodies and returns only grading outcomes", async ({
   expect(oversized.status()).toBe(413);
 });
 
-function legacySimulationAttempt(taskId: string) {
+function journalSimulationAttempt(taskId: string) {
   return {
+    id: "c4f8fe8b-8898-4dc8-8e67-15837b1fdb91",
     taskId,
-    slot: 1,
-    correct: false,
-    source: "simulation",
+    examPosition: 1,
+    mode: "SIMULATION",
+    submittedAt: "2026-08-10T10:10:00.000Z",
+    outcome: "INCORRECT",
     helpLevel: 0,
-    at: "2026-08-10T10:10:00.000Z",
   };
 }
 

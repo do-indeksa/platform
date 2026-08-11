@@ -1,10 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CheckPart } from "@/lib/answer";
 import { trackTaskSolved } from "@/lib/analytics";
-import { recordAttempts } from "@/lib/attempts-store";
+import { recordPracticeAttempt } from "@/lib/attempts-store";
 import { RenderedMarkdown } from "@/components/rendered-markdown";
 import { Link } from "@/i18n/navigation";
 import {
@@ -18,6 +18,7 @@ import { useTaskCheckState } from "./use-task-check-state";
 export function TaskCheck({
   taskId,
   slot,
+  taskRevision,
   check,
   hintsHtml,
   solutionHtml,
@@ -26,6 +27,7 @@ export function TaskCheck({
 }: {
   taskId: string;
   slot: number;
+  taskRevision: string;
   check: CheckPart[];
   hintsHtml: string[];
   solutionHtml: string;
@@ -44,11 +46,30 @@ export function TaskCheck({
   const [checking, setChecking] = useState(false);
   const [checkerUnavailable, setCheckerUnavailable] = useState(false);
   const historyEntryId = useRef<string | null>(null);
+  const attemptStartedAt = useRef<number | null>(null);
 
-  const recordHelp = (helpLevel: number) => {
-    recordAttempts([
-      { taskId, slot, correct: false, source: "practice", helpLevel },
-    ]);
+  useEffect(() => {
+    attemptStartedAt.current = Date.now();
+  }, [taskId]);
+
+  const recordJournalAttempt = (
+    outcome: "CORRECT" | "INCORRECT" | "SKIPPED",
+    helpLevel: number,
+  ) => {
+    const submittedAt = Date.now();
+    const startedAt = attemptStartedAt.current ?? submittedAt;
+    recordPracticeAttempt({
+      taskId,
+      slot,
+      taskRevision,
+      startedAt: new Date(startedAt).toISOString(),
+      submittedAt: new Date(submittedAt).toISOString(),
+      activeDurationMs: Math.max(0, submittedAt - startedAt),
+      answer: JSON.stringify(state.answers),
+      outcome,
+      helpLevel,
+    });
+    attemptStartedAt.current = submittedAt;
   };
 
   const verify = async () => {
@@ -66,15 +87,7 @@ export function TaskCheck({
       }
 
       const correct = results.every((result) => result === "correct");
-      recordAttempts([
-        {
-          taskId,
-          slot,
-          correct,
-          source: "practice",
-          helpLevel: state.hintsShown,
-        },
-      ]);
+      recordJournalAttempt(correct ? "CORRECT" : "INCORRECT", state.hintsShown);
       historyEntryId.current =
         recordTaskHistory([
           {
@@ -110,7 +123,6 @@ export function TaskCheck({
 
   const showHint = () => {
     const helpLevel = Math.max(state.hintsShown, 1);
-    recordHelp(helpLevel);
     if (historyEntryId.current) {
       markTaskHistoryHelp(historyEntryId.current, helpLevel);
     }
@@ -124,9 +136,7 @@ export function TaskCheck({
 
   const showSolution = () => {
     if (!state.solved && !state.burned) {
-      recordAttempts([
-        { taskId, slot, correct: false, source: "practice", helpLevel: 3 },
-      ]);
+      recordJournalAttempt("SKIPPED", 3);
       if (historyEntryId.current) {
         markTaskHistoryHelp(historyEntryId.current, 3);
       } else {
@@ -156,7 +166,6 @@ export function TaskCheck({
   const nextHelp = () => {
     if (state.hintsShown < hintsHtml.length) {
       const helpLevel = state.hintsShown + 1;
-      recordHelp(helpLevel);
       if (historyEntryId.current) {
         markTaskHistoryHelp(historyEntryId.current, helpLevel);
       }

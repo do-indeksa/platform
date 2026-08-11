@@ -26,6 +26,21 @@ test("a practice mistake survives reload and opens with its full context", async
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.getByText("Not quite", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Show hint", exact: true }).click();
+  const journal = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("do-indeksa-attempts") as string),
+  );
+  expect(journal.version).toBe(2);
+  expect(journal.attempts).toHaveLength(1);
+  expect(journal.attempts[0]).toMatchObject({
+    taskId: "kb-001",
+    transport: "graphql-standalone",
+    ownerId: null,
+    input: {
+      outcome: "INCORRECT",
+      helpLevel: 0,
+      gradingKind: "AUTO",
+    },
+  });
 
   await page.goto("/en/history");
   await expect(
@@ -66,6 +81,158 @@ test("a practice mistake survives reload and opens with its full context", async
 
   const solveAgain = page.getByRole("link", { name: "Solve again" });
   await expect(solveAgain).toHaveAttribute("href", /practice=[0-9a-f-]{36}/);
+});
+
+test("hints stay metadata and an explicit solution reveal is journaled", async ({
+  page,
+}) => {
+  await page.goto("/en/tasks/kompleksni-brojevi/kb-001");
+  await page.getByRole("textbox", { name: "t", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "|z|", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "Re z", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "Im z", exact: true }).fill("0");
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await page.getByRole("button", { name: "Show hint", exact: true }).click();
+  await page.getByRole("button", { name: "Next step", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Show full solution", exact: true })
+    .click();
+
+  const attempts = await page.evaluate(() => {
+    const raw = localStorage.getItem("do-indeksa-attempts");
+    return raw ? JSON.parse(raw).attempts : [];
+  });
+  expect(
+    attempts.map(
+      (entry: { input: { outcome: string; helpLevel: number } }) => ({
+        outcome: entry.input.outcome,
+        helpLevel: entry.input.helpLevel,
+      }),
+    ),
+  ).toEqual([
+    { outcome: "INCORRECT", helpLevel: 0 },
+    { outcome: "SKIPPED", helpLevel: 3 },
+  ]);
+});
+
+test("signed practice retries the same GraphQL attempt without REST", async ({
+  page,
+}) => {
+  type PracticeInput = {
+    id: string;
+    standalone: {
+      taskId: string;
+      examPosition: number;
+      taskRevision: string;
+    };
+    startedAt: string;
+    submittedAt: string;
+    activeDurationMs: number;
+    answer: string;
+    outcome: string;
+    helpLevel: number;
+    gradingKind: string;
+  };
+  const mutationInputs: PracticeInput[] = [];
+  const restRequests: string[] = [];
+  let saved = false;
+  let journalReads = 0;
+
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/api/v1/attempts", (route) => {
+    restRequests.push(route.request().method());
+    return route.fulfill({ status: 410 });
+  });
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as {
+      operationName: string;
+      variables: { input?: PracticeInput };
+    };
+    if (call.operationName === "AttemptJournal") {
+      journalReads += 1;
+      const input = mutationInputs.at(-1);
+      await route.fulfill({
+        json: {
+          data: {
+            attempts:
+              saved && input
+                ? [
+                    {
+                      id: input.id,
+                      taskId: input.standalone.taskId,
+                      examPosition: input.standalone.examPosition,
+                      mode: "PRACTICE",
+                      submittedAt: input.submittedAt,
+                      outcome: input.outcome,
+                      helpLevel: input.helpLevel,
+                    },
+                  ]
+                : [],
+          },
+        },
+      });
+      return;
+    }
+    if (
+      call.operationName !== "RecordPracticeAttempt" ||
+      !call.variables.input
+    ) {
+      await route.fulfill({ status: 400 });
+      return;
+    }
+    const input = call.variables.input;
+    mutationInputs.push(input);
+    if (mutationInputs.length === 1) {
+      await route.fulfill({ status: 502 });
+      return;
+    }
+    saved = true;
+    await route.fulfill({
+      json: { data: { recordAttempt: { id: input.id } } },
+    });
+  });
+
+  await page.goto("/en/tasks/kompleksni-brojevi/kb-001");
+  await expect.poll(() => journalReads).toBeGreaterThan(0);
+  await page.getByRole("textbox", { name: "t", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "|z|", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "Re z", exact: true }).fill("0");
+  await page.getByRole("textbox", { name: "Im z", exact: true }).fill("0");
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect.poll(() => mutationInputs.length).toBe(1);
+  await page.getByRole("button", { name: "Show hint", exact: true }).click();
+  await page.waitForTimeout(100);
+  expect(mutationInputs).toHaveLength(1);
+  expect(mutationInputs[0]).toMatchObject({
+    standalone: {
+      taskId: "kb-001",
+      examPosition: 1,
+      taskRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    },
+    outcome: "INCORRECT",
+    helpLevel: 0,
+    gradingKind: "AUTO",
+  });
+  expect(JSON.parse(mutationInputs[0].answer)).toEqual(["0", "0", "0", "0"]);
+  expect(mutationInputs[0].activeDurationMs).toBeGreaterThanOrEqual(0);
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expect.poll(() => mutationInputs.length).toBe(2);
+  expect(mutationInputs[1].id).toBe(mutationInputs[0].id);
+  await expect
+    .poll(() =>
+      page.evaluate(() => localStorage.getItem("do-indeksa-attempts")),
+    )
+    .toBeNull();
+  expect(restRequests).toEqual([]);
 });
 
 test("an archived mock exam can rebuild and open its trusted result", async ({
