@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { auditTaskOrigins } from "./audit.mjs";
 import { generateTaskFiles, writeTaskFiles } from "./generate.mjs";
+import { assertSnapshotHistoryIsAppendOnly } from "./snapshot-history.mjs";
+import { auditTaskSnapshots, writeTaskSnapshots } from "./snapshots.mjs";
 import { loadSourceRegistry } from "./sources.mjs";
 import { auditVerificationRecords } from "./verification.mjs";
 
@@ -15,6 +17,7 @@ const repoRoot = path.resolve(
 const defaults = {
   registry: path.join(repoRoot, "content/sources/ftn-p1/sources.json"),
   reviews: path.join(repoRoot, "content/reviews"),
+  snapshots: path.join(repoRoot, "content/snapshots/tasks"),
   tasks: path.join(repoRoot, "content/tasks"),
 };
 
@@ -26,16 +29,21 @@ try {
       argumentsMap.registry ?? defaults.registry,
     );
     const tasksDirectory = argumentsMap.tasks ?? defaults.tasks;
-    const [report, verification] = await Promise.all([
+    const [report, verification, snapshots] = await Promise.all([
       auditTaskOrigins(tasksDirectory, registry),
       auditVerificationRecords(
         tasksDirectory,
         argumentsMap.reviews ?? defaults.reviews,
       ),
+      auditTaskSnapshots(
+        tasksDirectory,
+        argumentsMap.snapshots ?? defaults.snapshots,
+      ),
     ]);
     process.stdout.write(
       `content pipeline: ${report.taskCount} origins across ${report.slotCount} slots; ` +
-        `${verification.verifiedTaskCount} verified tasks across ${verification.verifiedTopicCount} topics\n`,
+        `${verification.verifiedTaskCount} verified tasks across ${verification.verifiedTopicCount} topics; ` +
+        `${snapshots.snapshotCount} immutable snapshots\n`,
     );
   } else if (command === "generate") {
     if (!argumentsMap.manifest || !argumentsMap.output) {
@@ -52,9 +60,25 @@ try {
     process.stdout.write(
       `content pipeline: generated ${files.size} task files\n`,
     );
+  } else if (command === "snapshot") {
+    const report = await writeTaskSnapshots(
+      argumentsMap.tasks ?? defaults.tasks,
+      argumentsMap.snapshots ?? defaults.snapshots,
+    );
+    process.stdout.write(
+      `content pipeline: created ${report.createdCount} snapshots; ` +
+        `${report.existingCount} already existed\n`,
+    );
+  } else if (command === "check-snapshot-history") {
+    if (!argumentsMap.base) {
+      throw new Error("check-snapshot-history requires --base");
+    }
+    await assertSnapshotHistoryIsAppendOnly(repoRoot, argumentsMap.base);
+    process.stdout.write("content pipeline: snapshot history is append-only\n");
   } else {
     throw new Error(
-      "usage: cli.mjs check | generate --manifest FILE --output DIR",
+      "usage: cli.mjs check | snapshot | check-snapshot-history --base REF | " +
+        "generate --manifest FILE --output DIR",
     );
   }
 } catch (error) {

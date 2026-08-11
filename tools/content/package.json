@@ -8,8 +8,10 @@
   },
   "scripts": {
     "check": "node src/cli.mjs check",
+    "check:snapshot-history": "node src/cli.mjs check-snapshot-history",
     "format:check": "prettier --check .",
     "generate": "node src/cli.mjs generate",
+    "snapshot": "node src/cli.mjs snapshot",
     "test": "node --test"
   },
   "dependencies": {
