@@ -448,6 +448,7 @@
     "gradingLabel": "Assessment",
     "pointsLabel": "Points",
     "revisionLabel": "Content revision",
+    "archivedRevision": "The statement and solution match the immutable content revision recorded for this attempt.",
     "revisionMismatch": "This task changed after the attempt. The statement and solution below show the current version.",
     "grading": {
       "auto": "Automatic check",

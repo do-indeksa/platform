@@ -248,6 +248,10 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
 }) => {
   const attemptId = "99c66cc7-4666-47e7-98b5-c91a7794a5e8";
   const revision = `sha256:${"b".repeat(64)}`;
+  const archivedRevision =
+    "sha256:f2a6cbf436042386c193131bbb5c103e2cdd0595713ae4d5ce2c94fa580b9903";
+  const currentKbRevision =
+    "sha256:390eefa973d8a3ea7bbcdfc9789de034413fc94c9c377936524b762a29b9216a";
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({
       json: {
@@ -282,7 +286,7 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
               gradingKind: "AUTO",
               earnedPoints: null,
               maxPoints: null,
-              taskRevision: revision,
+              taskRevision: archivedRevision,
             },
             {
               id: "13c66cc7-4666-47e7-98b5-c91a7794a5e8",
@@ -383,15 +387,51 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
   await page
     .getByRole("link", { name: "Open attempt for task kb-001" })
     .click();
+  await expect(page).toHaveURL(
+    /\/en\/history\/tasks\/kompleksni-brojevi\/kb-001\?/,
+  );
+  const archivedUrl = new URL(page.url());
+  expect(archivedUrl.searchParams.get("attempt")).toBe(attemptId);
+  expect(archivedUrl.searchParams.get("revision")).toBe(archivedRevision);
+  expect(archivedUrl.searchParams.has("account")).toBe(false);
+  expect(archivedUrl.searchParams.has("answer")).toBe(false);
   await expect(page.getByText("10 sec", { exact: true })).toBeVisible();
   await expect(
     page.getByText("Automatic check", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByTitle(archivedRevision)).toHaveText("f2a6cbf43604");
+  await expect(
+    page.getByText(
+      "The statement and solution match the immutable content revision recorded for this attempt.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "This task changed after the attempt. The statement and solution below show the current version.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
   await expect(
     page
       .locator('section[aria-labelledby="answer-comparison-heading"] dd')
       .filter({ hasText: /^0$/ }),
   ).toHaveCount(4);
+
+  archivedUrl.searchParams.set("revision", currentKbRevision);
+  await page.goto(archivedUrl.toString());
+  await expect(
+    page.getByText(
+      "This task changed after the attempt. The statement and solution below show the current version.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      "The statement and solution match the immutable content revision recorded for this attempt.",
+      { exact: true },
+    ),
+  ).toHaveCount(0);
 });
 
 test("a signed-in user opens a synced mock exam on a clean browser", async ({

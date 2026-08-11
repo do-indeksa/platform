@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Archive,
   ArrowLeft,
   ArrowRight,
   LoaderCircle,
@@ -14,6 +15,10 @@ import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useAttemptJournal } from "@/lib/attempts-store";
 import { mergeTaskHistory, type HistoryAttempt } from "@/lib/history-journal";
+import {
+  selectTaskAttemptContent,
+  type TaskAttemptContent,
+} from "@/lib/task-history-content";
 import { useTaskHistory } from "@/lib/task-history-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { OutcomeBadge } from "./outcome-badge";
@@ -36,14 +41,8 @@ export function TaskAttemptDetail({
   backHref: string;
   task: {
     id: string;
-    slot: number;
-    revision: string;
-    topicName: string;
-    statementHtml: string;
-    correctAnswerHtml: string;
-    hintsHtml: string[];
-    solutionHtml: string;
-    fieldLabels: (string | null)[];
+    current: TaskAttemptContent;
+    archived: TaskAttemptContent | null;
   };
   solveAgainHref: string;
   similarTask: { label: string; href: string } | null;
@@ -76,6 +75,11 @@ export function TaskAttemptDetail({
     (candidate) => candidate.id === attemptId && candidate.taskId === task.id,
   );
   if (!entry) return <UnavailableAttempt />;
+  const { content, isArchived, revisionMismatch } = selectTaskAttemptContent(
+    entry.taskRevision,
+    task.current,
+    task.archived,
+  );
 
   const attemptedAt = new Intl.DateTimeFormat(htmlLanguage(locale), {
     dateStyle: "long",
@@ -100,28 +104,34 @@ export function TaskAttemptDetail({
           <OutcomeBadge outcome={entry.outcome} />
         </div>
         <h1 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">
-          {t("positionTask", { position: task.slot, id: task.id })}
+          {t("positionTask", { position: content.slot, id: task.id })}
         </h1>
         <p className="mt-3 text-muted">
-          {task.topicName} · {attemptedAt} · {t(`source.${entry.source}`)}
+          {content.topicName} · {attemptedAt} · {t(`source.${entry.source}`)}
         </p>
         <AttemptMetadata entry={entry} />
       </header>
 
-      {entry.taskRevision !== undefined &&
-        entry.taskRevision !== task.revision && (
+      {isArchived ? (
+        <p className="mt-6 flex items-start gap-3 rounded-lg border border-line bg-subtle p-4 text-sm leading-6 text-ink">
+          <Archive aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
+          {t("archivedRevision")}
+        </p>
+      ) : (
+        revisionMismatch && (
           <p className="mt-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
             <TriangleAlert aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
             {t("revisionMismatch")}
           </p>
-        )}
+        )
+      )}
 
       <section aria-labelledby="statement-heading" className="py-8">
         <h2 id="statement-heading" className="mb-5 text-xl font-bold">
           {t("statementTitle")}
         </h2>
         <RenderedMarkdown
-          html={task.statementHtml}
+          html={content.statementHtml}
           openImageLabel={t("openImage")}
           closeImageLabel={t("closeImage")}
           className="text-lg leading-8"
@@ -139,14 +149,17 @@ export function TaskAttemptDetail({
           <h3 className="text-sm font-semibold text-muted">
             {t("yourAnswer")}
           </h3>
-          <AnswerList answers={entry.answers} fieldLabels={task.fieldLabels} />
+          <AnswerList
+            answers={entry.answers}
+            fieldLabels={content.fieldLabels}
+          />
         </div>
         <div className="border-t border-line py-6 sm:border-t-0 sm:border-l sm:pl-8">
           <h3 className="mb-3 text-sm font-semibold text-muted">
             {t("correctAnswer")}
           </h3>
           <RenderedMarkdown
-            html={task.correctAnswerHtml}
+            html={content.correctAnswerHtml}
             openImageLabel={t("openImage")}
             closeImageLabel={t("closeImage")}
           />
@@ -166,7 +179,7 @@ export function TaskAttemptDetail({
         </p>
         {entry.helpLevel > 0 && entry.helpLevel < 3 && (
           <div className="mt-5 space-y-5 border-l-2 border-amber-300 pl-5">
-            {task.hintsHtml.slice(0, entry.helpLevel).map((hint, index) => (
+            {content.hintsHtml.slice(0, entry.helpLevel).map((hint, index) => (
               <div key={index}>
                 <p className="mb-2 text-sm font-semibold text-amber-800">
                   {t("hintLabel", { number: index + 1 })}
@@ -187,7 +200,7 @@ export function TaskAttemptDetail({
           {t("solutionTitle")}
         </summary>
         <RenderedMarkdown
-          html={task.solutionHtml}
+          html={content.solutionHtml}
           openImageLabel={t("openImage")}
           closeImageLabel={t("closeImage")}
           className="mt-6"
