@@ -152,7 +152,7 @@ export const useDiagnostic = create<DiagnosticState>()(
         const parsed = parsePersistedDiagnosticState(state);
         if (
           current.authOwnerId === undefined ||
-          parsed.phase !== "running" ||
+          parsed.phase === null ||
           parsed.runOwnerId !== current.authOwnerId
         ) {
           return false;

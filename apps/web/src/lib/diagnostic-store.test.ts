@@ -248,6 +248,31 @@ describe("diagnostic persistence", () => {
     });
   });
 
+  it("restores a fully attempted cloud run so its submit can retry", () => {
+    syncDiagnosticOwner(userA);
+    const startedAt = Date.UTC(2026, 7, 10);
+    const restored = parsePersistedDiagnosticState(
+      persisted({
+        runOwnerId: userA,
+        checkpointVersion: 2,
+        outcomes: Array(10).fill("skipped"),
+        completedAt: Array.from(
+          { length: 10 },
+          (_, index) => startedAt + index,
+        ),
+        phase: "done",
+        currentIndex: 9,
+        startedAt,
+      }),
+    );
+
+    expect(useDiagnostic.getState().restore(restored)).toBe(true);
+    expect(useDiagnostic.getState()).toMatchObject({
+      phase: "done",
+      checkpointVersion: 2,
+    });
+  });
+
   it("reconciles the live store before exposing another account", () => {
     useDiagnostic.getState().start({ runId, taskIds, slots, answerPartCounts });
     syncDiagnosticOwner(userA);

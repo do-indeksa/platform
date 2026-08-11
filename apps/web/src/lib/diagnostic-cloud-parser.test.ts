@@ -84,6 +84,33 @@ describe("diagnostic cloud parser", () => {
     });
   });
 
+  it("restores a fully attempted active run so submit can be retried", () => {
+    const run = cloudRun();
+    for (let index = 0; index < 10; index += 1) {
+      addAttempt(
+        run,
+        index,
+        "INCORRECT",
+        JSON.stringify(
+          Array(catalog.positions[index].candidates[0].answerPartCount).fill(
+            "0",
+          ),
+        ),
+        new Date(Date.parse(startedAt) + (index + 1) * 60_000).toISOString(),
+      );
+    }
+    run.checkpoint = checkpoint(3);
+
+    expect(
+      parseDiagnosticCloudRun(run, catalog, ownerId)?.runtime,
+    ).toMatchObject({
+      phase: "done",
+      currentIndex: 9,
+      checkpointVersion: 1,
+      outcomes: Array(10).fill("incorrect"),
+    });
+  });
+
   it.each([
     ["wrong blueprint", (run: CloudRun) => (run.blueprintVersion = "old")],
     [
