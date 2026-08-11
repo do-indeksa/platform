@@ -11,6 +11,10 @@ The service requires Postgres plus the variables documented in `.env.example`.
 It applies embedded goose migrations before accepting traffic. OAuth redirects,
 callbacks, logout, and health use HTTP; product reads and writes use GraphQL.
 
+The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
+traffic and at `/v1/*` for internal compatibility. Production edge routing sends
+`/api/v1/*` directly to this service without a Next.js proxy or path rewrite.
+
 ## Container
 
 ```sh
