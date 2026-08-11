@@ -4,16 +4,30 @@ import { ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
-import { useSimulation } from "@/lib/simulation-store";
+import { mergeSimulationArchive } from "@/lib/simulation-archive";
+import { useSimulationArchive } from "@/lib/simulation-archive-store";
+import { useSimulationHistory } from "@/lib/simulation-store";
 import { useHydrated } from "@/lib/use-hydrated";
 
 export function SimulationHistory() {
   const t = useTranslations("simulation");
   const locale = useLocale();
-  const history = useSimulation((state) => state.history);
+  const localHistory = useSimulationHistory();
+  const archive = useSimulationArchive();
   const hydrated = useHydrated();
+  const history =
+    archive && localHistory
+      ? mergeSimulationArchive(localHistory, archive.entries)
+      : [];
 
-  if (!hydrated || history.length === 0) return null;
+  if (
+    !hydrated ||
+    archive === null ||
+    localHistory === null ||
+    history.length === 0
+  ) {
+    return null;
+  }
 
   return (
     <section className="mt-10 border-t border-line pt-8">
@@ -36,10 +50,12 @@ export function SimulationHistory() {
               )}
             </time>
             <span className="font-mono font-medium">
-              {t("estimateHistory", {
-                score: entry.score,
-                max: entry.maxPoints,
-              })}
+              {entry.score === null
+                ? t("estimateHistoryPending", { max: entry.maxPoints })
+                : t("estimateHistory", {
+                    score: entry.score,
+                    max: entry.maxPoints,
+                  })}
             </span>
           </li>
         ))}

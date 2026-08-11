@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { SimulationResult } from "@/components/simulation";
 import { redirect } from "@/i18n/navigation";
+import { taskSetRevision } from "@/lib/content";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
 import { buildSimulationTaskViews } from "@/lib/simulation-content";
 import { parseSimulationRunQuery } from "@/lib/simulation-run";
@@ -40,5 +41,11 @@ export default async function SimulationResultPage({
   const topicT = await getTranslations({ locale, namespace: "topics" });
   const tasks = await buildSimulationTaskViews(variant, topicT);
 
-  return <SimulationResult run={run} tasks={tasks} />;
+  return (
+    <SimulationResult
+      run={run}
+      tasks={tasks}
+      contentRevision={taskSetRevision(variant.tasks.map(({ task }) => task))}
+    />
+  );
 }

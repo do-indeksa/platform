@@ -9,13 +9,13 @@ import {
   isSimulationRunId,
   simulationRunHref,
 } from "@/lib/simulation-run";
-import type { SimulationHistoryEntry } from "@/lib/simulation-types";
+import type { SimulationArchiveRun } from "@/lib/simulation-archive";
 import { HistoryEmpty } from "./history-empty";
 
 export function VariantHistoryList({
   entries,
 }: {
-  entries: SimulationHistoryEntry[];
+  entries: SimulationArchiveRun[];
 }) {
   const t = useTranslations("history");
   const locale = useLocale() as AppLocale;
@@ -72,7 +72,7 @@ function VariantTableRow({
   entry,
   date,
 }: {
-  entry: SimulationHistoryEntry;
+  entry: SimulationArchiveRun;
   date: string;
 }) {
   const t = useTranslations("history");
@@ -87,7 +87,7 @@ function VariantTableRow({
       </td>
       <td className="px-3 py-5 text-muted">{date}</td>
       <td className="px-3 py-5 font-mono font-semibold tabular-nums">
-        {t("scoreValue", { score: entry.score, max: entry.maxPoints })}
+        {scoreLabel(entry, t)}
       </td>
       <td className="px-3 py-5 text-muted">
         {durationLabel(entry.durationMs, t)}
@@ -115,7 +115,7 @@ function VariantMobileRow({
   entry,
   date,
 }: {
-  entry: SimulationHistoryEntry;
+  entry: SimulationArchiveRun;
   date: string;
 }) {
   const t = useTranslations("history");
@@ -128,7 +128,7 @@ function VariantMobileRow({
           <p className="mt-1 text-xs text-muted">{date}</p>
         </div>
         <p className="font-mono font-semibold tabular-nums">
-          {t("scoreValue", { score: entry.score, max: entry.maxPoints })}
+          {scoreLabel(entry, t)}
         </p>
       </div>
       <div className="mt-4 flex items-end justify-between gap-3 text-sm text-muted">
@@ -156,8 +156,9 @@ function VariantMobileRow({
   );
 }
 
-function resultHref(entry: SimulationHistoryEntry): string | null {
+function resultHref(entry: SimulationArchiveRun): string | null {
   if (
+    entry.historyEntry === null ||
     !isSimulationRunId(entry.id) ||
     !isSimulationBlueprintVersion(entry.blueprintVersion)
   ) {
@@ -183,9 +184,10 @@ function durationLabel(
 }
 
 function completionLabel(
-  entry: SimulationHistoryEntry,
+  entry: SimulationArchiveRun,
   t: ReturnType<typeof useTranslations<"history">>,
 ): string {
+  if (entry.score === null) return t("awaitingReview");
   if (entry.timedOut) return t("timedOut");
   if (entry.answeredCount < entry.taskIds.length) {
     return t("partial", {
@@ -194,4 +196,13 @@ function completionLabel(
     });
   }
   return t("complete");
+}
+
+function scoreLabel(
+  entry: SimulationArchiveRun,
+  t: ReturnType<typeof useTranslations<"history">>,
+): string {
+  return entry.score === null
+    ? t("scorePending", { max: entry.maxPoints })
+    : t("scoreValue", { score: entry.score, max: entry.maxPoints });
 }

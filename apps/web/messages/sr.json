@@ -337,6 +337,11 @@
       "synced": "Dnevnik je sinhronizovan sa nalogom i dostupan na drugim uređajima.",
       "degraded": "Sinhronizacija još nije ažurna. Neposlati pokušaji ostaju bezbedni na ovom uređaju."
     },
+    "variantSyncNotice": {
+      "guest": "Rezultati probnih ispita ostaju na ovom uređaju dok se ne prijaviš.",
+      "synced": "Rezultati probnih ispita su sinhronizovani sa nalogom i dostupni na drugim uređajima.",
+      "degraded": "Sinhronizacija probnih ispita još nije ažurna. Neposlati rezultati ostaju bezbedni na ovom uređaju."
+    },
     "loading": "Učitavamo istoriju...",
     "loadingAttempt": "Otvaramo pokušaj...",
     "tabsLabel": "Prikazi istorije",
@@ -384,12 +389,14 @@
     "startMock": "Pokreni probni ispit",
     "variantName": "Probni ispit P1",
     "scoreValue": "{score} / {max}",
+    "scorePending": "Čeka pregled / {max}",
     "durationHoursMinutes": "{hours} č {minutes} min",
     "durationMinutes": "{minutes} min",
     "durationSeconds": "{seconds} sek",
     "complete": "Završeno",
     "partial": "Odgovoreno {answered}/{total}",
     "timedOut": "Vreme je isteklo",
+    "awaitingReview": "Čeka pregled",
     "activeVariantNotice": "Aktivni probni ispit pojaviće se ovde nakon predaje.",
     "attemptTitle": "Pokušaj zadatka {id}",
     "detailKicker": "Detalji pokušaja",
@@ -525,9 +532,10 @@
     "viewLatestResult": "Pogledaj poslednji rezultat",
     "startCta": "Počni probni ispit",
     "startAnother": "Počni drugu varijantu",
-    "entryDisclaimer": "Odgovori i rezultati čuvaju se samo u ovom pregledaču. Automatska provera poredi krajnje odgovore i ne ocenjuje postupak ni delimične bodove.",
+    "entryDisclaimer": "Rezultati gosta ostaju u ovom pregledaču, a prijavljeni rezultati se sinhronizuju sa nalogom. Automatska provera poredi krajnje odgovore i ne ocenjuje postupak ni delimične bodove.",
     "historyTitle": "Tvoji pokušaji",
     "estimateHistory": "procena {score} / {max}",
+    "estimateHistoryPending": "čeka pregled / {max}",
     "viewHistory": "Otvori celu istoriju",
     "assembling": "Sastavljam varijantu…",
     "taskNav": "Zadaci u varijanti",
@@ -572,6 +580,7 @@
     "resultIntro": "Po pozicijama izaberi šta sledeće da vežbaš, a zatim pregledaj svaki poslati odgovor.",
     "timeExpiredResult": "Vremensko ograničenje je isteklo, pa je pokušaj završen odgovorima sačuvanim do tog trenutka.",
     "partialResult": "Odgovorio si na {answered} od {total} zadataka. Pokušaj je označen kao nepotpun i ne poredi se sa ranijim rezultatima.",
+    "historicalContentChanged": "Ovaj probni ispit je rađen sa starijom revizijom sadržaja. Sačuvani bodovi i odgovori nisu promenjeni; tekstovi zadataka, očekivani odgovori i rešenja ispod prikazuju trenutnu verziju.",
     "scoreMetric": "Bodovi",
     "binaryEstimate": "Procena krajnjih odgovora",
     "correctMetric": "Tačno",
@@ -611,7 +620,7 @@
     },
     "loadingResult": "Učitavam rezultat…",
     "resultUnavailableTitle": "Rezultat nije dostupan",
-    "resultUnavailableDescription": "Rezultat završenog pokušaja dostupan je u pregledaču u kojem je ispit rađen.",
+    "resultUnavailableDescription": "Ovaj sačuvani pokušaj ne može bezbedno da se rekonstruiše iz trenutnog sadržaja ili čeka format ocenjivanja koji ovde još nije podržan.",
     "back": "Nazad na probne ispite"
   }
 }

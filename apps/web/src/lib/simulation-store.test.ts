@@ -4,7 +4,11 @@ import {
   migrateSimulationState,
   parsePersistedSimulationState,
 } from "./simulation-persistence";
-import { isSimulationActive } from "./simulation-store";
+import {
+  claimSimulationHistoryOwner,
+  isSimulationActive,
+  simulationHistoryForOwner,
+} from "./simulation-store";
 import type { SimulationTaskView } from "./simulation-types";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
@@ -129,6 +133,19 @@ describe("simulation persistence", () => {
     });
 
     expect(parsed.history).toEqual([entry]);
+    const ownerId = "a0209703-275b-4c6e-b815-25025b923ae8";
+    expect(
+      parsePersistedSimulationState({
+        ...runningState(),
+        history: [{ ...entry, ownerId }],
+      }).history,
+    ).toEqual([{ ...entry, ownerId }]);
+    expect(
+      parsePersistedSimulationState({
+        ...runningState(),
+        history: [{ ...entry, ownerId: "not-a-user-id" }],
+      }).history,
+    ).toEqual([]);
     const withUnknownHistoryData = parsePersistedSimulationState({
       ...runningState(),
       history: [{ ...entry, review: "do not retain" }],
@@ -246,4 +263,43 @@ describe("simulation persistence", () => {
     expect(isSimulationActive("done")).toBe(false);
     expect(isSimulationActive(null)).toBe(false);
   });
+
+  it("isolates completed browser history by its claimed owner", () => {
+    const userA = "a0209703-275b-4c6e-b815-25025b923ae8";
+    const userB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
+    const entries = [
+      { ...emptyHistoryEntry("guest"), ownerId: null },
+      { ...emptyHistoryEntry("account-a"), ownerId: userA },
+      { ...emptyHistoryEntry("account-b"), ownerId: userB },
+    ];
+
+    expect(simulationHistoryForOwner(entries, undefined)).toBeNull();
+    expect(
+      simulationHistoryForOwner(entries, null)?.map(({ id }) => id),
+    ).toEqual(["guest"]);
+    expect(
+      simulationHistoryForOwner(entries, userA)?.map(({ id }) => id),
+    ).toEqual(["account-a"]);
+    expect(
+      claimSimulationHistoryOwner(entries, userA).map(({ ownerId }) => ownerId),
+    ).toEqual([userA, userA, userB]);
+  });
 });
+
+function emptyHistoryEntry(id: string) {
+  return {
+    id,
+    blueprintVersion: "legacy",
+    startedAt,
+    finishedAt: startedAt,
+    durationMs: 0,
+    timedOut: false,
+    score: 0,
+    maxPoints: 60,
+    correctCount: 0,
+    answeredCount: 0,
+    taskIds: [task.id],
+    answers: [],
+    results: [],
+  };
+}

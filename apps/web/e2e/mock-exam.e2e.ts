@@ -100,7 +100,7 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
   const activePayload = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
-  expect(activePayload.version).toBe(6);
+  expect(activePayload.version).toBe(7);
   expect(activePayload.state.review).toEqual([]);
   expect(
     activePayload.state.tasks.every(
@@ -243,6 +243,12 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
               : [],
           },
         },
+      });
+      return;
+    }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
       });
       return;
     }

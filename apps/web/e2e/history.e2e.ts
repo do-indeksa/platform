@@ -394,6 +394,89 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
   ).toHaveCount(4);
 });
 
+test("a signed-in user opens a synced mock exam on a clean browser", async ({
+  page,
+}) => {
+  const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+  const revision = `sha256:${"b".repeat(64)}`;
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as { operationName?: string };
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({ json: { data: { attempts: [] } } });
+      return;
+    }
+    if (call.operationName !== "CompletedSimulationArchive") {
+      await route.fulfill({ status: 400 });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        data: {
+          completedSimulationRuns: [
+            {
+              id: runId,
+              blueprintVersion: "ftn-p1:2026.1",
+              contentRevision: `sha256:${"a".repeat(64)}`,
+              startedAt: "2026-08-10T10:00:00.000Z",
+              deadlineAt: "2026-08-10T14:00:00.000Z",
+              submittedAt: "2026-08-10T10:10:00.000Z",
+              activeDurationMs: 600_000,
+              items: taskIds.map((taskId, index) => ({
+                taskId,
+                examPosition: index + 1,
+                topic: `topic-${index + 1}`,
+                maxPoints: 6,
+                taskRevision: revision,
+                answer:
+                  index === 0
+                    ? JSON.stringify(Array(answerPartCounts[index]).fill("0"))
+                    : null,
+                outcome: index === 0 ? "INCORRECT" : "SKIPPED",
+                earnedPoints: index === 0 ? 0 : null,
+              })),
+            },
+          ],
+        },
+      },
+    });
+  });
+
+  await page.goto("/en/history?tab=variants");
+  await expect(
+    page.getByText(
+      "Mock-exam results are synced to your account and available on your other devices.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "0 / 60", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => {
+      const raw = localStorage.getItem("do-indeksa-simulation");
+      return raw ? JSON.parse(raw).state.history : null;
+    }),
+  ).toEqual([]);
+
+  await page.getByRole("link", { name: "Open mock exam result" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your result", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("You answered 1 of 10 tasks.")).toBeVisible();
+  await expect(
+    page.getByText(/This mock exam used an older content revision/),
+  ).toBeVisible();
+  await expect(page.locator("#answers tbody tr")).toHaveCount(10);
+});
+
 test("local detail rows stay isolated between accounts", async ({ page }) => {
   const userA = "a0209703-275b-4c6e-b815-25025b923ae8";
   const userB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";

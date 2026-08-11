@@ -56,6 +56,13 @@ export type SimulationHistoryEntry = {
   answers: string[][];
   results: SimulationGradeItem[];
   progress?: SimulationProgressMetadata;
+  archiveSnapshot?: SimulationArchiveSnapshot;
+  ownerId?: string | null;
+};
+
+export type SimulationArchiveSnapshot = {
+  contentRevision: string;
+  taskRevisions: string[];
 };
 
 export type SimulationProgressMetadata = {

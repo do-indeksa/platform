@@ -9,7 +9,13 @@ import {
   mergeTaskHistory,
   recentHistoryErrorTaskIds,
 } from "@/lib/history-journal";
-import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
+import {
+  isSimulationActive,
+  useSimulation,
+  useSimulationHistory,
+} from "@/lib/simulation-store";
+import { mergeSimulationArchive } from "@/lib/simulation-archive";
+import { useSimulationArchive } from "@/lib/simulation-archive-store";
 import { useTaskHistory } from "@/lib/task-history-store";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -30,7 +36,8 @@ export function HistoryView({
   const hydrated = useHydrated();
   const localTaskEntries = useTaskHistory();
   const journal = useAttemptJournal();
-  const variantEntries = useSimulation((state) => state.history);
+  const localVariantEntries = useSimulationHistory();
+  const archive = useSimulationArchive();
   const simulationPhase = useSimulation((state) => state.phase);
   const [practiceId] = useState(() => crypto.randomUUID());
   const taskById = useMemo(
@@ -44,8 +51,21 @@ export function HistoryView({
         : mergeTaskHistory(localTaskEntries, journal.entries),
     [journal, localTaskEntries],
   );
+  const variantEntries = useMemo(
+    () =>
+      archive === null || localVariantEntries === null
+        ? null
+        : mergeSimulationArchive(localVariantEntries, archive.entries),
+    [archive, localVariantEntries],
+  );
 
-  if (!hydrated || taskEntries === null || journal === null) {
+  if (
+    !hydrated ||
+    taskEntries === null ||
+    journal === null ||
+    variantEntries === null ||
+    archive === null
+  ) {
     return (
       <main className="mx-auto flex min-h-[32rem] w-full max-w-6xl items-center justify-center px-5 sm:px-8">
         <p className="flex items-center gap-3 text-muted">
@@ -79,7 +99,10 @@ export function HistoryView({
         <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
           {t("intro")}
         </p>
-        <SyncNotice status={journal.status} />
+        <SyncNotice
+          status={initialTab === "tasks" ? journal.status : archive.status}
+          kind={initialTab}
+        />
       </header>
 
       <div
@@ -125,14 +148,24 @@ export function HistoryView({
   );
 }
 
-function SyncNotice({ status }: { status: "guest" | "synced" | "degraded" }) {
+function SyncNotice({
+  status,
+  kind,
+}: {
+  status: "guest" | "synced" | "degraded";
+  kind: HistoryTab;
+}) {
   const t = useTranslations("history");
   const Icon =
     status === "guest" ? HardDrive : status === "synced" ? Cloud : CloudOff;
   return (
     <p className="mt-5 flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted">
       <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-      {t(`syncNotice.${status}`)}
+      {t(
+        kind === "tasks"
+          ? `syncNotice.${status}`
+          : `variantSyncNotice.${status}`,
+      )}
     </p>
   );
 }
