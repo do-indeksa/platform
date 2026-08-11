@@ -5,7 +5,7 @@ topic: stereometrija
 difficulty: 4
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 8, zadatak 7'
-status: review
+status: verified
 answer: 'a) $a=6$; b) $d=2\sqrt{3}$; v) $\frac{\sqrt{3}}{9}$'
 check:
   - label: 'a)'
@@ -17,6 +17,16 @@ check:
   - label: 'v)'
     kind: value
     expected: 'sqrt(3)/9'
+rubric:
+  - id: edge-from-surface-volume
+    points: 1
+    text: 'Iz uslova $6a^2=a^3$ i geometrijskog uslova $a>0$ dobijena je ivica $a=6$.'
+  - id: vertex-plane-distance
+    points: 2
+    text: 'Rastojanje do ravni tri susedna temena izračunato je preko zapremine odsečenog tetraedra i površine njegove jednakostranične strane, pa je $d=2\sqrt3$.'
+  - id: sphere-volume-ratio
+    points: 2
+    text: 'Upotrebljeni su poluprečnici $r=a/2$ i $R=a\sqrt3/2$, a odnos zapremina je izračunat kao $(r/R)^3=\sqrt3/9$.'
 ---
 
 ## Zadatak

@@ -5,7 +5,7 @@ topic: stereometrija
 difficulty: 4
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 8, zadatak 1'
-status: review
+status: verified
 answer: 'a) $H=4$, $s=5$, $V=12\pi$, $P=24\pi$; b) $\rho=\frac{3}{2}$; v) $\frac{3}{8}$'
 check:
   - label: 'a) V'
@@ -20,6 +20,16 @@ check:
   - label: 'v)'
     kind: value
     expected: '3/8'
+rubric:
+  - id: cone-dimensions-and-measures
+    points: 2
+    text: 'Uslovi $2H=r+s$ i $s^2=r^2+H^2$ rešeni su za pozitivnu visinu, a zatim su tačno dobijeni $H=4$, $s=5$, $V=12\pi$ i $P=24\pi$.'
+  - id: inscribed-sphere-radius
+    points: 2
+    text: 'Osni presek kupe pravilno je iskorišćen za poluprečnik upisane kružnice, odnosno lopte, $\rho=S/p=3/2$.'
+  - id: cone-sphere-volume-ratio
+    points: 1
+    text: 'Zapremina lopte je izračunata i podeljena zapreminom kupe, uz konačni odnos $3/8$.'
 ---
 
 ## Zadatak
