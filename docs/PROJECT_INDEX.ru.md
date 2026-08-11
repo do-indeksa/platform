@@ -124,9 +124,8 @@
 - `docs/research/global-exam-prep-platforms-2026.ru.md` - конкурентный анализ и
   рекомендуемый P0/P1.
 - `content/topics.yaml` - текущая таксономия контента.
-- `content/tasks/` - 30 авторских задач: по 3 на каждую из 10 областей. Первые
-  9 полных тем (27 задач) имеют статус `verified` и versioned review-record;
-  остальные 3 остаются в `review`.
+- `content/tasks/` - 30 авторских задач: по 3 на каждую из 10 областей. Все
+  10 полных тем (30 задач) имеют статус `verified` и versioned review-record.
 - `content/sources/` и `tools/content/` - hash-pinned авторские LaTeX-источники,
   AST-импорт, проверка provenance и запрет автоматического статуса `verified`.
 - `content/guide/ftn/cutoffs.yaml` - данные калькулятора проходных баллов.
@@ -177,7 +176,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
-| Контентный pipeline      | готов                  | 30 provenance-ссылок, 27 verified-задач в 9 полных темах                  |
+| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач в 10 полных темах                 |
 | Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
 Текущие маршруты web:
@@ -297,7 +296,7 @@ assignment и drafts до общей сдачи, затем сохраняет �
 1. Длительность и состав короткой диагностики на pilot-данных; она не называется
    точной симуляцией P1.
 2. Минимальный объем проверенного контента для публичного обещания готовности;
-   сейчас verified только 27 задач в 9 темах.
+   сейчас verified весь пилотный банк из 30 задач в 10 темах.
 3. Pilot-калибровку текущей deterministic mastery и task-of-the-day эвристики.
 4. Какие данные о факультетах поддерживаются вручную и как часто
    перепроверяются по официальным источникам.
