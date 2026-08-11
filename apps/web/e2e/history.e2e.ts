@@ -112,6 +112,11 @@ test("an archived mock exam can rebuild and open its trusted result", async ({
   ).toBeVisible();
   await expect(page.getByText("You answered 0 of 10 tasks.")).toBeVisible();
   await expect(page.locator("#answers ol > li")).toHaveCount(10);
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem("do-indeksa-progress-outbox"),
+    ),
+  ).toBeNull();
 });
 
 test("empty mobile history has a recovery action and active navigation", async ({

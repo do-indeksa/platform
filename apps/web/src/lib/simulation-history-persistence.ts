@@ -94,7 +94,13 @@ function isHistoryEntry(value: unknown): value is SimulationHistoryEntry {
     return false;
   }
   const taskIds = value.taskIds as string[];
-  if (legacy) return value.answers.length === 0 && value.results.length === 0;
+  if (legacy) {
+    return (
+      value.answers.length === 0 &&
+      value.results.length === 0 &&
+      value.progress === undefined
+    );
+  }
   if (
     value.answers.length !== taskIds.length ||
     !value.answers.every(
@@ -179,7 +185,16 @@ function cloneHistoryEntry(
   entry: SimulationHistoryEntry,
 ): SimulationHistoryEntry {
   return {
-    ...entry,
+    id: entry.id,
+    blueprintVersion: entry.blueprintVersion,
+    startedAt: entry.startedAt,
+    finishedAt: entry.finishedAt,
+    durationMs: entry.durationMs,
+    timedOut: entry.timedOut,
+    score: entry.score,
+    maxPoints: entry.maxPoints,
+    correctCount: entry.correctCount,
+    answeredCount: entry.answeredCount,
     taskIds: [...entry.taskIds],
     answers: entry.answers.map((answers) => [...answers]),
     results: entry.results.map((result) => ({ ...result })),
@@ -188,7 +203,14 @@ function cloneHistoryEntry(
       : {
           progress: {
             contentRevision: entry.progress.contentRevision,
-            items: entry.progress.items.map((item) => ({ ...item })),
+            items: entry.progress.items.map((item) => ({
+              taskId: item.taskId,
+              taskRevision: item.taskRevision,
+              slot: item.slot,
+              examPosition: item.examPosition,
+              topic: item.topic,
+              maxPoints: item.maxPoints,
+            })),
           },
         }),
   };
