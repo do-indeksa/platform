@@ -5,7 +5,7 @@ topic: trigonometrija
 difficulty: 2
 source: 'Do indeksa (autorski)'
 origin: 'FTN_P1_Tematski_Zadaci_sr.tex, slot 5, zadatak 4'
-status: review
+status: verified
 answer: 'na $[0,2\pi)$: $x\in\left\{\frac{\pi}{2},\ \frac{5\pi}{6}\right\}$; u $\left(\frac{2\pi}{3},2\pi\right)$: samo $x=\frac{5\pi}{6}$'
 check:
   - label: 'na [0,2pi)'
@@ -14,6 +14,16 @@ check:
   - label: 'u (2pi/3,2pi)'
     kind: value
     expected: '5pi/6'
+rubric:
+  - id: sine-families
+    points: 2
+    text: 'Jednačina je svedena na $\sin(x-\pi/6)=\sqrt{3}/2$ i navedene su obe opšte serije rešenja.'
+  - id: principal-interval
+    points: 2
+    text: 'Iz opštih serija su na intervalu $[0,2\pi)$ izdvojena tačno rešenja $x=\pi/2$ i $x=5\pi/6$.'
+  - id: restricted-interval
+    points: 1
+    text: 'Za uži otvoreni interval proverene su granice i zadržano je samo rešenje $x=5\pi/6$.'
 ---
 
 ## Zadatak
