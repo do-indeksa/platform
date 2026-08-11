@@ -1,16 +1,36 @@
 import type { HistoryAttempt } from "../../lib/history-journal";
 import type { Attempt } from "../../lib/knowledge";
-import type { OverviewPosition, OverviewTask } from "../../lib/overview";
-import type { PrepPositionProgress } from "../../lib/prep-plan-types";
+import type {
+  PrepPositionDefinition,
+  PrepPositionProgress,
+} from "../../lib/prep-plan-types";
 import type { MappedAttempt } from "../../lib/prep-readiness";
 import { selectPositionTasks } from "../../lib/prep-task-selection";
 import type { SimulationArchiveRun } from "../../lib/simulation-archive";
+import type { TaskReference } from "../../lib/content";
 
 export const CABINET_PRACTICE_TARGET = 5;
 export const CABINET_TASK_MINUTES = 5;
 
-export type CabinetTask = OverviewTask & {
+export type CabinetTask = TaskReference & {
+  difficulty: number;
   topicLabel: string;
+};
+
+export type CabinetPosition = PrepPositionDefinition & {
+  taskCount: number;
+};
+
+export type CabinetPositionProgress = PrepPositionProgress & {
+  taskCount: number;
+};
+
+export type CabinetExam = {
+  version: string;
+  taskCount: number;
+  durationMinutes: number;
+  maxPoints: number;
+  officialVariantUrl: string;
 };
 
 export type CabinetPractice = {
@@ -24,7 +44,7 @@ export type CabinetPractice = {
 };
 
 export function selectCabinetPractice(
-  positions: readonly (OverviewPosition & PrepPositionProgress)[],
+  positions: readonly CabinetPositionProgress[],
   attempts: readonly MappedAttempt[],
   tasks: readonly CabinetTask[],
 ): CabinetPractice | null {

@@ -3,14 +3,14 @@
 import { ArrowRight, Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { OverviewPositionProgress } from "@/lib/overview";
+import type { CabinetPositionProgress } from "./cabinet-model";
 
 export function CabinetPositionMap({
   positions,
   activePosition,
   pending,
 }: {
-  positions: readonly OverviewPositionProgress[];
+  positions: readonly CabinetPositionProgress[];
   activePosition: number | null;
   pending: boolean;
 }) {
@@ -87,7 +87,7 @@ function PositionLink({
   active,
   pending,
 }: {
-  position: OverviewPositionProgress;
+  position: CabinetPositionProgress;
   active: boolean;
   pending: boolean;
 }) {
@@ -131,7 +131,7 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-function positionTone(status: OverviewPositionProgress["status"]): {
+function positionTone(status: CabinetPositionProgress["status"]): {
   tile: string;
   text: string;
 } {

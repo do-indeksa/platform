@@ -4,13 +4,16 @@ import { BookOpen, Clock, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { taskPracticeHref } from "@/lib/task-bank";
-import type { OverviewExam } from "@/lib/overview";
-import type { CabinetPractice, CabinetTask } from "./cabinet-model";
+import type {
+  CabinetExam,
+  CabinetPractice,
+  CabinetTask,
+} from "./cabinet-model";
 import { CabinetLinkButton } from "./cabinet-link-button";
 import type { CabinetResume } from "./use-cabinet-resume";
 
 type ContinueCardProps = {
-  exam: OverviewExam;
+  exam: CabinetExam;
   practice: CabinetPractice | null;
   resume: CabinetResume | null;
   started: boolean;

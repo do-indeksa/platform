@@ -6,10 +6,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import type { HistoryAttempt } from "@/lib/history-journal";
-import type { OverviewExam } from "@/lib/overview";
 import type { SimulationArchiveRun } from "@/lib/simulation-archive";
 import { taskPracticeHref } from "@/lib/task-bank";
-import type { CabinetTask } from "./cabinet-model";
+import type { CabinetExam, CabinetTask } from "./cabinet-model";
 import { CabinetLinkButton } from "./cabinet-link-button";
 
 export function CabinetLatestResults({
@@ -18,7 +17,7 @@ export function CabinetLatestResults({
   practice,
   tasks,
 }: {
-  exam: OverviewExam;
+  exam: CabinetExam;
   mock: SimulationArchiveRun | null;
   practice: HistoryAttempt | null;
   tasks: readonly CabinetTask[];

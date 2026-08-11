@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useAttemptJournal, useAttempts } from "@/lib/attempts-store";
 import { mergeTaskHistory } from "@/lib/history-journal";
-import type { OverviewExam, OverviewPosition } from "@/lib/overview";
 import {
   buildPositionProgress,
   mapAttemptsToPositions,
@@ -24,6 +23,8 @@ import {
   latestP1Mock,
   latestPracticeAttempt,
   selectCabinetPractice,
+  type CabinetExam,
+  type CabinetPosition,
   type CabinetTask,
 } from "./cabinet-model";
 import { CabinetContinueCard } from "./cabinet-continue-card";
@@ -42,8 +43,8 @@ export function CabinetDashboard({
   programSource,
   progressCatalog,
 }: {
-  exam: OverviewExam;
-  positions: OverviewPosition[];
+  exam: CabinetExam;
+  positions: CabinetPosition[];
   tasks: CabinetTask[];
   topicSlots: PrepTopicSlot[];
   programs: string[];
