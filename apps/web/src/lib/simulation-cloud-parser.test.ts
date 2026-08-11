@@ -134,6 +134,13 @@ describe("simulation cloud parser", () => {
     });
   });
 
+  it("rejects a partial completed upload without its draft checkpoint", () => {
+    const run = cloudRun();
+    addAttempt(run, 0, "CORRECT", '["42"]', 6);
+
+    expect(parseSimulationCloudRun(run, catalog, ownerId)).toBeNull();
+  });
+
   it.each([
     ["wrong blueprint", (run: CloudRun) => (run.blueprintVersion = "old")],
     ["terminal run", (run: CloudRun) => (run.status = "SUBMITTED")],
