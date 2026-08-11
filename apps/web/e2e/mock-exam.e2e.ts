@@ -134,11 +134,17 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
   await expect(
     page.getByRole("heading", { name: "Compare your written work" }),
   ).toBeVisible();
-  await expect(page.getByText("Task 1 of 9", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Task 1 of 10", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "3", exact: true }).click();
   await page.getByRole("button", { name: "Next task", exact: true }).click();
   await page.reload();
-  await expect(page.getByText("Task 2 of 9", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Task 2 of 10", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "0", exact: true }).click();
+  await page.getByRole("button", { name: "Next task", exact: true }).click();
   await page.getByRole("button", { name: "0", exact: true }).click();
   await page.getByRole("button", { name: "Next task", exact: true }).click();
   await page.getByRole("button", { name: "0", exact: true }).click();
@@ -213,18 +219,7 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
   expect(completedPayload.state.review).toHaveLength(10);
-  expect(completedPayload.state.rubricScores).toEqual([
-    3,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    ...Array(1).fill(null),
-  ]);
+  expect(completedPayload.state.rubricScores).toEqual([3, ...Array(9).fill(0)]);
   expect(completedPayload.state.history[0].progress.items).toHaveLength(10);
   const progressOutbox = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-progress-outbox") as string),
@@ -370,7 +365,7 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     .getByRole("button", { name: "Finish and check", exact: true })
     .click();
 
-  await completeRubricReview(page, [0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  await completeRubricReview(page, Array(10).fill(0));
 
   await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
     timeout: dynamicNavigationTimeout,
@@ -443,18 +438,7 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
       .filter((call) => call.operationName === "RecordAttempt")
       .slice(10)
       .map((call) => call.variables.input?.gradingKind),
-  ).toEqual([
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    "RUBRIC_SELF",
-    ...Array(1).fill("AUTO"),
-  ]);
+  ).toEqual(Array(10).fill("RUBRIC_SELF"));
   const startItems = startCall.variables.input?.items as {
     taskRevision: string;
     maxPoints: number;
@@ -579,7 +563,7 @@ test("the time limit submits saved answers without losing the attempt", async ({
   await expect(page.getByText(/^Saved at /)).toBeVisible();
   await page.clock.fastForward(4 * 60 * 60 * 1_000 + 1_000);
 
-  await completeRubricReview(page, [0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  await completeRubricReview(page, Array(10).fill(0));
 
   await expect(page).toHaveURL(/\/en\/simulation\/result\?/, {
     timeout: dynamicNavigationTimeout,
