@@ -152,7 +152,7 @@ export function DailyTask({ tasks }: { tasks: DailyTaskCandidate[] }) {
           </div>
           {task && (
             <Link
-              href={taskPracticeHref(task, "/")}
+              href={taskPracticeHref(task, "/cabinet")}
               prefetch={false}
               className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
             >

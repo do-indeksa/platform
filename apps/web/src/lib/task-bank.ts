@@ -260,11 +260,13 @@ export function safeTaskBankReturnPath(
     const target = new URL(value, base);
     const allowedPath =
       target.pathname === "/" ||
+      target.pathname === "/cabinet" ||
       target.pathname === TASK_BANK_PATH ||
       target.pathname === "/prep" ||
       target.pathname === "/history";
     const validOverviewQuery =
-      target.pathname !== "/" || (!target.search && !target.hash);
+      (target.pathname !== "/" && target.pathname !== "/cabinet") ||
+      (!target.search && !target.hash);
     const validHistoryQuery =
       target.pathname !== "/history" ||
       (!target.hash &&
