@@ -2,7 +2,6 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { recordAttempts } from "./attempts-store";
 import {
   emptySimulationState,
   migrateSimulationState,
@@ -167,18 +166,6 @@ export const useSimulation = create<SimulationState>()(
         ) {
           return false;
         }
-        recordAttempts(
-          results.flatMap((result, index) => {
-            if (result.outcome === "unanswered") return [];
-            const task = state.tasks[index];
-            return {
-              taskId: result.taskId,
-              slot: task.slot,
-              correct: result.outcome === "correct",
-              source: "simulation" as const,
-            };
-          }),
-        );
         recordTaskHistory(
           results.map((result, index) => ({
             taskId: result.taskId,

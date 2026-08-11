@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, RotateCcw, SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
+import { persistCompletedSimulationRun } from "@/lib/simulation-progress";
 import { renderSimulationReview } from "@/lib/simulation-review";
 import { buildSimulationResultSummary } from "@/lib/simulation-result";
 import { useSimulation } from "@/lib/simulation-store";
@@ -56,6 +57,10 @@ export function SimulationResult({
         run.taskIds.join(","),
       ].join(":")
     : `missing:${run.runId}`;
+
+  useEffect(() => {
+    if (hydrated && entry) persistCompletedSimulationRun(entry);
+  }, [entry, hydrated]);
 
   useEffect(() => {
     let current = true;

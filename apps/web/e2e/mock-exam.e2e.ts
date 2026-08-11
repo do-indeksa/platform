@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { parsePersistedSimulationState } from "../src/lib/simulation-persistence";
 
+const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+
 const currentTaskIds = [
   "kb-001",
   "kv-001",
@@ -98,7 +100,7 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
   const activePayload = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
-  expect(activePayload.version).toBe(5);
+  expect(activePayload.version).toBe(6);
   expect(activePayload.state.review).toEqual([]);
   expect(
     activePayload.state.tasks.every(
@@ -179,6 +181,19 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
     JSON.parse(localStorage.getItem("do-indeksa-simulation") as string),
   );
   expect(completedPayload.state.review).toHaveLength(10);
+  expect(completedPayload.state.history[0].progress.items).toHaveLength(10);
+  const progressOutbox = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("do-indeksa-progress-outbox") as string),
+  );
+  expect(progressOutbox.pending).toHaveLength(1);
+  expect(progressOutbox.pending[0]).toMatchObject({
+    ownerId: null,
+    run: { kind: "SIMULATION", items: expect.any(Array) },
+  });
+  expect(progressOutbox.pending[0].run.items).toHaveLength(10);
+  expect(JSON.stringify(progressOutbox)).not.toMatch(
+    /correctAnswer|expected|review|solution/i,
+  );
   const taskHistory = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("do-indeksa-task-history") as string),
   );
@@ -191,6 +206,113 @@ test("mobile mock exam persists answers and reports a partial result honestly", 
       answers: activePayload.state.answers[0],
     }),
   );
+});
+
+test("an authenticated mock exam persists one idempotent GraphQL lifecycle", async ({
+  page,
+}) => {
+  type GraphQLCall = {
+    operationName: string;
+    variables: { input: Record<string, unknown> };
+  };
+  const graphQLCalls: GraphQLCall[] = [];
+  const attemptMethods: string[] = [];
+  let submitted = false;
+
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/api/v1/attempts", (route) => {
+    attemptMethods.push(route.request().method());
+    return route.fulfill({
+      json: submitted ? [legacySimulationAttempt(currentTaskIds[0])] : [],
+    });
+  });
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as GraphQLCall;
+    graphQLCalls.push(call);
+    const input = call.variables.input;
+    const field =
+      call.operationName === "StartRun"
+        ? "startRun"
+        : call.operationName === "RecordAttempt"
+          ? "recordAttempt"
+          : "submitRun";
+    if (field === "submitRun") submitted = true;
+    await route.fulfill({
+      json: {
+        data: {
+          [field]: {
+            id: input.id,
+            ...(field === "submitRun" ? { status: "SUBMITTED" } : {}),
+          },
+        },
+      },
+    });
+  });
+
+  await page.goto(
+    `/en/simulation/new?run=${runId}&version=2026.1&set=${currentTaskIds.join("%2C")}`,
+  );
+  await page.getByRole("textbox").first().fill("definitely-wrong");
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Finish and check", exact: true })
+    .click();
+
+  await expect(page).toHaveURL(/\/en\/simulation\/result\?/);
+  await expect.poll(() => graphQLCalls.length).toBe(12);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = localStorage.getItem("do-indeksa-progress-outbox");
+        return raw ? JSON.parse(raw).pending.length : 0;
+      }),
+    )
+    .toBe(0);
+
+  expect(graphQLCalls.map((call) => call.operationName)).toEqual([
+    "StartRun",
+    ...Array(10).fill("RecordAttempt"),
+    "SubmitRun",
+  ]);
+  expect(graphQLCalls[0].variables.input).toMatchObject({
+    id: runId,
+    kind: "SIMULATION",
+    blueprintVersion: "ftn-p1:2026.1",
+    contentRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+  });
+  expect(
+    graphQLCalls.slice(1, 11).map((call) => call.variables.input.outcome),
+  ).toEqual(["INCORRECT", ...Array(9).fill("SKIPPED")]);
+  const startItems = graphQLCalls[0].variables.input.items as {
+    taskRevision: string;
+    maxPoints: number;
+  }[];
+  expect(startItems).toHaveLength(10);
+  expect(
+    startItems.every(
+      (item) =>
+        /^sha256:[a-f0-9]{64}$/.test(item.taskRevision) && item.maxPoints > 0,
+    ),
+  ).toBe(true);
+  expect(JSON.stringify(graphQLCalls)).not.toMatch(
+    /correctAnswer|expected|review|solution/i,
+  );
+  expect(attemptMethods.every((method) => method === "GET")).toBe(true);
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(
+    page.getByRole("heading", { name: "Your result", exact: true }),
+  ).toBeVisible();
+  expect(graphQLCalls).toHaveLength(12);
 });
 
 test("mock checker bounds bodies and returns only grading outcomes", async ({
@@ -236,6 +358,17 @@ test("mock checker bounds bodies and returns only grading outcomes", async ({
   });
   expect(oversized.status()).toBe(413);
 });
+
+function legacySimulationAttempt(taskId: string) {
+  return {
+    taskId,
+    slot: 1,
+    correct: false,
+    source: "simulation",
+    helpLevel: 0,
+    at: "2026-08-10T10:10:00.000Z",
+  };
+}
 
 test("a fresh mock request redirects to a frozen resumable URL", async ({
   page,
