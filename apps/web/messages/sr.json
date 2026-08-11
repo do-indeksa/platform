@@ -269,6 +269,8 @@
     "openImage": "Uvećaj sliku",
     "closeImage": "Zatvori sliku",
     "sourceLabel": "Izvor: {source}",
+    "reportProblem": "Prijavi grešku",
+    "reportProblemLabel": "Prijavi grešku u zadatku {id} na GitHubu (otvara se u novoj kartici)",
     "difficulty": "Težina {level} od 5"
   },
   "topics": {
