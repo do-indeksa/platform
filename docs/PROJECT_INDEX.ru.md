@@ -252,10 +252,12 @@ History UI показывает ответы, длительность, спос
 ### Run
 
 Backend-модель `Run`/`RunItem` реализована. Диагностика и пробник уже имеют
-локальные resumable state machines, а завершённые пробники имеют bounded
-cross-device archive с batch-загрузкой run/items/latest attempts. Активный
-server-backed cross-device resume и полная копия старого content revision еще
-не замыкают полный контур.
+локальные resumable state machines с явным guest/account owner. Вход забирает
+guest-run, а logout, смена аккаунта или невалидный owner синхронно удаляют чужой
+runtime до сетевой синхронизации; owner-scoped история при этом сохраняется.
+Завершённые пробники имеют bounded cross-device archive с batch-загрузкой
+run/items/latest attempts. Активный server-backed cross-device resume и полная
+копия старого content revision еще не замыкают полный контур.
 
 ## 8. Зафиксированные продуктовые решения
 
