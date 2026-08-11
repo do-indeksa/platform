@@ -10,12 +10,13 @@ import {
 import { useRouter } from "@/i18n/navigation";
 import type { components } from "@/lib/api/schema";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
+import { syncDiagnosticOwner } from "@/lib/diagnostic-store";
 import { clearProgressSync, syncProgress } from "@/lib/progress-sync";
 import {
   prepareSimulationArchive,
   syncSimulationArchive,
 } from "@/lib/simulation-archive-store";
-import { syncSimulationHistoryOwner } from "@/lib/simulation-store";
+import { syncSimulationOwner } from "@/lib/simulation-store";
 import { syncTaskHistory } from "@/lib/task-history-store";
 
 type User = components["schemas"]["User"];
@@ -47,9 +48,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const controller = new AbortController();
     fetch("/api/v1/me", { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: User | null) => setUser(data))
+      .then((data: User | null) => {
+        prepareLocalOwner(data?.id ?? null);
+        setUser(data);
+      })
       .catch((err: unknown) => {
         if (!(err instanceof DOMException && err.name === "AbortError")) {
+          prepareLocalOwner(null);
           setUser(null);
         }
       });
@@ -58,9 +63,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (user === undefined) return;
-    syncSimulationHistoryOwner(user?.id ?? null);
-    prepareSimulationArchive(user?.id ?? null);
-    syncTaskHistory(user?.id ?? null);
     let current = true;
     void (async () => {
       try {
@@ -84,9 +86,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         clearLocalAttempts();
         clearProgressSync();
-        syncTaskHistory(null);
-        syncSimulationHistoryOwner(null);
-        prepareSimulationArchive(null);
+        prepareLocalOwner(null);
         setUser(null);
         router.refresh();
       }
@@ -108,4 +108,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       {children}
     </UserContext>
   );
+}
+
+function prepareLocalOwner(userId: string | null): void {
+  syncDiagnosticOwner(userId);
+  syncSimulationOwner(userId);
+  prepareSimulationArchive(userId);
+  syncTaskHistory(userId);
 }

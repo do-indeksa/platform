@@ -4,9 +4,13 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
-import { useDiagnostic } from "@/lib/diagnostic-store";
+import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
+import {
+  isSimulationActive,
+  useSimulation,
+  useSimulationOwnerKnown,
+} from "@/lib/simulation-store";
 import { DiagnosticQuestion } from "./diagnostic-question";
 import { LoadingState, RunNotice } from "./diagnostic-status";
 import type { DiagnosticTaskView } from "./types";
@@ -24,6 +28,8 @@ export function DiagnosticRuntime({
 }) {
   const t = useTranslations("diagnostic");
   const hydrated = useHydrated();
+  const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
+  const simulationOwnerKnown = useSimulationOwnerKnown();
   const router = useRouter();
   const phase = useDiagnostic((state) => state.phase);
   const activeRunId = useDiagnostic((state) => state.runId);
@@ -40,7 +46,13 @@ export function DiagnosticRuntime({
   const activeMock = isSimulationActive(simulationPhase);
 
   useEffect(() => {
-    if (hydrated && !startedRef.current && !activeMock) {
+    if (
+      hydrated &&
+      diagnosticOwnerKnown &&
+      simulationOwnerKnown &&
+      !startedRef.current &&
+      !activeMock
+    ) {
       startedRef.current = true;
       const current = useDiagnostic.getState();
       const slots = tasks.map((task) => task.slot);
@@ -63,16 +75,32 @@ export function DiagnosticRuntime({
         answerPartCounts,
       });
     }
-  }, [activeMock, canonicalTaskIds, hydrated, runId, start, tasks]);
+  }, [
+    activeMock,
+    canonicalTaskIds,
+    diagnosticOwnerKnown,
+    hydrated,
+    runId,
+    simulationOwnerKnown,
+    start,
+    tasks,
+  ]);
 
   useEffect(() => {
     const current = useDiagnostic.getState();
-    if (hydrated && current.runId === runId && current.phase === "done") {
+    if (
+      hydrated &&
+      diagnosticOwnerKnown &&
+      current.runId === runId &&
+      current.phase === "done"
+    ) {
       router.replace(resultHref);
     }
-  }, [hydrated, phase, resultHref, router, runId]);
+  }, [diagnosticOwnerKnown, hydrated, phase, resultHref, router, runId]);
 
-  if (!hydrated) return <LoadingState label={t("loading")} />;
+  if (!hydrated || !diagnosticOwnerKnown || !simulationOwnerKnown) {
+    return <LoadingState label={t("loading")} />;
+  }
   if (activeMock) {
     return (
       <RunNotice

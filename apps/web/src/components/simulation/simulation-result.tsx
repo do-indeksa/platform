@@ -68,6 +68,7 @@ export function SimulationResult({
     ? simulationContentChanged(entry, contentRevision, taskViews)
     : false;
   const matchingStoredReview =
+    localHistory !== null &&
     activeRunId === run.runId &&
     activeVersion === run.blueprintVersion &&
     review.length === taskViews.length;

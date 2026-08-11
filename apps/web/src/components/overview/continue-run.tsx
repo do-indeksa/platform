@@ -4,14 +4,20 @@ import { ArrowRight, RotateCcw } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
-import { useDiagnostic } from "@/lib/diagnostic-store";
+import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
 import { simulationRunHref } from "@/lib/simulation-run";
-import { isSimulationActive, useSimulation } from "@/lib/simulation-store";
+import {
+  isSimulationActive,
+  useSimulation,
+  useSimulationOwnerKnown,
+} from "@/lib/simulation-store";
 import { useHydrated } from "@/lib/use-hydrated";
 
 export function ContinueRun() {
   const t = useTranslations("home.continue");
   const hydrated = useHydrated();
+  const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
+  const simulationOwnerKnown = useSimulationOwnerKnown();
   const diagnosticPhase = useDiagnostic((state) => state.phase);
   const diagnosticRunId = useDiagnostic((state) => state.runId);
   const diagnosticTaskIds = useDiagnostic((state) => state.taskIds);
@@ -22,7 +28,7 @@ export function ContinueRun() {
   const simulationTasks = useSimulation((state) => state.tasks);
   const simulationIndex = useSimulation((state) => state.currentIndex);
 
-  if (!hydrated) return null;
+  if (!hydrated || !diagnosticOwnerKnown || !simulationOwnerKnown) return null;
 
   const simulationHref =
     isSimulationActive(simulationPhase) &&

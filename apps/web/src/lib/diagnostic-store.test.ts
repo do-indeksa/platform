@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  migrateDiagnosticState,
   parsePersistedDiagnosticState,
+  reconcileDiagnosticOwner,
+  syncDiagnosticOwner,
   useDiagnostic,
 } from "./diagnostic-store";
 import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
@@ -20,10 +23,13 @@ const taskIds = [
 ];
 const slots = [1, 2, 4, 3, 5, 6, 7, 8, 9, 10];
 const answerPartCounts = [2, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+const userA = "a0209703-275b-4c6e-b815-25025b923ae8";
+const userB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
 
 function persisted(overrides: Record<string, unknown> = {}) {
   return {
     runId,
+    runOwnerId: null,
     taskIds,
     slots,
     answers: answerPartCounts.map((count) => Array(count).fill("")),
@@ -37,7 +43,10 @@ function persisted(overrides: Record<string, unknown> = {}) {
 }
 
 describe("diagnostic persistence", () => {
-  beforeEach(() => useDiagnostic.getState().reset());
+  beforeEach(() => {
+    useDiagnostic.getState().reset();
+    syncDiagnosticOwner(null);
+  });
 
   it("starts a resumable run without storing task content or expected answers", () => {
     useDiagnostic.getState().start({ runId, taskIds, slots, answerPartCounts });
@@ -45,6 +54,7 @@ describe("diagnostic persistence", () => {
 
     expect(useDiagnostic.getState()).toMatchObject({
       runId,
+      runOwnerId: null,
       taskIds,
       slots,
       answers: [["1", ""], ...answerPartCounts.slice(1).map(() => [""])],
@@ -178,8 +188,53 @@ describe("diagnostic persistence", () => {
     ).toBeNull();
   });
 
+  it("claims guest work and clears it on logout or an account switch", () => {
+    const guest = parsePersistedDiagnosticState(persisted());
+    const claimed = reconcileDiagnosticOwner(guest, userA);
+
+    expect(claimed).toMatchObject({
+      ownerId: userA,
+      runtime: { phase: "running", runOwnerId: userA },
+    });
+    expect(
+      reconcileDiagnosticOwner(claimed.runtime, userB).runtime,
+    ).toMatchObject({ phase: null, runId: null });
+    expect(
+      reconcileDiagnosticOwner(claimed.runtime, null).runtime,
+    ).toMatchObject({ phase: null, runId: null });
+    expect(
+      reconcileDiagnosticOwner(claimed.runtime, "not-a-user-id").runtime,
+    ).toMatchObject({ phase: null, runId: null });
+  });
+
+  it("fails closed when migrating an unowned legacy runtime", () => {
+    expect(migrateDiagnosticState(persisted(), 1)).toMatchObject({
+      phase: null,
+      runId: null,
+    });
+  });
+
+  it("reconciles the live store before exposing another account", () => {
+    useDiagnostic.getState().start({ runId, taskIds, slots, answerPartCounts });
+    syncDiagnosticOwner(userA);
+    useDiagnostic.getState().setAnswer(0, 0, "private answer");
+
+    expect(useDiagnostic.getState()).toMatchObject({
+      runOwnerId: userA,
+      answers: [["private answer", ""], ...Array(9).fill([""])],
+    });
+    syncDiagnosticOwner(userB);
+    expect(useDiagnostic.getState()).toMatchObject({
+      authOwnerId: userB,
+      phase: null,
+      runId: null,
+      answers: [],
+    });
+  });
+
   it.each([
     persisted({ runId: "bad" }),
+    persisted({ runOwnerId: "bad" }),
     persisted({ taskIds: taskIds.with(1, "kb-001") }),
     persisted({ slots: slots.with(1, 1) }),
     persisted({ answers: [["1"]] }),

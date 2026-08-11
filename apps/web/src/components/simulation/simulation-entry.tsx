@@ -8,6 +8,7 @@ import {
   isSimulationActive,
   useSimulation,
   useSimulationHistory,
+  useSimulationOwnerKnown,
 } from "@/lib/simulation-store";
 import { simulationRunHref } from "@/lib/simulation-run";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -25,13 +26,14 @@ export function SimulationEntry({
 }) {
   const t = useTranslations("simulation");
   const hydrated = useHydrated();
+  const ownerKnown = useSimulationOwnerKnown();
   const phase = useSimulation((state) => state.phase);
   const runId = useSimulation((state) => state.runId);
   const blueprintVersion = useSimulation((state) => state.blueprintVersion);
   const tasks = useSimulation((state) => state.tasks);
   const history = useSimulationHistory();
   const taskIds = tasks.map((task) => task.id);
-  const active = hydrated && isSimulationActive(phase);
+  const active = hydrated && ownerKnown && isSimulationActive(phase);
   const completed =
     hydrated &&
     phase === "done" &&

@@ -12,7 +12,11 @@ import { useEffect } from "react";
 import { Link } from "@/i18n/navigation";
 import { persistCompletedDiagnosticRun } from "@/lib/diagnostic-progress";
 import { diagnosticPracticeSet } from "@/lib/diagnostic-result";
-import { useDiagnostic, type DiagnosticOutcome } from "@/lib/diagnostic-store";
+import {
+  useDiagnostic,
+  useDiagnosticOwnerKnown,
+  type DiagnosticOutcome,
+} from "@/lib/diagnostic-store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { taskPracticeHref } from "@/lib/task-bank";
 import type { DiagnosticResultTask } from "./types";
@@ -30,6 +34,7 @@ export function DiagnosticResult({
 }) {
   const t = useTranslations("diagnostic");
   const hydrated = useHydrated();
+  const ownerKnown = useDiagnosticOwnerKnown();
   const state = useDiagnostic();
   const matchingRun =
     state.runId === runId &&
@@ -37,7 +42,7 @@ export function DiagnosticResult({
     state.taskIds.every((taskId, index) => taskId === tasks[index].id);
 
   useEffect(() => {
-    if (hydrated && matchingRun && state.phase === "done") {
+    if (hydrated && ownerKnown && matchingRun && state.phase === "done") {
       persistCompletedDiagnosticRun(
         state,
         tasks,
@@ -45,9 +50,17 @@ export function DiagnosticResult({
         contentRevision,
       );
     }
-  }, [blueprintVersion, contentRevision, hydrated, matchingRun, state, tasks]);
+  }, [
+    blueprintVersion,
+    contentRevision,
+    hydrated,
+    matchingRun,
+    ownerKnown,
+    state,
+    tasks,
+  ]);
 
-  if (!hydrated) {
+  if (!hydrated || !ownerKnown) {
     return (
       <main className="mx-auto flex min-h-80 max-w-5xl items-center justify-center px-5">
         <p className="flex items-center gap-3 text-muted">
