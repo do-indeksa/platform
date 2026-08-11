@@ -5,7 +5,10 @@ import {
   uploadSimulationCloudRun,
   type SimulationCloudUpload,
 } from "./simulation-cloud-client";
-import type { PersistedSimulationState } from "./simulation-persistence";
+import {
+  parsePersistedSimulationState,
+  type PersistedSimulationState,
+} from "./simulation-persistence";
 import { isSimulationActive, useSimulation } from "./simulation-store";
 import { withRunSyncLock } from "./run-sync-lock";
 
@@ -208,8 +211,21 @@ export class SimulationCloudUploadQueue<Context extends QueueContext> {
         );
         if (reconciled) {
           this.blockedRuns.delete(runId);
-          job.desired ??= target;
-          job.desired.immediate = true;
+          const current = parsePersistedSimulationState(
+            useSimulation.getState(),
+          );
+          if (
+            isSimulationActive(current.phase) &&
+            current.runId === runId &&
+            current.runOwnerId === context.ownerId
+          ) {
+            const upload = { ...target.upload, state: current };
+            job.desired = {
+              upload,
+              fingerprint: uploadFingerprint(upload, current),
+              immediate: true,
+            };
+          }
         }
       } else {
         job.desired ??= target;

@@ -116,6 +116,28 @@ describe("simulation cloud coordinator", () => {
     });
   });
 
+  it("offers a different remote run after preserving the local result", async () => {
+    useSimulation.setState({
+      ...activeState("local-result"),
+      phase: "done",
+      endsAt: null,
+      submittedAt: startedAt + 1_000,
+      authOwnerId: ownerId,
+    });
+    mocks.fetchLatest.mockResolvedValueOnce(cloud({ runId: remoteRunId }));
+
+    await bootstrapSimulationCloud(ownerId, catalog);
+
+    expect(useSimulation.getState()).toMatchObject({
+      phase: null,
+      runId: null,
+    });
+    expect(useSimulationCloud.getState()).toMatchObject({
+      status: "ready",
+      remote: { runtime: { runId: remoteRunId } },
+    });
+  });
+
   it("keeps queued writes blocked through conflict and failed recovery", async () => {
     const local = activeState("local");
     useSimulation.setState({ ...local, authOwnerId: ownerId });

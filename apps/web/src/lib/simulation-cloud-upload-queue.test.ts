@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { SimulationCloudUpload } from "./simulation-cloud-client";
+import {
+  SimulationGraphQLError,
+  type SimulationCloudUpload,
+} from "./simulation-cloud-client";
 import { SimulationCloudUploadQueue } from "./simulation-cloud-upload-queue";
 import {
   emptySimulationState,
@@ -89,6 +92,46 @@ describe("simulation cloud upload queue", () => {
     await vi.waitFor(() => expect(mocks.upload).toHaveBeenCalledTimes(2));
     expect(mocks.upload.mock.calls[1][0].state.answers[0]).toEqual(["newer"]);
     expect(setReady).toHaveBeenCalledWith(context);
+    queue.clear();
+  });
+
+  it("retries a mergeable conflict with the reconciled drafts", async () => {
+    mocks.upload
+      .mockRejectedValueOnce(
+        new SimulationGraphQLError("checkpoint changed", "CONFLICT"),
+      )
+      .mockResolvedValueOnce(4);
+    const context = { ownerId, controller: new AbortController() };
+    const initial = {
+      ...activeState(),
+      answers: activeState().answers.with(0, ["local"]),
+    };
+    useSimulation.setState({ ...initial, authOwnerId: ownerId });
+    const exposeConflict = vi.fn(async () => {
+      const current = useSimulation.getState();
+      useSimulation.setState({
+        ...current,
+        checkpointVersion: 3,
+        answers: current.answers.with(1, ["remote"]),
+      });
+      return true;
+    });
+    const queue = new SimulationCloudUploadQueue({
+      isCurrent: () => true,
+      setStatus: vi.fn(),
+      setReady: vi.fn(),
+      exposeConflict,
+    });
+
+    queue.schedule(upload(initial), initial, context, true);
+
+    await vi.waitFor(() => expect(mocks.upload).toHaveBeenCalledTimes(2));
+    expect(exposeConflict).toHaveBeenCalledWith(runId, context, "CONFLICT");
+    expect(mocks.upload.mock.calls[1][0].state).toMatchObject({
+      checkpointVersion: 3,
+      answers: [["local"], ["remote"], ...Array(8).fill([""])],
+    });
+    expect(useSimulation.getState().checkpointVersion).toBe(4);
     queue.clear();
   });
 
