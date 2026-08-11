@@ -30,7 +30,7 @@ Free platform for Serbian maturanti: faculty choice ("Izaberi") + entrance exam 
 - Frontend: Next.js + KaTeX. Zustand scoped to exam runtime only.
 - DB: Postgres (Neon free tier). User data only.
 - Content lives in git, not in the DB: tasks as Markdown + YAML frontmatter in `content/`, changed via reviewed PRs.
-- Target deploy: the owner's Kubernetes platform with direct Gateway routing to web and API. Audit the current VMCore/Coverflow state before changing infrastructure; Vercel remains a preview until migration is verified.
+- Target deploy: `doindeksa.rs` at the Cloudflare edge, with an outbound-only Tunnel to internal Kubernetes web and API Services. Never publish the origin, a shared platform hostname, or a public app Gateway route; Vercel remains preview-only.
 - Monorepo: `apps/web`, `apps/api`, `content/`, `tools/`. Details: `docs/ENGINEERING.md`, decisions: `docs/decisions/`.
 
 ## Code and docs — no noise
