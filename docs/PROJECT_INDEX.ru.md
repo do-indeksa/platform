@@ -126,8 +126,11 @@
 - `content/topics.yaml` - текущая таксономия контента.
 - `content/tasks/` - 30 авторских задач: по 3 на каждую из 10 областей. Все
   10 полных тем (30 задач) имеют статус `verified` и versioned review-record.
+- `content/snapshots/tasks/` - append-only архив точных verified Markdown
+  revisions, адресованных task ID и SHA-256.
 - `content/sources/` и `tools/content/` - hash-pinned авторские LaTeX-источники,
-  AST-импорт, проверка provenance и запрет автоматического статуса `verified`.
+  AST-импорт, проверка provenance/snapshots и запрет автоматического статуса
+  `verified`.
 - `content/guide/ftn/cutoffs.yaml` - данные калькулятора проходных баллов.
 - `apps/web/` - Next.js 16, React 19, next-intl, KaTeX, mathjs, Zustand.
 - `apps/api/` - Go/chi API, Google OAuth, сессии и журнал попыток в Postgres.
@@ -176,7 +179,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
-| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач в 10 полных темах                 |
+| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 30 immutable snapshots          |
 | Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
 Текущие маршруты web:
@@ -233,7 +236,7 @@ machine-check, подсказки и решение. Для полного P1 е
 - структурированные source/year/url вместо одной строки;
 - rubric и максимальные баллы по частям;
 - типичная ошибка и связи с похожими задачами;
-- стабильная content revision для изменения уже опубликованной задачи.
+- безопасный runtime-resolver старой content revision из immutable archive.
 
 ### Attempt
 
@@ -244,9 +247,10 @@ revision. Гостевая очередь атомарно получает owne
 History UI показывает ответы, длительность, способ проверки, баллы, revision и
 все outcomes; локальные legacy-детали и архив пробников изолированы по owner.
 Завершённые пробники объединяются с серверным архивом по run UUID, поэтому их
-можно открыть на другом устройстве. Оставшийся разрыв - исторические snapshots
-самих условий и решений: сейчас сохраняются ответы, grading и ревизии, а при
-изменении Git-контента UI честно показывает предупреждение и текущую редакцию.
+можно открыть на другом устройстве. Точные verified Markdown snapshots условий
+и решений уже сохраняются по task ID и revision. Оставшийся разрыв - безопасный
+runtime-resolver: пока история сохраняет ответы, grading и ревизии, а при
+изменении Git-контента UI показывает предупреждение и текущую редакцию.
 
 ### Run
 
@@ -261,8 +265,9 @@ checkpoint отдельно от append-only attempts и удаляет его �
 текущий draft, гидратирует только совместимый актуальный blueprint и при
 расхождении предлагает явный выбор без last-write-wins. Пробник синхронизирует
 assignment и drafts до общей сдачи, затем сохраняет отдельный слой `AUTO`
-проверки и `RUBRIC_SELF` самооценки до единственного `submitRun`. Полная копия
-старого content revision остаётся отдельным будущим immutable-срезом.
+проверки и `RUBRIC_SELF` самооценки до единственного `submitRun`. Immutable
+архив старых content revisions существует, но его runtime-resolver остаётся
+отдельным следующим срезом.
 
 ## 8. Зафиксированные продуктовые решения
 

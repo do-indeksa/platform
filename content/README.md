@@ -18,6 +18,15 @@ Versioned evidence for manually promoted topic packs lives in `reviews/`. CI
 requires every `verified` task to appear in exactly one record, and each listed
 topic must be reviewed in full.
 
+## Immutable task snapshots
+
+Every current `verified` task has an exact byte-for-byte copy under
+`snapshots/tasks/<task-id>/<sha256>.md`. Run `npm run snapshot` from
+`tools/content/` after changing verified content. Existing snapshots are never
+edited, renamed, or deleted; CI audits their hashes and enforces append-only Git
+history. Runtime lookup of an old revision is a separate boundary and is not
+implemented by the archive itself.
+
 ## Faculty guide
 
 `guide/ftn/catalog.yaml` is the canonical FTN exam-to-program directory. It

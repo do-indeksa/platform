@@ -92,6 +92,17 @@ every promoted topic. CI rejects unrecorded verified tasks, duplicate records,
 and partial topic reviews. The record body contains concise independent
 calculation evidence; the corresponding pull request carries the review trail.
 
+## Immutable snapshots
+
+A verified task revision is the SHA-256 of the complete UTF-8 Markdown file,
+including frontmatter. Its exact bytes are stored at
+`content/snapshots/tasks/<task-id>/<sha256>.md`; the runtime revision is
+`sha256:<sha256>`. `npm run snapshot` only creates missing files. The content
+audit requires a matching snapshot for every current verified task and rejects
+invalid paths, hashes, IDs, missing or mismatched topics, and non-verified
+statuses. Published snapshots are append-only: modification, deletion, and
+rename are CI failures.
+
 ## Rules
 
 - Serbian latin script only, matching the real exam.
