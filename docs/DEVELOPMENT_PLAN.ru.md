@@ -56,9 +56,10 @@ AI-оценивание остается вне критического пут�
 - готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
   история, simplified plan, daily task/streak и FTN-каталог;
 - Go-монолит содержит gqlgen run/attempt lifecycle и HTTP OAuth;
+- browser runtime диагностики и пробника изолирован по guest/account owner;
 - 30 авторских задач имеют hash-pinned provenance, первые 9 задач в 3 полных
   темах прошли versioned mathematical review;
-- blocking CI включает 290 unit-тестов, 50 Playwright-сценариев, container
+- blocking CI включает 373 unit-теста, 58 Playwright-сценариев, container
   smoke, dependency audit и Trivy.
 
 Не завершены server-backed cross-device lifecycle, rubric partial scoring,
