@@ -61,6 +61,7 @@ type CompletedSimulationRunItem struct {
 	TaskRevision string          `json:"taskRevision"`
 	Answer       *string         `json:"answer,omitempty"`
 	Outcome      *AttemptOutcome `json:"outcome,omitempty"`
+	GradingKind  *GradingKind    `json:"gradingKind,omitempty"`
 	EarnedPoints *int32          `json:"earnedPoints,omitempty"`
 }
 

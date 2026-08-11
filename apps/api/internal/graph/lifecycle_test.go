@@ -296,10 +296,22 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 		"startedAt":        startedAt.Add(time.Minute),
 		"submittedAt":      startedAt.Add(2 * time.Minute),
 		"activeDurationMs": 60_000,
-		"answer":           "[\"42\"]",
-		"outcome":          "CORRECT",
+		"answer":           "[\"41\"]",
+		"outcome":          "INCORRECT",
 		"gradingKind":      "AUTO",
-		"earnedPoints":     6,
+		"earnedPoints":     0,
+	}}, owner)
+	requireGraphSuccess(t, payload)
+	_, payload = graphRequest(t, recordAttemptMutation, map[string]any{"input": map[string]any{
+		"id":               uuid.New().String(),
+		"runItemId":        itemID,
+		"startedAt":        startedAt.Add(time.Minute),
+		"submittedAt":      startedAt.Add(2 * time.Minute),
+		"activeDurationMs": 60_000,
+		"answer":           "[\"41\"]",
+		"outcome":          "PARTIAL",
+		"gradingKind":      "RUBRIC_SELF",
+		"earnedPoints":     4,
 	}}, owner)
 	requireGraphSuccess(t, payload)
 	_, payload = graphRequest(t, submitRunMutation, map[string]any{"input": map[string]any{
@@ -312,7 +324,7 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 	query := `query {
 		completedSimulationRuns {
 			id blueprintVersion contentRevision startedAt deadlineAt submittedAt activeDurationMs
-			items { taskId examPosition topic maxPoints taskRevision answer outcome earnedPoints }
+			items { taskId examPosition topic maxPoints taskRevision answer outcome gradingKind earnedPoints }
 		}
 	}`
 	_, payload = graphRequest(t, query, nil, owner)
@@ -326,6 +338,7 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 				TaskID       string `json:"taskId"`
 				Answer       string `json:"answer"`
 				Outcome      string `json:"outcome"`
+				GradingKind  string `json:"gradingKind"`
 				EarnedPoints int    `json:"earnedPoints"`
 			} `json:"items"`
 		} `json:"completedSimulationRuns"`
@@ -336,8 +349,9 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 	if len(queried.Runs) != 1 || queried.Runs[0].ID != runID ||
 		queried.Runs[0].BlueprintVersion != "ftn-p1:2026.1" ||
 		queried.Runs[0].ActiveDurationMs != 18*60_000 || len(queried.Runs[0].Items) != 1 ||
-		queried.Runs[0].Items[0].TaskID != "log-001" || queried.Runs[0].Items[0].Answer != "[\"42\"]" ||
-		queried.Runs[0].Items[0].Outcome != "CORRECT" || queried.Runs[0].Items[0].EarnedPoints != 6 {
+		queried.Runs[0].Items[0].TaskID != "log-001" || queried.Runs[0].Items[0].Answer != "[\"41\"]" ||
+		queried.Runs[0].Items[0].Outcome != "PARTIAL" ||
+		queried.Runs[0].Items[0].GradingKind != "RUBRIC_SELF" || queried.Runs[0].Items[0].EarnedPoints != 4 {
 		t.Fatalf("unexpected completed simulation GraphQL payload: %+v", queried.Runs)
 	}
 
