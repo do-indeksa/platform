@@ -2,6 +2,7 @@ import { checkAnswer, type CheckPart } from "./answer";
 import {
   isSimulationBlueprintVersion,
   isSimulationTaskId,
+  isSimulationTaskRevision,
 } from "./simulation-run";
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import {
@@ -13,6 +14,7 @@ import {
 export type SimulationGradeRequest = {
   blueprintVersion: string;
   taskIds: string[];
+  taskRevisions?: string[];
   answers: string[][];
 };
 
@@ -35,13 +37,20 @@ export function parseSimulationGradeRequest(
     new Set(value.taskIds).size !== value.taskIds.length ||
     !Array.isArray(value.answers) ||
     value.answers.length !== value.taskIds.length ||
-    !value.answers.every(isAnswerParts)
+    !value.answers.every(isAnswerParts) ||
+    (value.taskRevisions !== undefined &&
+      (!Array.isArray(value.taskRevisions) ||
+        value.taskRevisions.length !== value.taskIds.length ||
+        !value.taskRevisions.every(isSimulationTaskRevision)))
   ) {
     return null;
   }
   return {
     blueprintVersion: value.blueprintVersion,
     taskIds: [...value.taskIds],
+    ...(value.taskRevisions === undefined
+      ? {}
+      : { taskRevisions: [...value.taskRevisions] }),
     answers: value.answers.map((answers) => [...answers]),
   };
 }
