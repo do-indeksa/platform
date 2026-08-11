@@ -69,6 +69,7 @@ function serverMatchesLocal(
         result.maxPoints !== stored.maxPoints
       );
     }) ||
+    !sameOptionalScores(local.rubricScores, server.rubricScores) ||
     local.answers.length !== server.answers.length ||
     local.answers.some(
       (answers, index) =>
@@ -89,6 +90,18 @@ function serverMatchesLocal(
         localSnapshot.items.map(({ taskRevision }) => taskRevision),
         serverSnapshot.taskRevisions,
       ))
+  );
+}
+
+function sameOptionalScores(
+  left: readonly (number | null)[] | undefined,
+  right: readonly (number | null)[] | undefined,
+): boolean {
+  const leftScores = left ?? Array<null>(right?.length ?? 0).fill(null);
+  const rightScores = right ?? Array<null>(leftScores.length).fill(null);
+  return (
+    leftScores.length === rightScores.length &&
+    leftScores.every((score, index) => score === rightScores[index])
   );
 }
 
@@ -164,6 +177,13 @@ function cloneArchive(entry: SimulationArchiveRun): SimulationArchiveRun {
             results: entry.historyEntry.results.map((result) => ({
               ...result,
             })),
+            ...(entry.historyEntry.rubricScores === undefined
+              ? {}
+              : {
+                  rubricScores: entry.historyEntry.rubricScores.map(
+                    (score) => score,
+                  ),
+                }),
             ...(entry.historyEntry.archiveSnapshot === undefined
               ? {}
               : {

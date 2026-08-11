@@ -14,6 +14,7 @@ function item(position: number, overrides: Record<string, unknown> = {}) {
     taskRevision: REVISION_B,
     answer: JSON.stringify([String(position)]),
     outcome: "INCORRECT",
+    gradingKind: "AUTO",
     earnedPoints: 0,
     ...overrides,
   };
@@ -76,7 +77,11 @@ describe("simulation archive parser", () => {
   it("shows partial and ungraded runs without inventing a reviewable score", () => {
     const parsed = parseSimulationArchiveResponse(
       response([
-        item(1, { outcome: "PARTIAL", earnedPoints: 3 }),
+        item(1, {
+          outcome: "PARTIAL",
+          gradingKind: "RUBRIC_SELF",
+          earnedPoints: 3,
+        }),
         item(2, { outcome: "UNGRADED", earnedPoints: null }),
       ]),
       20,
@@ -88,6 +93,33 @@ describe("simulation archive parser", () => {
       answeredCount: 2,
       outcomes: ["partial", "ungraded"],
       historyEntry: null,
+    });
+  });
+
+  it("reconstructs self-assessed partial and zero-point rubric results", () => {
+    const parsed = parseSimulationArchiveResponse(
+      response([
+        item(1, {
+          outcome: "PARTIAL",
+          gradingKind: "RUBRIC_SELF",
+          earnedPoints: 3,
+        }),
+        item(2, { gradingKind: "RUBRIC_SELF" }),
+      ]),
+      20,
+    );
+
+    expect(parsed?.[0]).toMatchObject({
+      score: 3,
+      outcomes: ["partial", "incorrect"],
+      historyEntry: {
+        score: 3,
+        rubricScores: [3, 0],
+        results: [
+          { outcome: "partial", earnedPoints: 3 },
+          { outcome: "incorrect", earnedPoints: 0 },
+        ],
+      },
     });
   });
 
@@ -116,6 +148,12 @@ describe("simulation archive parser", () => {
     expect(
       parseSimulationArchiveResponse(
         response([item(1, { outcome: "CORRECT", earnedPoints: 0 })]),
+        20,
+      ),
+    ).toBeNull();
+    expect(
+      parseSimulationArchiveResponse(
+        response([item(1, { gradingKind: "HUMAN" })]),
         20,
       ),
     ).toBeNull();

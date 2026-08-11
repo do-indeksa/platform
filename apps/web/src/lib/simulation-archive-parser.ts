@@ -27,6 +27,7 @@ type ParsedItem = {
   earnedPoints: number | null;
   maxPoints: number;
   answers: string[];
+  rubricScore: number | null;
   reviewable: boolean;
 };
 
@@ -108,8 +109,7 @@ function parseRun(value: unknown): SimulationArchiveRun | null {
     ? items.reduce((sum, item) => sum + (item.earnedPoints ?? 0), 0)
     : null;
   const compatible = items.every(
-    ({ outcome, reviewable }) =>
-      reviewable && outcome !== "partial" && outcome !== "ungraded",
+    ({ outcome, reviewable }) => reviewable && outcome !== "ungraded",
   );
   const historyEntry = compatible
     ? buildHistoryEntry(
@@ -172,6 +172,7 @@ function parseItem(
           outcome: "unanswered",
           earnedPoints: 0,
           answers: [""],
+          rubricScore: null,
           reviewable: true,
         }
       : null;
@@ -180,15 +181,24 @@ function parseItem(
   const answers =
     value.answer === null ? null : parseStoredAnswers(value.answer);
   if (value.answer !== null && answers === null) return null;
+  const gradingKind = value.gradingKind ?? null;
+  if (
+    gradingKind !== "AUTO" &&
+    gradingKind !== "RUBRIC_SELF" &&
+    gradingKind !== null
+  ) {
+    return null;
+  }
   switch (value.outcome) {
     case "CORRECT":
-      return value.earnedPoints === null ||
-        value.earnedPoints === value.maxPoints
+      return (gradingKind === "AUTO" || gradingKind === null) &&
+        (value.earnedPoints === null || value.earnedPoints === value.maxPoints)
         ? {
             ...base,
             outcome: "correct",
             earnedPoints: value.maxPoints,
             answers: answers ?? [""],
+            rubricScore: null,
             reviewable: answers !== null,
           }
         : null;
@@ -199,17 +209,20 @@ function parseItem(
             outcome: "incorrect",
             earnedPoints: 0,
             answers: answers ?? [""],
+            rubricScore: gradingKind === "RUBRIC_SELF" ? 0 : null,
             reviewable: answers !== null,
           }
         : null;
     case "PARTIAL":
-      return integer(value.earnedPoints, 1, value.maxPoints - 1)
+      return gradingKind === "RUBRIC_SELF" &&
+        integer(value.earnedPoints, 1, value.maxPoints - 1)
         ? {
             ...base,
             outcome: "partial",
             earnedPoints: value.earnedPoints,
             answers: answers ?? [""],
-            reviewable: false,
+            rubricScore: value.earnedPoints,
+            reviewable: answers !== null,
           }
         : null;
     case "SKIPPED":
@@ -220,6 +233,7 @@ function parseItem(
             outcome: "unanswered",
             earnedPoints: 0,
             answers: answers ?? [""],
+            rubricScore: gradingKind === "RUBRIC_SELF" ? 0 : null,
             reviewable: true,
           }
         : null;
@@ -230,6 +244,7 @@ function parseItem(
             outcome: "ungraded",
             earnedPoints: null,
             answers: answers ?? [""],
+            rubricScore: null,
             reviewable: false,
           }
         : null;
@@ -255,9 +270,11 @@ function buildHistoryEntry(
     outcome:
       item.outcome === "correct"
         ? "correct"
-        : item.outcome === "incorrect"
-          ? "incorrect"
-          : "unanswered",
+        : item.outcome === "partial"
+          ? "partial"
+          : item.outcome === "incorrect"
+            ? "incorrect"
+            : "unanswered",
     earnedPoints: item.earnedPoints ?? 0,
     maxPoints: item.maxPoints,
   }));
@@ -276,6 +293,7 @@ function buildHistoryEntry(
     taskIds: items.map(({ taskId }) => taskId),
     answers: items.map(({ answers }) => [...answers]),
     results,
+    rubricScores: items.map(({ rubricScore }) => rubricScore),
     archiveSnapshot: {
       contentRevision,
       taskRevisions: items.map(({ taskRevision }) => taskRevision),
