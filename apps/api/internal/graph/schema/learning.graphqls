@@ -48,7 +48,7 @@ type Attempt {
   gradingKind: GradingKind!
   earnedPoints: Int
   maxPoints: Int
-  taskRevision: String!
+  taskRevision: String
 }
 
 type RunItem {
@@ -137,6 +137,8 @@ input SubmitRunInput {
 type Query {
   run(id: ID!): Run
   runs(limit: Int! = 20): [RunSummary!]!
+  """Returns the most recent attempts in chronological order, up to a limit of 1000."""
+  attempts(limit: Int! = 100): [Attempt!]!
 }
 
 type Mutation {

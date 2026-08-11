@@ -117,9 +117,6 @@ func graphAttempt(attempt progress.Attempt, item *progress.RunItem) (model.Attem
 			maxPoints = item.MaxPoints
 		}
 	}
-	if taskRevision == nil {
-		return model.Attempt{}, fmt.Errorf("attempt %s has no task revision", attempt.PublicID)
-	}
 	var runItemID *string
 	if attempt.RunItemID.Valid {
 		value := uuid.UUID(attempt.RunItemID.Bytes).String()
@@ -140,7 +137,7 @@ func graphAttempt(attempt progress.Attempt, item *progress.RunItem) (model.Attem
 		GradingKind:      gradingKind,
 		EarnedPoints:     graphInt16(attempt.EarnedPoints),
 		MaxPoints:        graphInt16(maxPoints),
-		TaskRevision:     *taskRevision,
+		TaskRevision:     taskRevision,
 	}, nil
 }
 

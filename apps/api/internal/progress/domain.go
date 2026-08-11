@@ -30,7 +30,10 @@ const (
 	RunStatusAbandoned RunStatus = "abandoned"
 )
 
-const MaxRecentRunItemAttempts int32 = 20
+const (
+	MaxRecentRunItemAttempts int32 = 20
+	MaxAttemptJournalEntries int32 = 1000
+)
 
 type AttemptOutcome string
 
