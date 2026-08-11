@@ -7,7 +7,26 @@ npm run dev      # local dev server
 npm run lint     # eslint
 npm run build    # production build
 npm start        # standalone production server
+npm run test:e2e # functional browser suite
+npm run test:visual # compare canonical visual baselines on Linux
 ```
+
+## Visual regression
+
+The blocking visual suite compares the first viewport of the Serbian overview,
+task, empty plan, and empty history at mobile, tablet, and desktop sizes. It is
+separate from functional E2E so failures identify the affected surface and
+viewport.
+
+Canonical PNGs must be generated in the pinned Linux/Chromium container:
+
+```sh
+npm run test:visual:update
+```
+
+Run the command only for an intentional UI change, inspect every PNG diff, and
+commit the updated baselines with the corresponding implementation. Direct
+snapshot updates on another host OS are not canonical.
 
 ## Container
 
