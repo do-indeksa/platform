@@ -1,0 +1,21 @@
+export const archivedKbRevision =
+  "sha256:f2a6cbf436042386c193131bbb5c103e2cdd0595713ae4d5ce2c94fa580b9903";
+
+export const currentKbRevision =
+  "sha256:390eefa973d8a3ea7bbcdfc9789de034413fc94c9c377936524b762a29b9216a";
+
+export const archivedSimulationTaskRevisions: readonly string[] = [
+  archivedKbRevision,
+  "sha256:8d4560748786fd5b3251218fa6e9d41d5f1a94ac4c59b7c3c8f3450e9eb90ed8",
+  "sha256:3ec9d16620b85323c44aa878c3af7771f7421245e248b02dd0947b42c25a5f4c",
+  "sha256:b4d0f244784e7ffb85026288b4c1017c63fe197c27845ac83b0089bcdd9fdfff",
+  "sha256:743ce17fe18328e7e0088c2fad3e8ea02242c60f2dc12193e7e79e0d00ab5c24",
+  "sha256:9db3aa5c0219c1548cd16d4562aca5cc604c4525c9f41e4db2a888bde659837e",
+  "sha256:989cfde8b2319cc834a948ad2dd15e99777caee9d1bd0d7981e32bf0e3dc331e",
+  "sha256:ec9ab24d1c6dc4436dbe425d1f1dbe5f81f5b4c6717cb0e95afa8e35da10caf3",
+  "sha256:118fc44e191a35164700d8a9e1330e379b72682654787ffe2bc2e951a81b7b94",
+  "sha256:c0b4744c3b8430348427c87fe571adb86d842a19d510fb20f2670f58b5f24ecb",
+];
+
+export const archivedSimulationContentRevision =
+  "sha256:af7e89e41c3768fcf1d68f1cdbdb8e67158fb867170118b3cbb82efc12981962";
