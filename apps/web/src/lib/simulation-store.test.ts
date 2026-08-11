@@ -67,6 +67,12 @@ describe("simulation persistence", () => {
       phase: "running",
       answers: [["1", "2", "3", "4", "5", "6"]],
     });
+
+    const sanitized = parsePersistedSimulationState({
+      ...runningState(),
+      tasks: [{ ...task, solutionHtml: "do not retain" }],
+    });
+    expect(sanitized.tasks[0]).not.toHaveProperty("solutionHtml");
   });
 
   it("accepts a complete result only when metrics match its outcomes", () => {
@@ -123,6 +129,11 @@ describe("simulation persistence", () => {
     });
 
     expect(parsed.history).toEqual([entry]);
+    const withUnknownHistoryData = parsePersistedSimulationState({
+      ...runningState(),
+      history: [{ ...entry, review: "do not retain" }],
+    });
+    expect(withUnknownHistoryData.history[0]).not.toHaveProperty("review");
     expect(
       parsePersistedSimulationState({
         ...runningState(),

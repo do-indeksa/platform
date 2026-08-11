@@ -255,8 +255,18 @@ function isGradeItems(
 
 function cloneTask(task: SimulationTaskView): SimulationTaskView {
   return {
-    ...task,
-    fields: task.fields.map((field) => ({ ...field })),
+    id: task.id,
+    revision: task.revision,
+    slot: task.slot,
+    examPosition: task.examPosition,
+    maxPoints: task.maxPoints,
+    topic: task.topic,
+    topicName: task.topicName,
+    statementHtml: task.statementHtml,
+    fields: task.fields.map((field) => ({
+      kind: field.kind,
+      ...(field.label === undefined ? {} : { label: field.label }),
+    })),
   };
 }
 
