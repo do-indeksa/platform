@@ -394,6 +394,138 @@
       "calculatorCta": "Calculate admission points"
     }
   },
+  "cabinet": {
+    "metadataTitle": "My cabinet",
+    "metadataDescription": "Your preparation progress and latest results for the FTN P1 mathematics entrance exam.",
+    "title": "My cabinet",
+    "subtitle": {
+      "started": "Your admission preparation",
+      "empty": "Start preparing for admission"
+    },
+    "subject": {
+      "aria": "Active entrance exam",
+      "label": "Preparing for",
+      "value": "P1 · Mathematics"
+    },
+    "positionNames": {
+      "1": "Complex numbers",
+      "2": "Quadratic equations",
+      "3": "Equations",
+      "4": "Logarithms",
+      "5": "Trigonometry",
+      "6": "Vectors",
+      "7": "Plane geometry",
+      "8": "Solid geometry",
+      "9": "Functions",
+      "10": "Combinatorics"
+    },
+    "continue": {
+      "progressAria": "Current activity progress",
+      "start": {
+        "kicker": "Start preparing",
+        "title": "Preparation has not started yet",
+        "description": "Solve your first P1 task or check your starting level.",
+        "minutes": "About 5 min for the first task",
+        "format": "{tasks} tasks · {minutes} min",
+        "primary": "Start the first task",
+        "secondary": "Start level check"
+      },
+      "practice": {
+        "kicker": "Continue preparing",
+        "title": "Position {position} · {topic}",
+        "description": "You completed {completed} of {total} tasks",
+        "minutes": "About {minutes} min",
+        "difficulty": {
+          "foundation": "Foundation difficulty",
+          "exam": "Medium difficulty",
+          "advanced": "Advanced difficulty"
+        },
+        "primary": "Continue",
+        "secondary": "Choose another position"
+      },
+      "mock": {
+        "kicker": "Continue mock exam",
+        "title": "Unfinished mock exam",
+        "description": "You answered {answered} of {total} tasks",
+        "remaining": "About {minutes} min remaining",
+        "subject": "P1 · Mathematics",
+        "primary": "Continue exam",
+        "secondary": "Mock exams"
+      },
+      "diagnostic": {
+        "kicker": "Continue level check",
+        "title": "Unfinished level check",
+        "description": "Task {current} of {total} is next",
+        "minutes": "Up to 25 min total",
+        "meta": "One task per P1 position",
+        "primary": "Continue check",
+        "secondary": "Review level check"
+      },
+      "conflict": {
+        "kicker": "Reconcile progress",
+        "mockTitle": "The mock exam has two versions",
+        "diagnosticTitle": "The level check has two versions",
+        "description": "Choose device or account progress before continuing.",
+        "minutes": "About 1 min",
+        "meta": "Your progress is preserved",
+        "primary": "Review versions",
+        "secondary": "Open history"
+      }
+    },
+    "positions": {
+      "title": "My preparation",
+      "intro": "Progress by exam position (1–10)",
+      "how": "How does it work?",
+      "openPosition": "Open position {position}: {topic}",
+      "status": {
+        "untested": "Not assessed",
+        "starting": "In progress",
+        "needsWork": "Review",
+        "progressing": "In progress",
+        "confident": "Confident"
+      },
+      "legend": {
+        "confident": "Confident",
+        "review": "Review",
+        "learn": "Not assessed"
+      },
+      "openPlan": "Open study plan"
+    },
+    "results": {
+      "title": "Latest results",
+      "history": "Full history",
+      "mock": {
+        "title": "Latest mock exam",
+        "meta": "P1 · {date}",
+        "empty": "No completed mock exam yet",
+        "analyze": "Analyze mistakes",
+        "start": "Start a mock exam"
+      },
+      "practice": {
+        "title": "Latest practice",
+        "meta": "Position {position} · {topic} · {date}",
+        "taskFallback": "P1 task",
+        "empty": "No completed practice yet",
+        "repeat": "Repeat task",
+        "start": "Start practice"
+      }
+    },
+    "programs": {
+      "title": "Programs using P1",
+      "intro": "FTN groups {count} degree programs under P1 mathematics",
+      "all": "All programs",
+      "card": {
+        "eyebrow": "FTN Novi Sad",
+        "meta": "Entrance exam: P1 · Mathematics"
+      },
+      "cta": {
+        "title": "Not sure which program to choose?",
+        "description": "Compare programs and admission requirements in the FTN guide.",
+        "button": "Browse programs"
+      },
+      "officialSource": "Official FTN program source"
+    }
+  },
   "tasks": {
     "title": "Tasks",
     "description": "A topic-based task bank with solutions for the FTN P1 entrance exam.",
