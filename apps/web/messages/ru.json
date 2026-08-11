@@ -349,6 +349,24 @@
     "tabsLabel": "Разделы истории",
     "tasksTab": "Задания",
     "variantsTab": "Варианты",
+    "filters": {
+      "label": "Фильтры истории заданий",
+      "topicLabel": "Тема",
+      "allTopics": "Все темы",
+      "outcomeLabel": "Результат",
+      "allOutcomes": "Все результаты",
+      "periodLabel": "Период",
+      "period": {
+        "allTime": "За всё время",
+        "last7Days": "Последние 7 дней",
+        "last30Days": "Последние 30 дней",
+        "last90Days": "Последние 90 дней"
+      },
+      "showing": "Показано {visible} из {total} попыток",
+      "reset": "Сбросить фильтры",
+      "emptyTitle": "Нет попыток с такими фильтрами",
+      "emptyDescription": "Измените или сбросьте фильтры, чтобы вернуться ко всей истории заданий."
+    },
     "dateColumn": "Дата",
     "taskColumn": "Задание",
     "topicColumn": "Тема",
