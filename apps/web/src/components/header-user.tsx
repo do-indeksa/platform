@@ -9,17 +9,26 @@ import { useUser } from "@/components/user-provider";
 export function HeaderUser({
   placement = "header",
 }: {
-  placement?: "header" | "menu";
+  placement?: "header" | "marketing" | "menu";
 }) {
   const t = useTranslations("nav");
   const locale = useLocale();
   const pathname = usePathname();
   const { user, loading, signingOut, signOut } = useUser();
   const inMenu = placement === "menu";
+  const inMarketing = placement === "marketing";
   const headerWidth = locale === "ru" ? "w-24" : "w-[85px]";
   const nameWidth = locale === "ru" ? "w-12" : "w-[37px]";
 
   if (loading && !inMenu) {
+    if (inMarketing) {
+      return (
+        <span
+          aria-hidden
+          className="block h-[52px] w-[92px] animate-pulse rounded-xl border border-line bg-surface"
+        />
+      );
+    }
     return (
       <span
         aria-hidden
@@ -38,18 +47,22 @@ export function HeaderUser({
         className={
           inMenu
             ? "flex min-h-11 w-full items-center gap-3 rounded-lg border border-line px-3 text-sm font-semibold text-ink transition-colors hover:bg-page focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            : "flex h-11 items-center gap-3 text-[13px] font-medium whitespace-nowrap text-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            : inMarketing
+              ? "inline-flex min-h-[52px] items-center justify-center rounded-xl border border-line bg-surface p-4 text-[15px] leading-5 font-semibold whitespace-nowrap text-ink hover:bg-page focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              : "flex h-11 items-center gap-3 text-[13px] font-medium whitespace-nowrap text-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         }
       >
-        <span
-          className={
-            inMenu
-              ? undefined
-              : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle"
-          }
-        >
-          <LogIn aria-hidden size={inMenu ? 18 : 16} strokeWidth={1.8} />
-        </span>
+        {!inMarketing && (
+          <span
+            className={
+              inMenu
+                ? undefined
+                : "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle"
+            }
+          >
+            <LogIn aria-hidden size={inMenu ? 18 : 16} strokeWidth={1.8} />
+          </span>
+        )}
         <span>{t("signIn")}</span>
       </a>
     );

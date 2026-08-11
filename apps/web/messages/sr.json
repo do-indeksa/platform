@@ -25,6 +25,153 @@
     "signIn": "Prijavi se",
     "signOut": "Odjavi se"
   },
+  "landing": {
+    "metadataTitle": "FTN P1 priprema",
+    "metadataDescription": "Besplatno vežbaj matematiku za FTN P1: 10 zadataka, 4 sata, do 60 bodova, dijagnostika i jasan plan pripreme.",
+    "header": {
+      "navigation": "Navigacija početne stranice",
+      "brandHome": "Do indeksa početna strana",
+      "exams": "Ispiti",
+      "about": "O platformi",
+      "features": "Mogućnosti",
+      "faculties": "Fakulteti",
+      "aboutUs": "O nama",
+      "more": "Još linkova",
+      "menu": "Otvori meni"
+    },
+    "hero": {
+      "eyebrow": "FTN Novi Sad · P1",
+      "titlePrimary": "Spremi P1",
+      "titleAccent": "za siguran upis",
+      "desktopLine1": "Vežbaj svih 10 pozicija, proveri odgovore i",
+      "desktopLine2": "prati jasan plan do četvoročasovnog P1 ispita.",
+      "mobileLine1": "Vežbaj svih 10 pozicija,",
+      "mobileLine2": "proveri odgovore i prati plan.",
+      "mobileLine3": "Pripremi se za četvoročasovni",
+      "mobileLine4": "P1 ispit.",
+      "start": "Počni besplatno",
+      "choose": "Izaberi način"
+    },
+    "benefits": {
+      "label": "Prednosti pripreme",
+      "guest": {
+        "title": "Bez registracije",
+        "line1": "Prvi zadatak je dostupan",
+        "line2": "bez naloga"
+      },
+      "tasks": {
+        "title": "Aktuelni zadaci",
+        "line1": "{count} objavljenih zadataka",
+        "line2": "za svih 10 pozicija"
+      },
+      "plan": {
+        "title": "Lični plan",
+        "line1": "Sledeći korak prema",
+        "line2": "tvojim pokušajima"
+      },
+      "mock": {
+        "title": "Probni ispit",
+        "line1": "{hours} sata bez pomoći",
+        "line2": "do {points} bodova uz rubricu"
+      }
+    },
+    "flows": {
+      "title": "Izaberi način pripreme",
+      "all": "Detalji P1",
+      "practice": {
+        "title": "P1 · Vežbanje",
+        "subtitle": "{count} objavljenih zadataka",
+        "status": "Počni"
+      },
+      "diagnostic": {
+        "title": "Provera nivoa",
+        "subtitle": "{count} ispitnih pozicija",
+        "status": "Proveri"
+      },
+      "mock": {
+        "title": "Probni P1",
+        "subtitle": "Pun format · {hours} sata",
+        "status": "0–{points} bodova"
+      }
+    },
+    "programs": {
+      "title": "FTN programi za P1",
+      "description": "Fakultet tehničkih nauka ima {count} programa koji polažu P1 iz matematike.",
+      "all": "Svi programi",
+      "facultyLabel": "FTN Novi Sad · P1",
+      "formatFact": "10 zadataka · 4 sata · 60 bodova",
+      "openPrograms": "Pogledaj programe",
+      "sourceTitle": "Zvanični FTN katalog, provereno {date}",
+      "groups": {
+        "software": {
+          "seal": "SW",
+          "title": "Softver i IT",
+          "columns": {
+            "first": "Softver",
+            "second": "Primenjeni IT",
+            "third": "Računari"
+          }
+        },
+        "systems": {
+          "seal": "SYS",
+          "title": "Sistemi",
+          "columns": {
+            "first": "Energetika",
+            "second": "Merenje",
+            "third": "Mehatronika"
+          }
+        },
+        "information": {
+          "seal": "INF",
+          "title": "Informacije",
+          "columns": {
+            "first": "Sistemi",
+            "second": "Inženjering",
+            "third": "P1 format"
+          }
+        },
+        "interdisciplinary": {
+          "seal": "BIO",
+          "title": "Tehnologije",
+          "columns": {
+            "first": "Biomedicina",
+            "second": "Animacija",
+            "third": "P1 format"
+          }
+        }
+      }
+    },
+    "steps": {
+      "title": "Kako izgleda priprema",
+      "items": {
+        "1": {
+          "title": "Izaberi početak",
+          "body": "Reši zadatak ili proveri svih 10 pozicija"
+        },
+        "2": {
+          "title": "Vežbaj zadatke",
+          "body": "Proveri odgovor, koristi nagoveštaje i razumej rešenje"
+        },
+        "3": {
+          "title": "Prati rezultate",
+          "body": "Vidi greške, pomoć i oblasti kojima treba pažnja"
+        },
+        "4": {
+          "title": "Uradi probni P1",
+          "body": "Vežbaj puna 4 sata i oceni postupak po rubrici"
+        }
+      }
+    },
+    "cta": {
+      "title": "Probaj P1 odmah",
+      "desktopLine1": "Reši prvi zadatak bez registracije i proveri odgovor.",
+      "desktopLine2": "Nastavi planom, dijagnostikom ili punim probnim P1.",
+      "mobileLine1": "Reši prvi zadatak bez naloga.",
+      "mobileLine2": "Odmah proveri odgovor i nastavi.",
+      "mobileLine3": "Pređi na jasan sledeći korak.",
+      "button": "Počni vežbanje"
+    }
+  },
   "prep": {
     "title": "Plan pripreme",
     "description": "Lični plan pripreme za FTN P1 sa jednim konkretnim sledećim korakom.",
