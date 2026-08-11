@@ -80,10 +80,7 @@ func run() error {
 		"/graphql",
 		graph.NewHandler(graph.NewResolver(progressService)),
 	)
-	api.HandlerWithOptions(srv, api.ChiServerOptions{
-		BaseRouter:       r,
-		ErrorHandlerFunc: auth.ParamErrorHandler,
-	})
+	registerHTTPRoutes(r, srv)
 
 	server := &http.Server{
 		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "8080"),
