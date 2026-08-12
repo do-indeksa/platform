@@ -44,7 +44,7 @@ export function TaskWorkspace({
   const [statementVisible, setStatementVisible] = useState(true);
   const [checking, setChecking] = useState(false);
   const [checkerUnavailable, setCheckerUnavailable] = useState(false);
-  const [state, setState] = useTaskCheckState(
+  const [state, setState, draftReady] = useTaskCheckState(
     taskId,
     check.length,
     hintsHtml.length,
@@ -101,7 +101,7 @@ export function TaskWorkspace({
   };
 
   const verify = async () => {
-    if (checking) return;
+    if (!draftReady || checking) return;
     setChecking(true);
     setCheckerUnavailable(false);
     try {
@@ -229,7 +229,12 @@ export function TaskWorkspace({
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] px-4 pt-5 pb-7 md:px-[60px] md:pt-[25px] md:pb-10">
+    <main
+      data-testid="task-workspace"
+      data-draft-state={draftReady ? "ready" : "loading"}
+      aria-busy={!draftReady}
+      className="mx-auto w-full max-w-[1440px] px-4 pt-5 pb-7 md:px-[60px] md:pt-[25px] md:pb-10"
+    >
       <div className="flex w-full flex-col gap-4 md:gap-[22px]">
         <TaskWorkspaceHeader
           slot={slot}
@@ -256,6 +261,7 @@ export function TaskWorkspace({
             source={source}
             check={check}
             state={state}
+            draftReady={draftReady}
             checking={checking}
             checkerUnavailable={checkerUnavailable}
             reportHref={reportHref}
