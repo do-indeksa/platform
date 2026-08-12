@@ -51,7 +51,7 @@ for (const locale of localizedLandings) {
     await expect(
       page.getByRole("link", { name: locale.start, exact: true }),
     ).toHaveAttribute("href", /\/tasks$/);
-    await expect(page.getByText(/30/).first()).toBeVisible();
+    await expect(page.getByText(/37/).first()).toBeVisible();
     await expect(page.getByText(/P2 ·/)).toHaveCount(0);
     await expect(page.getByText(/Physics|Физика|Fizika/)).toHaveCount(0);
     expect(

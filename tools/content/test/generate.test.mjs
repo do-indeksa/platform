@@ -19,6 +19,12 @@ const registry = await loadSourceRegistry(
 const example = JSON.parse(
   await fs.readFile(path.join(packageRoot, "examples/one-task.json"), "utf8"),
 );
+const quadraticReviewPack = JSON.parse(
+  await fs.readFile(
+    path.join(packageRoot, "manifests/quadratic-review-pack-2026-08-12.json"),
+    "utf8",
+  ),
+);
 
 test("a reviewer manifest generates a schema-compatible draft", () => {
   const files = generateTaskFiles(example, registry);
@@ -57,6 +63,20 @@ test("the import schema cannot mint verified content", () => {
       ),
     /invalid status/,
   );
+});
+
+test("the quadratic review queue matches its reproducible import", async () => {
+  const files = generateTaskFiles(quadraticReviewPack, registry);
+  assert.equal(files.size, 7);
+
+  for (const [relativePath, expected] of files) {
+    const committed = await fs.readFile(
+      path.join(repoRoot, "content/tasks", relativePath),
+      "utf8",
+    );
+    assert.equal(committed, expected, relativePath);
+    assert.equal(matter(committed).data.status, "review", relativePath);
+  }
 });
 
 test("task selectors start at one", () => {

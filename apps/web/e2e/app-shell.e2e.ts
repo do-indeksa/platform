@@ -191,7 +191,7 @@ test("task-bank filters are shareable and expose an honest empty state", async (
 
   await page.getByRole("button", { name: "Сбросить все фильтры" }).click();
   await expect(page).toHaveURL(/\/ru\/tasks$/);
-  await expect(page.getByText("30 заданий", { exact: true })).toBeVisible();
+  await expect(page.getByText("37 заданий", { exact: true })).toBeVisible();
 });
 
 test("selected tasks form a bounded practice sequence and return intact", async ({

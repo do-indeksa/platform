@@ -13,6 +13,7 @@ import {
 import { getP1Blueprint } from "./exam-blueprint";
 import { markdownToPlainText, renderMarkdown } from "./markdown";
 import { MAX_TASK_ANSWER_PARTS } from "./task-draft";
+import { isExamEligibleTask } from "./variant";
 
 const tasksDir = path.join(process.cwd(), "..", "..", "content", "tasks");
 
@@ -88,7 +89,7 @@ describe("task files", () => {
 
   it("exposes searchable summaries without grading data", async () => {
     const summaries = await getTaskSummaries();
-    expect(summaries).toHaveLength(30);
+    expect(summaries).toHaveLength(37);
     expect(summaries[0].statementPreview).not.toContain("$");
     expect(summaries[0].statementPreviewHtml).toContain("katex");
     expect(summaries[0]).not.toHaveProperty("answer");
@@ -98,7 +99,7 @@ describe("task files", () => {
 
   it("exposes a lightweight navigation catalog", async () => {
     const references = await getTaskReferences();
-    expect(references).toHaveLength(30);
+    expect(references).toHaveLength(37);
     expect(references[0]).toEqual({
       id: "kb-001",
       slot: 1,
@@ -292,6 +293,59 @@ describe("task files", () => {
     expect(checkAnswer(tasks.get("eks-003")!.check[1], "(-1,3)")).toBe(
       "incorrect",
     );
+  });
+
+  it("publishes the quadratic review queue only for practice", async () => {
+    const tasks = new Map(
+      (await getTasks("kvadratna-jednacina")).map((task) => [task.id, task]),
+    );
+    expect([...tasks.keys()]).toEqual([
+      "kv-001",
+      "kv-002",
+      "kv-003",
+      "kv-004",
+      "kv-005",
+      "kv-006",
+      "kv-007",
+      "kv-008",
+      "kv-009",
+      "kv-010",
+    ]);
+
+    for (const taskId of [
+      "kv-004",
+      "kv-005",
+      "kv-006",
+      "kv-007",
+      "kv-008",
+      "kv-009",
+      "kv-010",
+    ]) {
+      const task = tasks.get(taskId)!;
+      expect(task.status, taskId).toBe("review");
+      expect(task.rubric, taskId).toEqual([]);
+      expect(isExamEligibleTask(task, 6), taskId).toBe(false);
+    }
+
+    const equivalents = [
+      ["kv-004", 0, "sqrt(36)"],
+      ["kv-005", 0, "8/2"],
+      ["kv-006", 0, "3^2"],
+      ["kv-006", 1, "6/2"],
+      ["kv-007", 0, "sqrt(4)"],
+      ["kv-007", 1, "-2/2"],
+      ["kv-008", 0, "7, 3, 5"],
+      ["kv-009", 0, "18, 2, 6"],
+      ["kv-010", 0, "{10/3, 0}"],
+    ] as const;
+    for (const [taskId, partIndex, answer] of equivalents) {
+      expect(
+        checkAnswer(tasks.get(taskId)!.check[partIndex], answer),
+        `${taskId}: ${answer}`,
+      ).toBe("correct");
+    }
+    expect(checkAnswer(tasks.get("kv-004")!.check[0], "-6")).toBe("incorrect");
+    expect(checkAnswer(tasks.get("kv-010")!.check[0], "0,3")).toBe("incorrect");
   });
 
   it("roundtrips independently verified trigonometry answers", async () => {

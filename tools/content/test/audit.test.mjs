@@ -16,6 +16,6 @@ const registry = await loadSourceRegistry(
 test("every published task points to a real authored task and solution", async () => {
   assert.deepEqual(
     await auditTaskOrigins(path.join(repoRoot, "content/tasks"), registry),
-    { taskCount: 30, slotCount: 10, originCount: 30 },
+    { taskCount: 37, slotCount: 10, originCount: 37 },
   );
 });

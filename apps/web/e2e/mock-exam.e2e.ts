@@ -577,6 +577,27 @@ test("a fresh mock request redirects to a frozen resumable URL", async ({
   ).toBeVisible();
 });
 
+test("a review task cannot be injected into a fresh mock URL", async ({
+  page,
+}) => {
+  const injectedTaskIds = currentTaskIds.with(1, "kv-004");
+  await page.goto(
+    `/en/simulation/new?run=${crypto.randomUUID()}&version=2026.1&set=${injectedTaskIds.join("%2C")}`,
+  );
+
+  await expect(page).toHaveURL(
+    /\/en\/simulation\/new\?run=[0-9a-f-]+&version=2026\.1&set=/,
+  );
+  const canonicalTaskIds = new URL(page.url()).searchParams
+    .get("set")!
+    .split(",");
+  expect(canonicalTaskIds).toHaveLength(10);
+  expect(canonicalTaskIds).not.toContain("kv-004");
+  await expect(
+    page.getByRole("heading", { name: "Task 1 of 10" }),
+  ).toBeVisible();
+});
+
 test("the time limit submits saved answers without losing the attempt", async ({
   page,
 }) => {

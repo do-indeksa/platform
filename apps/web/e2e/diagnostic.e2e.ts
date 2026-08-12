@@ -337,6 +337,25 @@ test("a fresh diagnostic request redirects to a canonical resumable URL", async 
   ).toBeVisible();
 });
 
+test("a review task cannot be injected into a fresh diagnostic URL", async ({
+  page,
+}) => {
+  const injectedTaskIds = taskIds.with(1, "kv-004");
+  await page.goto(
+    `/en/diagnostic/new?run=${crypto.randomUUID()}&set=${injectedTaskIds.join("%2C")}`,
+  );
+
+  await expect(page).toHaveURL(/\/en\/diagnostic\/new\?run=[0-9a-f-]+&set=/);
+  const canonicalTaskIds = new URL(page.url()).searchParams
+    .get("set")!
+    .split(",");
+  expect(canonicalTaskIds).toHaveLength(10);
+  expect(canonicalTaskIds).not.toContain("kv-004");
+  await expect(
+    page.getByText("Diagnostic · 1 of 10", { exact: true }),
+  ).toBeVisible();
+});
+
 async function answerFirstTask(page: Page): Promise<void> {
   await page.getByRole("textbox", { name: "t", exact: true }).fill("1");
   await page
