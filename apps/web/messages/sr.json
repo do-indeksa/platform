@@ -25,6 +25,11 @@
     "signIn": "Prijavi se",
     "signOut": "Odjavi se"
   },
+  "authBootstrap": {
+    "title": "Ne možemo da proverimo sesiju",
+    "description": "Sačuvani rad je ostao na ovom uređaju. Proveri vezu i pokušaj ponovo.",
+    "retry": "Pokušaj ponovo"
+  },
   "landing": {
     "metadataTitle": "FTN P1 priprema",
     "metadataDescription": "Besplatno vežbaj matematiku za FTN P1: 10 zadataka, 4 sata, do 60 bodova, dijagnostika i jasan plan pripreme.",
