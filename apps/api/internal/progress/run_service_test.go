@@ -107,7 +107,8 @@ func TestRunLifecycleRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(runs) != 1 || runs[0].ID != input.ID {
+	if len(runs) != 1 || runs[0].Run.ID != input.ID || len(runs[0].Items) != 2 ||
+		len(runs[0].Attempts) != 1 || runs[0].Attempts[0].PublicID != attemptInput.ID {
 		t.Fatalf("run list mismatch: %+v", runs)
 	}
 }

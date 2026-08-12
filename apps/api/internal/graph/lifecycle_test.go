@@ -117,7 +117,9 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 
 	_, payload = graphRequest(t, `query Run($id: ID!) {
 	    run(id: $id) { id status items { id recentAttempts { id outcome } } }
-	    runs { id status }
+	    runs {
+	      id status taskIds itemCount completedItemCount correctItemCount earnedPoints maxPoints
+	    }
 	    attempts { id runItemId taskRevision }
 	  }`, map[string]any{"id": runID}, session)
 	requireGraphSuccess(t, payload)
@@ -131,7 +133,13 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 			} `json:"items"`
 		} `json:"run"`
 		Runs []struct {
-			ID string `json:"id"`
+			ID                 string   `json:"id"`
+			TaskIDs            []string `json:"taskIds"`
+			ItemCount          int      `json:"itemCount"`
+			CompletedItemCount int      `json:"completedItemCount"`
+			CorrectItemCount   int      `json:"correctItemCount"`
+			EarnedPoints       *int     `json:"earnedPoints"`
+			MaxPoints          *int     `json:"maxPoints"`
 		} `json:"runs"`
 		Attempts []struct {
 			ID           string  `json:"id"`
@@ -145,6 +153,11 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 	if queried.Run.ID != runID || len(queried.Run.Items) != 1 ||
 		len(queried.Run.Items[0].Attempts) != 1 || queried.Run.Items[0].Attempts[0].ID != attemptID ||
 		len(queried.Runs) != 1 || queried.Runs[0].ID != runID ||
+		len(queried.Runs[0].TaskIDs) != 1 || queried.Runs[0].TaskIDs[0] != "log-001" ||
+		queried.Runs[0].ItemCount != 1 || queried.Runs[0].CompletedItemCount != 1 ||
+		queried.Runs[0].CorrectItemCount != 1 || queried.Runs[0].EarnedPoints != nil ||
+		queried.Runs[0].MaxPoints == nil ||
+		*queried.Runs[0].MaxPoints != 6 ||
 		len(queried.Attempts) != 1 || queried.Attempts[0].ID != attemptID ||
 		queried.Attempts[0].RunItemID == nil || *queried.Attempts[0].RunItemID != itemID ||
 		queried.Attempts[0].TaskRevision == nil || *queried.Attempts[0].TaskRevision != "task-revision" {
