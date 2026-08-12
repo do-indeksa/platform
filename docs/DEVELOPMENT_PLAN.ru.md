@@ -81,8 +81,8 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает web unit-тесты, 29 тестов content pipeline,
-  функциональные Playwright-сценарии, Linux visual-regression эталоны,
+- blocking CI включает 552 web unit-теста, 30 тестов content pipeline,
+  104 функциональных Playwright-сценария, 77 Linux visual-regression эталонов,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
