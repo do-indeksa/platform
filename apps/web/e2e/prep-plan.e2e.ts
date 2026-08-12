@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

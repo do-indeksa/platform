@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { installHistoryVisualFixture } from "./history-visual-fixture";
 
 const FIXED_TIME = new Date("2026-08-11T13:00:00.000Z");

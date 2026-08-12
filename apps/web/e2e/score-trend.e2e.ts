@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const TASK_IDS = Array.from({ length: 10 }, (_, index) => `task-${index + 1}`);
 

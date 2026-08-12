@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import type { E2EGraphQLCall } from "./diagnostic-cloud-fixture";
 import {
   installSimulationCloudRoutes,
