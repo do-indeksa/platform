@@ -21,6 +21,7 @@ describe("task draft", () => {
       attempted: true,
       solved: true,
       view: "solution" as const,
+      activeDurationMs: 134_000,
     };
 
     expect(parseTaskDraft(JSON.stringify(draft), 1, 2)).toEqual(draft);
@@ -34,6 +35,8 @@ describe("task draft", () => {
     JSON.stringify({ ...createTaskDraft(1), hintsShown: 3 }),
     JSON.stringify({ ...createTaskDraft(1), view: "correct" }),
     JSON.stringify({ ...createTaskDraft(1), solved: true, burned: true }),
+    JSON.stringify({ ...createTaskDraft(1), activeDurationMs: -1 }),
+    JSON.stringify({ ...createTaskDraft(1), activeDurationMs: 43_200_001 }),
     JSON.stringify({
       ...createTaskDraft(1),
       answers: ["x".repeat(MAX_ANSWER_LENGTH + 1)],

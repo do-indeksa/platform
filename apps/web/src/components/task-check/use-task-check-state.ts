@@ -11,10 +11,9 @@ import type { CheckResult } from "@/lib/answer";
 import {
   createTaskDraft,
   parseTaskDraft,
+  taskDraftStorageKey,
   type TaskDraft,
 } from "@/lib/task-draft";
-
-const STORAGE_PREFIX = "do-indeksa-task-draft-v1:";
 
 export type TaskCheckState = TaskDraft & {
   results: CheckResult[] | null;
@@ -35,7 +34,7 @@ export function useTaskCheckState(
 
   useEffect(() => {
     const draft = parseTaskDraft(
-      readSession(storageKey(taskId, practiceId)),
+      readSession(taskDraftStorageKey(taskId, practiceId)),
       partCount,
       maxHints,
     );
@@ -50,15 +49,11 @@ export function useTaskCheckState(
       restoring.current = false;
       return;
     }
-    writeSession(storageKey(taskId, practiceId), toDraft(state));
+    writeSession(taskDraftStorageKey(taskId, practiceId), toDraft(state));
   }, [practiceId, state, taskId]);
 
   useUnsavedExitGuard(state.dirty, confirmMessage);
   return [state, setState];
-}
-
-function storageKey(taskId: string, practiceId: string | null): string {
-  return `${STORAGE_PREFIX}${practiceId ? `${practiceId}:` : ""}${taskId}`;
 }
 
 function toDraft(state: TaskCheckState): TaskDraft {
@@ -70,6 +65,9 @@ function toDraft(state: TaskCheckState): TaskDraft {
     solved: state.solved,
     burned: state.burned,
     dirty: state.dirty,
+    ...(state.activeDurationMs === undefined
+      ? {}
+      : { activeDurationMs: state.activeDurationMs }),
   };
 }
 

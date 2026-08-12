@@ -1,5 +1,14 @@
 export const MAX_ANSWER_LENGTH = 200;
 export const MAX_TASK_ANSWER_PARTS = 6;
+export const TASK_DRAFT_STORAGE_PREFIX = "do-indeksa-task-draft-v1:";
+const MAX_TASK_ACTIVE_DURATION_MS = 12 * 60 * 60 * 1_000;
+
+export function taskDraftStorageKey(
+  taskId: string,
+  practiceId: string | null,
+): string {
+  return `${TASK_DRAFT_STORAGE_PREFIX}${practiceId ? `${practiceId}:` : ""}${taskId}`;
+}
 
 export type TaskCheckView =
   "form" | "incorrect" | "hint" | "solution" | "correct";
@@ -12,6 +21,7 @@ export type TaskDraft = {
   solved: boolean;
   burned: boolean;
   dirty: boolean;
+  activeDurationMs?: number;
 };
 
 const VIEWS = new Set<TaskCheckView>([
@@ -58,7 +68,11 @@ export function parseTaskDraft(
       (value.hintsShown as number) > Math.min(maxHints, 2) ||
       typeof value.solved !== "boolean" ||
       typeof value.burned !== "boolean" ||
-      typeof value.dirty !== "boolean"
+      typeof value.dirty !== "boolean" ||
+      (value.activeDurationMs !== undefined &&
+        (!Number.isInteger(value.activeDurationMs) ||
+          (value.activeDurationMs as number) < 0 ||
+          (value.activeDurationMs as number) > MAX_TASK_ACTIVE_DURATION_MS))
     ) {
       return null;
     }
