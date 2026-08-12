@@ -175,7 +175,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Кабинет                  | provisional skeleton   | прежний functional overview перенесен на `/cabinet`, Figma slice впереди  |
 | Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
 | Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
-| Решение отдельной задачи | готов для preview      | exact checker, подсказки, решение, resume, история и task-report          |
+| Решение отдельной задачи | готово по Figma        | Solution responsive workspace, exact checker, resume, journal и report    |
 | Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim   |
 | Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
 | Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |

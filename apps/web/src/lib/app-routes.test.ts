@@ -20,7 +20,7 @@ describe("app routes", () => {
   });
 
   it("uses an immersive shell for focused task and timed-run routes", () => {
-    expect(isImmersivePath("/tasks/algebra/task-1")).toBe(true);
+    expect(isImmersivePath("/tasks/algebra/task-1")).toBe(false);
     expect(isImmersivePath("/simulation/new")).toBe(true);
     expect(isImmersivePath("/diagnostic/new")).toBe(true);
     expect(isImmersivePath("/tasks/algebra")).toBe(false);
