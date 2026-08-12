@@ -59,6 +59,10 @@ export async function installCloudRoutes(
       });
       return;
     }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
     if (call.operationName === "DiagnosticRunIndex") {
       await route.fulfill({
         json: {

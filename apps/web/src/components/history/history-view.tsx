@@ -1,73 +1,70 @@
 "use client";
 
-import { Cloud, CloudOff, HardDrive, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useAttemptJournal } from "@/lib/attempts-store";
+import {
+  buildHistoryFeed,
+  filterHistoryFeed,
+  hasHistoryFeedFilters,
+  historyHref,
+  historyTabs,
+  type HistoryFeedFilters,
+  type HistoryTab,
+  type HistoryTaskMeta,
+} from "@/lib/history-feed";
 import {
   mergeTaskHistory,
   recentHistoryErrorTaskIds,
 } from "@/lib/history-journal";
-import {
-  isSimulationActive,
-  useSimulation,
-  useSimulationHistory,
-} from "@/lib/simulation-store";
+import { useHistoryRuns } from "@/lib/history-run-store";
 import { mergeSimulationArchive } from "@/lib/simulation-archive";
 import { useSimulationArchive } from "@/lib/simulation-archive-store";
-import { useTaskHistory } from "@/lib/task-history-store";
+import { useSimulationHistory } from "@/lib/simulation-store";
 import { taskPracticeHref } from "@/lib/task-bank";
-import {
-  defaultTaskHistoryFilters,
-  filterTaskHistory,
-  serializeTaskHistoryFilters,
-  taskHistoryHref,
-  type TaskHistoryFilters,
-} from "@/lib/task-history-filters";
+import { useTaskHistory } from "@/lib/task-history-store";
 import { useHydrated } from "@/lib/use-hydrated";
-import type { TaskHistoryFilterTopic } from "./task-history-filters";
-import { TaskHistoryList } from "./task-history-list";
-import type { HistoryTaskMeta } from "./types";
-import { VariantHistoryList } from "./variant-history-list";
+import { HistoryFeedEmpty } from "./history-feed-empty";
+import { HistoryFeedFilterControls } from "./history-feed-filters";
+import { HistoryFeedList } from "./history-feed-list";
+import { HistoryToolbarMenu } from "./history-toolbar-menu";
+import { VariantScoreTrend } from "./variant-score-trend";
 
-export type HistoryTab = "tasks" | "variants";
+const DEFAULT_FILTERS: HistoryFeedFilters = {
+  subject: "all",
+  period: "all",
+  difficulty: "all",
+};
+
+export type { HistoryTab } from "@/lib/history-feed";
 
 export function HistoryView({
   initialTab,
-  initialTaskFilters,
+  initialFilters,
   tasks,
 }: {
   initialTab: HistoryTab;
-  initialTaskFilters: TaskHistoryFilters;
+  initialFilters: HistoryFeedFilters;
   tasks: HistoryTaskMeta[];
 }) {
-  const t = useTranslations("history");
+  const t = useTranslations("history.feed");
+  const router = useRouter();
   const hydrated = useHydrated();
   const localTaskEntries = useTaskHistory();
   const journal = useAttemptJournal();
-  const localVariantEntries = useSimulationHistory();
-  const archive = useSimulationArchive();
-  const simulationPhase = useSimulation((state) => state.phase);
+  const runSnapshot = useHistoryRuns();
+  const localMocks = useSimulationHistory();
+  const cloudMocks = useSimulationArchive();
+  const [filters, setFilters] = useState(initialFilters);
+  const [now] = useState(() => Date.now());
+  const [showTrend, setShowTrend] = useState(false);
   const [practiceId] = useState(() => crypto.randomUUID());
-  const [taskFilters, setTaskFilters] = useState(initialTaskFilters);
-  const [filterNow] = useState(() => Date.now());
   const taskById = useMemo(
     () => new Map(tasks.map((task) => [task.id, task])),
     [tasks],
   );
-  const filterTopics = useMemo<TaskHistoryFilterTopic[]>(() => {
-    const byTopic = new Map<string, TaskHistoryFilterTopic>();
-    for (const task of tasks.toSorted(
-      (left, right) =>
-        left.slot - right.slot || left.topic.localeCompare(right.topic),
-    )) {
-      if (!byTopic.has(task.topic)) {
-        byTopic.set(task.topic, { slug: task.topic, label: task.topicName });
-      }
-    }
-    return [...byTopic.values()];
-  }, [tasks]);
   const taskEntries = useMemo(
     () =>
       localTaskEntries === null || journal === null
@@ -75,32 +72,45 @@ export function HistoryView({
         : mergeTaskHistory(localTaskEntries, journal.entries),
     [journal, localTaskEntries],
   );
-  const variantEntries = useMemo(
+  const mocks = useMemo(
     () =>
-      archive === null || localVariantEntries === null
+      localMocks === null || cloudMocks === null
         ? null
-        : mergeSimulationArchive(localVariantEntries, archive.entries),
-    [archive, localVariantEntries],
+        : mergeSimulationArchive(localMocks, cloudMocks.entries),
+    [cloudMocks, localMocks],
   );
-  const filteredTaskEntries = useMemo(
+  const feed = useMemo(
     () =>
-      taskEntries === null
+      taskEntries === null || runSnapshot === null || mocks === null
         ? null
-        : filterTaskHistory(taskEntries, taskById, taskFilters, filterNow),
-    [filterNow, taskById, taskEntries, taskFilters],
+        : buildHistoryFeed({
+            attempts: taskEntries,
+            runs: runSnapshot.entries,
+            mocks,
+            tasks,
+          }),
+    [mocks, runSnapshot, taskEntries, tasks],
+  );
+  const visible = useMemo(
+    () =>
+      feed === null
+        ? null
+        : filterHistoryFeed(feed, initialTab, filters, tasks, now),
+    [feed, filters, initialTab, now, tasks],
   );
 
   if (
     !hydrated ||
-    taskEntries === null ||
-    filteredTaskEntries === null ||
     journal === null ||
-    variantEntries === null ||
-    archive === null
+    runSnapshot === null ||
+    cloudMocks === null ||
+    mocks === null ||
+    feed === null ||
+    visible === null
   ) {
     return (
-      <main className="mx-auto flex min-h-[32rem] w-full max-w-6xl items-center justify-center px-5 sm:px-8">
-        <p className="flex items-center gap-3 text-muted">
+      <main className="mx-auto flex min-h-[520px] w-full items-center justify-center px-4">
+        <p className="flex items-center gap-2.5 text-sm text-muted">
           <LoaderCircle aria-hidden className="h-5 w-5 animate-spin" />
           {t("loading")}
         </p>
@@ -108,138 +118,131 @@ export function HistoryView({
     );
   }
 
-  const commitTaskFilters = (nextFilters: TaskHistoryFilters) => {
-    setTaskFilters(nextFilters);
-    const query = serializeTaskHistoryFilters(nextFilters).toString();
-    window.history.replaceState(
-      null,
-      "",
-      `${window.location.pathname}${query ? `?${query}` : ""}`,
-    );
-  };
-
-  const errorTaskIds = recentHistoryErrorTaskIds(filteredTaskEntries).filter(
+  const syncStatus = combinedSyncStatus(
+    journal.status,
+    runSnapshot.status,
+    cloudMocks.status,
+  );
+  const errorTaskIds = recentHistoryErrorTaskIds(taskEntries ?? []).filter(
     (taskId) => taskById.has(taskId),
   );
   const firstError = taskById.get(errorTaskIds[0] ?? "");
   const practiceHref = firstError
     ? taskPracticeHref(
         firstError,
-        "/history?tab=tasks",
+        historyHref("tasks", filters),
         errorTaskIds,
         practiceId,
       )
     : null;
+  const filtered = hasHistoryFeedFilters(filters) || initialTab !== "all";
+  const commitFilters = (next: HistoryFeedFilters) => {
+    setFilters(next);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${historyHref(initialTab, next).slice("/history".length)}`,
+    );
+  };
+  const reset = () => commitFilters({ ...DEFAULT_FILTERS });
+  const recoverFromEmpty = () => {
+    if (initialTab === "all") {
+      reset();
+      return;
+    }
+    router.replace("/history");
+  };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 pt-9 pb-28 sm:px-8 sm:pt-14 md:pb-16">
-      <header className="max-w-3xl">
-        <p className="text-sm font-semibold text-brand-ink">{t("kicker")}</p>
-        <h1 className="mt-3 text-4xl font-bold leading-tight sm:text-5xl">
+    <main
+      data-testid="history-page"
+      data-tab={initialTab}
+      data-sync-status={syncStatus}
+      className="min-h-[calc(100vh-64px)] w-full overflow-hidden rounded-b-2xl bg-page xl:min-h-[calc(100vh-72px)]"
+    >
+      <div
+        data-testid="history-content"
+        className="mx-auto w-[calc(100%_-_32px)] max-w-[1040px] pt-4 pb-10 md:w-[calc(100%_-_104px)] md:pt-[22px] xl:w-[1040px] xl:pt-7"
+      >
+        <h1 className="text-[22px] leading-[30px] font-semibold text-ink md:text-[32px] md:leading-10 md:font-bold">
           {t("title")}
         </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          {t("intro")}
-        </p>
-        <SyncNotice
-          status={initialTab === "tasks" ? journal.status : archive.status}
-          kind={initialTab}
-        />
-      </header>
 
-      <div
-        role="tablist"
-        aria-label={t("tabsLabel")}
-        className="mt-9 flex items-center gap-2 border-b border-line pb-4"
-      >
-        <HistoryTabLink
-          href={taskHistoryHref(taskFilters)}
-          active={initialTab === "tasks"}
-          label={t("tasksTab")}
-        />
-        <HistoryTabLink
-          href="/history?tab=variants"
-          active={initialTab === "variants"}
-          label={t("variantsTab")}
-        />
-      </div>
+        <nav
+          aria-label={t("tabsLabel")}
+          data-testid="history-tabs"
+          className="mt-2 flex h-10 items-start gap-1 overflow-x-auto md:mt-3.5 md:h-[42px] md:gap-2"
+        >
+          {historyTabs.map((tab) => (
+            <Link
+              key={tab}
+              href={historyHref(tab, filters)}
+              aria-current={tab === initialTab ? "page" : undefined}
+              className={`flex h-10 shrink-0 items-center justify-center rounded-[9px] px-2.5 text-xs leading-4 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand md:px-[18px] ${
+                tab === initialTab
+                  ? "bg-subtle text-brand-ink"
+                  : "border border-line bg-surface text-ink hover:border-brand"
+              }`}
+            >
+              {t(`tabs.${tab}`)}
+            </Link>
+          ))}
+        </nav>
 
-      <section
-        role="tabpanel"
-        aria-label={t(initialTab === "tasks" ? "tasksTab" : "variantsTab")}
-        className="pt-4"
-      >
-        {initialTab === "tasks" ? (
-          <TaskHistoryList
-            entries={filteredTaskEntries}
-            totalCount={taskEntries.length}
-            taskById={taskById}
-            filters={taskFilters}
-            filterTopics={filterTopics}
-            practiceHref={practiceHref}
-            errorCount={errorTaskIds.length}
-            onFiltersChange={commitTaskFilters}
-            onFiltersReset={() =>
-              commitTaskFilters({ ...defaultTaskHistoryFilters })
+        <div className="mt-3.5">
+          <HistoryFeedFilterControls
+            filters={filters}
+            onChange={commitFilters}
+            actions={
+              <HistoryToolbarMenu
+                canReset={hasHistoryFeedFilters(filters)}
+                practiceHref={practiceHref}
+                showTrend={mocks.length > 0}
+                syncStatus={syncStatus}
+                onReset={reset}
+                onShowTrend={() => setShowTrend((value) => !value)}
+              />
             }
           />
-        ) : (
-          <VariantHistoryList entries={variantEntries} />
-        )}
-      </section>
+        </div>
 
-      {isSimulationActive(simulationPhase) && initialTab === "variants" && (
-        <p className="mt-6 text-sm leading-6 text-muted">
-          {t("activeVariantNotice")}
-        </p>
-      )}
+        {syncStatus === "degraded" && (
+          <p role="status" className="mt-2 text-xs leading-4 text-amber-700">
+            {t("degraded")}
+          </p>
+        )}
+
+        <section
+          aria-label={t(`tabs.${initialTab}`)}
+          className="mt-[22px] md:mt-3.5"
+        >
+          {visible.length === 0 ? (
+            <HistoryFeedEmpty
+              filtered={filtered && feed.length > 0}
+              onReset={recoverFromEmpty}
+            />
+          ) : (
+            <HistoryFeedList
+              items={visible}
+              taskById={taskById}
+              returnTo={historyHref(initialTab, filters)}
+            />
+          )}
+        </section>
+
+        {showTrend && mocks.length > 0 && (
+          <div className="mt-8" data-testid="history-trend-panel">
+            <VariantScoreTrend entries={mocks} />
+          </div>
+        )}
+      </div>
     </main>
   );
 }
 
-function SyncNotice({
-  status,
-  kind,
-}: {
-  status: "guest" | "synced" | "degraded";
-  kind: HistoryTab;
-}) {
-  const t = useTranslations("history");
-  const Icon =
-    status === "guest" ? HardDrive : status === "synced" ? Cloud : CloudOff;
-  return (
-    <p className="mt-5 flex max-w-2xl items-start gap-2 text-sm leading-6 text-muted">
-      <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-      {t(
-        kind === "tasks"
-          ? `syncNotice.${status}`
-          : `variantSyncNotice.${status}`,
-      )}
-    </p>
-  );
-}
-
-function HistoryTabLink({
-  href,
-  active,
-  label,
-}: {
-  href: string;
-  active: boolean;
-  label: string;
-}) {
-  return (
-    <Link
-      role="tab"
-      aria-selected={active}
-      href={href}
-      className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-        active
-          ? "bg-brand text-on-brand"
-          : "border border-line bg-surface text-ink hover:border-brand hover:text-brand-ink"
-      }`}
-    >
-      {label}
-    </Link>
-  );
+function combinedSyncStatus(
+  ...statuses: ("guest" | "synced" | "degraded")[]
+): "guest" | "synced" | "degraded" {
+  if (statuses.includes("degraded")) return "degraded";
+  return statuses.every((status) => status === "synced") ? "synced" : "guest";
 }

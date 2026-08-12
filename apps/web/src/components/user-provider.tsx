@@ -10,6 +10,7 @@ import {
 import { useRouter } from "@/i18n/navigation";
 import type { components } from "@/lib/api/schema";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
+import { prepareHistoryRuns, syncHistoryRuns } from "@/lib/history-run-store";
 import { syncDiagnosticOwner } from "@/lib/diagnostic-store";
 import { clearProgressSync, syncProgress } from "@/lib/progress-sync";
 import {
@@ -72,6 +73,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         await syncProgress(user?.id ?? null);
       } catch {}
+      if (current) await syncHistoryRuns(user?.id ?? null);
+      if (!current) return;
       if (current) await syncSimulationArchive(user?.id ?? null);
     })();
     return () => {
@@ -114,5 +117,6 @@ function prepareLocalOwner(userId: string | null): void {
   syncDiagnosticOwner(userId);
   syncSimulationOwner(userId);
   prepareSimulationArchive(userId);
+  prepareHistoryRuns(userId);
   syncTaskHistory(userId);
 }

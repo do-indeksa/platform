@@ -756,6 +756,76 @@
   "history": {
     "title": "History",
     "description": "Completed task attempts and mock exams for FTN P1 preparation.",
+    "feed": {
+      "title": "History",
+      "loading": "Loading your history...",
+      "tabsLabel": "History views",
+      "tabs": {
+        "all": "All",
+        "tasks": "Tasks",
+        "trainings": "Trainings",
+        "mocks": "Mock exams"
+      },
+      "degraded": "Account sync is not up to date. Valid activity stored on this device remains visible.",
+      "filters": {
+        "label": "History filters",
+        "subjectLabel": "Exam",
+        "allSubjects": "All exams",
+        "p1": "FTN P1 mathematics",
+        "periodLabel": "Period",
+        "period": {
+          "all": "All time",
+          "7d": "Last 7 days",
+          "30d": "Last 30 days",
+          "90d": "Last 90 days"
+        },
+        "difficultyLabel": "Difficulty",
+        "difficulty": {
+          "all": "Any difficulty",
+          "easy": "Easy · 1-2",
+          "medium": "Medium · 3-4",
+          "hard": "Hard · 5"
+        }
+      },
+      "actions": {
+        "label": "History actions",
+        "reset": "Reset filters",
+        "trend": "Score progress",
+        "retry": "Retry recent mistakes",
+        "sync": {
+          "guest": "Stored on this device",
+          "synced": "Synced to your account",
+          "degraded": "Sync needs attention"
+        }
+      },
+      "showMore": "Show more",
+      "openTask": "Open attempt for task {id}",
+      "taskTitle": "Task #{id}",
+      "withHelp": "With help",
+      "outcome": {
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "partial": "Partial",
+        "skipped": "Skipped",
+        "ungraded": "In review"
+      },
+      "trainingTitle": "Practice training",
+      "diagnosticTitle": "P1 diagnostic",
+      "trainingSubtitle": "FTN P1 · {count, plural, one {# task} other {# tasks}}",
+      "mockTitle": "P1 mock exam",
+      "mockSubtitle": "FTN P1 · {count, plural, one {# task} other {# tasks}}",
+      "openMock": "Open mock exam result",
+      "pendingScore": "In review",
+      "score": "{score} / {max}",
+      "empty": {
+        "title": "History is empty",
+        "description": "Your completed tasks, trainings, diagnostics, and P1 mock results will appear here.",
+        "filteredTitle": "No matching activity",
+        "filteredDescription": "Change the tab or reset the filters to return to your complete history.",
+        "reset": "Reset filters",
+        "tasks": "Go to tasks"
+      }
+    },
     "kicker": "P1 · Your work",
     "intro": "Return to previous answers, inspect mistakes in context and turn them into a focused practice set.",
     "syncNotice": {

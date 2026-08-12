@@ -54,22 +54,25 @@ test("a practice mistake survives reload and opens with its full context", async
   let attemptLink = page.getByRole("link", {
     name: "Open attempt for task kb-001",
   });
-  await expect(attemptLink).toContainText("Position 1 · #kb-001");
-  await expect(attemptLink).toContainText("Mistake");
+  await expect(attemptLink).toContainText("Task #kb-001");
+  await expect(attemptLink).toContainText("With help");
   await page.reload();
   attemptLink = page.getByRole("link", {
     name: "Open attempt for task kb-001",
   });
-  await expect(attemptLink).toContainText("Position 1 · #kb-001");
+  await expect(attemptLink).toContainText("Task #kb-001");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
 
-  const retry = page.getByRole("link", { name: "Start practice" });
+  const actions = page.getByRole("button", { name: "History actions" });
+  await actions.click();
+  const retry = page.getByRole("link", { name: "Retry recent mistakes" });
   await expect(retry).toHaveAttribute("href", /set=kb-001/);
   await expect(retry).toHaveAttribute("href", /practice=[0-9a-f-]{36}/);
+  await actions.click();
 
   await attemptLink.click();
   await expect(
@@ -268,8 +271,18 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
   );
   await page.route("**/graphql", async (route) => {
     const call = route.request().postDataJSON() as { operationName?: string };
-    if (call.operationName !== "AttemptJournal") {
+    if (call.operationName === "HistoryRuns") {
       await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
+      });
+      return;
+    }
+    if (call.operationName !== "AttemptJournal") {
+      await route.fulfill({ status: 400 });
       return;
     }
     await route.fulfill({
@@ -351,24 +364,18 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
   });
 
   await page.goto("/en/history");
+  await expect(page.getByTestId("history-page")).toHaveAttribute(
+    "data-sync-status",
+    "synced",
+  );
   await expect(
-    page.getByText(
-      "This journal is synced to your account and available on your other devices.",
-    ),
-  ).toBeVisible();
-  await expect(page.locator("tbody tr")).toHaveCount(4);
+    page.getByTestId("history-feed").locator(":scope > li"),
+  ).toHaveCount(4);
+  await expect(page.getByText("Partial", { exact: true })).toBeVisible();
   await expect(
-    page.locator("tbody tr").filter({ hasText: "#kb-001" }),
-  ).toContainText("0 · 0 · 0 · 0");
-  await expect(
-    page.locator("tbody").getByText("Partial", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.locator("tbody").getByText("Skipped", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.locator("tbody").getByText("Awaiting review", { exact: true }),
-  ).toBeVisible();
+    page.getByRole("link", { name: "Open attempt for task kb-001" }),
+  ).toContainText("With help");
+  await expect(page.getByText("In review", { exact: true })).toBeVisible();
   expect(
     await page.evaluate(() => localStorage.getItem("do-indeksa-task-history")),
   ).toBeNull();
@@ -464,6 +471,10 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
       await route.fulfill({ json: { data: { attempts: [] } } });
       return;
     }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
     if (call.operationName !== "CompletedSimulationArchive") {
       await route.fulfill({ status: 400 });
       return;
@@ -509,14 +520,11 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
   });
 
   await page.goto("/en/history?tab=variants");
-  await expect(
-    page.getByText(
-      "Mock-exam results are synced to your account and available on your other devices.",
-    ),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("cell", { name: "3 / 60", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByTestId("history-page")).toHaveAttribute(
+    "data-sync-status",
+    "synced",
+  );
+  await expect(page.getByText("3 / 60", { exact: true })).toBeVisible();
   expect(
     await page.evaluate(() => {
       const raw = localStorage.getItem("do-indeksa-simulation");
@@ -634,9 +642,11 @@ test("local detail rows stay isolated between accounts", async ({ page }) => {
 
   await page.goto("/en/history");
 
-  await expect(page.locator("tbody tr")).toHaveCount(1);
-  await expect(page.locator("tbody tr")).toContainText("#kv-001");
-  await expect(page.locator("tbody tr")).not.toContainText("#kb-001");
+  await expect(
+    page.getByTestId("history-feed").locator(":scope > li"),
+  ).toHaveCount(1);
+  await expect(page.getByTestId("history-feed")).toContainText("#kv-001");
+  await expect(page.getByTestId("history-feed")).not.toContainText("#kb-001");
 
   await page
     .getByTestId("site-header")
@@ -646,7 +656,7 @@ test("local detail rows stay isolated between accounts", async ({ page }) => {
   await page.getByRole("button", { name: "Sign out" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "No task attempts yet" }),
+    page.getByRole("heading", { name: "History is empty" }),
   ).toBeVisible();
 });
 
@@ -682,12 +692,10 @@ test("an archived mock exam can rebuild and open its trusted result", async ({
   }, history);
 
   await page.goto("/en/history?tab=variants");
-  const variantRow = page
-    .locator("tbody tr")
-    .filter({ hasText: "P1 mock exam" });
+  const variantRow = page.getByRole("link", { name: "Open mock exam result" });
   await expect(variantRow).toBeVisible();
   await expect(variantRow).toContainText("0 / 60");
-  await page.locator('a[aria-label="Open mock exam result"]:visible').click();
+  await variantRow.click();
 
   await expect(
     page.getByRole("heading", { name: "Your result", exact: true }),
@@ -708,10 +716,10 @@ test("empty mobile history has a recovery action and active navigation", async (
   await page.goto("/ru/history");
 
   await expect(
-    page.getByRole("heading", { name: "Попыток заданий пока нет" }),
+    page.getByRole("heading", { name: "История пуста" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Выбрать задание" }),
+    page.getByRole("link", { name: "Перейти к заданиям" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Меню" }).click();
   await expect(
