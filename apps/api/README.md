@@ -34,6 +34,13 @@ are reduced to a stable `502 oauth_provider_unavailable`; authorization codes,
 PKCE verifiers, access tokens, upstream URLs, headers, and bodies are never
 included in returned or logged errors.
 
+OAuth return paths are parsed as bounded absolute-path references rather than
+checked by string prefix. Scheme and authority forms, browser-significant
+backslashes, encoded path separators, controls, malformed escapes, and values
+over 2 KiB fall back to `/` before state is sealed. Callback state and preview
+handoff rows are validated again before token exchange, session issue, or any
+redirect.
+
 The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.
