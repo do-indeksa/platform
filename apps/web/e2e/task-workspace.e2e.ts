@@ -117,15 +117,15 @@ for (const viewport of railGeometryCases) {
             dirty: false,
           });
         sessionStorage.setItem(
-          `do-indeksa-task-draft-v1:${practice}:kb-001`,
+          `do-indeksa-task-draft-v2:guest:practice:${practice}:task:kb-001`,
           draft(4, "solved"),
         );
         sessionStorage.setItem(
-          `do-indeksa-task-draft-v1:${practice}:kv-001`,
+          `do-indeksa-task-draft-v2:guest:practice:${practice}:task:kv-001`,
           draft(1, "skipped"),
         );
         sessionStorage.setItem(
-          `do-indeksa-task-draft-v1:${practice}:log-001`,
+          `do-indeksa-task-draft-v2:guest:practice:${practice}:task:log-001`,
           JSON.stringify({
             answers: ["persisted"],
             view: "form",
@@ -264,7 +264,7 @@ test("skip records an honest attempt and restores the rail status", async ({
     ({ taskId, practice }) => {
       const attemptsRaw = localStorage.getItem("do-indeksa-attempts");
       const draftRaw = sessionStorage.getItem(
-        `do-indeksa-task-draft-v1:${practice}:${taskId}`,
+        `do-indeksa-task-draft-v2:guest:practice:${practice}:task:${taskId}`,
       );
       return {
         attempts: attemptsRaw ? JSON.parse(attemptsRaw).attempts : [],
