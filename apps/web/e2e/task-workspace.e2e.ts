@@ -26,6 +26,41 @@ const responsiveViewports = [
   { name: "tablet", width: 1024, height: 900 },
   { name: "desktop", width: 1440, height: 900 },
 ] as const;
+const railGeometryCases = [
+  {
+    name: "mobile",
+    width: 390,
+    height: 800,
+    itemWidth: 56,
+    itemHeight: 56,
+    markerOffsetX: 28,
+    markerOffsetY: 28,
+    railAxis: "horizontal",
+    railAxisOffset: 47,
+  },
+  {
+    name: "tablet",
+    width: 1024,
+    height: 900,
+    itemWidth: 126,
+    itemHeight: 64,
+    markerOffsetX: 25,
+    markerOffsetY: 32,
+    railAxis: "horizontal",
+    railAxisOffset: 52,
+  },
+  {
+    name: "desktop",
+    width: 1440,
+    height: 900,
+    itemWidth: 214,
+    itemHeight: 58,
+    markerOffsetX: 29,
+    markerOffsetY: 29,
+    railAxis: "vertical",
+    railAxisOffset: 48,
+  },
+] as const;
 
 for (const localeCase of localeCases) {
   for (const viewport of responsiveViewports) {
@@ -59,6 +94,94 @@ for (const localeCase of localeCases) {
       ).toBe(true);
     });
   }
+}
+
+for (const viewport of railGeometryCases) {
+  test(`task rail markers stay centered at ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await page.route("**/api/v1/me", (route) =>
+      route.fulfill({ status: 401, body: "" }),
+    );
+    await page.addInitScript(
+      ({ practice }) => {
+        const draft = (partCount: number, state: "solved" | "skipped") =>
+          JSON.stringify({
+            answers: Array<string>(partCount).fill(""),
+            view: state === "solved" ? "correct" : "solution",
+            attempted: true,
+            hintsShown: 0,
+            solved: state === "solved",
+            burned: state === "skipped",
+            dirty: false,
+          });
+        sessionStorage.setItem(
+          `do-indeksa-task-draft-v1:${practice}:kb-001`,
+          draft(4, "solved"),
+        );
+        sessionStorage.setItem(
+          `do-indeksa-task-draft-v1:${practice}:kv-001`,
+          draft(1, "skipped"),
+        );
+      },
+      { practice: practiceId },
+    );
+    await page.goto(
+      `/tasks/logaritmi/log-001?returnTo=%2Ftasks&set=kb-001%2Ckv-001%2Clog-001%2Ceks-001&practice=${practiceId}`,
+    );
+
+    const items = page.locator("[data-task-rail-item]");
+    await expect(items).toHaveCount(4);
+    await expect
+      .poll(() =>
+        items.evaluateAll((elements) =>
+          elements.map((element) => element.getAttribute("data-task-status")),
+        ),
+      )
+      .toEqual(["solved", "skipped", "active", "pending"]);
+
+    const geometry = await items.evaluateAll((elements, railAxis) => {
+      const rail = elements[0]?.closest<HTMLElement>(
+        '[data-testid="task-workspace-rail"]',
+      );
+      if (!rail) throw new Error("task rail is missing");
+      const railRect = rail.getBoundingClientRect();
+      return elements.map((element) => {
+        const item = element.getBoundingClientRect();
+        const marker = element
+          .querySelector<HTMLElement>("[data-task-rail-marker]")
+          ?.getBoundingClientRect();
+        if (!marker) throw new Error("task rail marker is missing");
+        const markerCenterX = marker.left + marker.width / 2;
+        const markerCenterY = marker.top + marker.height / 2;
+        return {
+          itemWidth: item.width,
+          itemHeight: item.height,
+          markerWidth: marker.width,
+          markerHeight: marker.height,
+          markerOffsetX: markerCenterX - item.left,
+          markerOffsetY: markerCenterY - item.top,
+          railAxisOffset:
+            railAxis === "horizontal"
+              ? markerCenterY - railRect.top
+              : markerCenterX - railRect.left,
+        };
+      });
+    }, viewport.railAxis);
+
+    for (const item of geometry) {
+      expect(item).toEqual({
+        itemWidth: viewport.itemWidth,
+        itemHeight: viewport.itemHeight,
+        markerWidth: 34,
+        markerHeight: 34,
+        markerOffsetX: viewport.markerOffsetX,
+        markerOffsetY: viewport.markerOffsetY,
+        railAxisOffset: viewport.railAxisOffset,
+      });
+    }
+  });
 }
 
 test("the task workspace exposes its Figma regions and a real condition toggle", async ({
