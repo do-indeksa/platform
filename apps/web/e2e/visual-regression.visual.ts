@@ -106,7 +106,7 @@ const surfaces: readonly VisualSurface[] = [
       ).toBeVisible();
       await expect(
         page.getByRole("heading", {
-          name: "Još nema pokušaja zadataka",
+          name: "Istorija je prazna",
           exact: true,
         }),
       ).toBeVisible();
