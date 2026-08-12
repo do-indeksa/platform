@@ -496,9 +496,11 @@
     "metadataTitle": "Moj kabinet",
     "metadataDescription": "Lični pregled pripreme, napretka i poslednjih rezultata za prijemni ispit FTN P1 iz matematike.",
     "title": "Moj kabinet",
+    "loading": "Učitavamo napredak i sledeći korak.",
     "subtitle": {
       "started": "Tvoja priprema za upis",
-      "empty": "Započni pripremu za upis"
+      "empty": "Započni pripremu za upis",
+      "loading": "Učitavamo tvoju pripremu"
     },
     "subject": {
       "aria": "Aktivni prijemni ispit",

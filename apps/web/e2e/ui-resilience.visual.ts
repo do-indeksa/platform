@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
+  installCabinetAuthGate,
   installCabinetConflictVisualFixture,
   installHistoryDegradedVisualFixture,
 } from "./ui-resilience-visual-fixture";
@@ -20,6 +21,44 @@ test.beforeEach(async ({ page }) => {
 for (const viewport of viewports) {
   test.describe(viewport.name, () => {
     test.use({ viewport });
+
+    test("cabinet loading keeps unknown progress neutral", async ({ page }) => {
+      const releaseAuth = await installCabinetAuthGate(page);
+      await page.goto("/cabinet", { waitUntil: "domcontentloaded" });
+
+      const dashboard = page.getByTestId("cabinet-dashboard");
+      await expect(dashboard).toHaveAttribute("data-state", "loading");
+      await expect(dashboard).toHaveAttribute("aria-busy", "true");
+      await expect(dashboard).toHaveAttribute(
+        "data-design-status",
+        "provisional",
+      );
+      await expect(
+        page.getByRole("heading", {
+          name: "Priprema još nije započeta",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect
+        .poll(() =>
+          page.getByTestId("cabinet-loading-image").evaluate((image) => {
+            const element = image as HTMLImageElement;
+            return element.complete && element.naturalWidth > 0;
+          }),
+        )
+        .toBe(true);
+      await assertNoPageOverflow(page);
+      await assertLoadingGeometry(page, viewport.width);
+      await stabilize(page);
+
+      await expect(page).toHaveScreenshot(
+        `cabinet-loading-${viewport.name}.png`,
+        { fullPage: true },
+      );
+
+      releaseAuth();
+      await expect(dashboard).toHaveAttribute("data-state", "empty");
+    });
 
     test("cabinet cloud conflict remains usable", async ({ page }) => {
       await installCabinetConflictVisualFixture(page);
@@ -128,6 +167,28 @@ async function assertWorkspaceOrder(page: Page, width: number): Promise<void> {
   }
   expect(railBox.y + railBox.height).toBeLessThanOrEqual(questionBox.y);
   expect(questionBox.y + questionBox.height).toBeLessThanOrEqual(helpBox.y);
+}
+
+async function assertLoadingGeometry(page: Page, width: number): Promise<void> {
+  const card = await page.getByTestId("cabinet-loading").boundingBox();
+  const content = await page
+    .getByTestId("cabinet-loading-content")
+    .boundingBox();
+  const artwork = await page
+    .getByTestId("cabinet-loading-artwork")
+    .boundingBox();
+  expect(card).not.toBeNull();
+  expect(content).not.toBeNull();
+  expect(artwork).not.toBeNull();
+  if (!card || !content || !artwork) return;
+
+  expect(content.x).toBeGreaterThanOrEqual(card.x);
+  expect(content.x + content.width).toBeLessThanOrEqual(card.x + card.width);
+  expect(artwork.x).toBeGreaterThanOrEqual(card.x);
+  expect(artwork.x + artwork.width).toBeLessThanOrEqual(card.x + card.width);
+  if (width >= 768 && width < 1024) {
+    expect(content.x + content.width).toBeLessThanOrEqual(artwork.x);
+  }
 }
 
 async function assertCardContentClear(

@@ -28,6 +28,7 @@ import {
   type CabinetTask,
 } from "./cabinet-model";
 import { CabinetContinueCard } from "./cabinet-continue-card";
+import { CabinetLoadingState } from "./cabinet-loading-state";
 import { CabinetLatestResults } from "./cabinet-latest-results";
 import { CabinetPageHeader } from "./cabinet-page-header";
 import { CabinetPositionMap } from "./cabinet-position-map";
@@ -120,39 +121,48 @@ export function CabinetDashboard({
         mock: latestMock,
         activeRun: resume !== null,
       });
+  const pageState = pending ? "loading" : started ? "started" : "empty";
 
   return (
     <main
       data-testid="cabinet-dashboard"
       data-state={pending ? "loading" : started ? "populated" : "empty"}
+      data-design-status={pending ? "provisional" : undefined}
+      aria-busy={pending}
       className="w-full"
     >
       <div className="mx-auto flex w-[calc(100%-32px)] max-w-[1320px] flex-col gap-4 pt-6 pb-8 md:w-[calc(100%-120px)] md:gap-6 md:pt-9 md:pb-12">
-        <CabinetPageHeader started={started} />
-        <CabinetContinueCard
-          exam={exam}
-          practice={practice}
-          resume={resume}
-          started={started}
-          tasks={tasks}
-        />
-        {started && (
+        <CabinetPageHeader state={pageState} />
+        {pending ? (
+          <CabinetLoadingState />
+        ) : (
           <>
-            <CabinetPositionMap
-              positions={progress}
-              activePosition={
-                resume?.kind === "diagnostic"
-                  ? resume.current
-                  : (practice?.position.number ?? null)
-              }
-              pending={pending}
-            />
-            <CabinetLatestResults
+            <CabinetContinueCard
               exam={exam}
-              mock={latestMock}
-              practice={latestPractice}
+              practice={practice}
+              resume={resume}
+              started={started}
               tasks={tasks}
             />
+            {started && (
+              <>
+                <CabinetPositionMap
+                  positions={progress}
+                  activePosition={
+                    resume?.kind === "diagnostic"
+                      ? resume.current
+                      : (practice?.position.number ?? null)
+                  }
+                  pending={false}
+                />
+                <CabinetLatestResults
+                  exam={exam}
+                  mock={latestMock}
+                  practice={latestPractice}
+                  tasks={tasks}
+                />
+              </>
+            )}
           </>
         )}
         <CabinetPrograms programs={programs} />
