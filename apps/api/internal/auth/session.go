@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	SessionCookieName = "di_session"
-	sessionTTL        = 30 * 24 * time.Hour
-	stateTTL          = 10 * time.Minute
-	codeTTL           = 30 * time.Second
+	SessionCookieName      = "__Host-di_session"
+	localSessionCookieName = "di_session"
+	sessionTTL             = 30 * 24 * time.Hour
+	stateTTL               = 10 * time.Minute
+	codeTTL                = 30 * time.Second
 )
 
 func newSecret() (string, []byte, error) {
@@ -38,9 +39,20 @@ func validSecret(value string) bool {
 		base64.RawURLEncoding.EncodeToString(raw) == value
 }
 
+func (s *Service) sessionCookieName() string {
+	if s.secureCookies() {
+		return SessionCookieName
+	}
+	return localSessionCookieName
+}
+
+func (s *Service) requestSessionCookie(r *http.Request) (*http.Cookie, error) {
+	return r.Cookie(s.sessionCookieName())
+}
+
 func (s *Service) sessionCookie(token string, maxAge int) *http.Cookie {
 	return &http.Cookie{
-		Name:     SessionCookieName,
+		Name:     s.sessionCookieName(),
 		Value:    token,
 		Path:     "/",
 		MaxAge:   maxAge,

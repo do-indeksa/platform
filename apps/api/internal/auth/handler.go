@@ -26,7 +26,7 @@ func ParamErrorHandler(w http.ResponseWriter, _ *http.Request, err error) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	if cookie, err := r.Cookie(SessionCookieName); err == nil {
+	if cookie, err := h.service.requestSessionCookie(r); err == nil {
 		if err := h.service.Logout(r.Context(), cookie.Value); err != nil {
 			slog.Warn("logout session delete failed", "error", err)
 		}
@@ -36,7 +36,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie(SessionCookieName)
+	cookie, err := h.service.requestSessionCookie(r)
 	if err != nil {
 		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
 		return

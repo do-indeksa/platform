@@ -1,8 +1,11 @@
 package auth
 
 import (
+	"context"
+	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestRequestOrigin(t *testing.T) {
@@ -60,21 +63,55 @@ func TestRequestOrigin(t *testing.T) {
 	}
 }
 
-func TestSecureCookieDerivation(t *testing.T) {
+func TestSessionCookiePolicy(t *testing.T) {
 	tests := []struct {
 		canonical string
-		want      bool
+		wantName  string
+		secure    bool
 	}{
-		{"https://doindeksa.rs", true},
-		{"http://localhost:3000", false},
+		{"https://doindeksa.rs", SessionCookieName, true},
+		{"http://localhost:3000", localSessionCookieName, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.canonical, func(t *testing.T) {
 			svc := &Service{cfg: Config{CanonicalOrigin: tt.canonical}}
-			if got := svc.sessionCookie("t", 1).Secure; got != tt.want {
-				t.Fatalf("got %v, want %v", got, tt.want)
+			cookie := svc.sessionCookie("t", 1)
+			if cookie.Name != tt.wantName || cookie.Secure != tt.secure ||
+				cookie.Path != "/" || cookie.Domain != "" || !cookie.HttpOnly ||
+				cookie.SameSite != http.SameSiteLaxMode {
+				t.Fatalf("unexpected cookie policy: %+v", cookie)
 			}
 		})
+	}
+}
+
+func TestHTTPSHandlersIgnoreLegacySessionCookie(t *testing.T) {
+	service := NewService(testPool, Config{CanonicalOrigin: "https://doindeksa.rs"})
+	handler := NewHandler(service)
+	legacyCookie := seedSession(t, time.Now().Add(time.Hour))
+
+	meRequest := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
+	meRequest.AddCookie(legacyCookie)
+	meResponse := httptest.NewRecorder()
+	handler.GetMe(meResponse, meRequest)
+	if meResponse.Code != http.StatusUnauthorized {
+		t.Fatalf("legacy cookie authenticated HTTPS handler: %d", meResponse.Code)
+	}
+
+	logoutRequest := httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
+	logoutRequest.AddCookie(legacyCookie)
+	logoutResponse := httptest.NewRecorder()
+	handler.Logout(logoutResponse, logoutRequest)
+	if logoutResponse.Code != http.StatusNoContent {
+		t.Fatalf("logout returned %d", logoutResponse.Code)
+	}
+	cookies := logoutResponse.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != SessionCookieName ||
+		!cookies[0].Secure || cookies[0].MaxAge >= 0 {
+		t.Fatalf("unexpected logout cookie: %+v", cookies)
+	}
+	if _, _, err := service.SessionUser(context.Background(), legacyCookie.Value); err != nil {
+		t.Fatalf("legacy cookie revoked server-side session: %v", err)
 	}
 }
 
