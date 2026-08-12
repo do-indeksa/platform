@@ -3,6 +3,7 @@
 import { ChevronLeft, Play, Save } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { useUser } from "@/components/user-provider";
 import { Link, useRouter } from "@/i18n/navigation";
 import { TRAINING_BUILDER_PATH } from "@/lib/app-routes";
 import { useAttemptJournal, useAttempts } from "@/lib/attempts-store";
@@ -14,12 +15,7 @@ import {
   replaceTrainingPositions,
   setTrainingPositionQuantity,
   type TrainingBuilderDifficulty,
-  type TrainingBuilderDraft,
 } from "@/lib/training-builder";
-import {
-  loadTrainingBuilderDraft,
-  saveTrainingBuilderDraft,
-} from "@/lib/training-builder-storage";
 import {
   TrainingPositionsStep,
   type TrainingBuilderPreset,
@@ -31,8 +27,8 @@ import type {
   TrainingBuilderPositionView,
   TrainingBuilderTaskView,
 } from "./types";
+import { useTrainingBuilderDraft } from "./use-training-builder-draft";
 
-type DraftStatus = "idle" | "restored" | "saved" | "error";
 const EMPTY_ATTEMPTS: never[] = [];
 
 export function TrainingBuilder({
@@ -46,30 +42,32 @@ export function TrainingBuilder({
 }) {
   const t = useTranslations("trainingBuilder");
   const router = useRouter();
+  const { user, loading: ownerLoading } = useUser();
+  const ownerId = ownerLoading ? undefined : (user?.id ?? null);
   const journal = useAttemptJournal();
   const legacyAttempts = useAttempts();
-  const [draft, setDraft] = useState<TrainingBuilderDraft>(() =>
-    createDefaultTrainingBuilderDraft(positions, blueprintVersion),
-  );
-  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle");
+  const {
+    draft,
+    status: draftStatus,
+    ready: draftReady,
+    commit: commitDraft,
+    save: saveDraft,
+  } = useTrainingBuilderDraft(ownerId, positions, blueprintVersion);
   const [showAllPositions, setShowAllPositions] = useState(false);
+  const visibleShowAllPositions = draftReady && showAllPositions;
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      const restored = loadTrainingBuilderDraft(positions, blueprintVersion);
-      if (!restored) return;
-      setDraft(restored);
-      setDraftStatus("restored");
-    });
+    if (draftReady) return;
+    const timeout = window.setTimeout(() => setShowAllPositions(false));
     return () => window.clearTimeout(timeout);
-  }, [blueprintVersion, positions]);
+  }, [draftReady]);
 
   const attempts = useMemo(
     () =>
-      journal
+      draftReady && journal
         ? mergeTrainingBuilderAttempts(journal.entries, legacyAttempts ?? [])
         : EMPTY_ATTEMPTS,
-    [journal, legacyAttempts],
+    [draftReady, journal, legacyAttempts],
   );
   const preview = useMemo(
     () =>
@@ -100,23 +98,12 @@ export function TrainingBuilder({
     return latest;
   }, [attempts]);
 
-  const commitDraft = (next: TrainingBuilderDraft) => {
-    setDraft(next);
-    setDraftStatus("idle");
-  };
-  const saveDraft = () => {
-    setDraftStatus(
-      saveTrainingBuilderDraft(draft, positions, blueprintVersion)
-        ? "saved"
-        : "error",
-    );
-  };
   const reset = () => {
     commitDraft(createDefaultTrainingBuilderDraft(positions, blueprintVersion));
     setShowAllPositions(false);
   };
   const start = () => {
-    if (!journal) return;
+    if (!draftReady || !journal) return;
     const practiceId = crypto.randomUUID();
     const selection = buildTrainingSet({
       draft,
@@ -179,11 +166,13 @@ export function TrainingBuilder({
     0,
   );
   const journalStatus = journal?.status ?? "loading";
-  const canStart = journal !== null && preview.taskIds.length > 0;
+  const canStart = draftReady && journal !== null && preview.taskIds.length > 0;
 
   return (
     <main
       data-testid="training-builder"
+      data-draft-state={draftReady ? "ready" : "loading"}
+      aria-busy={!draftReady}
       className="min-h-[calc(100vh-64px)] overflow-hidden rounded-b-2xl bg-page xl:min-h-[calc(100vh-72px)]"
     >
       <div className="mx-auto flex w-[calc(100%_-_32px)] max-w-[1240px] flex-col gap-4 pt-3.5 pb-5 md:w-[calc(100%_-_104px)] md:pt-6 xl:w-[1240px]">
@@ -207,9 +196,10 @@ export function TrainingBuilder({
           <button
             type="button"
             onClick={saveDraft}
+            disabled={!draftReady}
             aria-label={t("saveDraft")}
             title={t("saveDraft")}
-            className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-2 text-sm leading-5 text-muted hover:bg-subtle md:px-3"
+            className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-2 text-sm leading-5 text-muted hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-40 md:px-3"
           >
             <Save aria-hidden size={15} strokeWidth={1.6} />
             <span className="hidden xl:inline">{t("saveDraft")}</span>
@@ -223,8 +213,9 @@ export function TrainingBuilder({
               positions={positions}
               quantities={draft.quantities}
               selectedTotal={selectedTotal}
-              showAllPositions={showAllPositions}
-              journalReady={journal !== null}
+              showAllPositions={visibleShowAllPositions}
+              disabled={!draftReady}
+              journalReady={draftReady && journal !== null}
               onPresetSelect={selectPreset}
               onReset={reset}
               onShowAllPositionsChange={setShowAllPositions}
@@ -242,6 +233,7 @@ export function TrainingBuilder({
               quantities={draft.quantities}
               actualCounts={preview.counts}
               total={preview.taskIds.length}
+              disabled={!draftReady}
               onRemove={(position) =>
                 commitDraft(setTrainingPositionQuantity(draft, position, 0))
               }
@@ -251,6 +243,7 @@ export function TrainingBuilder({
               onlyNew={draft.onlyNew}
               shuffle={draft.shuffle}
               prioritizeMistakes={draft.prioritizeMistakes}
+              disabled={!draftReady}
               journalStatus={journalStatus}
               onDifficultyChange={(difficulty: TrainingBuilderDifficulty) =>
                 commitDraft({ ...draft, difficulty })
@@ -290,7 +283,8 @@ export function TrainingBuilder({
             <button
               type="button"
               onClick={saveDraft}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-sm leading-5 font-semibold text-ink hover:border-brand"
+              disabled={!draftReady}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-sm leading-5 font-semibold text-ink hover:border-brand disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Save aria-hidden size={15} strokeWidth={1.6} />
               {draftStatus === "saved"

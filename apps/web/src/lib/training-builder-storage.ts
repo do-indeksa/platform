@@ -3,16 +3,28 @@ import {
   type TrainingBuilderDraft,
   type TrainingBuilderPosition,
 } from "./training-builder";
+import {
+  browserStorageOwnerScope,
+  type BrowserStorageOwnerId,
+} from "./browser-storage-owner";
 
-export const TRAINING_BUILDER_STORAGE_KEY = "do-indeksa-training-builder";
+export const TRAINING_BUILDER_STORAGE_PREFIX =
+  "do-indeksa-training-builder-v2:";
 const MAX_DRAFT_CHARACTERS = 8_000;
 
+export function trainingBuilderStorageKey(
+  ownerId: BrowserStorageOwnerId,
+): string {
+  return `${TRAINING_BUILDER_STORAGE_PREFIX}${browserStorageOwnerScope(ownerId)}`;
+}
+
 export function loadTrainingBuilderDraft(
+  ownerId: BrowserStorageOwnerId,
   positions: readonly TrainingBuilderPosition[],
   blueprintVersion: string,
 ): TrainingBuilderDraft | null {
   try {
-    const raw = localStorage.getItem(TRAINING_BUILDER_STORAGE_KEY);
+    const raw = localStorage.getItem(trainingBuilderStorageKey(ownerId));
     if (!raw || raw.length > MAX_DRAFT_CHARACTERS) return null;
     return parseTrainingBuilderDraft(
       JSON.parse(raw),
@@ -25,6 +37,7 @@ export function loadTrainingBuilderDraft(
 }
 
 export function saveTrainingBuilderDraft(
+  ownerId: BrowserStorageOwnerId,
   draft: TrainingBuilderDraft,
   positions: readonly TrainingBuilderPosition[],
   blueprintVersion: string,
@@ -34,7 +47,7 @@ export function saveTrainingBuilderDraft(
     if (!valid) return false;
     const serialized = JSON.stringify(valid);
     if (serialized.length > MAX_DRAFT_CHARACTERS) return false;
-    localStorage.setItem(TRAINING_BUILDER_STORAGE_KEY, serialized);
+    localStorage.setItem(trainingBuilderStorageKey(ownerId), serialized);
     return true;
   } catch {
     return false;
