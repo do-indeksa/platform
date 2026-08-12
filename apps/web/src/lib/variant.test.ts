@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { generateVariant, resolveVariantTaskIds } from "./variant";
+import {
+  generateVariant,
+  isExamEligibleTask,
+  resolveVariantTaskIds,
+} from "./variant";
 
 const currentTaskIds = [
   "kb-001",
@@ -24,6 +28,7 @@ describe("generateVariant", () => {
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     ]);
     expect(new Set(variant.tasks.map((item) => item.task.id)).size).toBe(10);
+    expect(variant.tasks.map((item) => item.task.id)).toEqual(currentTaskIds);
     expect(variant.tasks.map((item) => item.task.topic)).toEqual([
       "kompleksni-brojevi",
       "kvadratna-jednacina",
@@ -45,6 +50,40 @@ describe("generateVariant", () => {
       task: { slot: 3, topic: "logaritmi" },
     });
     expect(variant.tasks.every((item) => item.maxPoints === 6)).toBe(true);
+    expect(
+      variant.tasks.every(
+        (item) =>
+          item.task.status === "verified" &&
+          item.task.rubric.reduce(
+            (sum, criterion) => sum + criterion.points,
+            0,
+          ) ===
+            item.maxPoints - 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps review and incomplete-rubric tasks out of exam-like variants", () => {
+    const completeRubric = [
+      { id: "model", points: 2, text: "Model" },
+      { id: "method", points: 3, text: "Method" },
+    ];
+
+    expect(
+      isExamEligibleTask({ status: "verified", rubric: completeRubric }, 6),
+    ).toBe(true);
+    expect(
+      isExamEligibleTask({ status: "review", rubric: completeRubric }, 6),
+    ).toBe(false);
+    expect(
+      isExamEligibleTask(
+        { status: "verified", rubric: completeRubric.slice(0, 1) },
+        6,
+      ),
+    ).toBe(false);
+    expect(isExamEligibleTask({ status: "verified", rubric: [] }, 6)).toBe(
+      false,
+    );
   });
 
   it("can reproduce the historical 2025 position order", async () => {
