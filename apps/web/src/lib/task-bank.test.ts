@@ -197,6 +197,8 @@ describe("practice navigation input", () => {
     expect(safeTaskBankReturnPath("https://example.com/tasks")).toBeNull();
     expect(safeTaskBankReturnPath("//example.com/tasks")).toBeNull();
     expect(safeTaskBankReturnPath("/prep")).toBe("/prep");
+    expect(safeTaskBankReturnPath("/training/new")).toBe("/training/new");
+    expect(safeTaskBankReturnPath("/training/new?redirect=bad")).toBeNull();
     expect(safeTaskBankReturnPath("/prep?redirect=bad")).toBeNull();
     expect(safeTaskBankReturnPath("/history?tab=tasks")).toBe(
       "/history?tab=tasks",

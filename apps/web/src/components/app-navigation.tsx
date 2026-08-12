@@ -60,7 +60,7 @@ const headerPrimaryItems: NavigationItem[] = [
     },
   },
   {
-    href: "/simulation",
+    href: "/training/new",
     key: "training",
     icon: BookOpenCheck,
     headerWidths: {
@@ -117,6 +117,7 @@ const tabletOverflowItems: NavigationItem[] = [
 const mobileItems: NavigationItem[] = [
   { href: "/cabinet", key: "overview", icon: LayoutDashboard },
   { href: "/tasks", key: "tasks", icon: ClipboardList },
+  { href: "/training/new", key: "training", icon: BookOpenCheck },
   { href: "/prep", key: "prep", icon: Map },
   {
     href: "/simulation",

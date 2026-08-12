@@ -246,6 +246,69 @@
       "confident": "Sigurno"
     }
   },
+  "trainingBuilder": {
+    "metadataTitle": "Napravi P1 vežbanje",
+    "metadataDescription": "Sastavi ciljano vežbanje matematike za FTN P1 iz aktuelnih pozicija ispita.",
+    "back": "Nazad na zadatke",
+    "title": "Napravi vežbanje",
+    "description": "Sastavi svoj skup iz potrebnih P1 pozicija",
+    "saveDraft": "Sačuvaj lokalni nacrt",
+    "subjectStep": "Izaberi ispit",
+    "p1": "Matematika (P1)",
+    "onlyP1": "Aktuelni format · {version}",
+    "positionsStep": "Izaberi pozicije i broj zadataka",
+    "presets": {
+      "all": "Sve pozicije",
+      "new": "Novi zadaci",
+      "mistakes": "Skorije greške"
+    },
+    "reset": "Poništi",
+    "selectPosition": "Izaberi poziciju {position}",
+    "positionDescription": "Objavljeni zadaci za poziciju {position}",
+    "quantity": "Broj zadataka za poziciju {position}",
+    "decrease": "Ukloni jedan zadatak sa pozicije {position}",
+    "increase": "Dodaj jedan zadatak sa pozicije {position}",
+    "showMore": "Prikaži pozicije 9–10",
+    "showLess": "Prikaži manje",
+    "summaryTitle": "Tvoj skup za vežbanje",
+    "subject": "Ispit",
+    "composition": "Sastav skupa",
+    "emptyComposition": "Izaberi bar jednu poziciju",
+    "taskCount": "{count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+    "removePosition": "Ukloni poziciju {position}",
+    "total": "Ukupno zadataka",
+    "settingsTitle": "Podešavanja vežbanja",
+    "difficultyLabel": "Redosled težine",
+    "difficultyInfo": "Određuje koju težinu biramo prvu kada pozicija ima više objavljenih zadataka.",
+    "difficulty": {
+      "foundation": "Osnovna",
+      "balanced": "Srednja",
+      "advanced": "Napredna"
+    },
+    "onlyNew": {
+      "title": "Samo novi zadaci",
+      "description": "Izostavi već pokušane zadatke"
+    },
+    "shuffle": {
+      "title": "Pomešaj pozicije",
+      "description": "Pomešaj redosled izabranih zadataka"
+    },
+    "mistakes": {
+      "title": "Prednost greškama",
+      "description": "Prvo ponovi skorije greške"
+    },
+    "attemptsLoading": "Učitavamo istoriju pokušaja. Nacrt možeš da menjaš.",
+    "attemptsDegraded": "Sinhronizacija naloga nije dostupna. Koriste se pokušaji sa ovog uređaja.",
+    "preparing": "Pripremamo istoriju...",
+    "noMatching": "Nema odgovarajućih objavljenih zadataka",
+    "start": "Počni vežbanje",
+    "startLabel": "Počni vežbanje sa {count} zadataka",
+    "saveLocal": "Sačuvaj na ovom uređaju",
+    "saved": "Sačuvano na ovom uređaju",
+    "restored": "Lokalni nacrt je vraćen",
+    "saveFailed": "Lokalno čuvanje nije uspelo",
+    "selectedCount": "Zatraženo zadataka: {count}"
+  },
   "diagnostic": {
     "title": "Proveri svoj početni nivo",
     "description": "Fokusirana P1 dijagnostika: 10 zadataka, po jedan za svaku poziciju, za oko 25 minuta.",

@@ -246,6 +246,69 @@
       "confident": "Confident"
     }
   },
+  "trainingBuilder": {
+    "metadataTitle": "Create a P1 practice set",
+    "metadataDescription": "Build a focused FTN P1 mathematics practice set from current exam positions.",
+    "back": "Back to tasks",
+    "title": "Create a practice set",
+    "description": "Build your set from the P1 positions you need",
+    "saveDraft": "Save local draft",
+    "subjectStep": "Choose the exam",
+    "p1": "Mathematics (P1)",
+    "onlyP1": "Current format · {version}",
+    "positionsStep": "Choose positions and task counts",
+    "presets": {
+      "all": "All positions",
+      "new": "New tasks",
+      "mistakes": "Recent mistakes"
+    },
+    "reset": "Reset",
+    "selectPosition": "Select position {position}",
+    "positionDescription": "Published tasks for exam position {position}",
+    "quantity": "Task count for position {position}",
+    "decrease": "Remove one task from position {position}",
+    "increase": "Add one task from position {position}",
+    "showMore": "Show positions 9–10",
+    "showLess": "Show fewer",
+    "summaryTitle": "Your practice set",
+    "subject": "Exam",
+    "composition": "Set composition",
+    "emptyComposition": "Choose at least one position",
+    "taskCount": "{count, plural, one {# task} other {# tasks}}",
+    "removePosition": "Remove position {position}",
+    "total": "Total tasks",
+    "settingsTitle": "Practice settings",
+    "difficultyLabel": "Task order",
+    "difficultyInfo": "Changes which difficulty is selected first when a position has several published tasks.",
+    "difficulty": {
+      "foundation": "Foundation",
+      "balanced": "Balanced",
+      "advanced": "Advanced"
+    },
+    "onlyNew": {
+      "title": "Only new tasks",
+      "description": "Exclude tasks already attempted"
+    },
+    "shuffle": {
+      "title": "Shuffle positions",
+      "description": "Mix the selected task order"
+    },
+    "mistakes": {
+      "title": "Prioritize mistakes",
+      "description": "Place recent mistakes first"
+    },
+    "attemptsLoading": "Loading your attempt history. Your draft remains editable.",
+    "attemptsDegraded": "Account sync is unavailable. This device's attempts are still used.",
+    "preparing": "Preparing your history...",
+    "noMatching": "No matching published tasks",
+    "start": "Start practice",
+    "startLabel": "Start {count}-task practice",
+    "saveLocal": "Save on this device",
+    "saved": "Saved on this device",
+    "restored": "Local draft restored",
+    "saveFailed": "Could not save locally",
+    "selectedCount": "Requested tasks: {count}"
+  },
   "diagnostic": {
     "title": "Check your starting level",
     "description": "A focused P1 diagnostic: 10 tasks, one per exam position, in about 25 minutes.",

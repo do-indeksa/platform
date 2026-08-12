@@ -12,6 +12,7 @@ describe("app routes", () => {
     expect(isNavigationItemActive("/tasks", "/tasks")).toBe(true);
     expect(isNavigationItemActive("/tasks/algebra", "/tasks")).toBe(true);
     expect(isNavigationItemActive("/prep", "/tasks")).toBe(false);
+    expect(isNavigationItemActive("/training/new", "/training/new")).toBe(true);
     expect(isNavigationItemActive("/taskset", "/tasks")).toBe(false);
     expect(isNavigationItemActive("/exams/ftn-p3", "/exams")).toBe(true);
     expect(isNavigationItemActive("/faculties/ftn", "/faculties/ftn")).toBe(

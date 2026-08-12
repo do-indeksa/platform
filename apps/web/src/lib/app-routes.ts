@@ -1,5 +1,7 @@
 import { ftnExamCodes, type FtnExamCode } from "./guide-types";
 
+export const TRAINING_BUILDER_PATH = "/training/new";
+
 export function isNavigationItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
