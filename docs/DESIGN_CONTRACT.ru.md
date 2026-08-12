@@ -94,10 +94,10 @@ mobile-навигацию, поэтому она не входит в целев
 | ---------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Public landing         | `/` воспроизводит SR guest frames и их responsive geometry; EN/RU локализованы в той же композиции | В результат дизайнера marketing landing не входил; W-01 описывает P1 overview | SR `175:390` / `176:1706` / `177:2854`        | Поддерживать literal Figma-match; менять только подтвержденные факты, copy и реальные данные без перекомпоновки      |
 | P1 overview / cabinet  | `/cabinet` воспроизводит SR populated, empty и unfinished states; loading/degraded/conflict остаются provisional | W-01/W-02, S-01                                                               | См. точную матрицу ниже                       | Поддерживать Figma-композицию; реальные attempts/runs и программы P1 занимают исходные slots                         |
-| Task bank              | `/tasks` функционален, но визуально и композиционно не совпадает                                   | W-03, S-02                                                                    | RU default `195:141` / `195:1090`             | Пересобрать по этим nodes; отсутствующую функциональность довести или временно реализовать честным provisional state |
+| Task bank              | `/tasks` воспроизводит RU default, search, selection и empty states на desktop/tablet/mobile         | W-03, S-02                                                                    | RU default `195:141` / `195:1090`             | Поддерживать literal Figma-match; реальные P1 filters, counts и selection занимают исходные slots              |
 | Task workspace         | `/tasks/[topic]/[id]` повторяет Figma Solution с реальной P1 sequence, checker и journal           | W-04/W-05/W-07/W-09, S-03/S-04/S-06/S-08                                      | Solution SR `155:477` / `155:618` / `155:757` | Поддерживать literal Figma-match; feedback/hint/solution остаются provisional variants тех же components             |
 | Training builder       | `/training/new` повторяет desktop/mobile nodes; SR/EN/RU используют реальные позиции P1            | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                        | Поддерживать Figma-композицию, bounded sequence и честный local-only draft до появления server model                 |
-| Study plan             | `/prep` функционален, но имеет самостоятельную композицию                                          | W-10, S-09                                                                    | RU `214:4` / `214:450`                        | Пересобрать по nodes; фактический next action, readiness и progress занимают соответствующие Figma widgets           |
+| Study plan             | `/prep` воспроизводит RU desktop/mobile nodes с реальными P1 progress и next action                 | W-10, S-09                                                                    | RU `214:4` / `214:450`                        | Поддерживать literal Figma-match; вкладки без отдельных content nodes остаются functional provisional states         |
 | History                | `/history` воспроизводит Figma feed, tabs, filters, rows и empty state на desktop/tablet/mobile     | W-11, S-10                                                                    | RU all history `223:8` / `223:1160`           | Поддерживать literal Figma-match и owner-scoped attempt/run/mock данные без Physics/P2 и баллов выше 60              |
 | Diagnostic result      | Реализован отдельный честный стартовый результат                                                   | W-09, S-08                                                                    | Отдельного production-ready экрана нет        | Считать provisional skeleton до появления утвержденного Figma node; доменная модель остается рабочей                 |
 | Mock result / rubric   | Реализованы 0-60, self-rubric и weak-position action                                               | W-08, S-07                                                                    | Отдельного production-ready rubric flow нет   | Считать provisional skeleton до появления утвержденного Figma node; Figma mock scores не использовать                |
@@ -171,6 +171,19 @@ blueprint в тех же slots. Количество ограничено опу
 position rows и summary заполняются реальными observations и ведут к конкретной
 practice action в предусмотренных design slots. Readiness не называется
 вероятностью поступления или официальным баллом.
+
+Canonical regression frames: desktop `214:4` размером `1440x1220` и mobile
+`214:450` размером `390x1988`. На desktop summary, строка позиции и footer имеют
+высоту `116`, `66` и `86` px; на mobile - `252`, `124` и `210` px. Отдельного
+tablet node у Study Plan нет, поэтому `1024x1220` проверяется как responsive
+interpolation между утвержденными композициями, а не выдается за Figma baseline.
+
+Вкладка позиций является canonical состоянием экрана. Недельный deterministic
+plan и сортировка по темам остаются функциональными provisional tab panels,
+пока дизайнер не утвердит для них отдельные content nodes. Демонстрационные
+`8+ баллов`, расчетные часы и даты заменяются сохраненной целью P1 на шкале
+`0-60`, наблюдаемыми попытками, пользовательской датой и конкретным следующим
+действием без изменения предусмотренных Figma slots.
 
 ### History
 
