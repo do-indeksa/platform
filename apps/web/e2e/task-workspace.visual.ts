@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "./test";
 
 const FIXED_TIME = new Date("2026-08-11T10:00:00.000Z");
+const ownerId = "00000000-0000-4000-8000-000000000152";
 const practiceId = "00000000-0000-4000-8000-000000000161";
 const taskPath =
   "/tasks/logaritmi/log-001?returnTo=%2Ftasks&set=kb-001%2Ckv-001%2Clog-001%2Ceks-001%2Ctrig-001" +
@@ -17,7 +18,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({
       json: {
-        id: "00000000-0000-4000-8000-000000000152",
+        id: ownerId,
         email: "polina@example.test",
         name: "Polina",
       },
@@ -63,7 +64,7 @@ for (const viewport of viewports) {
 
 async function installWorkspaceSession(page: Page) {
   await page.addInitScript(
-    ({ practice, now }) => {
+    ({ owner, practice, now }) => {
       const solvedDraft = (partCount: number) =>
         JSON.stringify({
           answers: Array<string>(partCount).fill(""),
@@ -76,18 +77,18 @@ async function installWorkspaceSession(page: Page) {
           activeDurationMs: 134_000,
         });
       sessionStorage.setItem(
-        `do-indeksa-task-draft-v1:${practice}:kb-001`,
+        `do-indeksa-task-draft-v2:user:${owner}:practice:${practice}:task:kb-001`,
         solvedDraft(4),
       );
       sessionStorage.setItem(
-        `do-indeksa-task-draft-v1:${practice}:kv-001`,
+        `do-indeksa-task-draft-v2:user:${owner}:practice:${practice}:task:kv-001`,
         solvedDraft(1),
       );
       sessionStorage.setItem(
-        `do-indeksa-practice-clock-v1:practice:${practice}`,
+        `do-indeksa-practice-clock-v2:user:${owner}:practice:${practice}`,
         String(now - 755_000),
       );
     },
-    { practice: practiceId, now: FIXED_TIME.getTime() },
+    { owner: ownerId, practice: practiceId, now: FIXED_TIME.getTime() },
   );
 }

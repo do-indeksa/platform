@@ -4,16 +4,31 @@ import {
   formatElapsedTime,
   parseTaskWorkspaceDuration,
   parseTaskWorkspaceStatus,
+  practiceClockStorageKey,
   resolvePracticeStartedAt,
 } from "./task-session";
 
+const USER_ID = "39ec4650-762d-437f-9917-c31ab167cb99";
+
 describe("task workspace session", () => {
-  it("keeps draft keys scoped to a selected practice", () => {
-    expect(taskDraftStorageKey("kb-001", null)).toBe(
-      "do-indeksa-task-draft-v1:kb-001",
+  it("keeps draft and clock keys scoped to the owner", () => {
+    expect(taskDraftStorageKey(null, "kb-001", null)).toBe(
+      "do-indeksa-task-draft-v2:guest:standalone:task:kb-001",
     );
-    expect(taskDraftStorageKey("kb-001", "practice-id")).toBe(
-      "do-indeksa-task-draft-v1:practice-id:kb-001",
+    expect(taskDraftStorageKey(USER_ID, "kb-001", "practice-id")).toBe(
+      `do-indeksa-task-draft-v2:user:${USER_ID}:practice:practice-id:task:kb-001`,
+    );
+    expect(practiceClockStorageKey(null, "practice:practice-id")).toBe(
+      "do-indeksa-practice-clock-v2:guest:practice:practice-id",
+    );
+    expect(practiceClockStorageKey(USER_ID, "practice:practice-id")).toBe(
+      `do-indeksa-practice-clock-v2:user:${USER_ID}:practice:practice-id`,
+    );
+  });
+
+  it("rejects an invalid owner instead of sharing a fallback scope", () => {
+    expect(() => taskDraftStorageKey("invalid", "kb-001", null)).toThrow(
+      "task session owner is invalid",
     );
   });
 
