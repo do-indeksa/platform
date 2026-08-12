@@ -2,7 +2,7 @@
 
 import {
   useEffect,
-  useRef,
+  useMemo,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -14,6 +14,7 @@ import {
   taskDraftStorageKey,
   type TaskDraft,
 } from "@/lib/task-draft";
+import type { TaskSessionOwnerId } from "@/lib/task-session-owner";
 
 export type TaskCheckState = TaskDraft & {
   results: CheckResult[] | null;
@@ -25,38 +26,47 @@ export function useTaskCheckState(
   maxHints: number,
   confirmMessage: string,
   practiceId: string | null,
+  ownerId: TaskSessionOwnerId | undefined,
 ): [TaskCheckState, Dispatch<SetStateAction<TaskCheckState>>, boolean] {
-  const restoring = useRef(true);
-  const restorationKey = [taskId, practiceId, partCount, maxHints].join(":");
+  const storageKey =
+    ownerId === undefined
+      ? null
+      : taskDraftStorageKey(ownerId, taskId, practiceId);
+  const restorationKey =
+    storageKey === null ? null : `${storageKey}:${partCount}:${maxHints}`;
   const [restoredKey, setRestoredKey] = useState<string | null>(null);
   const [state, setState] = useState<TaskCheckState>(() => ({
     ...createTaskDraft(partCount),
     results: null,
   }));
+  const emptyState = useMemo<TaskCheckState>(
+    () => ({ ...createTaskDraft(partCount), results: null }),
+    [partCount],
+  );
+  const draftReady = restorationKey !== null && restoredKey === restorationKey;
 
   useEffect(() => {
-    const draft = parseTaskDraft(
-      readSession(taskDraftStorageKey(taskId, practiceId)),
-      partCount,
-      maxHints,
-    );
-    restoring.current = true;
-    // Session storage is external state and can only be restored after hydration.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState({ ...(draft ?? createTaskDraft(partCount)), results: null });
-    setRestoredKey(restorationKey);
-  }, [maxHints, partCount, practiceId, restorationKey, taskId]);
-
-  useEffect(() => {
-    if (restoring.current) {
-      restoring.current = false;
+    if (storageKey === null || restorationKey === null) {
+      // Auth ownership is unresolved, so no persisted task state may be read.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setState({ ...createTaskDraft(partCount), results: null });
+      setRestoredKey(null);
       return;
     }
-    writeSession(taskDraftStorageKey(taskId, practiceId), toDraft(state));
-  }, [practiceId, state, taskId]);
+    const draft = parseTaskDraft(readSession(storageKey), partCount, maxHints);
+    // Session storage is external state and can only be restored after hydration.
+    setState({ ...(draft ?? createTaskDraft(partCount)), results: null });
+    setRestoredKey(restorationKey);
+  }, [maxHints, partCount, restorationKey, storageKey]);
 
-  useUnsavedExitGuard(state.dirty, confirmMessage);
-  return [state, setState, restoredKey === restorationKey];
+  useEffect(() => {
+    if (!draftReady || storageKey === null) return;
+    writeSession(storageKey, toDraft(state));
+  }, [draftReady, state, storageKey]);
+
+  const visibleState = draftReady ? state : emptyState;
+  useUnsavedExitGuard(draftReady && state.dirty, confirmMessage);
+  return [visibleState, setState, draftReady];
 }
 
 function toDraft(state: TaskCheckState): TaskDraft {
