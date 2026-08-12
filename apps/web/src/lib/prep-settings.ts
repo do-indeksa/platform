@@ -1,59 +1,92 @@
-"use client";
-
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import {
+  browserStorageOwnerScope,
+  type BrowserStorageOwnerId,
+} from "./browser-storage-owner";
 
 export const PREP_GOAL_MIN = 1;
 export const PREP_GOAL_MAX = 60;
+export const PREP_SETTINGS_STORAGE_PREFIX = "do-indeksa-prep-settings-v2:";
+
+const PREP_SETTINGS_STORAGE_VERSION = 1;
+const MAX_STORAGE_CHARACTERS = 2_000;
 
 export type PrepPreferences = {
   goalPoints: number | null;
   examDate: string | null;
 };
 
-type PrepSettingsState = PrepPreferences & {
-  setPreferences: (preferences: PrepPreferences) => void;
-};
-
-const emptyPreferences: PrepPreferences = {
+export const EMPTY_PREP_PREFERENCES: Readonly<PrepPreferences> = {
   goalPoints: null,
   examDate: null,
 };
 
-export const usePrepSettings = create<PrepSettingsState>()(
-  persist(
-    (set) => ({
-      ...emptyPreferences,
-      setPreferences: (preferences) => set(parsePrepPreferences(preferences)),
-    }),
-    {
-      name: "do-indeksa-prep-settings",
-      version: 1,
-      partialize: ({ goalPoints, examDate }) => ({ goalPoints, examDate }),
-      merge: (persisted, current) => ({
-        ...current,
-        ...parsePrepPreferences(persisted),
-      }),
-    },
-  ),
-);
+export function prepSettingsStorageKey(ownerId: BrowserStorageOwnerId): string {
+  return `${PREP_SETTINGS_STORAGE_PREFIX}${browserStorageOwnerScope(ownerId)}`;
+}
+
+export function loadPrepPreferences(
+  ownerId: BrowserStorageOwnerId,
+): PrepPreferences | null {
+  try {
+    const raw = localStorage.getItem(prepSettingsStorageKey(ownerId));
+    if (!raw || raw.length > MAX_STORAGE_CHARACTERS) return null;
+    const value: unknown = JSON.parse(raw);
+    if (
+      !isRecord(value) ||
+      value.version !== PREP_SETTINGS_STORAGE_VERSION ||
+      !isRecord(value.state)
+    ) {
+      return null;
+    }
+    const parsed = parsePrepPreferences(value.state);
+    if (
+      value.state.goalPoints !== parsed.goalPoints ||
+      value.state.examDate !== parsed.examDate
+    ) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function savePrepPreferences(
+  ownerId: BrowserStorageOwnerId,
+  preferences: PrepPreferences,
+): boolean {
+  try {
+    const parsed = parsePrepPreferences(preferences);
+    if (
+      preferences.goalPoints !== parsed.goalPoints ||
+      preferences.examDate !== parsed.examDate
+    ) {
+      return false;
+    }
+    const serialized = JSON.stringify({
+      version: PREP_SETTINGS_STORAGE_VERSION,
+      state: parsed,
+    });
+    if (serialized.length > MAX_STORAGE_CHARACTERS) return false;
+    localStorage.setItem(prepSettingsStorageKey(ownerId), serialized);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function parsePrepPreferences(value: unknown): PrepPreferences {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return { ...emptyPreferences };
-  }
-  const preferences = value as Record<string, unknown>;
+  if (!isRecord(value)) return { ...EMPTY_PREP_PREFERENCES };
   const goalPoints =
-    typeof preferences.goalPoints === "number" &&
-    Number.isInteger(preferences.goalPoints) &&
-    preferences.goalPoints >= PREP_GOAL_MIN &&
-    preferences.goalPoints <= PREP_GOAL_MAX
-      ? preferences.goalPoints
+    typeof value.goalPoints === "number" &&
+    Number.isInteger(value.goalPoints) &&
+    value.goalPoints >= PREP_GOAL_MIN &&
+    value.goalPoints <= PREP_GOAL_MAX
+      ? value.goalPoints
       : null;
   const examDate =
-    typeof preferences.examDate === "string" &&
-    isCalendarDate(preferences.examDate)
-      ? preferences.examDate
+    typeof value.examDate === "string" && isCalendarDate(value.examDate)
+      ? value.examDate
       : null;
   return { goalPoints, examDate };
 }
@@ -67,4 +100,8 @@ function isCalendarDate(value: string): boolean {
     date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
