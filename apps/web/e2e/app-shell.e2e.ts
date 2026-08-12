@@ -194,6 +194,39 @@ test("task-bank filters are shareable and expose an honest empty state", async (
   await expect(page.getByText("30 заданий", { exact: true })).toBeVisible();
 });
 
+test("task-bank maps Figma controls to real P1 workflows", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/ru/tasks");
+
+  const taskBank = page.getByTestId("task-bank");
+  await expect(taskBank.getByText("Физика", { exact: true })).toHaveCount(0);
+  await expect(taskBank.getByText("Избранное", { exact: true })).toHaveCount(0);
+  await expect(taskBank.getByText("Мои наборы", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    taskBank.getByRole("link", { name: "История", exact: true }),
+  ).toHaveAttribute("href", "/ru/history?tab=tasks");
+  await expect(
+    taskBank.getByRole("link", { name: "План", exact: true }),
+  ).toHaveAttribute("href", "/ru/prep");
+
+  await taskBank.getByRole("tab", { name: "Новые", exact: true }).click();
+  await expect(page).toHaveURL(/progress=new/);
+  await expect(page.getByText("30 заданий", { exact: true })).toBeVisible();
+
+  await taskBank.getByRole("tab", { name: "Ошибки", exact: true }).click();
+  await expect(page).toHaveURL(/progress=incorrect/);
+  await expect(
+    taskBank.getByRole("heading", { name: "Ничего не найдено" }),
+  ).toBeVisible();
+
+  await taskBank.getByRole("tab", { name: "Все задания", exact: true }).click();
+  await expect(page).toHaveURL(/\/ru\/tasks$/);
+  await taskBank.getByRole("button", { name: "Поз.", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Фильтры" })).toBeVisible();
+});
+
 test("selected tasks form a bounded practice sequence and return intact", async ({
   page,
 }) => {
@@ -203,6 +236,9 @@ test("selected tasks form a bounded practice sequence and return intact", async 
   await page.getByRole("checkbox", { name: "Выбрать задание kb-001" }).check();
   await page.getByRole("checkbox", { name: "Выбрать задание kv-001" }).check();
   await expect(page.getByText("Выбрано: 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("Добавить в набор", { exact: true })).toHaveCount(
+    0,
+  );
 
   await page.evaluate(() => window.scrollTo({ top: 600 }));
   await page.getByRole("link", { name: "Решать выбранные задания" }).click();
