@@ -87,6 +87,9 @@ mobile-навигацию, поэтому она не входит в целев
 Если нужного screen/state в Figma нет, разрешен provisional skeleton из
 существующих Figma components и tokens. Он должен иметь отдельную issue, не
 выдаваться за финальный дизайн и не становиться утвержденным Figma baseline.
+Глобальный auth-bootstrap recovery относится к таким состояниям: он использует
+tokens и стандартную primary action, скрывает owner-scoped содержимое и не
+считается новым Figma baseline до появления отдельного node.
 
 ## 4. Карта экранов
 
