@@ -57,7 +57,7 @@ AI-оценивание остается вне критического пут�
 
 - исправлены P1/P3-P8, 4 часа, лимит 60 и versioned blueprints;
 - готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
-  история, simplified plan, daily task/streak и FTN-каталог;
+  история, Figma Study Plan, daily task/streak и FTN-каталог;
 - публичный `/` и `/cabinet` воспроизводят canonical Figma states на
   desktop/tablet/mobile; кабинет сохраняет реальные attempts, resume и P1
   program data в исходной композиции;
@@ -81,13 +81,13 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 523 web unit-теста, 29 тестов content pipeline,
-  88 функциональных Playwright-сценариев, 41 Linux visual-regression эталон,
+- blocking CI включает web unit-тесты, 29 тестов content pipeline,
+  функциональные Playwright-сценарии, Linux visual-regression эталоны,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
-pixel-perfect пересборка остальных самостоятельных композиций по Figma, visual
-coverage для error states и long Serbian copy, а также production rollout.
+утвержденные Figma nodes для пока provisional результатов диагностики и пробника,
+visual coverage для error states и long Serbian copy, а также production rollout.
 Analytics сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
