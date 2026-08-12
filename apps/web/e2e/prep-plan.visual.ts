@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { preparePrepPlanVisual } from "./prep-plan-visual-fixture";
 
 const FIXED_TIME = new Date("2026-08-12T10:00:00.000+02:00");

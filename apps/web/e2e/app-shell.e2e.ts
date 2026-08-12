@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from "@playwright/test";
+import { expect, test, type Locator } from "./test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const locales = [

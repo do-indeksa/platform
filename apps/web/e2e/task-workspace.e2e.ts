@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const practiceId = "00000000-0000-4000-8000-000000000161";
 const localeCases = [

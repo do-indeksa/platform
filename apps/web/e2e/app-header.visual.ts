@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const variants = [
   { name: "mobile", width: 390, height: 844 },
