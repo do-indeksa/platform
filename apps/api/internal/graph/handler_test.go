@@ -20,6 +20,23 @@ func TestGraphQLRequiresAuthentication(t *testing.T) {
 	}
 }
 
+func TestGraphQLRejectsCrossOriginSessionMutation(t *testing.T) {
+	session := seedGraphSession(t, "")
+	body := strings.NewReader(`{"query":"mutation($input: AbandonRunInput!) { abandonRun(input: $input) { id } }","variables":{"input":{"id":"00000000-0000-0000-0000-000000000000"}}}`)
+	request := httptest.NewRequest(http.MethodPost, "/graphql", body)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://evil.example")
+	request.Header.Set("Sec-Fetch-Site", "cross-site")
+	request.AddCookie(session)
+	response := httptest.NewRecorder()
+
+	graphApp.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
+		t.Fatalf("cross-origin mutation returned %d: %s", response.Code, response.Body.String())
+	}
+}
+
 func TestGraphQLRejectsInvalidProductInput(t *testing.T) {
 	session := seedGraphSession(t, "")
 	_, payload := graphRequest(t, `query($id: ID!) { run(id: $id) { id } }`, map[string]any{
@@ -53,7 +70,9 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 
 	recorder = httptest.NewRecorder()
 	request = httptest.NewRequest(http.MethodPost, "/graphql", strings.NewReader(`{"query":"{ runs { id } }"}`))
+	request.Host = "doindeksa.rs"
 	request.Header.Set("Content-Type", "text/plain")
+	request.Header.Set("Origin", "https://doindeksa.rs")
 	request.AddCookie(session)
 	graphApp.ServeHTTP(recorder, request)
 	if recorder.Code < 400 {
@@ -98,7 +117,9 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 	oversized := bytes.Repeat([]byte(" "), maxGraphQLBodyBytes+1)
 	recorder = httptest.NewRecorder()
 	request = httptest.NewRequest(http.MethodPost, "/graphql", bytes.NewReader(oversized))
+	request.Host = "doindeksa.rs"
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://doindeksa.rs")
 	request.AddCookie(session)
 	graphApp.ServeHTTP(recorder, request)
 	if recorder.Code < 400 {

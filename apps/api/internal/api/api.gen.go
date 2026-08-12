@@ -103,6 +103,9 @@ type User struct {
 // BadRequest defines model for BadRequest.
 type BadRequest = Error
 
+// Forbidden defines model for Forbidden.
+type Forbidden = Error
+
 // Internal defines model for Internal.
 type Internal = Error
 

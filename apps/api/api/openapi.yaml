@@ -98,6 +98,8 @@ paths:
             Set-Cookie:
               schema:
                 type: string
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /v1/attempts:
     get:
       operationId: listAttempts
@@ -135,6 +137,8 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/Internal"
   /v1/me:
@@ -261,6 +265,12 @@ components:
             $ref: "#/components/schemas/Error"
     Unauthorized:
       description: No valid session
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Session mutation did not come from the externally visible request origin
       content:
         application/json:
           schema:

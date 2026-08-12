@@ -74,7 +74,13 @@ func run() error {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer, middleware.NoCache)
+	r.Use(
+		middleware.RequestID,
+		middleware.Logger,
+		middleware.Recoverer,
+		middleware.NoCache,
+		auth.CookieMutationOriginMiddleware(authService),
+	)
 	r.Get("/healthz", handleHealth)
 	r.With(auth.RequestUserMiddleware(authService)).Handle(
 		"/graphql",

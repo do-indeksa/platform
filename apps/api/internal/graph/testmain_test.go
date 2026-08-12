@@ -52,9 +52,10 @@ func TestMain(m *testing.M) {
 	if err := db.Migrate(graphTestPool); err != nil {
 		log.Fatal(err)
 	}
-	graphAuth = auth.NewService(graphTestPool, auth.Config{})
+	graphAuth = auth.NewService(graphTestPool, auth.Config{CanonicalOrigin: "https://doindeksa.rs"})
 	progressService := progress.NewService(graphTestPool)
 	router := chi.NewRouter()
+	router.Use(auth.CookieMutationOriginMiddleware(graphAuth))
 	router.With(auth.RequestUserMiddleware(graphAuth)).Handle(
 		"/graphql",
 		NewHandler(NewResolver(progressService)),
@@ -90,9 +91,11 @@ func graphRequest(
 	}
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/graphql", bytes.NewReader(body))
+	request.Host = "doindeksa.rs"
 	request.Header.Set("Content-Type", "application/json")
 	if session != nil {
 		request.AddCookie(session)
+		request.Header.Set("Origin", "https://doindeksa.rs")
 	}
 	graphApp.ServeHTTP(recorder, request)
 	response := recorder.Result()

@@ -54,7 +54,7 @@ func TestMain(m *testing.M) {
 	if err := db.Migrate(testPool); err != nil {
 		log.Fatal(err)
 	}
-	authSvc = auth.NewService(testPool, auth.Config{})
+	authSvc = auth.NewService(testPool, auth.Config{CanonicalOrigin: "https://doindeksa.rs"})
 	code := m.Run()
 	testPool.Close()
 	_ = testcontainers.TerminateContainer(container)
@@ -74,7 +74,9 @@ func newTestApp(t *testing.T) http.Handler {
 		authHandler: auth.NewHandler(authSvc),
 		Handler:     NewHandler(authSvc, NewService(testPool)),
 	}
-	return api.HandlerFromMux(server, chi.NewRouter())
+	router := chi.NewRouter()
+	router.Use(auth.CookieMutationOriginMiddleware(authSvc))
+	return api.HandlerFromMux(server, router)
 }
 
 func seedSession(t *testing.T, suffix string) *http.Cookie {
@@ -115,8 +117,12 @@ func do(t *testing.T, app http.Handler, method, target string, body any, cookies
 	}
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(method, target, reader)
+	req.Host = "doindeksa.rs"
 	for _, cookie := range cookies {
 		req.AddCookie(cookie)
+	}
+	if len(cookies) > 0 && method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions {
+		req.Header.Set("Origin", "https://doindeksa.rs")
 	}
 	app.ServeHTTP(rec, req)
 	return rec.Result()
@@ -129,6 +135,22 @@ func TestAttemptsRequireSession(t *testing.T) {
 		if res.StatusCode != http.StatusUnauthorized {
 			t.Fatalf("%s: got status %d", method, res.StatusCode)
 		}
+	}
+}
+
+func TestRecordAttemptsRejectsCrossOriginSession(t *testing.T) {
+	app := newTestApp(t)
+	session := seedSession(t, "")
+	request := httptest.NewRequest(http.MethodPost, "/v1/attempts", strings.NewReader(`[{"taskId":"log-001","slot":3,"correct":true,"source":"practice"}]`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://evil.example")
+	request.AddCookie(session)
+	response := httptest.NewRecorder()
+
+	app.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
+		t.Fatalf("cross-origin attempt returned %d: %s", response.Code, response.Body.String())
 	}
 }
 

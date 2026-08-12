@@ -101,8 +101,10 @@ func newTestApp(t *testing.T, google *fakeGoogle) http.Handler {
 	})
 	service.endpoint = oauth2.Endpoint{AuthURL: google.server.URL + "/auth", TokenURL: google.server.URL + "/token"}
 	service.userinfoURL = google.server.URL + "/userinfo"
+	router := chi.NewRouter()
+	router.Use(CookieMutationOriginMiddleware(service))
 	return api.HandlerWithOptions(testServer{NewHandler(service)}, api.ChiServerOptions{
-		BaseRouter:       chi.NewRouter(),
+		BaseRouter:       router,
 		ErrorHandlerFunc: ParamErrorHandler,
 	})
 }
@@ -114,6 +116,9 @@ func do(t *testing.T, app http.Handler, method, target, host string, cookies ...
 	req.Host = host
 	for _, cookie := range cookies {
 		req.AddCookie(cookie)
+	}
+	if len(cookies) > 0 && method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions {
+		req.Header.Set("Origin", "http://"+host)
 	}
 	app.ServeHTTP(rec, req)
 	return rec.Result()
@@ -364,6 +369,27 @@ func TestLogoutIdempotent(t *testing.T) {
 		if cleared.Value != "" || cleared.MaxAge >= 0 {
 			t.Fatalf("cookie not cleared: %+v", cleared)
 		}
+	}
+}
+
+func TestLogoutRejectsCrossOriginSession(t *testing.T) {
+	google := newFakeGoogle(t, userinfo{})
+	app := newTestApp(t, google)
+	session := seedSession(t, time.Now().Add(sessionTTL))
+	request := httptest.NewRequest(http.MethodPost, "/v1/auth/logout", nil)
+	request.Host = "localhost:3000"
+	request.Header.Set("Origin", "https://evil.example")
+	request.AddCookie(session)
+	response := httptest.NewRecorder()
+
+	app.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
+		t.Fatalf("cross-origin logout returned %d: %s", response.Code, response.Body.String())
+	}
+	res := do(t, app, http.MethodGet, "/v1/me", "localhost:3000", session)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("session was revoked by rejected logout: %d", res.StatusCode)
 	}
 }
 

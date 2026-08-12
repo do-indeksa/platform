@@ -171,6 +171,8 @@ func requestOrigin(r *http.Request) string {
 		host = r.Host
 	}
 	proto := r.Header.Get("X-Forwarded-Proto")
+	proto, _, _ = strings.Cut(proto, ",")
+	proto = strings.TrimSpace(proto)
 	if proto == "" {
 		proto = "https"
 		if host == "localhost" || strings.HasPrefix(host, "localhost:") {
