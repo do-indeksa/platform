@@ -96,8 +96,10 @@ export function TaskBank({
     >
       <TaskBankToolbar
         query={filters.query}
+        progress={filters.progress}
         activeFilterCount={activeCount}
         onQueryChange={(query) => commit({ ...filters, query })}
+        onProgressChange={(progress) => commit({ ...filters, progress })}
         onOpenFilters={() => setFilterDialogOpen(true)}
         onReset={() => commit({ ...defaultTaskBankFilters })}
       />

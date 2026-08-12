@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Star } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { TaskSummary } from "@/lib/content";
@@ -77,15 +77,12 @@ export function TaskRow({
         {t(`difficultyShort.${difficultyName(task.difficulty)}`)}
       </span>
 
-      <button
-        type="button"
-        disabled
-        aria-label={t("favoriteTask")}
-        data-design-status="provisional"
+      <span
+        aria-hidden
         className="relative flex h-11 w-[18px] items-center justify-center text-muted"
       >
-        <Star aria-hidden size={16} strokeWidth={1.4} className="text-muted" />
-      </button>
+        <ChevronRight size={16} strokeWidth={1.4} />
+      </span>
       {progress !== null && (
         <span className="sr-only">{t(`progress.${progress}`)}</span>
       )}
