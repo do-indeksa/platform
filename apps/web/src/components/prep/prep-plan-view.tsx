@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useUser } from "@/components/user-provider";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useAttempts } from "@/lib/attempts-store";
 import type { TaskReference } from "@/lib/content";
@@ -13,7 +14,6 @@ import {
   type PrepPositionDefinition,
   type PrepTopicSlot,
 } from "@/lib/prep-plan";
-import { usePrepSettings } from "@/lib/prep-settings";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { useHydrated } from "@/lib/use-hydrated";
 import { PrepPlanFacts } from "./prep-plan-facts";
@@ -23,6 +23,7 @@ import { PrepPlanTabs, type PrepPlanViewMode } from "./prep-plan-tabs";
 import { PrepPositionList } from "./prep-position-list";
 import { PrepSettingsDialog } from "./prep-settings-dialog";
 import { PrepWeekView } from "./prep-week-view";
+import { usePrepPreferences } from "./use-prep-preferences";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -39,15 +40,29 @@ export function PrepPlanView({
 }) {
   const t = useTranslations("prep");
   const locale = useLocale() as AppLocale;
+  const { user, loading: ownerLoading } = useUser();
+  const ownerId = ownerLoading ? undefined : (user?.id ?? null);
   const attempts = useAttempts();
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const diagnosticPhase = useDiagnostic((state) => state.phase);
   const diagnosticStartedAt = useDiagnostic((state) => state.startedAt);
-  const goalPoints = usePrepSettings((state) => state.goalPoints);
-  const examDate = usePrepSettings((state) => state.examDate);
-  const setPreferences = usePrepSettings((state) => state.setPreferences);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const {
+    preferences: { goalPoints, examDate },
+    ready: preferencesReady,
+    hydrationId: preferencesHydrationId,
+    setPreferences,
+  } = usePrepPreferences(ownerId);
+  const [settingsDialog, setSettingsDialog] = useState({
+    hydrationId: null as number | null,
+    open: false,
+  });
+  const settingsOpen =
+    preferencesReady &&
+    preferencesHydrationId === settingsDialog.hydrationId &&
+    settingsDialog.open;
+  const setSettingsOpen = (open: boolean) =>
+    setSettingsDialog({ hydrationId: preferencesHydrationId, open });
   const [viewMode, setViewMode] = useState<PrepPlanViewMode>("positions");
 
   const day = useCurrentDay();
@@ -65,7 +80,12 @@ export function PrepPlanView({
     diagnosticStartedAt >= day.startMs &&
     diagnosticStartedAt < day.endMs;
 
-  if (!hydrated || attempts === null || !diagnosticOwnerKnown) {
+  if (
+    !hydrated ||
+    attempts === null ||
+    !diagnosticOwnerKnown ||
+    !preferencesReady
+  ) {
     return <PrepPlanLoading positions={positions} />;
   }
 
