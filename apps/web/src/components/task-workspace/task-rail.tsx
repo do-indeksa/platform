@@ -42,15 +42,20 @@ export function TaskRail({
               key={item.id}
               href={item.href}
               aria-current={current ? "step" : undefined}
+              data-task-rail-item
+              data-task-status={visibleStatus}
               aria-label={t("taskRailItemLabel", {
                 number: index + 1,
                 status: t(`taskStatus.${visibleStatus}`),
               })}
               className={`flex h-14 w-14 shrink-0 items-center gap-[10px] rounded-[12px] px-[11px] py-3 transition-colors md:h-16 md:w-[126px] md:px-2 xl:h-[58px] xl:w-[214px] xl:px-3 ${
-                current ? "border border-line bg-subtle" : "hover:bg-page"
+                current
+                  ? "bg-subtle shadow-[inset_0_0_0_1px_var(--di-color-border-default)]"
+                  : "hover:bg-page"
               }`}
             >
               <span
+                data-task-rail-marker
                 className={`inline-flex size-[34px] shrink-0 items-center justify-center rounded-full text-[14px] leading-[1.45] font-semibold ${numberTone(
                   visibleStatus,
                   current,

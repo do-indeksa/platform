@@ -37,12 +37,18 @@ for (const locale of locales) {
         const header = page.getByTestId("site-header");
         await expect(header).toBeVisible();
         if (variant.name !== "mobile") {
-          await expect(
-            header
-              .locator("summary")
-              .getByText(locale.profileName, { exact: true })
-              .last(),
-          ).toBeVisible();
+          const profileName = header
+            .locator("summary")
+            .getByText(locale.profileName, { exact: true })
+            .last();
+          await expect(profileName).toBeVisible();
+          await expect
+            .poll(() =>
+              profileName.evaluate(
+                (element) => element.scrollWidth <= element.clientWidth,
+              ),
+            )
+            .toBe(true);
         }
         await page.evaluate(async () => {
           await document.fonts.ready;

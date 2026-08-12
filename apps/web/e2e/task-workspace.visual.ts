@@ -15,7 +15,18 @@ const viewports = [
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(FIXED_TIME);
   await page.route("**/api/v1/me", (route) =>
-    route.fulfill({ status: 401, body: "" }),
+    route.fulfill({
+      json: {
+        id: "00000000-0000-4000-8000-000000000152",
+        email: "polina@example.test",
+        name: "Polina",
+      },
+    }),
+  );
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
   );
   await installWorkspaceSession(page);
 });
@@ -36,6 +47,9 @@ for (const viewport of viewports) {
       page.getByText("3 od 5 zadataka", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("12:35", { exact: true })).toBeVisible();
+    await expect(page.getByText("2 min 14 sek", { exact: true })).toHaveCount(
+      2,
+    );
     await page.evaluate(async () => {
       await document.fonts.ready;
       window.scrollTo(0, 0);
@@ -59,6 +73,7 @@ async function installWorkspaceSession(page: Page) {
           solved: true,
           burned: false,
           dirty: false,
+          activeDurationMs: 134_000,
         });
       sessionStorage.setItem(
         `do-indeksa-task-draft-v1:${practice}:kb-001`,
