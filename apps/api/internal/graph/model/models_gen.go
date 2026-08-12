@@ -140,15 +140,21 @@ type RunItem struct {
 }
 
 type RunSummary struct {
-	ID               string     `json:"id"`
-	Kind             RunKind    `json:"kind"`
-	Status           RunStatus  `json:"status"`
-	BlueprintVersion string     `json:"blueprintVersion"`
-	ContentRevision  string     `json:"contentRevision"`
-	StartedAt        time.Time  `json:"startedAt"`
-	DeadlineAt       *time.Time `json:"deadlineAt,omitempty"`
-	SubmittedAt      *time.Time `json:"submittedAt,omitempty"`
-	ActiveDurationMs *int64     `json:"activeDurationMs,omitempty"`
+	ID                 string     `json:"id"`
+	Kind               RunKind    `json:"kind"`
+	Status             RunStatus  `json:"status"`
+	BlueprintVersion   string     `json:"blueprintVersion"`
+	ContentRevision    string     `json:"contentRevision"`
+	StartedAt          time.Time  `json:"startedAt"`
+	DeadlineAt         *time.Time `json:"deadlineAt,omitempty"`
+	SubmittedAt        *time.Time `json:"submittedAt,omitempty"`
+	ActiveDurationMs   *int64     `json:"activeDurationMs,omitempty"`
+	TaskIds            []string   `json:"taskIds"`
+	ItemCount          int32      `json:"itemCount"`
+	CompletedItemCount int32      `json:"completedItemCount"`
+	CorrectItemCount   int32      `json:"correctItemCount"`
+	EarnedPoints       *int32     `json:"earnedPoints,omitempty"`
+	MaxPoints          *int32     `json:"maxPoints,omitempty"`
 }
 
 type StandaloneAttemptTargetInput struct {

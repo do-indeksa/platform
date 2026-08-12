@@ -87,7 +87,8 @@ func graphRunCheckpoint(
 	}
 }
 
-func graphRunSummary(run progress.Run) (model.RunSummary, error) {
+func graphRunSummary(aggregate progress.RunAggregate) (model.RunSummary, error) {
+	run := aggregate.Run
 	kind, err := graphRunKind(run.Kind)
 	if err != nil {
 		return model.RunSummary{}, err
@@ -96,17 +97,54 @@ func graphRunSummary(run progress.Run) (model.RunSummary, error) {
 	if err != nil {
 		return model.RunSummary{}, err
 	}
-	return model.RunSummary{
-		ID:               run.ID.String(),
-		Kind:             kind,
-		Status:           status,
-		BlueprintVersion: run.BlueprintVersion,
-		ContentRevision:  run.ContentRevision,
-		StartedAt:        run.StartedAt,
-		DeadlineAt:       graphTime(run.DeadlineAt),
-		SubmittedAt:      graphTime(run.SubmittedAt),
-		ActiveDurationMs: run.DurationMs,
-	}, nil
+	completedItemCount := int32(len(aggregate.Attempts))
+	correctItemCount := int32(0)
+	earnedPoints := int32(0)
+	maxPoints := int32(0)
+	taskIDs := make([]string, len(aggregate.Items))
+	hasCompleteEarnedPoints := len(aggregate.Attempts) == len(aggregate.Items)
+	hasCompleteMaxPoints := len(aggregate.Items) > 0
+	for _, attempt := range aggregate.Attempts {
+		if attempt.Outcome != nil && *attempt.Outcome == string(progress.AttemptOutcomeCorrect) {
+			correctItemCount++
+		}
+		if attempt.EarnedPoints == nil {
+			hasCompleteEarnedPoints = false
+		} else {
+			earnedPoints += int32(*attempt.EarnedPoints)
+		}
+	}
+	for index, item := range aggregate.Items {
+		taskIDs[index] = item.TaskID
+		if item.MaxPoints == nil {
+			hasCompleteMaxPoints = false
+		} else {
+			maxPoints += int32(*item.MaxPoints)
+		}
+	}
+
+	result := model.RunSummary{
+		ID:                 run.ID.String(),
+		Kind:               kind,
+		Status:             status,
+		BlueprintVersion:   run.BlueprintVersion,
+		ContentRevision:    run.ContentRevision,
+		StartedAt:          run.StartedAt,
+		DeadlineAt:         graphTime(run.DeadlineAt),
+		SubmittedAt:        graphTime(run.SubmittedAt),
+		ActiveDurationMs:   run.DurationMs,
+		TaskIds:            taskIDs,
+		ItemCount:          int32(len(aggregate.Items)),
+		CompletedItemCount: completedItemCount,
+		CorrectItemCount:   correctItemCount,
+	}
+	if hasCompleteEarnedPoints {
+		result.EarnedPoints = &earnedPoints
+	}
+	if hasCompleteMaxPoints {
+		result.MaxPoints = &maxPoints
+	}
+	return result, nil
 }
 
 func graphCompletedSimulationRun(
