@@ -27,6 +27,11 @@ Tunnel ingress rules are ordered and end in a `404` catch-all:
 must expose `/api/v1/*` directly while retaining `/v1/*` only as internal
 compatibility. Next.js rewrites remain local-development and preview behavior.
 
+The public `GET /healthz` belongs to Next.js and confirms only that the web
+process is serving. Kubernetes probes call the Go service directly inside the
+cluster: `GET /healthz` for dependency-free liveness and `GET /readyz` for
+bounded Postgres readiness. The API probe paths are not public Tunnel routes.
+
 The optional `www.doindeksa.rs` host redirects to the apex at the Cloudflare
 edge. OAuth callbacks, cookies, canonical URLs, redirects, CSP sources, and
 runtime assets use only the apex origin.
@@ -84,6 +89,8 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
    promotion. Record the prior image SHAs and tested rollback command.
 7. Scan rendered private manifests, public tracked files, response headers,
    source maps, and browser network requests for origin-identifying values.
+8. Verify internal API liveness remains healthy while readiness returns `503`
+   during a controlled database outage.
 
 ## Rollback
 

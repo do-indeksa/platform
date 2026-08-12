@@ -30,5 +30,11 @@ docker build -t do-indeksa-api apps/api
 ```
 
 The final distroless image runs as the fixed non-root UID/GID `65532:65532` and
-exposes `GET /healthz` on port 8080. Runtime credentials are injected by the
-deployment platform, never during the image build.
+exposes two internal probes on port 8080:
+
+- `GET /healthz` is a dependency-free process liveness probe.
+- `GET /readyz` checks Postgres with a two-second deadline and returns `503`
+  without dependency details when the service cannot accept user traffic.
+
+Runtime credentials are injected by the deployment platform, never during the
+image build.

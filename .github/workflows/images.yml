@@ -149,7 +149,7 @@ jobs:
             --env CANONICAL_WEB_ORIGIN=http://localhost:3000 \
             "${LOCAL_IMAGE}" >/dev/null
           for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null; then
+            if [[ "$(curl --fail --silent http://127.0.0.1:8080/readyz 2>/dev/null || true)" == "ready" ]]; then
               break
             fi
             if [[ "${attempt}" == "30" ]]; then
@@ -161,6 +161,13 @@ jobs:
           versions="$(docker exec "${postgres}" psql --username postgres --dbname do_indeksa \
             --tuples-only --no-align --command 'select count(*) from goose_db_version;')"
           test "${versions}" -ge 1
+          test "$(curl --fail --silent http://127.0.0.1:8080/healthz)" = "ok"
+          docker stop "${postgres}" >/dev/null
+          status="$(curl --silent --output /tmp/api-readiness-body \
+            --write-out '%{http_code}' http://127.0.0.1:8080/readyz)"
+          test "${status}" = "503"
+          test "$(cat /tmp/api-readiness-body)" = "not ready"
+          test "$(curl --fail --silent http://127.0.0.1:8080/healthz)" = "ok"
 
       - name: Log in to production registry
         if: github.event_name == 'push'
