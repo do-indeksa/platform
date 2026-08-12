@@ -61,15 +61,15 @@ async function installWorkspaceSession(page: Page) {
           dirty: false,
         });
       sessionStorage.setItem(
-        `do-indeksa-task-draft-v1:${practice}:kb-001`,
+        `do-indeksa-task-draft-v2:guest:practice:${practice}:task:kb-001`,
         solvedDraft(4),
       );
       sessionStorage.setItem(
-        `do-indeksa-task-draft-v1:${practice}:kv-001`,
+        `do-indeksa-task-draft-v2:guest:practice:${practice}:task:kv-001`,
         solvedDraft(1),
       );
       sessionStorage.setItem(
-        `do-indeksa-practice-clock-v1:practice:${practice}`,
+        `do-indeksa-practice-clock-v2:guest:practice:${practice}`,
         String(now - 755_000),
       );
     },
