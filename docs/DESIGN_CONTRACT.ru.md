@@ -178,6 +178,12 @@ Canonical regression frames: desktop `214:4` размером `1440x1220` и mob
 tablet node у Study Plan нет, поэтому `1024x1220` проверяется как responsive
 interpolation между утвержденными композициями, а не выдается за Figma baseline.
 
+Отдельного loading node также нет. Поэтому bootstrap-состояние явно остается
+provisional: оно сохраняет canonical summary, tabs, position rows и facts slots,
+но не показывает readiness, coverage, цель, дату, статусы, evidence или CTA до
+завершения owner hydration. Контракт проверяется на `390x1988`, `1024x1220` и
+`1440x1220`; переход к loaded-плану происходит без перезагрузки страницы.
+
 Вкладка позиций является canonical состоянием экрана. Недельный deterministic
 plan и сортировка по темам остаются функциональными provisional tab panels,
 пока дизайнер не утвердит для них отдельные content nodes. Демонстрационные

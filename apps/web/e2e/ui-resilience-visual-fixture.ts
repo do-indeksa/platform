@@ -5,7 +5,7 @@ import {
   localDiagnosticState,
 } from "./diagnostic-cloud-fixture";
 import { installHistoryDegradedVisualFixture } from "./history-visual-fixture";
-import { installCabinetAuthGate } from "./cabinet-loading-fixture";
+import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
 
 const DIAGNOSTIC_STORAGE_KEY = "do-indeksa-diagnostic";
 
@@ -28,4 +28,4 @@ export async function installCabinetConflictVisualFixture(
 }
 
 export { installHistoryDegradedVisualFixture };
-export { installCabinetAuthGate };
+export { installAuthBootstrapGate as installCabinetAuthGate };
