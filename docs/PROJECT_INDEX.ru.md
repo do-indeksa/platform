@@ -174,7 +174,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Публичный landing        | готов по Figma         | literal SR desktop/tablet/mobile, локализация EN/RU и реальные данные P1  |
 | Кабинет                  | готов по Figma         | empty/populated/unfinished на 390/1024/1440, реальные P1 progress и runs  |
 | Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
-| Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
+| Банк задач               | готов по Figma         | RU desktop/tablet/mobile, поиск, P1-фильтры, selection и empty state      |
 | Решение отдельной задачи | готово по Figma        | Solution responsive workspace, exact checker, resume, journal и report    |
 | Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim   |
 | Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
