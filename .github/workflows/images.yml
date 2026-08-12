@@ -8,6 +8,7 @@ on:
       - apps/web/**
       - content/**
       - .github/release-marker/**
+      - .github/scripts/publish-immutable-image.sh
       - .github/workflows/images.yml
   push:
     branches: [main]
@@ -17,6 +18,7 @@ on:
       - apps/web/**
       - content/**
       - .github/release-marker/**
+      - .github/scripts/publish-immutable-image.sh
       - .github/workflows/images.yml
 
 permissions:
@@ -180,8 +182,7 @@ jobs:
         run: |
           set -euo pipefail
           remote_image="${REGISTRY}/do-indeksa/do-indeksa-${{ matrix.image }}:${GITHUB_SHA}"
-          docker tag "${LOCAL_IMAGE}" "${remote_image}"
-          docker push "${remote_image}"
+          .github/scripts/publish-immutable-image.sh "${LOCAL_IMAGE}" "${remote_image}"
 
   release:
     name: release
@@ -269,6 +270,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker tag "${LOCAL_MARKER}" "${RELEASE_IMAGE}"
-          docker push "${RELEASE_IMAGE}"
-          docker buildx imagetools inspect "${RELEASE_IMAGE}" >/dev/null
+          .github/scripts/publish-immutable-image.sh "${LOCAL_MARKER}" "${RELEASE_IMAGE}"

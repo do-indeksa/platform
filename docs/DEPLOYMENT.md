@@ -71,7 +71,9 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
 - API and web builds are not independently promotable. CI publishes a release
   marker with the same commit SHA only after both runtime images pass their
   build, scan, and smoke gates. The marker records both runtime image digests;
-  Kargo discovers that marker tag and applies it to API and web together.
+  Kargo discovers that marker tag and applies it to API and web together. CI
+  treats every SHA tag as write-once and fails instead of replacing a tag with
+  different image content.
 
 ## Release gates
 
