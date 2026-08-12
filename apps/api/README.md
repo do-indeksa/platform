@@ -14,6 +14,14 @@ The bounded `completedSimulationRuns` projection reconstructs the latest 20
 submitted mock exams with three owner-scoped batch reads, independent of the
 number of returned runs.
 
+Runtime access logs are JSON-structured and allowlist-only. They contain a
+server-generated request ID, normalized method, matched route template, status,
+response bytes, and duration. Raw URLs and paths, query strings, hosts, client
+addresses, headers, cookies, authorization values, and request or response
+bodies are deliberately excluded. Panic reports retain request correlation and
+a stack trace but not the recovered value. The generated request ID is returned
+as `X-Request-ID` for support correlation; inbound values are ignored.
+
 Active diagnostic and simulation runs expose a bounded versioned checkpoint.
 Draft answers are relationally scoped to the run items, updates use an expected
 server version, and submit or explicit abandon removes the mutable checkpoint
