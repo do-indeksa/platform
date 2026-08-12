@@ -90,15 +90,15 @@ func (s *Service) GetRun(ctx context.Context, userID, runID uuid.UUID) (RunAggre
 	return aggregate, nil
 }
 
-func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) ([]Run, error) {
+func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) ([]RunAggregate, error) {
 	if limit < 1 || limit > 100 {
 		return nil, invalidInput("limit")
 	}
 	runs, err := s.queries.ListRuns(ctx, ListRunsParams{UserID: userID, Limit: limit})
-	if runs == nil {
-		runs = []Run{}
+	if err != nil {
+		return nil, err
 	}
-	return runs, err
+	return loadRunAggregates(ctx, s.queries, userID, runs)
 }
 
 func (s *Service) ListCompletedSimulationRuns(
@@ -116,7 +116,7 @@ func (s *Service) ListCompletedSimulationRuns(
 	if err != nil {
 		return nil, err
 	}
-	return loadCompletedSimulationRuns(ctx, s.queries, userID, runs)
+	return loadRunAggregates(ctx, s.queries, userID, runs)
 }
 
 func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitRunInput) (RunAggregate, error) {

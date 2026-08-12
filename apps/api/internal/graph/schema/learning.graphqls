@@ -101,6 +101,12 @@ type RunSummary {
   deadlineAt: Time
   submittedAt: Time
   activeDurationMs: Int64
+  taskIds: [ID!]!
+  itemCount: Int!
+  completedItemCount: Int!
+  correctItemCount: Int!
+  earnedPoints: Int
+  maxPoints: Int
 }
 
 type CompletedSimulationRunItem {
