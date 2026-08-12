@@ -67,6 +67,8 @@ AI-оценивание остается вне критического пут�
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
+- Task Workspace draft, rail status и clock изолированы по UUID/guest owner;
+  legacy unowned session state игнорируется, controls ждут owner hydration;
 - активная диагностика синхронизирует append-only attempts и versioned draft,
   восстанавливается на другом устройстве и требует явного решения CAS-конфликта;
 - пробник синхронизирует frozen assignment и versioned drafts, сохраняет
@@ -81,8 +83,8 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 549 web unit-тестов, 29 тестов content pipeline,
-  112 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
+- blocking CI включает 550 web unit-тестов, 29 тестов content pipeline,
+  113 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
@@ -382,7 +384,8 @@ attempt частью run. В любом варианте завершенная 
 - Integration: start/resume/finish diagnostic and simulation.
 - Browser: основные сценарии на 360x800, 768x1024 и 1440x900.
 - Ownership: подтвержденный `401` включает guest-mode, а временная ошибка auth
-  bootstrap сохраняет owner-scoped runtime скрытым до успешного retry.
+  bootstrap сохраняет owner-scoped runtime скрытым до успешного retry; смена
+  A -> B -> guest в одной вкладке изолирует task draft, rail status и clock.
 - Visual: 92 канонических Linux screenshot; кабинет покрыт empty, populated и
   unfinished states на общих 360/768/1440 viewport и точных Figma-размерах
   390/1024/1440. Отдельный resilience-набор покрывает cabinet loading/cloud
