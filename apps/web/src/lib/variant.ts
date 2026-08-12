@@ -122,3 +122,20 @@ export async function resolveVariantTaskIds(
 
   return { blueprint, tasks };
 }
+
+export async function resolveExamVariantTaskIds(
+  taskIds: readonly string[],
+  version?: string,
+): Promise<GeneratedVariant | null> {
+  const variant = await resolveVariantTaskIds(taskIds, version);
+  if (
+    !variant ||
+    variant.tasks.some(
+      ({ maxPoints, task }) => !isExamEligibleTask(task, maxPoints),
+    )
+  ) {
+    return null;
+  }
+
+  return variant;
+}

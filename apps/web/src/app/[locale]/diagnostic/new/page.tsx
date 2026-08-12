@@ -12,7 +12,7 @@ import {
   parseDiagnosticRunQuery,
 } from "@/lib/diagnostic-run";
 import { renderMarkdown } from "@/lib/markdown";
-import { generateVariant, resolveVariantTaskIds } from "@/lib/variant";
+import { generateVariant, resolveExamVariantTaskIds } from "@/lib/variant";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ export default async function NewDiagnosticPage({
 }: Props) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const run = parseDiagnosticRunQuery(query, DIAGNOSTIC_TASK_COUNT);
-  const variant = run ? await resolveVariantTaskIds(run.taskIds) : null;
+  const variant = run ? await resolveExamVariantTaskIds(run.taskIds) : null;
   if (!run || !variant) {
     const fresh = await generateVariant();
     return redirect({

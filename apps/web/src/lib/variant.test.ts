@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   generateVariant,
   isExamEligibleTask,
+  resolveExamVariantTaskIds,
   resolveVariantTaskIds,
 } from "./variant";
 
@@ -110,6 +111,17 @@ describe("generateVariant", () => {
 
     expect(variant?.blueprint.version).toBe("2026.1");
     expect(variant?.tasks.map(({ task }) => task.id)).toEqual(currentTaskIds);
+  });
+
+  it("resolves a new exam session only when every task is eligible", async () => {
+    const variant = await resolveExamVariantTaskIds(currentTaskIds);
+
+    expect(variant?.tasks.map(({ task }) => task.id)).toEqual(currentTaskIds);
+    expect(
+      variant?.tasks.every(({ maxPoints, task }) =>
+        isExamEligibleTask(task, maxPoints),
+      ),
+    ).toBe(true);
   });
 
   it.each([
