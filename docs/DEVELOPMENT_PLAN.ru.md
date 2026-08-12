@@ -82,12 +82,15 @@ AI-оценивание остается вне критического пут�
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
 - blocking CI включает 546 web unit-тестов, 29 тестов content pipeline,
-  104 функциональных Playwright-сценария, 77 Linux visual-regression эталонов,
+  104 функциональных Playwright-сценария, 86 Linux visual-regression эталонов,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
 утвержденные Figma nodes для пока provisional результатов диагностики и пробника,
-visual coverage для error states и long Serbian copy, а также production rollout.
+visual coverage для остальных error states без Figma и production rollout.
+Кабинет при cloud conflict, история при degraded sync и workspace с самой
+длинной verified-сербской задачей покрыты на 360/768/1440 px; conflict и
+degraded без отдельных Figma nodes явно маркированы как provisional.
 Analytics сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
@@ -373,9 +376,10 @@ attempt частью run. В любом варианте завершенная 
   идемпотентные mutations запуска и попытки.
 - Integration: start/resume/finish diagnostic and simulation.
 - Browser: основные сценарии на 360x800, 768x1024 и 1440x900.
-- Visual: 53 канонических Linux screenshot; кабинет покрыт empty, populated и
+- Visual: 86 канонических Linux screenshot; кабинет покрыт empty, populated и
   unfinished states на общих 360/768/1440 viewport и точных Figma-размерах
-  390/1024/1440. Следующим слоем покрывать ошибки и long Serbian copy.
+  390/1024/1440. Отдельный resilience-набор покрывает cloud conflict, degraded
+  history и реальную длинную сербскую задачу на 360/768/1440.
 - Content: schema, math fixtures, сумма rubric points, ссылки и статус review.
 
 ## 7. Порядок релизов
@@ -415,8 +419,9 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 2. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
-4. Расширить visual-regression coverage на ошибки и long Serbian copy на
-   360/768/1440 px; для экранов без Figma явно сохранять provisional status.
+4. Расширять visual-regression coverage на остальные ошибки; для экранов без
+   Figma явно сохранять provisional status. Cloud conflict, degraded history и
+   long Serbian copy уже покрыты на 360/768/1440 px.
 5. После выпуска Google OAuth credentials и отдельного подтверждения завершить
    private Kubernetes rollout через Cloudflare Tunnel; доказать auth, GraphQL,
    Neon migration, backup и rollback без публикации origin.

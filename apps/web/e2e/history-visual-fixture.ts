@@ -51,9 +51,35 @@ export async function installHistoryVisualFixture(
   page: Page,
   empty = false,
 ): Promise<void> {
+  await installHistoryRoutes(page, { empty, degraded: false });
+}
+
+export async function installHistoryDegradedVisualFixture(
+  page: Page,
+): Promise<void> {
+  await installHistoryRoutes(page, { empty: false, degraded: true });
+}
+
+async function installHistoryRoutes(
+  page: Page,
+  {
+    empty,
+    degraded,
+  }: {
+    empty: boolean;
+    degraded: boolean;
+  },
+): Promise<void> {
   await page.route("**/api/v1/me", (route) => route.fulfill({ json: user }));
   await page.route("**/graphql", async (route) => {
     const body = route.request().postDataJSON() as { operationName?: string };
+    if (degraded && body.operationName === "AttemptJournal") {
+      await route.fulfill({
+        status: 503,
+        json: { errors: [{ message: "offline" }] },
+      });
+      return;
+    }
     await fulfillGraphQL(route, body.operationName, empty);
   });
 }
