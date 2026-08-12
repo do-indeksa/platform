@@ -12,7 +12,7 @@ for (const variant of variants) {
 
     test("canonical filtered task bank", async ({ page }) => {
       await installTaskBankFixture(page);
-      await page.goto("/ru/tasks?position=1&difficulty=foundation", {
+      await page.goto("/ru/tasks?position=1&position=2", {
         waitUntil: "networkidle",
       });
       await expect(
