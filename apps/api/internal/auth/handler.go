@@ -37,7 +37,7 @@ func (h *Handler) StartGoogleAuth(w http.ResponseWriter, r *http.Request, params
 	verifier := oauth2.GenerateVerifier()
 	sealed, err := sealState(h.service.cfg.Secret, state{
 		Origin:    origin,
-		Redirect:  sanitizeRedirect(params.Redirect),
+		Redirect:  sanitizeReturnPath(params.Redirect),
 		Verifier:  verifier,
 		ExpiresAt: time.Now().Add(stateTTL).Unix(),
 	})
@@ -62,6 +62,12 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 	st.Origin = origin
+	redirect, ok := normalizeReturnPath(st.Redirect)
+	if !ok {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
+		return
+	}
+	st.Redirect = redirect
 	if params.Error != nil && *params.Error != "" {
 		http.Redirect(w, r, st.Origin+st.Redirect, http.StatusFound)
 		return
@@ -109,7 +115,7 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 
 func (h *Handler) ExchangeAuthCode(w http.ResponseWriter, r *http.Request, params api.ExchangeAuthCodeParams) {
 	row, err := h.service.ExchangeHandoffCode(r.Context(), params.Code)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, errInvalidReturnPath) {
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_code", "code is invalid, expired or already used")
 		return
 	}
@@ -195,11 +201,4 @@ func requestOrigin(r *http.Request) string {
 		}
 	}
 	return proto + "://" + host
-}
-
-func sanitizeRedirect(redirect *string) string {
-	if redirect == nil || !strings.HasPrefix(*redirect, "/") || strings.HasPrefix(*redirect, "//") {
-		return "/"
-	}
-	return *redirect
 }

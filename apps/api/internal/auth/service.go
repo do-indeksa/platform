@@ -14,7 +14,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var ErrNoSession = errors.New("no valid session")
+var (
+	errInvalidReturnPath = errors.New("invalid return path")
+	ErrNoSession         = errors.New("no valid session")
+)
 
 type Config struct {
 	ClientID            string
@@ -62,6 +65,10 @@ func (s *Service) IssueSession(ctx context.Context, userID uuid.UUID) (string, e
 }
 
 func (s *Service) MintHandoffCode(ctx context.Context, userID uuid.UUID, redirect string) (string, error) {
+	redirect, ok := normalizeReturnPath(redirect)
+	if !ok {
+		return "", errInvalidReturnPath
+	}
 	code, codeHash, err := newSecret()
 	if err != nil {
 		return "", err
@@ -79,7 +86,16 @@ func (s *Service) MintHandoffCode(ctx context.Context, userID uuid.UUID, redirec
 }
 
 func (s *Service) ExchangeHandoffCode(ctx context.Context, code string) (ConsumeAuthCodeRow, error) {
-	return s.queries.ConsumeAuthCode(ctx, hashSecret(code))
+	row, err := s.queries.ConsumeAuthCode(ctx, hashSecret(code))
+	if err != nil {
+		return ConsumeAuthCodeRow{}, err
+	}
+	redirect, ok := normalizeReturnPath(row.Redirect)
+	if !ok {
+		return ConsumeAuthCodeRow{}, errInvalidReturnPath
+	}
+	row.Redirect = redirect
+	return row, nil
 }
 
 func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, error) {
