@@ -140,10 +140,9 @@ test("task of the day uses local-first progress and returns to overview", async 
     new RegExp(`/en/tasks/.+/${taskId}\\?returnTo=%2Fcabinet$`),
   );
   await repeat.click();
-  await expect(page.getByRole("link", { name: /Exit task/ })).toHaveAttribute(
-    "href",
-    "/en/cabinet",
-  );
+  await expect(
+    page.getByRole("link", { name: /Back to practice/ }),
+  ).toHaveAttribute("href", "/en/cabinet");
 });
 
 test("quick builder starts a balanced bounded practice set", async ({
@@ -174,7 +173,7 @@ test("quick builder starts a balanced bounded practice set", async ({
   await expect(start).toBeEnabled();
   await start.click();
 
-  await expect(page.getByText("Task 1 of 5", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 of 5 tasks", { exact: true })).toBeVisible();
   const url = new URL(page.url());
   expect(url.pathname).toBe("/en/tasks/kompleksni-brojevi/kb-001");
   expect(url.searchParams.get("set")?.split(",")).toEqual([
