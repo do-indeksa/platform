@@ -15,6 +15,7 @@ export function QuestionPanel({
   source,
   check,
   state,
+  draftReady,
   checking,
   checkerUnavailable,
   reportHref,
@@ -28,6 +29,7 @@ export function QuestionPanel({
   source: string;
   check: CheckPart[];
   state: TaskCheckState;
+  draftReady: boolean;
   checking: boolean;
   checkerUnavailable: boolean;
   reportHref: string;
@@ -36,7 +38,7 @@ export function QuestionPanel({
   onVerify: () => void;
 }) {
   const t = useTranslations("tasks");
-  const locked = state.solved || state.burned;
+  const locked = !draftReady || state.solved || state.burned;
 
   return (
     <section
@@ -85,7 +87,7 @@ export function QuestionPanel({
           event.preventDefault();
           onVerify();
         }}
-        aria-busy={checking}
+        aria-busy={!draftReady || checking}
         className="space-y-3"
       >
         {check.length === 1 ? (
