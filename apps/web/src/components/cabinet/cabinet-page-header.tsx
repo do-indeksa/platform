@@ -3,16 +3,22 @@
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-export function CabinetPageHeader({ started }: { started: boolean }) {
+export type CabinetPageState = "loading" | "empty" | "started";
+
+export function CabinetPageHeader({ state }: { state: CabinetPageState }) {
   const t = useTranslations("cabinet");
+  const subtitle =
+    state === "loading"
+      ? "subtitle.loading"
+      : state === "started"
+        ? "subtitle.started"
+        : "subtitle.empty";
 
   return (
     <section className="flex h-[138px] flex-col justify-between md:h-[72px] md:flex-row md:items-center">
       <div className="flex flex-col gap-1">
         <h1 className="text-[32px] leading-[1.4] font-bold">{t("title")}</h1>
-        <p className="text-sm leading-[1.4] text-muted">
-          {t(started ? "subtitle.started" : "subtitle.empty")}
-        </p>
+        <p className="text-sm leading-[1.4] text-muted">{t(subtitle)}</p>
       </div>
       <div
         aria-label={t("subject.aria")}

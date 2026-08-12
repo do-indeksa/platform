@@ -496,9 +496,11 @@
     "metadataTitle": "My cabinet",
     "metadataDescription": "Your preparation progress and latest results for the FTN P1 mathematics entrance exam.",
     "title": "My cabinet",
+    "loading": "Loading progress and your next action.",
     "subtitle": {
       "started": "Your admission preparation",
-      "empty": "Start preparing for admission"
+      "empty": "Start preparing for admission",
+      "loading": "Loading your preparation"
     },
     "subject": {
       "aria": "Active entrance exam",
