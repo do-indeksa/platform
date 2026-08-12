@@ -25,6 +25,9 @@ export default async function PrepPage({
     number: position.number,
     topicSlugs: position.topicSlugs,
     name: position.topicSlugs.map((topic) => topicT(topic)).join(" / "),
+    description: position.topicSlugs
+      .map((topic) => topicT(`description.${topic}`))
+      .join(" / "),
   }));
 
   return (

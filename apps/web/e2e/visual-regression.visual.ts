@@ -84,13 +84,8 @@ const surfaces: readonly VisualSurface[] = [
       await expect(
         page.getByRole("heading", { name: "Plan pripreme", exact: true }),
       ).toBeVisible();
-      await expect(page.getByTestId("next-action")).toBeVisible();
-      await expect(
-        page.getByRole("heading", {
-          name: "Sinhronizuj završene odgovore",
-          exact: true,
-        }),
-      ).toBeVisible();
+      await expect(page.getByTestId("prep-plan-summary")).toBeVisible();
+      await expect(page.getByTestId("prep-position-10")).toBeVisible();
     },
   },
   {
