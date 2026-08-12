@@ -172,7 +172,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Возможность              | Состояние              | Комментарий                                                               |
 | ------------------------ | ---------------------- | ------------------------------------------------------------------------- |
 | Публичный landing        | готов по Figma         | literal SR desktop/tablet/mobile, локализация EN/RU и реальные данные P1  |
-| Кабинет                  | provisional skeleton   | прежний functional overview перенесен на `/cabinet`, Figma slice впереди  |
+| Кабинет                  | готов по Figma         | empty/populated/unfinished на 390/1024/1440, реальные P1 progress и runs  |
 | Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
 | Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
 | Решение отдельной задачи | готов для preview      | exact checker, подсказки, решение, resume, история и task-report          |

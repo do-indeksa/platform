@@ -15,6 +15,83 @@ export const simulationRunPath = `/simulation/new?run=${simulationRunId}&version
 
 let diagnosticFixturePromise: ReturnType<typeof cloudFixture> | undefined;
 
+export async function prepareCabinetPopulated(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const attempts = ["eks-001", "eks-002", "eks-003"].map((taskId, index) => ({
+      taskId,
+      slot: 3,
+      correct: index !== 1,
+      source: "practice",
+      helpLevel: 0,
+      at: `2026-08-0${index + 1}T12:00:00.000Z`,
+    }));
+    localStorage.setItem(
+      "do-indeksa-attempts",
+      JSON.stringify({ version: 1, attempts }),
+    );
+    localStorage.setItem(
+      "do-indeksa-task-history",
+      JSON.stringify({
+        version: 2,
+        entries: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            taskId: "eks-003",
+            slot: 3,
+            source: "practice",
+            outcome: "correct",
+            answers: ["1"],
+            helpLevel: 0,
+            at: "2026-08-03T12:00:00.000Z",
+            ownerId: null,
+          },
+        ],
+      }),
+    );
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByTestId("cabinet-dashboard")).toHaveAttribute(
+    "data-state",
+    "populated",
+  );
+}
+
+export async function prepareCabinetUnfinishedMock(page: Page): Promise<void> {
+  await page.goto(simulationRunPath, { waitUntil: "networkidle" });
+  await expect(
+    page.getByRole("heading", { name: "Zadatak 1 od 10", exact: true }),
+  ).toBeVisible();
+  await page.evaluate((storageKey) => {
+    const raw = localStorage.getItem(storageKey);
+    if (raw === null) throw new Error("missing simulation state");
+    const persisted = JSON.parse(raw) as {
+      state: {
+        answers: string[][];
+        skipped: boolean[];
+        currentIndex: number;
+        savedAt: number | null;
+      };
+    };
+    for (let index = 0; index < 6; index += 1) {
+      persisted.state.answers[index][0] = String(index + 1);
+    }
+    persisted.state.currentIndex = 6;
+    persisted.state.savedAt = Date.now();
+    localStorage.setItem(storageKey, JSON.stringify(persisted));
+  }, SIMULATION_STORAGE_KEY);
+  await page.goto("/cabinet", { waitUntil: "networkidle" });
+  await expect(page.getByTestId("cabinet-dashboard")).toHaveAttribute(
+    "data-state",
+    "populated",
+  );
+  await expect(
+    page.getByRole("heading", {
+      name: "Nedovršen probni ispit",
+      exact: true,
+    }),
+  ).toBeVisible();
+}
+
 export async function prepareDiagnosticResult(page: Page): Promise<void> {
   const fixture = await (diagnosticFixturePromise ??= cloudFixture({
     completed: 0,
