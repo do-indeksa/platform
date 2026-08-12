@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -174,16 +173,28 @@ func (s *Service) oauth() *oauth2.Config {
 }
 
 func (s *Service) originAllowed(origin string) bool {
-	if origin == s.cfg.CanonicalOrigin || slices.Contains(s.cfg.ExtraOrigins, origin) {
-		return true
+	_, ok := s.allowedOrigin(origin)
+	return ok
+}
+
+func (s *Service) allowedOrigin(raw string) (string, bool) {
+	origin, ok := parseOrigin(raw)
+	if !ok || (origin.scheme != "https" && !loopbackOrigin(origin)) {
+		return "", false
 	}
-	return s.cfg.PreviewOriginSuffix != "" &&
-		strings.HasPrefix(origin, "https://") &&
-		strings.HasSuffix(origin, s.cfg.PreviewOriginSuffix)
+	if origin.value == s.cfg.CanonicalOrigin || slices.Contains(s.cfg.ExtraOrigins, origin.value) {
+		return origin.value, true
+	}
+	if origin.scheme == "https" && origin.port == "" &&
+		previewHostnameMatches(origin.hostname, s.cfg.PreviewOriginSuffix) {
+		return origin.value, true
+	}
+	return "", false
 }
 
 func (s *Service) secureCookies() bool {
-	return strings.HasPrefix(s.cfg.CanonicalOrigin, "https://")
+	origin, ok := parseOrigin(s.cfg.CanonicalOrigin)
+	return ok && origin.scheme == "https"
 }
 
 type userinfo struct {

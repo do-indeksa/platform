@@ -284,6 +284,33 @@ func TestPreviewSignInFlow(t *testing.T) {
 	}
 }
 
+func TestPreviewSignInNormalizesOriginBeforeSealingState(t *testing.T) {
+	google := newFakeGoogle(t, userinfo{})
+	app := newTestApp(t, google)
+	request := httptest.NewRequest(http.MethodGet, "/v1/auth/google?redirect=/prep", nil)
+	request.Host = "api.internal"
+	request.Header.Set("X-Di-Forwarded-Origin", "HTTPS://DO-INDEKSA-ABC123-SCOPE.VERCEL.APP:443/")
+	response := httptest.NewRecorder()
+
+	app.ServeHTTP(response, request)
+
+	if response.Code != http.StatusFound {
+		t.Fatalf("normalized preview start returned %d", response.Code)
+	}
+	authURL, err := url.Parse(response.Header().Get("Location"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed := authURL.Query().Get("state")
+	st, err := openState(testKey, sealed, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Origin != testPreviewOrigin {
+		t.Fatalf("sealed origin = %q, want %q", st.Origin, testPreviewOrigin)
+	}
+}
+
 func TestSessionSlides(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{})
 	app := newTestApp(t, google)
@@ -427,6 +454,74 @@ func TestStartRejectsUnknownOrigin(t *testing.T) {
 	res := do(t, app, "GET", "/v1/auth/google", "evil.example")
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("got status %d", res.StatusCode)
+	}
+}
+
+func TestStartRejectsPreviewSuffixOutsideHostname(t *testing.T) {
+	google := newFakeGoogle(t, userinfo{})
+	app := newTestApp(t, google)
+	for _, origin := range []string{
+		"https://evil.example/-scope.vercel.app",
+		"https://evil.example?next=-scope.vercel.app",
+		"https://evil.example#-scope.vercel.app",
+		"https://user@do-indeksa-abc123-scope.vercel.app",
+		"https://do-indeksa-abc123-scope.vercel.app:444/-scope.vercel.app",
+	} {
+		t.Run(origin, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/v1/auth/google", nil)
+			request.Host = "api.internal"
+			request.Header.Set("X-Di-Forwarded-Origin", origin)
+			response := httptest.NewRecorder()
+
+			app.ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest || response.Header().Get("Location") != "" {
+				t.Fatalf("malformed preview origin returned %d with location %q", response.Code, response.Header().Get("Location"))
+			}
+		})
+	}
+}
+
+func TestCallbackRevalidatesSealedOriginBeforeCodeExchange(t *testing.T) {
+	google := newFakeGoogle(t, userinfo{Sub: "sub-stale", Email: "stale@example.com"})
+	app := newTestApp(t, google)
+	sealed, err := sealState(testKey, state{
+		Origin:    "https://evil.example/-scope.vercel.app",
+		Redirect:  "/prep",
+		Verifier:  "verifier-secret",
+		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+
+	if res.StatusCode != http.StatusBadRequest || res.Header.Get("Location") != "" {
+		t.Fatalf("stale state returned %d with location %q", res.StatusCode, res.Header.Get("Location"))
+	}
+	if google.verifier != "" {
+		t.Fatalf("callback exchanged code using verifier %q before revalidating origin", google.verifier)
+	}
+}
+
+func TestCancelledCallbackRevalidatesSealedOrigin(t *testing.T) {
+	google := newFakeGoogle(t, userinfo{})
+	app := newTestApp(t, google)
+	sealed, err := sealState(testKey, state{
+		Origin:    "https://evil.example/-scope.vercel.app",
+		Redirect:  "/prep",
+		Verifier:  "verifier-secret",
+		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := completeCallback(t, app, "error=access_denied&state="+url.QueryEscape(sealed))
+
+	if res.StatusCode != http.StatusBadRequest || res.Header.Get("Location") != "" {
+		t.Fatalf("cancelled stale state returned %d with location %q", res.StatusCode, res.Header.Get("Location"))
 	}
 }
 

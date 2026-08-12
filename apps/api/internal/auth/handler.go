@@ -29,8 +29,8 @@ func ParamErrorHandler(w http.ResponseWriter, _ *http.Request, err error) {
 }
 
 func (h *Handler) StartGoogleAuth(w http.ResponseWriter, r *http.Request, params api.StartGoogleAuthParams) {
-	origin := requestOrigin(r)
-	if !h.service.originAllowed(origin) {
+	origin, ok := h.service.allowedOrigin(requestOrigin(r))
+	if !ok {
 		httpx.WriteError(w, http.StatusBadRequest, "origin_not_allowed", "sign-in must start from a known origin")
 		return
 	}
@@ -56,6 +56,12 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
 		return
 	}
+	origin, ok := h.service.allowedOrigin(st.Origin)
+	if !ok {
+		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
+		return
+	}
+	st.Origin = origin
 	if params.Error != nil && *params.Error != "" {
 		http.Redirect(w, r, st.Origin+st.Redirect, http.StatusFound)
 		return
@@ -175,7 +181,7 @@ func requestOrigin(r *http.Request) string {
 	proto = strings.TrimSpace(proto)
 	if proto == "" {
 		proto = "https"
-		if host == "localhost" || strings.HasPrefix(host, "localhost:") {
+		if origin, ok := parseOrigin("http://" + host); ok && loopbackOrigin(origin) {
 			proto = "http"
 		}
 	}

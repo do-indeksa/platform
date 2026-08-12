@@ -47,6 +47,11 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	authCfg, err := authConfig()
+	if err != nil {
+		return err
+	}
+
 	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return err
@@ -57,10 +62,6 @@ func run() error {
 		return err
 	}
 
-	authCfg, err := authConfig()
-	if err != nil {
-		return err
-	}
 	authService := auth.NewService(pool, authCfg)
 	progressService := progress.NewService(pool)
 	if err := authService.CleanupExpired(ctx); err != nil {
@@ -128,8 +129,8 @@ func authConfig() (auth.Config, error) {
 		CanonicalOrigin:     os.Getenv("CANONICAL_WEB_ORIGIN"),
 		PreviewOriginSuffix: os.Getenv("PREVIEW_ORIGIN_SUFFIX"),
 	}
-	for origin := range strings.SplitSeq(os.Getenv("EXTRA_WEB_ORIGINS"), ",") {
-		if origin = strings.TrimSpace(origin); origin != "" {
+	if rawOrigins := os.Getenv("EXTRA_WEB_ORIGINS"); rawOrigins != "" {
+		for origin := range strings.SplitSeq(rawOrigins, ",") {
 			cfg.ExtraOrigins = append(cfg.ExtraOrigins, origin)
 		}
 	}
@@ -141,6 +142,9 @@ func authConfig() (auth.Config, error) {
 		if value == "" {
 			return auth.Config{}, fmt.Errorf("%s is required", name)
 		}
+	}
+	if err := auth.ValidateConfig(cfg); err != nil {
+		return auth.Config{}, err
 	}
 	return cfg, nil
 }

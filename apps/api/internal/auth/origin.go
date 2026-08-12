@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
@@ -62,21 +63,40 @@ func sourceOrigin(r *http.Request) (string, bool) {
 }
 
 func normalizeOrigin(raw string) (string, bool) {
-	if raw == "" || raw == "null" || strings.ContainsAny(raw, "\r\n") {
-		return "", false
+	origin, ok := parseOrigin(raw)
+	return origin.value, ok
+}
+
+type parsedOrigin struct {
+	value    string
+	scheme   string
+	hostname string
+	port     string
+}
+
+func parseOrigin(raw string) (parsedOrigin, bool) {
+	if raw == "" || raw == "null" || strings.ContainsAny(raw, "\r\n?#") {
+		return parsedOrigin{}, false
 	}
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.User != nil || parsed.Opaque != "" || parsed.Hostname() == "" ||
-		parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") {
-		return "", false
+		parsed.ForceQuery || parsed.RawQuery != "" || parsed.Fragment != "" ||
+		(parsed.EscapedPath() != "" && parsed.EscapedPath() != "/") {
+		return parsedOrigin{}, false
 	}
 	scheme := strings.ToLower(parsed.Scheme)
 	if scheme != "http" && scheme != "https" {
-		return "", false
+		return parsedOrigin{}, false
 	}
 
 	hostname := strings.ToLower(parsed.Hostname())
-	port := parsed.Port()
+	if !validHostname(hostname) {
+		return parsedOrigin{}, false
+	}
+	port, ok := normalizePort(parsed.Port())
+	if strings.HasSuffix(parsed.Host, ":") || !ok {
+		return parsedOrigin{}, false
+	}
 	if (scheme == "http" && port == "80") || (scheme == "https" && port == "443") {
 		port = ""
 	}
@@ -87,7 +107,52 @@ func normalizeOrigin(raw string) (string, bool) {
 	if port != "" {
 		host = net.JoinHostPort(hostname, port)
 	}
-	return scheme + "://" + host, true
+	return parsedOrigin{
+		value:    scheme + "://" + host,
+		scheme:   scheme,
+		hostname: hostname,
+		port:     port,
+	}, true
+}
+
+func validHostname(hostname string) bool {
+	if ip := net.ParseIP(hostname); ip != nil {
+		return true
+	}
+	if hostname == "" || len(hostname) > 253 {
+		return false
+	}
+	for _, label := range strings.Split(hostname, ".") {
+		if len(label) == 0 || len(label) > 63 || label[0] == '-' || label[len(label)-1] == '-' {
+			return false
+		}
+		for _, character := range label {
+			if (character < 'a' || character > 'z') &&
+				(character < '0' || character > '9') && character != '-' {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func normalizePort(port string) (string, bool) {
+	if port == "" {
+		return "", true
+	}
+	value, err := strconv.Atoi(port)
+	if err != nil || value <= 0 || value > 65535 {
+		return "", false
+	}
+	return strconv.Itoa(value), true
+}
+
+func loopbackOrigin(origin parsedOrigin) bool {
+	if origin.hostname == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(origin.hostname)
+	return ip != nil && ip.IsLoopback()
 }
 
 func writeOriginError(w http.ResponseWriter) {
