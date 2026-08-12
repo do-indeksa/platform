@@ -72,6 +72,8 @@ AI-оценивание остается вне критического пут�
   legacy unowned session state игнорируется, controls ждут owner hydration;
 - Training Builder draft изолирован по UUID/guest owner; legacy unowned draft
   не присваивается новому владельцу, controls ждут owner hydration;
+- Study Plan goal/date изолированы по UUID/guest owner; план остаётся в
+  нейтральном loading state до owner hydration, legacy preferences игнорируются;
 - активная диагностика синхронизирует append-only attempts и versioned draft,
   восстанавливается на другом устройстве и требует явного решения CAS-конфликта;
 - пробник синхронизирует frozen assignment и versioned drafts, сохраняет
@@ -86,8 +88,8 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 557 web unit-тестов, 30 тестов content pipeline,
-  114 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
+- blocking CI включает 561 web unit-тест, 30 тестов content pipeline,
+  115 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
