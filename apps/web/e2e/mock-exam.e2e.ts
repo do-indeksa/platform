@@ -581,16 +581,22 @@ test("a review task cannot be injected into a fresh mock URL", async ({
   page,
 }) => {
   const injectedTaskIds = currentTaskIds.with(1, "kv-004");
+  const injectedRunId = crypto.randomUUID();
   await page.goto(
-    `/en/simulation/new?run=${crypto.randomUUID()}&version=2026.1&set=${injectedTaskIds.join("%2C")}`,
+    `/en/simulation/new?run=${injectedRunId}&version=2026.1&set=${injectedTaskIds.join("%2C")}`,
   );
 
-  await expect(page).toHaveURL(
-    /\/en\/simulation\/new\?run=[0-9a-f-]+&version=2026\.1&set=/,
-  );
-  const canonicalTaskIds = new URL(page.url()).searchParams
-    .get("set")!
-    .split(",");
+  await expect
+    .poll(() =>
+      new URL(page.url()).searchParams
+        .get("set")
+        ?.split(",")
+        .includes("kv-004"),
+    )
+    .toBe(false);
+  const canonicalUrl = new URL(page.url());
+  const canonicalTaskIds = canonicalUrl.searchParams.get("set")!.split(",");
+  expect(canonicalUrl.searchParams.get("run")).not.toBe(injectedRunId);
   expect(canonicalTaskIds).toHaveLength(10);
   expect(canonicalTaskIds).not.toContain("kv-004");
   await expect(

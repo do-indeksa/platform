@@ -341,14 +341,22 @@ test("a review task cannot be injected into a fresh diagnostic URL", async ({
   page,
 }) => {
   const injectedTaskIds = taskIds.with(1, "kv-004");
+  const injectedRunId = crypto.randomUUID();
   await page.goto(
-    `/en/diagnostic/new?run=${crypto.randomUUID()}&set=${injectedTaskIds.join("%2C")}`,
+    `/en/diagnostic/new?run=${injectedRunId}&set=${injectedTaskIds.join("%2C")}`,
   );
 
-  await expect(page).toHaveURL(/\/en\/diagnostic\/new\?run=[0-9a-f-]+&set=/);
-  const canonicalTaskIds = new URL(page.url()).searchParams
-    .get("set")!
-    .split(",");
+  await expect
+    .poll(() =>
+      new URL(page.url()).searchParams
+        .get("set")
+        ?.split(",")
+        .includes("kv-004"),
+    )
+    .toBe(false);
+  const canonicalUrl = new URL(page.url());
+  const canonicalTaskIds = canonicalUrl.searchParams.get("set")!.split(",");
+  expect(canonicalUrl.searchParams.get("run")).not.toBe(injectedRunId);
   expect(canonicalTaskIds).toHaveLength(10);
   expect(canonicalTaskIds).not.toContain("kv-004");
   await expect(
