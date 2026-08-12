@@ -25,6 +25,11 @@
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
+  "authBootstrap": {
+    "title": "We couldn't verify your session",
+    "description": "Your saved work is still on this device. Check your connection and try again.",
+    "retry": "Try again"
+  },
   "landing": {
     "metadataTitle": "Prepare for FTN P1",
     "metadataDescription": "Practice FTN P1 mathematics for free: 10 tasks, 4 hours, up to 60 points, a level check and a clear preparation plan.",
