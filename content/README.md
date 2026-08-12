@@ -18,6 +18,8 @@ Versioned evidence for manually promoted topic packs lives in `reviews/`. CI
 requires every `verified` task to appear in exactly one record, and each listed
 topic record must cover its complete verified subset. Tasks still in `review`
 remain publishable for practice without entering exam-like generation.
+Pre-review calculation packets may live in `review-queue/`; they are explicitly
+non-authoritative and never replace maintainer verification or a formal record.
 
 ## Immutable task snapshots
 

@@ -17,7 +17,10 @@ Equal chances for admission — regardless of city or income. Quality preparatio
 - Owner-scoped resumable diagnostic, deterministic prep plan, task of the day and streak, and a four-hour blueprint-based mock exam with cross-device recovery and explicit rubric self-check for partial credit.
 - Account-synced history with shareable task filters, reconstructable grading provenance, and an honest complete-mock score trend.
 - Current FTN entrance-exam catalog covering 29 programs and the official P1/P3-P8 groups; there is no fictional P2 or physics exam.
-- 30 independently authored tasks across all ten P1 areas. All ten complete topic packs have versioned mathematical verification records.
+- 37 independently authored practice tasks across all ten P1 areas. Thirty
+  tasks in ten complete topic packs have versioned mathematical verification
+  records; seven additional quadratic-equation candidates remain explicitly in
+  maintainer review and cannot enter exam-like variants.
 - Responsive `sr-Latn`, English, and Russian interface. Canonical educational content remains Serbian Latin, matching the exam.
 - Go API with Google OAuth, secure cookie sessions, Postgres migrations, and a gqlgen run/attempt lifecycle.
 

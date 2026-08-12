@@ -76,10 +76,12 @@ AI-оценивание остается вне критического пут�
   owner-scoped hydrated attempt/run;
 - `Prijavi grešku` открывает предзаполненный content-report с task ID и revision,
   не передавая ответ, аккаунт или параметры текущей тренировки;
-- 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
-  прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 510 web unit-тестов, 29 тестов content pipeline,
-  80 функциональных Playwright-сценариев, 38 Linux visual-regression эталонов,
+- 37 авторских задач имеют hash-pinned provenance; 30 задач в 10 полных темах
+  прошли versioned mathematical review, а `kv-004..010` остаются явной
+  maintainer review-очередью только для practice; архив содержит 31 immutable
+  revision;
+- blocking CI включает 513 web unit-тестов, 31 тест content pipeline,
+  82 функциональных Playwright-сценария, 38 Linux visual-regression эталонов,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
@@ -277,9 +279,9 @@ rubric покрывает все 30 независимо проверенных 
 
 ## 4. Контентный поток
 
-Текущие 30 задач подходят для портфолио-preview и проверки механики, но не для
-обещания устойчивой диагностики и разнообразных пробников. Контент идет
-параллельно разработке.
+Текущие 37 practice-задач, из которых 30 имеют статус `verified`, подходят для
+портфолио-preview и проверки механики, но не для обещания устойчивой диагностики
+и разнообразных пробников. Контент идет параллельно разработке.
 
 Предлагаемый launch-gate:
 
@@ -408,8 +410,9 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 1. После готового public landing пересобрать `/cabinet`, Solution и остальные
    существующие routes по точным Figma nodes небольшими UI PR; принимать новые
    visual baselines только после overlay-review.
-2. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
-   review-record при каждом изменении полной темы.
+2. Провести maintainer review очереди `kv-004..010`, затем расширять
+   verified-банк за пределы текущих 30 задач и обновлять независимый
+   review-record при каждом изменении verified-подмножества темы.
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
 4. Расширить visual-regression coverage на ошибки и long Serbian copy на
    360/768/1440 px; для экранов без Figma явно сохранять provisional status.

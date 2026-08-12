@@ -126,8 +126,9 @@
 - `docs/research/global-exam-prep-platforms-2026.ru.md` - конкурентный анализ и
   рекомендуемый P0/P1.
 - `content/topics.yaml` - текущая таксономия контента.
-- `content/tasks/` - 30 авторских задач: по 3 на каждую из 10 областей. Все
-  10 полных тем (30 задач) имеют статус `verified` и versioned review-record.
+- `content/tasks/` - 37 авторских practice-задач в 10 областях. 30 задач в 10
+  полных темах имеют статус `verified` и versioned review-record; `kv-004..010`
+  остаются явной maintainer review-очередью и не входят в exam-like variants.
 - `content/snapshots/tasks/` - append-only архив точных verified Markdown
   revisions, адресованных task ID и SHA-256.
 - `content/sources/` и `tools/content/` - hash-pinned авторские LaTeX-источники,
@@ -174,7 +175,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Публичный landing        | готов по Figma         | literal SR desktop/tablet/mobile, локализация EN/RU и реальные данные P1  |
 | Кабинет                  | provisional skeleton   | прежний functional overview перенесен на `/cabinet`, Figma slice впереди  |
 | Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
-| Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
+| Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 37 practice-задач в 10 областях             |
 | Решение отдельной задачи | готов для preview      | exact checker, подсказки, решение, resume, история и task-report          |
 | Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim   |
 | Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
@@ -185,7 +186,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
-| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions          |
+| Контентный pipeline      | готов                  | 37 provenance-ссылок, 30 verified-задач и 31 immutable revisions          |
 | Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
 Текущие маршруты web:
@@ -339,6 +340,7 @@ content revision, всех task ID и task revisions с owner-scoped hydrated ru
    cookie attributes, Neon migration и rollback.
 3. Umami не блокирует запуск продукта: runtime config fail-closed. Issue #12
    остается открытым до появления vulnerability-clean image.
-4. 30 задач достаточно для portfolio-preview, но не для обещания устойчиво
-   разнообразной подготовки; расширение verified-банка остается отдельным
+4. 37 practice-задач, из которых 30 verified, достаточно для
+   portfolio-preview, но не для обещания устойчиво разнообразной подготовки;
+   maintainer review и дальнейшее расширение verified-банка остаются отдельным
    контентным критическим путем.
