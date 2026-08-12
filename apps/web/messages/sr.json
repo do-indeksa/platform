@@ -175,6 +175,7 @@
   "prep": {
     "title": "Plan pripreme",
     "description": "Lični plan pripreme za FTN P1 sa jednim konkretnim sledećim korakom.",
+    "subtitle": "{count} pozicija · Matematika (P1)",
     "kicker": "P1 · Matematika",
     "intro": "Jedan jasan korak na osnovu tvojih odgovora, grešaka i aktuelne strukture ispita.",
     "loading": "Sastavljamo tvoj plan...",
@@ -244,7 +245,41 @@
       "needsWork": "Treba ponoviti",
       "progressing": "Napreduje",
       "confident": "Sigurno"
-    }
+    },
+    "summaryLabel": "Sažetak plana pripreme",
+    "summaryProgressTitle": "Spremnost u platformi",
+    "summaryCoverage": "Provereno {covered} od {total} pozicija",
+    "summaryExamTitle": "Do ispita",
+    "summaryDateUnset": "Nije postavljeno",
+    "summaryDatePassed": "Datum je prošao",
+    "summaryDays": "{days, plural, =0 {Danas} one {# dan} few {# dana} other {# dana}}",
+    "summaryDatePrompt": "Postavi datum ispita",
+    "summaryGoalTitle": "Cilj",
+    "summaryGoalUnset": "Nije postavljen",
+    "summaryGoalValue": "{goal}/{max} bodova",
+    "summaryGoalContext": "Cilj za P1 vežbanje",
+    "editPlan": "Izmeni plan",
+    "viewsLabel": "Prikaz plana",
+    "view": {
+      "positions": "Po pozicijama",
+      "week": "Ove nedelje",
+      "topics": "Po oblastima"
+    },
+    "methodLink": "Kako radi plan?",
+    "topicsViewLabel": "Napredak po oblastima",
+    "tablePosition": "Pozicija",
+    "tableTopic": "Oblast",
+    "tableProgress": "Napredak",
+    "tableStatus": "Status",
+    "tableEvidence": "Nedavni odgovori",
+    "positionSignalNone": "Nema podataka",
+    "positionSignalErrors": "{count, plural, one {# greška} few {# greške} other {# grešaka}}",
+    "positionSignalHints": "{count, plural, one {# uz pomoć} few {# uz pomoć} other {# uz pomoć}}",
+    "positionSignalAnswers": "{count, plural, one {# odgovor} few {# odgovora} other {# odgovora}}",
+    "factsLabel": "Aktuelni detalji plana",
+    "factTodayTitle": "Današnji obim",
+    "factTodayValue": "{completed}/{total} gotovo · oko {minutes} min",
+    "factPlanDateTitle": "Plan važi do"
   },
   "diagnostic": {
     "title": "Proveri svoj početni nivo",
@@ -446,7 +481,19 @@
     "planimetrija": "Planimetrija",
     "stereometrija": "Stereometrija",
     "analiza-funkcije": "Analiza funkcije i integral",
-    "kombinatorika": "Kombinatorika"
+    "kombinatorika": "Kombinatorika",
+    "description": {
+      "kompleksni-brojevi": "Algebarski i trigonometrijski oblik, modul i argument",
+      "kvadratna-jednacina": "Koreni, parametri i Vijetove formule",
+      "logaritmi": "Jednačine, nejednačine i uslovi definisanosti",
+      "eksponencijalne": "Jednačine, nejednačine i eksponencijalne funkcije",
+      "trigonometrija": "Identiteti, jednačine i znak funkcije",
+      "vektori-analitika": "Vektori, koordinate i analitička geometrija",
+      "planimetrija": "Trouglovi, četvorouglovi i kružnice",
+      "stereometrija": "Poliedri, obrtna tela, površina i zapremina",
+      "analiza-funkcije": "Izvodi, granične vrednosti i integrali",
+      "kombinatorika": "Prebrojavanje, permutacije i kombinacije"
+    }
   },
   "taskBank": {
     "favorites": "Omiljeno",

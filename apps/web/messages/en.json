@@ -175,6 +175,7 @@
   "prep": {
     "title": "Preparation plan",
     "description": "A personal FTN P1 preparation plan with one concrete next action.",
+    "subtitle": "{count} positions · Mathematics (P1)",
     "kicker": "P1 · Mathematics",
     "intro": "One clear step based on your answers, mistakes and the current exam structure.",
     "loading": "Building your plan...",
@@ -244,7 +245,41 @@
       "needsWork": "Needs work",
       "progressing": "Developing",
       "confident": "Confident"
-    }
+    },
+    "summaryLabel": "Preparation plan summary",
+    "summaryProgressTitle": "Practice readiness",
+    "summaryCoverage": "Checked {covered} of {total} positions",
+    "summaryExamTitle": "Until the exam",
+    "summaryDateUnset": "Not set",
+    "summaryDatePassed": "Date has passed",
+    "summaryDays": "{days, plural, =0 {Today} one {# day} other {# days}}",
+    "summaryDatePrompt": "Set exam date",
+    "summaryGoalTitle": "Goal",
+    "summaryGoalUnset": "Not set",
+    "summaryGoalValue": "{goal}/{max} points",
+    "summaryGoalContext": "P1 practice target",
+    "editPlan": "Edit plan",
+    "viewsLabel": "Plan view",
+    "view": {
+      "positions": "By position",
+      "week": "This week",
+      "topics": "By topic"
+    },
+    "methodLink": "How does the plan work?",
+    "topicsViewLabel": "Progress by topic",
+    "tablePosition": "Position",
+    "tableTopic": "Topic",
+    "tableProgress": "Progress",
+    "tableStatus": "Status",
+    "tableEvidence": "Recent answers",
+    "positionSignalNone": "No data",
+    "positionSignalErrors": "{count, plural, one {# mistake} other {# mistakes}}",
+    "positionSignalHints": "{count, plural, one {# assisted} other {# assisted}}",
+    "positionSignalAnswers": "{count, plural, one {# answer} other {# answers}}",
+    "factsLabel": "Current plan details",
+    "factTodayTitle": "Today's workload",
+    "factTodayValue": "{completed}/{total} done · about {minutes} min",
+    "factPlanDateTitle": "Plan runs until"
   },
   "diagnostic": {
     "title": "Check your starting level",
@@ -446,7 +481,19 @@
     "planimetrija": "Plane geometry",
     "stereometrija": "Solid geometry",
     "analiza-funkcije": "Function analysis and integrals",
-    "kombinatorika": "Combinatorics"
+    "kombinatorika": "Combinatorics",
+    "description": {
+      "kompleksni-brojevi": "Algebraic and trigonometric forms, modulus and argument",
+      "kvadratna-jednacina": "Roots, parameters and Vieta's formulas",
+      "logaritmi": "Equations, inequalities and domains",
+      "eksponencijalne": "Equations, inequalities and exponential functions",
+      "trigonometrija": "Identities, equations and signs of functions",
+      "vektori-analitika": "Vectors, coordinates and analytic geometry",
+      "planimetrija": "Triangles, quadrilaterals and circles",
+      "stereometrija": "Solids, surfaces and volumes",
+      "analiza-funkcije": "Derivatives, limits and integrals",
+      "kombinatorika": "Counting, permutations and combinations"
+    }
   },
   "taskBank": {
     "favorites": "Favorites",

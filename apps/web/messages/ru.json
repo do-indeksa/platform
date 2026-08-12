@@ -175,6 +175,7 @@
   "prep": {
     "title": "План подготовки",
     "description": "Персональный план подготовки к вступительному экзамену P1 с конкретным следующим действием.",
+    "subtitle": "{count} позиций · Математика (P1)",
     "kicker": "P1 · Математика",
     "intro": "Один понятный шаг на основе ваших ответов, ошибок и текущей структуры экзамена.",
     "loading": "Собираем ваш план...",
@@ -244,7 +245,41 @@
       "needsWork": "Нужно повторить",
       "progressing": "Есть прогресс",
       "confident": "Уверенно"
-    }
+    },
+    "summaryLabel": "Сводка плана подготовки",
+    "summaryProgressTitle": "Готовность в тренажёре",
+    "summaryCoverage": "Проверено {covered} из {total} позиций",
+    "summaryExamTitle": "До экзамена",
+    "summaryDateUnset": "Не задано",
+    "summaryDatePassed": "Дата прошла",
+    "summaryDays": "{days, plural, =0 {Сегодня} one {# день} few {# дня} many {# дней} other {# дня}}",
+    "summaryDatePrompt": "Укажите дату экзамена",
+    "summaryGoalTitle": "Цель",
+    "summaryGoalUnset": "Не задана",
+    "summaryGoalValue": "{goal}/{max} баллов",
+    "summaryGoalContext": "Цель практики P1",
+    "editPlan": "Редактировать план",
+    "viewsLabel": "Вид плана",
+    "view": {
+      "positions": "По позициям",
+      "week": "На неделю",
+      "topics": "По темам"
+    },
+    "methodLink": "Как работает план?",
+    "topicsViewLabel": "Прогресс по темам",
+    "tablePosition": "Позиция",
+    "tableTopic": "Тема",
+    "tableProgress": "Прогресс",
+    "tableStatus": "Статус",
+    "tableEvidence": "Недавние ответы",
+    "positionSignalNone": "Нет данных",
+    "positionSignalErrors": "{count, plural, one {# ошибка} few {# ошибки} many {# ошибок} other {# ошибки}}",
+    "positionSignalHints": "{count, plural, one {# с подсказкой} few {# с подсказкой} many {# с подсказкой} other {# с подсказкой}}",
+    "positionSignalAnswers": "{count, plural, one {# ответ} few {# ответа} many {# ответов} other {# ответа}}",
+    "factsLabel": "Актуальные детали плана",
+    "factTodayTitle": "План на сегодня",
+    "factTodayValue": "{completed}/{total} готово · около {minutes} мин",
+    "factPlanDateTitle": "План составлен до"
   },
   "diagnostic": {
     "title": "Проверьте свой стартовый уровень",
@@ -446,7 +481,19 @@
     "planimetrija": "Планиметрия",
     "stereometrija": "Стереометрия",
     "analiza-funkcije": "Исследование функций и интегралы",
-    "kombinatorika": "Комбинаторика"
+    "kombinatorika": "Комбинаторика",
+    "description": {
+      "kompleksni-brojevi": "Алгебраическая и тригонометрическая формы, модуль и аргумент",
+      "kvadratna-jednacina": "Корни, параметры и формулы Виета",
+      "logaritmi": "Уравнения, неравенства и область определения",
+      "eksponencijalne": "Уравнения, неравенства и показательные функции",
+      "trigonometrija": "Тождества, уравнения и знаки функций",
+      "vektori-analitika": "Векторы, координаты и аналитическая геометрия",
+      "planimetrija": "Треугольники, четырёхугольники и окружности",
+      "stereometrija": "Многогранники, тела вращения, площади и объёмы",
+      "analiza-funkcije": "Производные, пределы и интегралы",
+      "kombinatorika": "Подсчёт, перестановки и сочетания"
+    }
   },
   "taskBank": {
     "favorites": "Избранное",

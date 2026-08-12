@@ -60,7 +60,7 @@ export function NextActionCard({
 
   return (
     <section
-      data-testid="next-action"
+      data-testid="next-action-card"
       className="overflow-hidden rounded-lg bg-emphasis px-5 py-6 text-white sm:px-7 sm:py-7"
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-cyan-300">

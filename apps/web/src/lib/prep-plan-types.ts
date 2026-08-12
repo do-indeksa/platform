@@ -9,6 +9,7 @@ export const PREP_LIGHT_TASK_COUNT = 2;
 export type PrepPositionDefinition = {
   number: number;
   name: string;
+  description?: string;
   topicSlugs: string[];
 };
 
