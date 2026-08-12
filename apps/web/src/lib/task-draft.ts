@@ -1,5 +1,13 @@
 export const MAX_ANSWER_LENGTH = 200;
 export const MAX_TASK_ANSWER_PARTS = 6;
+export const TASK_DRAFT_STORAGE_PREFIX = "do-indeksa-task-draft-v1:";
+
+export function taskDraftStorageKey(
+  taskId: string,
+  practiceId: string | null,
+): string {
+  return `${TASK_DRAFT_STORAGE_PREFIX}${practiceId ? `${practiceId}:` : ""}${taskId}`;
+}
 
 export type TaskCheckView =
   "form" | "incorrect" | "hint" | "solution" | "correct";

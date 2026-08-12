@@ -6,6 +6,7 @@ import { checkAnswer, type CheckPart } from "./answer";
 import {
   getTaskReferences,
   getTaskSummaries,
+  getTaskWorkspaceReferences,
   getTasks,
   getTopics,
   taskSetRevision,
@@ -105,6 +106,18 @@ describe("task files", () => {
       topic: "kompleksni-brojevi",
     });
     expect(references[0]).not.toHaveProperty("statementPreviewHtml");
+  });
+
+  it("exposes task shape metadata for persisted workspace drafts", async () => {
+    const references = await getTaskWorkspaceReferences();
+    expect(references).toHaveLength(30);
+    expect(references[0]).toEqual({
+      id: "kb-001",
+      slot: 1,
+      topic: "kompleksni-brojevi",
+      partCount: 4,
+      maxHints: 2,
+    });
   });
 
   it("creates a readable search index from Markdown and math", () => {

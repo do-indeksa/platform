@@ -64,8 +64,15 @@ export type TaskSummary = Pick<
 
 export type TaskReference = Pick<Task, "id" | "slot" | "topic">;
 
+export type TaskWorkspaceReference = TaskReference & {
+  partCount: number;
+  maxHints: number;
+};
+
 let taskSummariesPromise: Promise<TaskSummary[]> | undefined;
 let taskReferencesPromise: Promise<TaskReference[]> | undefined;
+let taskWorkspaceReferencesPromise:
+  Promise<TaskWorkspaceReference[]> | undefined;
 
 export async function getTopics(): Promise<Topic[]> {
   const raw = await fs.readFile(path.join(contentDir, "topics.yaml"), "utf8");
@@ -163,6 +170,16 @@ export function getTaskReferences(): Promise<TaskReference[]> {
   return taskReferencesPromise;
 }
 
+export function getTaskWorkspaceReferences(): Promise<
+  TaskWorkspaceReference[]
+> {
+  if (process.env.NODE_ENV === "development") {
+    return buildTaskWorkspaceReferences();
+  }
+  taskWorkspaceReferencesPromise ??= buildTaskWorkspaceReferences();
+  return taskWorkspaceReferencesPromise;
+}
+
 async function buildTaskSummaries(): Promise<TaskSummary[]> {
   const topics = await getTopics();
   const groups = await Promise.all(
@@ -193,6 +210,26 @@ async function buildTaskReferences(): Promise<TaskReference[]> {
         slot,
         topic: taskTopic,
       })),
+    ),
+  );
+  return groups.flat();
+}
+
+async function buildTaskWorkspaceReferences(): Promise<
+  TaskWorkspaceReference[]
+> {
+  const topics = await getTopics();
+  const groups = await Promise.all(
+    topics.map(async (topic) =>
+      (await getTasks(topic.slug)).map(
+        ({ id, slot, topic: taskTopic, check, hints }) => ({
+          id,
+          slot,
+          topic: taskTopic,
+          partCount: check.length,
+          maxHints: hints.length,
+        }),
+      ),
     ),
   );
   return groups.flat();
