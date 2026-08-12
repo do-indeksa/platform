@@ -25,8 +25,10 @@ export function useTaskCheckState(
   maxHints: number,
   confirmMessage: string,
   practiceId: string | null,
-): [TaskCheckState, Dispatch<SetStateAction<TaskCheckState>>] {
+): [TaskCheckState, Dispatch<SetStateAction<TaskCheckState>>, boolean] {
   const restoring = useRef(true);
+  const restorationKey = [taskId, practiceId, partCount, maxHints].join(":");
+  const [restoredKey, setRestoredKey] = useState<string | null>(null);
   const [state, setState] = useState<TaskCheckState>(() => ({
     ...createTaskDraft(partCount),
     results: null,
@@ -42,7 +44,8 @@ export function useTaskCheckState(
     // Session storage is external state and can only be restored after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ ...(draft ?? createTaskDraft(partCount)), results: null });
-  }, [maxHints, partCount, practiceId, taskId]);
+    setRestoredKey(restorationKey);
+  }, [maxHints, partCount, practiceId, restorationKey, taskId]);
 
   useEffect(() => {
     if (restoring.current) {
@@ -53,7 +56,7 @@ export function useTaskCheckState(
   }, [practiceId, state, taskId]);
 
   useUnsavedExitGuard(state.dirty, confirmMessage);
-  return [state, setState];
+  return [state, setState, restoredKey === restorationKey];
 }
 
 function toDraft(state: TaskCheckState): TaskDraft {

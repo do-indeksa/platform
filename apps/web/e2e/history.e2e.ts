@@ -95,11 +95,18 @@ test("hints stay metadata and an explicit solution reveal is journaled", async (
   page,
 }) => {
   await page.goto("/en/tasks/kompleksni-brojevi/kb-001");
-  await page.getByRole("textbox", { name: "t", exact: true }).fill("0");
+  const firstAnswer = page.getByRole("textbox", { name: "t", exact: true });
+  await firstAnswer.fill("0");
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-draft-state",
+    "ready",
+  );
   await page.getByRole("textbox", { name: "|z|", exact: true }).fill("0");
   await page.getByRole("textbox", { name: "Re z", exact: true }).fill("0");
   await page.getByRole("textbox", { name: "Im z", exact: true }).fill("0");
+  await expect(firstAnswer).toHaveValue("0");
   await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByText("Not quite", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Show hint", exact: true }).click();
   await page.getByRole("button", { name: "Next step", exact: true }).click();
   await page

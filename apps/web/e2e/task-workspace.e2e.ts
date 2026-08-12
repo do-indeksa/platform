@@ -124,12 +124,30 @@ for (const viewport of railGeometryCases) {
           `do-indeksa-task-draft-v1:${practice}:kv-001`,
           draft(1, "skipped"),
         );
+        sessionStorage.setItem(
+          `do-indeksa-task-draft-v1:${practice}:log-001`,
+          JSON.stringify({
+            answers: ["persisted"],
+            view: "form",
+            attempted: false,
+            hintsShown: 0,
+            solved: false,
+            burned: false,
+            dirty: true,
+          }),
+        );
       },
       { practice: practiceId },
     );
     await page.goto(
       `/tasks/logaritmi/log-001?returnTo=%2Ftasks&set=kb-001%2Ckv-001%2Clog-001%2Ceks-001&practice=${practiceId}`,
     );
+
+    await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+      "data-draft-state",
+      "ready",
+    );
+    await expect(page.getByRole("textbox").first()).toHaveValue("persisted");
 
     const items = page.locator("[data-task-rail-item]");
     await expect(items).toHaveCount(4);
