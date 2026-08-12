@@ -86,8 +86,8 @@ test("builder controls produce a bounded practice and return to the draft", asyn
   await expect(page).toHaveURL(
     /\/en\/tasks\/.+\?returnTo=%2Ftraining%2Fnew&set=.+&practice=[0-9a-f-]{36}$/,
   );
-  await expect(page.getByText("Task 1 of 4", { exact: true })).toBeVisible();
-  await page.getByRole("link", { name: "Exit task" }).click();
+  await expect(page.getByText("1 of 4 tasks", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /Back to practice/ }).click();
   await expect(page).toHaveURL(/\/en\/training\/new$/);
   await expect(
     page.getByRole("button", { name: "Local draft restored" }),
