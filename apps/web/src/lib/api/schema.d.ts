@@ -175,6 +175,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description OAuth provider is temporarily unavailable */
+        BadGateway: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
         /** @description Unexpected server failure */
         Internal: {
             headers: {
@@ -241,6 +250,7 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             500: components["responses"]["Internal"];
+            502: components["responses"]["BadGateway"];
         };
     };
     exchangeAuthCode: {

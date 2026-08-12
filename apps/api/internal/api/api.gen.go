@@ -100,6 +100,9 @@ type User struct {
 	PictureUrl *string             `json:"pictureUrl,omitempty"`
 }
 
+// BadGateway defines model for BadGateway.
+type BadGateway = Error
+
 // BadRequest defines model for BadRequest.
 type BadRequest = Error
 
