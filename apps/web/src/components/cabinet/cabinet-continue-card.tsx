@@ -43,10 +43,13 @@ export function CabinetContinueCard({
     <section
       data-testid="continue-run"
       data-design-status={exact}
-      className="relative flex h-[642px] flex-col overflow-hidden rounded-[20px] bg-subtle p-6 md:h-[322px] md:flex-row md:p-8"
+      className="relative flex h-[642px] flex-col overflow-hidden rounded-[20px] bg-subtle p-6 md:h-[390px] md:flex-row md:p-8 lg:h-[322px]"
       aria-labelledby="cabinet-continue-title"
     >
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col md:max-w-[520px] xl:max-w-[560px]">
+      <div
+        data-testid="continue-run-content"
+        className="relative z-10 flex min-w-0 flex-1 flex-col md:max-w-[340px] lg:max-w-[520px] xl:max-w-[560px]"
+      >
         <p className="text-xs font-semibold text-brand uppercase">
           {content.kicker}
         </p>
@@ -91,7 +94,7 @@ export function CabinetContinueCard({
           ))}
         </div>
 
-        <div className="mt-3 grid gap-2 md:grid-cols-[180px_230px]">
+        <div className="mt-3 grid gap-2 md:grid-cols-2 lg:grid-cols-[180px_230px]">
           <CabinetLinkButton href={content.primaryHref} variant="primary">
             {content.primaryLabel}
           </CabinetLinkButton>
@@ -101,7 +104,10 @@ export function CabinetContinueCard({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-end justify-center pt-5 md:absolute md:inset-y-0 md:right-8 md:w-[360px] md:items-center md:pt-0 xl:right-14 xl:w-[380px]">
+      <div
+        data-testid="continue-run-artwork"
+        className="flex min-h-0 flex-1 items-end justify-center pt-5 md:absolute md:inset-y-0 md:right-4 md:w-[240px] md:items-center md:pt-0 lg:right-8 lg:w-[360px] xl:right-14 xl:w-[380px]"
+      >
         <Image
           src="/cabinet/preparation-book.png"
           alt=""
@@ -109,7 +115,7 @@ export function CabinetContinueCard({
           height={1024}
           priority
           sizes="(max-width: 767px) 260px, 360px"
-          className="h-auto w-[260px] object-contain md:w-[330px] xl:w-[360px]"
+          className="h-auto w-[260px] object-contain md:w-[230px] lg:w-[330px] xl:w-[360px]"
         />
       </div>
     </section>
