@@ -18,6 +18,7 @@ for (const variant of variants) {
       await expect(
         page.getByRole("heading", { name: "Задания", exact: true }),
       ).toBeVisible();
+      if (variant.width >= 768) await waitForSignedInHeader(page);
       await waitForFonts(page);
 
       await expect(page).toHaveScreenshot(`task-bank-ru-${variant.name}.png`);
@@ -35,6 +36,7 @@ test.describe("task-bank-states", () => {
       { waitUntil: "networkidle" },
     );
     await expect(page.getByText("Выбрано: 3", { exact: true })).toBeVisible();
+    await waitForSignedInHeader(page);
     await waitForFonts(page);
 
     await expect(page).toHaveScreenshot("task-bank-ru-selected-tablet.png");
@@ -48,6 +50,7 @@ test.describe("task-bank-states", () => {
     await expect(
       page.getByRole("heading", { name: "Ничего не найдено" }),
     ).toBeVisible();
+    await waitForSignedInHeader(page);
     await waitForFonts(page);
 
     await expect(page).toHaveScreenshot("task-bank-ru-empty-tablet.png");
@@ -69,6 +72,16 @@ async function installTaskBankFixture(page: Page) {
       json: { data: { attempts: [], completedSimulationRuns: [] } },
     }),
   );
+}
+
+async function waitForSignedInHeader(page: Page) {
+  await expect(
+    page
+      .getByTestId("site-header")
+      .locator("summary")
+      .getByText("Полина", { exact: true })
+      .last(),
+  ).toBeVisible();
 }
 
 async function waitForFonts(page: Page) {
