@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "collection": "ftn-p1-thematic-sr",
+  "defaults": {
+    "source": "Do indeksa (autorski)",
+    "status": "review"
+  },
+  "tasks": [
+    {
+      "id": "kv-004",
+      "slot": 2,
+      "selector": "3b",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 3,
+      "answer": "$m=6$",
+      "check": [{ "label": "m", "kind": "value", "expected": "6" }],
+      "hints": [
+        "Označi koren koji se kvadrira sa $t$. Vijetov proizvod korena pretvara uslov $x_1=x_2^2$ u jednačinu samo po $t$.",
+        "Ako je $x_2=t$, onda je $x_1=t^2$ i $t^3=8$. Posle nalaženja $t$, parametar je $m=x_1+x_2$."
+      ]
+    },
+    {
+      "id": "kv-005",
+      "slot": 2,
+      "selector": "3c",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 2,
+      "answer": "$m=4$",
+      "check": [{ "label": "m", "kind": "value", "expected": "4" }],
+      "hints": [
+        "Spoji dati linearni odnos korena sa Vijetovom formulom za njihov zbir; tako dobijaš sistem od dve linearne jednačine.",
+        "Koristi $x_1+x_2=5$ i $2x_1-x_2=7$. Kada nađeš oba korena, traženi parametar je njihov proizvod."
+      ]
+    },
+    {
+      "id": "kv-006",
+      "slot": 2,
+      "selector": "4a",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 4,
+      "answer": "maksimum je $9$ za $m=3$",
+      "check": [
+        { "label": "maksimum", "kind": "value", "expected": "9" },
+        { "label": "m", "kind": "value", "expected": "3" }
+      ],
+      "hints": [
+        "Najpre odredi za koje $m$ postoje realni koreni. Zatim izraz $x_1^2+x_2^2$ napiši preko zbira i proizvoda korena.",
+        "Diskriminanta daje zatvoren interval za $m$, a $x_1^2+x_2^2=(x_1+x_2)^2-2x_1x_2$ postaje kvadratna funkcija na tom intervalu. Ekstrem traži u temenu i na krajevima."
+      ]
+    },
+    {
+      "id": "kv-007",
+      "slot": 2,
+      "selector": "4b",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 4,
+      "answer": "minimum je $2$ za $m=-1$",
+      "check": [
+        { "label": "minimum", "kind": "value", "expected": "2" },
+        { "label": "m", "kind": "value", "expected": "-1" }
+      ],
+      "hints": [
+        "Najpre odredi za koje $m$ postoje realni koreni. Zatim izraz $x_1^2+x_2^2$ napiši preko zbira i proizvoda korena.",
+        "Uslov $D\\ge 0$ deli dozvoljene vrednosti $m$ na dva intervala. Kvadratnu funkciju uporedi u temenu ako pripada domenu i na graničnim tačkama oba intervala."
+      ]
+    },
+    {
+      "id": "kv-008",
+      "slot": 2,
+      "selector": "5a",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 2,
+      "answer": "$3,5,7$",
+      "check": [{ "kind": "values", "expected": "3,5,7" }],
+      "hints": [
+        "Tri člana aritmetičke progresije zapiši simetrično oko srednjeg: $a-d,a,a+d$.",
+        "Iz zbira odmah odredi $a$. Kada kvadriraš i sabereš članove, linearni članovi po $d$ se poništavaju i ostaje jednačina po $d^2$."
+      ]
+    },
+    {
+      "id": "kv-009",
+      "slot": 2,
+      "selector": "5b",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 3,
+      "answer": "$2,6,18$",
+      "check": [{ "kind": "values", "expected": "2,6,18" }],
+      "hints": [
+        "Tri pozitivna člana geometrijske progresije zapiši kao $b/q,b,bq$, uz $q>0$.",
+        "Proizvod određuje srednji član $b$. Uslov za zbir potom, posle množenja sa $q$, daje kvadratnu jednačinu po $q$; recipročna rešenja opisuju isti skup članova."
+      ]
+    },
+    {
+      "id": "kv-010",
+      "slot": 2,
+      "selector": "5c",
+      "topic": "kvadratna-jednacina",
+      "difficulty": 2,
+      "answer": "$x\\in\\left\\{0,\\dfrac{10}{3}\\right\\}$",
+      "check": [{ "kind": "values", "expected": "0,10/3" }],
+      "hints": [
+        "Apsolutne vrednosti menjaju znak u $x=1$ i $x=2$. Rešavaj jednačinu po intervalima određenim tim tačkama.",
+        "Na svakom od intervala $(-\\infty,1)$, $[1,2]$ i $(2,\\infty)$ ukloni apsolutne vrednosti odgovarajućim znakom, reši linearnu jednačinu i proveri pripadnost kandidata."
+      ]
+    }
+  ]
+}
