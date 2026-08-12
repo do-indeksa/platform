@@ -181,7 +181,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |
 | Пробный экзамен          | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор    |
 | История                  | готова для preview     | sync, фильтры, immutable task/mock detail и честный score trend полных P1 |
-| Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                     |
+| Персональный план        | готов по Figma         | exact RU desktop/mobile, реальные 10 позиций, цель, next action и resume  |
 | Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
