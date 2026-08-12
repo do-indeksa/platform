@@ -182,7 +182,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Пробный экзамен          | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор    |
 | История                  | готова для preview     | sync, фильтры, immutable task/mock detail и честный score trend полных P1 |
 | Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                     |
-| Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
+| Конструктор тренировки   | готов по Figma         | `/training/new`, реальные P1-позиции, bounded set и local-only draft      |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
 | Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions          |
@@ -190,7 +190,8 @@ EN и SR, гостевые и авторизованные состояния.
 
 Текущие маршруты web:
 
-`/`, `/cabinet`, `/prep`, `/tasks`, `/tasks/[topic]`, `/tasks/[topic]/[id]`,
+`/`, `/cabinet`, `/prep`, `/training/new`, `/tasks`, `/tasks/[topic]`,
+`/tasks/[topic]/[id]`,
 `/diagnostic`, `/diagnostic/new`, `/diagnostic/result`, `/simulation`,
 `/simulation/new`, `/simulation/result`, `/history`, `/exams`,
 `/exams/[examId]`, `/faculties/ftn`, `/calculator` во всех трех locale.

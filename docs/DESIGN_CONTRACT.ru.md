@@ -96,7 +96,7 @@ mobile-навигацию, поэтому она не входит в целев
 | P1 overview / cabinet  | Functional overview перенесен на `/cabinet` и явно помечен provisional до отдельного UI slice      | W-01/W-02, S-01                                                               | Cabinet SR `154:572` / `154:916`            | Повторить nodes на отдельной app surface; реальные данные подставлять в те же widgets                                |
 | Task bank              | `/tasks` функционален, но визуально и композиционно не совпадает                                   | W-03, S-02                                                                    | RU default `195:141` / `195:1090`           | Пересобрать по этим nodes; отсутствующую функциональность довести или временно реализовать честным provisional state |
 | Task workspace         | Standalone task, diagnostic и simulation имеют собственные shells, не совпадающие с Figma Solution | W-04/W-05/W-07/W-09, S-03/S-04/S-06/S-08                                      | Solution SR `155:477` / `155:757`           | Standalone/practice workspace повторяет nodes; exam-only ограничения меняют поведение, а не произвольно композицию   |
-| Training builder       | Быстрый builder находится на overview; selected tasks стартуют из банка                            | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                      | Реализовать отдельный экран по nodes, заменив предметы на позиции/темы P1 в существующих slots                       |
+| Training builder       | `/training/new` повторяет desktop/mobile nodes; SR/EN/RU используют реальные позиции P1            | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                      | Поддерживать Figma-композицию, bounded sequence и честный local-only draft до появления server model                 |
 | Study plan             | `/prep` функционален, но имеет самостоятельную композицию                                          | W-10, S-09                                                                    | RU `214:4` / `214:450`                      | Пересобрать по nodes; фактический next action, readiness и progress занимают соответствующие Figma widgets           |
 | History                | `/history` функционален, но имеет самостоятельную композицию                                       | W-11, S-10                                                                    | RU all history `223:8` / `223:1160`         | Пересобрать populated/empty/filter states по nodes и подставить реальные attempt/run types                           |
 | Diagnostic result      | Реализован отдельный честный стартовый результат                                                   | W-09, S-08                                                                    | Отдельного production-ready экрана нет      | Считать provisional skeleton до появления утвержденного Figma node; доменная модель остается рабочей                 |
@@ -136,6 +136,17 @@ Figma Solution задает обязательную desktop/mobile композ
 navigation, условие/ответ и help. Она воспроизводится без собственного shell и
 перестановок. Подсказки разблокируются по текущим правилам; в simulation помощь
 и мгновенная правильность отсутствуют до сдачи.
+
+### Training builder
+
+Отдельный `/training/new` воспроизводит desktop `219:4` (`1440x1100`) и mobile
+`219:424` (`390x2380`). Physics/P2 заменен текущей версией единственного
+поддерживаемого P1, а общешкольные типы задач - десятью позициями актуального
+blueprint в тех же slots. Количество ограничено опубликованным банком и десятью
+уникальными задачами; difficulty, новые задачи, перемешивание и приоритет ошибок
+влияют на реальную последовательность. Черновик хранится только на устройстве,
+версионируется и валидируется как недоверенный ввод. Cross-device catalog не
+имитируется до появления отдельной authenticated server model.
 
 ### Plan
 

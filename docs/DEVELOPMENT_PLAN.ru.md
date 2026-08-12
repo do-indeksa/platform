@@ -61,6 +61,9 @@ AI-оценивание остается вне критического пут�
 - публичный `/` буквально воспроизводит canonical Figma landing на
   desktop/tablet/mobile; прежний functional overview изолирован на явно
   provisional `/cabinet`;
+- `/training/new` воспроизводит Figma Training Builder на desktop/mobile,
+  использует актуальные позиции blueprint, owner-visible attempts и запускает
+  реальную bounded practice sequence; сохранение draft пока local-only;
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
@@ -78,8 +81,8 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 510 web unit-тестов, 29 тестов content pipeline,
-  80 функциональных Playwright-сценариев, 38 Linux visual-regression эталонов,
+- blocking CI включает 523 web unit-теста, 29 тестов content pipeline,
+  88 функциональных Playwright-сценариев, 41 Linux visual-regression эталон,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
@@ -187,6 +190,8 @@ Analytics сознательно fail-closed до безопасного image.
 
 Работы:
 
+- поддерживать отдельный Figma Training Builder с ручным выбором позиций,
+  количеством, difficulty order, новыми задачами и повтором ошибок;
 - сформировать набор на 15-25 минут из 3-5 задач;
 - приоритизировать слабые и непроверенные области;
 - добавить повтор ошибок и постепенное повышение сложности;
