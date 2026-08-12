@@ -99,7 +99,7 @@ test("invalid persisted input is ignored and all P1 positions stay reachable", a
 }) => {
   await page.addInitScript(() => {
     localStorage.setItem(
-      "do-indeksa-training-builder",
+      "do-indeksa-training-builder-v2:guest",
       JSON.stringify({
         version: 1,
         blueprintVersion: "2025.1",
