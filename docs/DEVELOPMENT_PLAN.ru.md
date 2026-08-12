@@ -1,6 +1,6 @@
 # Do indeksa: план разработки MVP
 
-Срез плана: 11 августа 2026 года. Основа решений -
+Срез плана: 12 августа 2026 года. Основа решений -
 `docs/PROJECT_INDEX.ru.md`.
 
 ## 1. Цель MVP
@@ -63,12 +63,15 @@ AI-оценивание остается вне критического пут�
   program data в исходной композиции;
 - `/training/new` воспроизводит Figma Training Builder на desktop/mobile,
   использует актуальные позиции blueprint, owner-visible attempts и запускает
-  реальную bounded practice sequence; сохранение draft пока local-only;
+  реальную bounded practice sequence; local-only draft изолирован по UUID/guest
+  owner и скрыт до завершения auth hydration;
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
 - Task Workspace draft, rail status и clock изолированы по UUID/guest owner;
   legacy unowned session state игнорируется, controls ждут owner hydration;
+- Training Builder draft изолирован по UUID/guest owner; legacy unowned draft
+  не присваивается новому владельцу, controls ждут owner hydration;
 - активная диагностика синхронизирует append-only attempts и versioned draft,
   восстанавливается на другом устройстве и требует явного решения CAS-конфликта;
 - пробник синхронизирует frozen assignment и versioned drafts, сохраняет
@@ -83,8 +86,8 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 556 web unit-тестов, 30 тестов content pipeline,
-  113 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
+- blocking CI включает 557 web unit-тестов, 30 тестов content pipeline,
+  114 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,

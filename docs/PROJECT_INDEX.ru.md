@@ -1,6 +1,6 @@
 # Do indeksa: индекс проекта и продуктовая правда
 
-Срез состояния: 11 августа 2026 года.
+Срез состояния: 12 августа 2026 года.
 
 Этот документ связывает продуктовые документы, исследования FTN, дизайн и
 фактическую реализацию. Он не заменяет первоисточники. Его задача - дать одну
@@ -182,11 +182,12 @@ EN и SR, гостевые и авторизованные состояния.
 | Пробный экзамен          | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор     |
 | История                  | готова по Figma        | unified owner-scoped feed, immutable details, P1 filters и score trend     |
 | Персональный план        | готов по Figma         | exact RU desktop/mobile, реальные 10 позиций, цель, next action и resume   |
-| Конструктор тренировки   | готов по Figma         | `/training/new`, реальные P1-позиции, bounded set и local-only draft       |
+| Конструктор тренировки   | готов по Figma         | bounded set; local draft изолирован по UUID/guest и ждёт owner hydration   |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор       |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                      |
 | Auth bootstrap           | fail-closed            | только `401` включает guest-mode; временный сбой сохраняет private runtime |
 | Task session ownership   | fail-closed            | draft, rail и clock изолированы по UUID/guest и скрыты до owner hydration  |
+| Training draft ownership | fail-closed            | UUID/guest scopes; unowned legacy draft не мигрирует автоматически         |
 | Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions           |
 | Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed             |
 
@@ -209,6 +210,9 @@ owner и показывают provisional retry-state без раскрытия 
 Task Workspace продолжает эту границу: `sessionStorage` draft, rail status и
 practice clock используют отдельный UUID/guest scope, а legacy unowned `v1`
 данные не присваиваются аккаунту.
+Training Builder применяет ту же границу к вручную сохранённому `localStorage`
+draft: до подтверждения UUID/guest используется только нейтральный default и
+mutating controls отключены; unowned legacy key не читается и не мигрирует.
 
 ## 6. Разбор PDF и Figma
 
