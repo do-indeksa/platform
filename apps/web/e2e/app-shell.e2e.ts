@@ -208,8 +208,8 @@ test("selected tasks form a bounded practice sequence and return intact", async 
   await page.getByRole("link", { name: "Решать выбранные задания" }).click();
 
   await expect(page).toHaveURL(/set=kb-001%2Ckv-001/);
-  await expect(page.getByText("Задание 1 из 2", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("site-header")).toHaveCount(0);
+  await expect(page.getByText("1 из 2 заданий", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("site-header")).toBeVisible();
 
   await page.getByRole("textbox", { name: "t", exact: true }).fill("1");
   await page
@@ -225,9 +225,9 @@ test("selected tasks form a bounded practice sequence and return intact", async 
   });
   await page.getByRole("link", { name: "Следующее задание" }).click();
   await expect(page).toHaveURL(/\/kvadratna-jednacina\/kv-001\?/);
-  await expect(page.getByText("Задание 2 из 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 из 2 заданий", { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "Выйти из задания" }).click();
+  await page.getByRole("link", { name: "Назад к практике" }).click();
   await expect(page).toHaveURL(/\/ru\/tasks\?selected=kb-001&selected=kv-001$/);
   await expect(page.getByText("Выбрано: 2", { exact: true })).toBeVisible();
   await expect

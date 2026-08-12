@@ -115,11 +115,10 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
 
   await page.getByRole("link", { name: "Start short practice" }).click();
   await expect(page).toHaveURL(/\/en\/tasks\/kvadratna-jednacina\/kv-002\?/);
-  await expect(page.getByText("Task 1 of 3", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Exit task" })).toHaveAttribute(
-    "href",
-    "/en/prep",
-  );
+  await expect(page.getByText("1 of 3 tasks", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Back to practice/ }),
+  ).toHaveAttribute("href", "/en/prep");
 });
 
 test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", async ({
