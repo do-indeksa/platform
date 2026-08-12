@@ -1,6 +1,8 @@
 import type { Page } from "@playwright/test";
 
-export async function installCabinetAuthGate(page: Page): Promise<() => void> {
+export async function installAuthBootstrapGate(
+  page: Page,
+): Promise<() => void> {
   let releaseRequest: (() => void) | undefined;
   const requestGate = new Promise<void>((resolve) => {
     releaseRequest = resolve;
