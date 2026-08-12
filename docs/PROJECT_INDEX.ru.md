@@ -185,6 +185,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Конструктор тренировки   | готов по Figma         | `/training/new`, реальные P1-позиции, bounded set и local-only draft      |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
 | Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
+| Auth bootstrap           | fail-closed            | только `401` включает guest-mode; временный сбой сохраняет private runtime |
 | Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions          |
 | Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
 
@@ -201,6 +202,9 @@ HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v
 и пробный экзамен используют product API на `/graphql`: `Run`, `RunItem`,
 расширенный `Attempt`, start/record/checkpoint/submit/abandon lifecycle,
 bounded run summaries, recent history и `completedSimulationRuns` без N+1.
+Ответ `/v1/me` является security boundary локального ownership: только явный
+`401 Unauthorized` подтверждает гостя; network/`5xx`/malformed `200` не меняют
+owner и показывают provisional retry-state без раскрытия сохраненной работы.
 
 ## 6. Разбор PDF и Figma
 
