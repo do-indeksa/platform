@@ -131,7 +131,9 @@ test("an empty mobile plan has a concrete start and persists honest settings", a
   await expect(page.getByText("42/60 points", { exact: true })).toBeVisible();
   await expect(page.getByTestId("prep-action-settings")).toContainText("Done");
   const persisted = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem("do-indeksa-prep-settings") ?? "null"),
+    JSON.parse(
+      localStorage.getItem("do-indeksa-prep-settings-v2:guest") ?? "null",
+    ),
   );
   expect(persisted).toEqual({
     state: { goalPoints: 42, examDate },
@@ -144,7 +146,7 @@ test("an expired exam date is treated as incomplete", async ({ page }) => {
   await page.addInitScript(
     ({ date }) =>
       localStorage.setItem(
-        "do-indeksa-prep-settings",
+        "do-indeksa-prep-settings-v2:guest",
         JSON.stringify({
           state: { goalPoints: 42, examDate: date },
           version: 1,

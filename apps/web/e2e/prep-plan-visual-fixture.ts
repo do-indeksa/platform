@@ -14,13 +14,13 @@ const positions = [
 
 export async function preparePrepPlanVisual(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ attempts, examDate }) => {
+    ({ attempts, examDate, ownerId }) => {
       localStorage.setItem(
         "do-indeksa-attempts",
         JSON.stringify({ version: 2, attempts }),
       );
       localStorage.setItem(
-        "do-indeksa-prep-settings",
+        `do-indeksa-prep-settings-v2:user:${ownerId}`,
         JSON.stringify({
           version: 1,
           state: { goalPoints: 48, examDate },
@@ -44,6 +44,7 @@ export async function preparePrepPlanVisual(page: Page): Promise<void> {
         })),
       ),
       examDate: "2026-09-09",
+      ownerId: OWNER_ID,
     },
   );
 }
