@@ -67,7 +67,10 @@ const surfaces: readonly VisualSurface[] = [
     path: "/tasks/kompleksni-brojevi/kb-001",
     ready: async (page) => {
       await expect(
-        page.getByRole("heading", { name: "Zadatak kb-001", exact: true }),
+        page.getByRole("heading", {
+          name: "Vežbanje · Pozicija 1 · Kompleksni brojevi",
+          exact: true,
+        }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Proveri", exact: true }),

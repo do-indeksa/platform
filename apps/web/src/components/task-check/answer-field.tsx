@@ -18,6 +18,8 @@ export function AnswerField({
   result,
   disabled,
   onChange,
+  className = "",
+  inputClassName = "",
 }: {
   part: Pick<CheckPart, "label" | "kind">;
   index: number;
@@ -25,6 +27,8 @@ export function AnswerField({
   result: CheckResult | null;
   disabled: boolean;
   onChange: (value: string) => void;
+  className?: string;
+  inputClassName?: string;
 }) {
   const t = useTranslations("tasks");
   const id = `answer-${index}`;
@@ -39,7 +43,7 @@ export function AnswerField({
           : "border-zinc-300";
 
   return (
-    <div className="space-y-1">
+    <div className={`min-w-0 space-y-1 ${className}`}>
       <label htmlFor={id} className="block text-sm font-medium">
         {part.label ?? t("answerLabel")}
       </label>
@@ -54,7 +58,7 @@ export function AnswerField({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={result === "incorrect" || result === "invalid"}
         aria-describedby={result === "invalid" ? errorId : undefined}
-        className={`w-full max-w-sm rounded-lg border px-3 py-2 font-mono tabular-nums transition-colors disabled:bg-zinc-100 ${border}`}
+        className={`w-full max-w-sm rounded-lg border px-3 py-2 font-mono tabular-nums transition-colors disabled:bg-zinc-100 ${border} ${inputClassName}`}
       />
       {result === "invalid" && (
         <p id={errorId} className="text-sm text-amber-700">

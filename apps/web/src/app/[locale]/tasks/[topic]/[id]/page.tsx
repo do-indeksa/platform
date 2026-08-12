@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Difficulty } from "@/components/difficulty";
-import { RenderedMarkdown } from "@/components/rendered-markdown";
-import { TaskProblemReport } from "@/components/task-problem-report";
-import { TaskCheck } from "@/components/task-check";
-import { Link } from "@/i18n/navigation";
+import { TaskWorkspace } from "@/components/task-workspace";
 import {
   getTask,
-  getTaskReferences,
+  getTaskWorkspaceReferences,
   getTasks,
   getTopic,
   getTopics,
-  type TaskReference,
+  type TaskWorkspaceReference,
 } from "@/lib/content";
 import { renderMarkdown } from "@/lib/markdown";
 import { buildTaskProblemReportUrl } from "@/lib/task-problem-report";
@@ -51,14 +47,14 @@ export default async function TaskPage({ params, searchParams }: Props) {
   const [topic, tasks, references, query] = await Promise.all([
     getTopic(topicSlug),
     getTasks(topicSlug),
-    getTaskReferences(),
+    getTaskWorkspaceReferences(),
     searchParams,
   ]);
   const task = tasks.find((candidate) => candidate.id === id);
   if (!topic || !task) notFound();
-  const [t, topicT] = await Promise.all([
+  const [t, workspaceTopicT] = await Promise.all([
     getTranslations("tasks"),
-    getTranslations("topics"),
+    getTranslations("tasks.workspaceTopics"),
   ]);
   const [statementHtml, hintsHtml, solutionHtml] = await Promise.all([
     renderMarkdown(task.statement),
@@ -77,15 +73,21 @@ export default async function TaskPage({ params, searchParams }: Props) {
   const practiceId = parsePracticeId(firstQueryValue(query.practice));
   const selectedSequence = practiceSet
     .map((taskId) => referenceById.get(taskId))
-    .filter((reference): reference is TaskReference => reference !== undefined);
+    .filter(
+      (reference): reference is TaskWorkspaceReference =>
+        reference !== undefined,
+    );
   const topicSequence = tasks
     .map((candidate) => referenceById.get(candidate.id))
-    .filter((reference): reference is TaskReference => reference !== undefined);
+    .filter(
+      (reference): reference is TaskWorkspaceReference =>
+        reference !== undefined,
+    );
   const sequence = practiceSet.includes(task.id)
     ? selectedSequence
     : topicSequence;
   const taskIndex = sequence.findIndex((candidate) => candidate.id === task.id);
-  const next = sequence[(taskIndex + 1) % sequence.length];
+  if (taskIndex < 0) notFound();
   const returnTo =
     safeTaskBankReturnPath(firstQueryValue(query.returnTo)) ??
     taskBankHref({
@@ -96,15 +98,13 @@ export default async function TaskPage({ params, searchParams }: Props) {
       progress: "all",
       sort: "position",
     });
-  const nextTaskHref =
-    next && next.id !== task.id
-      ? taskHref(
-          next,
-          returnTo,
-          practiceSet.includes(task.id) ? practiceSet : [],
-          practiceId,
-        )
-      : null;
+  const activePracticeSet = practiceSet.includes(task.id) ? practiceSet : [];
+  const workspaceSequence = sequence.map((candidate) => ({
+    id: candidate.id,
+    href: taskHref(candidate, returnTo, activePracticeSet, practiceId),
+    partCount: candidate.partCount,
+    maxHints: candidate.maxHints,
+  }));
   const reportHref = buildTaskProblemReportUrl({
     taskId: task.id,
     taskRevision: task.revision,
@@ -112,59 +112,24 @@ export default async function TaskPage({ params, searchParams }: Props) {
     locale,
   });
   return (
-    <main className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-8 sm:py-8">
-      <nav className="mb-8 flex items-center justify-between border-b border-zinc-200 pb-4 text-sm">
-        <Link
-          href={returnTo}
-          className="font-medium text-zinc-600 hover:text-zinc-900"
-        >
-          {t("exitPractice")}
-        </Link>
-        <span className="tabular-nums text-zinc-500">
-          {t("taskProgress", {
-            current: taskIndex + 1,
-            total: sequence.length,
-          })}
-        </span>
-      </nav>
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <p className="text-sm text-zinc-500">
-            {t("taskContext", { topic: topicT(topic.slug) })}
-          </p>
-          <h1 className="text-2xl font-bold">
-            {t("taskTitle", { id: task.id })}
-          </h1>
-        </div>
-        <Difficulty level={task.difficulty} />
-      </div>
-      <RenderedMarkdown
-        html={statementHtml}
-        openImageLabel={t("openImage")}
-        closeImageLabel={t("closeImage")}
-      />
-      <TaskCheck
-        key={task.id}
-        taskId={task.id}
-        slot={task.slot}
-        taskRevision={task.revision}
-        check={task.check}
-        hintsHtml={hintsHtml}
-        solutionHtml={solutionHtml}
-        nextTaskHref={nextTaskHref}
-        practiceId={practiceId}
-      />
-      <footer className="mt-6 flex flex-col gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-zinc-500">
-          {t("sourceLabel", { source: task.source })}
-        </p>
-        <TaskProblemReport
-          href={reportHref}
-          label={t("reportProblem")}
-          accessibleLabel={t("reportProblemLabel", { id: task.id })}
-        />
-      </footer>
-    </main>
+    <TaskWorkspace
+      key={task.id}
+      taskId={task.id}
+      slot={task.slot}
+      taskRevision={task.revision}
+      topicName={workspaceTopicT(topic.slug)}
+      source={task.source}
+      statementHtml={statementHtml}
+      check={task.check}
+      hintsHtml={hintsHtml}
+      solutionHtml={solutionHtml}
+      sequence={workspaceSequence}
+      taskIndex={taskIndex}
+      returnTo={returnTo}
+      reportHref={reportHref}
+      reportAccessibleLabel={t("reportProblemLabel", { id: task.id })}
+      practiceId={practiceId}
+    />
   );
 }
 
@@ -175,7 +140,7 @@ function firstQueryValue(
 }
 
 function taskHref(
-  task: TaskReference,
+  task: TaskWorkspaceReference,
   returnTo: string,
   practiceSet: readonly string[],
   practiceId: string | null,
