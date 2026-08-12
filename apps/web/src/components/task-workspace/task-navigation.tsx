@@ -8,10 +8,12 @@ export function TaskNavigation({
   previousHref,
   nextHref,
   onSkip,
+  skipDisabled,
 }: {
   previousHref: string | null;
   nextHref: string | null;
   onSkip: () => void;
+  skipDisabled: boolean;
 }) {
   const t = useTranslations("tasks");
 
@@ -40,7 +42,8 @@ export function TaskNavigation({
       <button
         type="button"
         onClick={onSkip}
-        className="inline-flex h-12 w-[30%] items-center justify-center rounded-[11px] border border-line bg-subtle px-2 text-[13px] leading-[1.45] font-medium text-ink transition-colors hover:bg-subtle-hover md:h-[46px] md:w-[160px]"
+        disabled={skipDisabled}
+        className="inline-flex h-12 w-[30%] items-center justify-center rounded-[11px] border border-line bg-subtle px-2 text-[13px] leading-[1.45] font-medium text-ink transition-colors hover:bg-subtle-hover disabled:cursor-not-allowed disabled:opacity-40 md:h-[46px] md:w-[160px]"
       >
         {t("skipTask")}
       </button>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useUser } from "@/components/user-provider";
 import { trackTaskSolved } from "@/lib/analytics";
 import { recordPracticeAttempt } from "@/lib/attempts-store";
 import {
@@ -42,6 +43,8 @@ export function TaskWorkspace({
 }: TaskWorkspaceProps) {
   const t = useTranslations("tasks");
   const router = useRouter();
+  const { user, loading: ownerLoading } = useUser();
+  const ownerId = ownerLoading ? undefined : (user?.id ?? null);
   const [statementVisible, setStatementVisible] = useState(true);
   const [checking, setChecking] = useState(false);
   const [checkerUnavailable, setCheckerUnavailable] = useState(false);
@@ -51,6 +54,7 @@ export function TaskWorkspace({
     hintsHtml.length,
     t("unsavedExit"),
     practiceId,
+    ownerId,
   );
   const historyEntryId = useRef<string | null>(null);
   const attemptStartedAt = useRef<number | null>(null);
@@ -60,16 +64,19 @@ export function TaskWorkspace({
   );
   const elapsedSeconds = usePracticeElapsedSeconds(
     practiceId ? `practice:${practiceId}` : `sequence:${sequenceKey}`,
+    ownerId,
   );
   const storedStatuses = useStoredTaskStatuses(
     sequence,
     practiceId,
     `${state.attempted}:${state.solved}:${state.burned}:${state.view}`,
+    ownerId,
   );
   const storedDurations = useStoredTaskDurations(
     sequence,
     practiceId,
     `${state.activeDurationMs ?? ""}:${state.view}`,
+    ownerId,
   );
   const statuses: Readonly<Record<string, TaskWorkspaceStatus>> = {
     ...storedStatuses,
@@ -84,7 +91,8 @@ export function TaskWorkspace({
 
   useEffect(() => {
     attemptStartedAt.current = Date.now();
-  }, [taskId]);
+    historyEntryId.current = null;
+  }, [ownerId, taskId]);
 
   const recordJournalAttempt = (
     outcome: "CORRECT" | "INCORRECT" | "SKIPPED",
@@ -212,6 +220,7 @@ export function TaskWorkspace({
   };
 
   const skipTask = () => {
+    if (!draftReady || ownerId === undefined) return;
     if (!state.solved && !state.burned) {
       const activeDurationMs = recordJournalAttempt(
         "SKIPPED",
@@ -228,7 +237,7 @@ export function TaskWorkspace({
         dirty: false,
         activeDurationMs: (state.activeDurationMs ?? 0) + activeDurationMs,
       };
-      writeTaskDraftSession(taskId, practiceId, skipped);
+      writeTaskDraftSession(ownerId, taskId, practiceId, skipped);
     }
     router.push(next?.href ?? returnTo);
   };
@@ -323,6 +332,7 @@ export function TaskWorkspace({
           previousHref={previous?.href ?? null}
           nextHref={next?.href ?? null}
           onSkip={skipTask}
+          skipDisabled={!draftReady}
         />
       </div>
     </main>

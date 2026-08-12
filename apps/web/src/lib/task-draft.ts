@@ -1,13 +1,20 @@
+import {
+  taskSessionStorageScope,
+  type TaskSessionOwnerId,
+} from "./task-session-owner";
+
 export const MAX_ANSWER_LENGTH = 200;
 export const MAX_TASK_ANSWER_PARTS = 6;
-export const TASK_DRAFT_STORAGE_PREFIX = "do-indeksa-task-draft-v1:";
+export const TASK_DRAFT_STORAGE_PREFIX = "do-indeksa-task-draft-v2:";
 const MAX_TASK_ACTIVE_DURATION_MS = 12 * 60 * 60 * 1_000;
 
 export function taskDraftStorageKey(
+  ownerId: TaskSessionOwnerId,
   taskId: string,
   practiceId: string | null,
 ): string {
-  return `${TASK_DRAFT_STORAGE_PREFIX}${practiceId ? `${practiceId}:` : ""}${taskId}`;
+  const practiceScope = practiceId ? `practice:${practiceId}` : "standalone";
+  return `${TASK_DRAFT_STORAGE_PREFIX}${taskSessionStorageScope(ownerId)}:${practiceScope}:task:${taskId}`;
 }
 
 export type TaskCheckView =
