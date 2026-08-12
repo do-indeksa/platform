@@ -7,11 +7,13 @@ import type { TrainingBuilderPositionView } from "./types";
 export function TrainingPositionRow({
   position,
   quantity,
+  disabled,
   canIncrease,
   onQuantityChange,
 }: {
   position: TrainingBuilderPositionView;
   quantity: number;
+  disabled: boolean;
   canIncrease: boolean;
   onQuantityChange: (quantity: number) => void;
 }) {
@@ -25,7 +27,7 @@ export function TrainingPositionRow({
     >
       <label
         className={`relative flex h-11 w-11 items-center justify-center md:h-8 md:w-8 ${
-          selected || canIncrease
+          !disabled && (selected || canIncrease)
             ? "cursor-pointer"
             : "cursor-not-allowed opacity-60"
         }`}
@@ -33,7 +35,7 @@ export function TrainingPositionRow({
         <input
           type="checkbox"
           checked={selected}
-          disabled={!selected && !canIncrease}
+          disabled={disabled || (!selected && !canIncrease)}
           onChange={() => onQuantityChange(selected ? 0 : 1)}
           aria-label={t("selectPosition", { position: position.number })}
           className="peer absolute inset-0 cursor-pointer opacity-0"
@@ -75,7 +77,7 @@ export function TrainingPositionRow({
         <button
           type="button"
           onClick={() => onQuantityChange(quantity - 1)}
-          disabled={quantity === 0}
+          disabled={disabled || quantity === 0}
           aria-label={t("decrease", { position: position.number })}
           className="flex h-9 w-11 items-center justify-center text-muted transition-colors hover:bg-page disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -87,7 +89,7 @@ export function TrainingPositionRow({
         <button
           type="button"
           onClick={() => onQuantityChange(quantity + 1)}
-          disabled={!canIncrease}
+          disabled={disabled || !canIncrease}
           aria-label={t("increase", { position: position.number })}
           className="flex h-9 w-11 items-center justify-center text-brand-ink transition-colors hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-40"
         >

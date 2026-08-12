@@ -14,6 +14,7 @@ export function TrainingPositionsStep({
   quantities,
   selectedTotal,
   showAllPositions,
+  disabled,
   journalReady,
   onPresetSelect,
   onReset,
@@ -24,6 +25,7 @@ export function TrainingPositionsStep({
   quantities: Readonly<Record<number, number>>;
   selectedTotal: number;
   showAllPositions: boolean;
+  disabled: boolean;
   journalReady: boolean;
   onPresetSelect: (preset: TrainingBuilderPreset) => void;
   onReset: () => void;
@@ -50,22 +52,22 @@ export function TrainingPositionsStep({
       </TrainingStepHeading>
 
       <div className="mt-3 grid grid-cols-2 gap-x-2 md:grid-cols-4 md:gap-2 xl:flex xl:h-11 xl:[&>button:nth-child(1)]:w-[160px] xl:[&>button:nth-child(2)]:w-[150px] xl:[&>button:nth-child(3)]:w-[200px] xl:[&>button:nth-child(4)]:w-[120px]">
-        <PresetButton onClick={() => onPresetSelect("all")}>
+        <PresetButton disabled={disabled} onClick={() => onPresetSelect("all")}>
           {t("presets.all")}
         </PresetButton>
         <PresetButton
-          disabled={!journalReady}
+          disabled={disabled || !journalReady}
           onClick={() => onPresetSelect("new")}
         >
           {t("presets.new")}
         </PresetButton>
         <PresetButton
-          disabled={!journalReady}
+          disabled={disabled || !journalReady}
           onClick={() => onPresetSelect("mistakes")}
         >
           {t("presets.mistakes")}
         </PresetButton>
-        <PresetButton onClick={onReset}>
+        <PresetButton disabled={disabled} onClick={onReset}>
           <RotateCcw aria-hidden size={14} strokeWidth={1.7} />
           {t("reset")}
         </PresetButton>
@@ -79,6 +81,7 @@ export function TrainingPositionsStep({
               key={position.number}
               position={position}
               quantity={quantity}
+              disabled={disabled}
               canIncrease={
                 selectedTotal < TRAINING_BUILDER_MAX_TASKS &&
                 quantity < position.availableCount
@@ -93,9 +96,10 @@ export function TrainingPositionsStep({
 
       <button
         type="button"
+        disabled={disabled}
         onClick={() => onShowAllPositionsChange(!showAllPositions)}
         aria-expanded={showAllPositions}
-        className="mt-3 flex h-[42px] min-w-40 items-center justify-center rounded-[10px] border border-line bg-surface px-3 text-sm leading-5 font-semibold text-ink hover:border-brand"
+        className="mt-3 flex h-[42px] min-w-40 items-center justify-center rounded-[10px] border border-line bg-surface px-3 text-sm leading-5 font-semibold text-ink hover:border-brand disabled:cursor-not-allowed disabled:opacity-50"
       >
         {showAllPositions ? t("showLess") : t("showMore")}
       </button>
