@@ -10,7 +10,7 @@ import {
   simulationCloudFixture,
   simulationRunId,
 } from "./simulation-cloud-fixture";
-import { installCabinetAuthGate } from "./cabinet-loading-fixture";
+import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
 
 const localizedCabinets = [
   {
@@ -64,7 +64,7 @@ for (const locale of localizedLoadingStates) {
   test(`${locale.path} keeps unknown progress neutral until bootstrap completes`, async ({
     page,
   }) => {
-    const releaseAuth = await installCabinetAuthGate(page);
+    const releaseAuth = await installAuthBootstrapGate(page);
     await page.goto(locale.path, { waitUntil: "domcontentloaded" });
 
     const dashboard = page.getByTestId("cabinet-dashboard");

@@ -82,15 +82,17 @@ AI-оценивание остается вне критического пут�
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
 - blocking CI включает 546 web unit-тестов, 29 тестов content pipeline,
-  107 функциональных Playwright-сценариев, 89 Linux visual-regression эталонов,
+  110 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
 утвержденные Figma nodes для пока provisional результатов диагностики и пробника,
 visual coverage для остальных error states без Figma и production rollout.
 Кабинет при loading/cloud conflict, история при degraded sync и workspace с
-самой длинной verified-сербской задачей покрыты на 360/768/1440 px; loading,
-conflict и degraded без отдельных Figma nodes явно маркированы как provisional.
+самой длинной verified-сербской задачей покрыты на 360/768/1440 px. Loading
+Study Plan сохраняет canonical slots на 390/1024/1440 px без неподтвержденных
+пользовательских фактов; loading, conflict и degraded без отдельных Figma nodes
+явно маркированы как provisional.
 Analytics сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
@@ -376,10 +378,11 @@ attempt частью run. В любом варианте завершенная 
   идемпотентные mutations запуска и попытки.
 - Integration: start/resume/finish diagnostic and simulation.
 - Browser: основные сценарии на 360x800, 768x1024 и 1440x900.
-- Visual: 89 канонических Linux screenshot; кабинет покрыт empty, populated и
+- Visual: 92 канонических Linux screenshot; кабинет покрыт empty, populated и
   unfinished states на общих 360/768/1440 viewport и точных Figma-размерах
   390/1024/1440. Отдельный resilience-набор покрывает cabinet loading/cloud
-  conflict, degraded history и реальную длинную сербскую задачу на 360/768/1440.
+  conflict, degraded history и реальную длинную сербскую задачу на 360/768/1440;
+  provisional Study Plan loading покрыт на 390/1024/1440.
 - Content: schema, math fixtures, сумма rubric points, ссылки и статус review.
 
 ## 7. Порядок релизов
@@ -421,7 +424,8 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
 4. Расширять visual-regression coverage на остальные ошибки; для экранов без
    Figma явно сохранять provisional status. Cabinet loading/cloud conflict,
-   degraded history и long Serbian copy уже покрыты на 360/768/1440 px.
+   degraded history и long Serbian copy уже покрыты на 360/768/1440 px, а
+   Study Plan loading - на 390/1024/1440 px.
 5. После выпуска Google OAuth credentials и отдельного подтверждения завершить
    private Kubernetes rollout через Cloudflare Tunnel; доказать auth, GraphQL,
    Neon migration, backup и rollback без публикации origin.

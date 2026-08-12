@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LoaderCircle } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useAttempts } from "@/lib/attempts-store";
@@ -18,6 +17,7 @@ import { usePrepSettings } from "@/lib/prep-settings";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { useHydrated } from "@/lib/use-hydrated";
 import { PrepPlanFacts } from "./prep-plan-facts";
+import { PrepPlanLoading } from "./prep-plan-loading";
 import { PrepPlanSummary } from "./prep-plan-summary";
 import { PrepPlanTabs, type PrepPlanViewMode } from "./prep-plan-tabs";
 import { PrepPositionList } from "./prep-position-list";
@@ -66,7 +66,7 @@ export function PrepPlanView({
     diagnosticStartedAt < day.endMs;
 
   if (!hydrated || attempts === null || !diagnosticOwnerKnown) {
-    return <PrepLoading />;
+    return <PrepPlanLoading positions={positions} />;
   }
 
   const plan = buildPrepPlan({
@@ -111,6 +111,8 @@ export function PrepPlanView({
   return (
     <main
       data-testid="prep-plan"
+      data-state="ready"
+      aria-busy="false"
       className="mx-auto w-full max-w-[1304px] px-4 pt-4 pb-6 lg:px-8 lg:pt-[26px] lg:pb-12"
     >
       <div className="flex min-w-0 flex-col gap-3.5 lg:gap-4">
@@ -178,18 +180,6 @@ export function PrepPlanView({
           setSettingsOpen(false);
         }}
       />
-    </main>
-  );
-}
-
-function PrepLoading() {
-  const t = useTranslations("prep");
-  return (
-    <main className="mx-auto flex min-h-[32rem] w-full max-w-[1304px] items-center justify-center px-4 lg:px-8">
-      <p className="flex items-center gap-3 text-muted">
-        <LoaderCircle aria-hidden className="h-5 w-5 animate-spin" />
-        {t("loading")}
-      </p>
     </main>
   );
 }

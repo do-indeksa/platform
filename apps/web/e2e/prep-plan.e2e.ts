@@ -1,6 +1,82 @@
 import { expect, test } from "@playwright/test";
+import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const localizedLoadingStates = [
+  {
+    path: "/prep",
+    status: "Sastavljamo tvoj plan...",
+    title: "Plan pripreme",
+    position: "Kombinatorika",
+    readyAction: "Uradi kratku dijagnostiku",
+  },
+  {
+    path: "/en/prep",
+    status: "Building your plan...",
+    title: "Preparation plan",
+    position: "Combinatorics",
+    readyAction: "Take the short diagnostic",
+  },
+  {
+    path: "/ru/prep",
+    status: "Собираем ваш план...",
+    title: "План подготовки",
+    position: "Комбинаторика",
+    readyAction: "Пройти короткую диагностику",
+  },
+] as const;
+
+for (const locale of localizedLoadingStates) {
+  test(`${locale.path} keeps plan facts neutral until bootstrap completes`, async ({
+    page,
+  }) => {
+    const releaseAuth = await installAuthBootstrapGate(page);
+    await page.goto(locale.path, { waitUntil: "domcontentloaded" });
+
+    const plan = page.getByTestId("prep-plan");
+    await expect(plan).toHaveAttribute("data-state", "loading");
+    await expect(plan).toHaveAttribute("aria-busy", "true");
+    await expect(plan).toHaveAttribute(
+      "aria-describedby",
+      "prep-loading-status",
+    );
+    await expect(plan).toHaveAttribute("data-design-status", "provisional");
+    await expect(
+      page.getByRole("heading", { name: locale.title, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(locale.position, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByTestId("prep-loading-status")).toHaveText(
+      locale.status,
+    );
+    await expect(page.getByTestId("prep-plan-summary")).toHaveCount(0);
+    await expect(page.getByTestId("prep-position-list")).toHaveCount(0);
+    await expect(page.getByTestId("next-action")).toHaveCount(0);
+    await expect(page.getByRole("progressbar")).toHaveCount(0);
+    await expect(page.getByRole("tab")).toHaveCount(0);
+
+    const navigationCount = await page.evaluate(
+      () => performance.getEntriesByType("navigation").length,
+    );
+    releaseAuth();
+
+    await expect(plan).toHaveAttribute("data-state", "ready");
+    await expect(plan).toHaveAttribute("aria-busy", "false");
+    await expect(plan).not.toHaveAttribute("data-design-status", /.*/);
+    await expect(page.getByTestId("prep-loading-status")).toHaveCount(0);
+    await expect(page.getByTestId("prep-plan-summary")).toBeVisible();
+    await expect(page.getByTestId("next-action")).toContainText(
+      locale.readyAction,
+    );
+    expect(
+      await page.evaluate(
+        () => performance.getEntriesByType("navigation").length,
+      ),
+    ).toBe(navigationCount);
+  });
+}
 
 test("an empty mobile plan has a concrete start and persists honest settings", async ({
   page,
