@@ -103,10 +103,15 @@ func newTestApp(t *testing.T, google *fakeGoogle) http.Handler {
 	service.userinfoURL = google.server.URL + "/userinfo"
 	router := chi.NewRouter()
 	router.Use(CookieMutationOriginMiddleware(service))
-	return api.HandlerWithOptions(testServer{NewHandler(service)}, api.ChiServerOptions{
-		BaseRouter:       router,
-		ErrorHandlerFunc: ParamErrorHandler,
-	})
+	server := testServer{NewHandler(service)}
+	for _, baseURL := range []string{"", "/api"} {
+		api.HandlerWithOptions(server, api.ChiServerOptions{
+			BaseURL:          baseURL,
+			BaseRouter:       router,
+			ErrorHandlerFunc: ParamErrorHandler,
+		})
+	}
+	return router
 }
 
 func do(t *testing.T, app http.Handler, method, target, host string, cookies ...*http.Cookie) *http.Response {
@@ -144,11 +149,39 @@ func assertNoSessionCookie(t *testing.T, res *http.Response) {
 	}
 }
 
-func startFlow(t *testing.T, app http.Handler, host string) (sealed, challenge string) {
+type authFlow struct {
+	state          string
+	challenge      string
+	callbackCookie *http.Cookie
+	handoffCookie  *http.Cookie
+}
+
+func startFlow(t *testing.T, app http.Handler, host string) authFlow {
 	t.Helper()
-	res := do(t, app, "GET", "/v1/auth/google?redirect=/prep", host)
+	return startFlowWithRedirect(t, app, host, "/prep")
+}
+
+func startFlowWithRedirect(t *testing.T, app http.Handler, host, redirect string) authFlow {
+	t.Helper()
+	res := do(
+		t,
+		app,
+		http.MethodGet,
+		"/v1/auth/google?redirect="+url.QueryEscape(redirect),
+		host,
+	)
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("start: got status %d", res.StatusCode)
+	}
+	flow := authFlow{}
+	if host == "localhost:3000" {
+		flow.callbackCookie = oauthCookieFromResponse(t, res)
+	} else {
+		flow.handoffCookie = oauthCookieFromResponse(t, res)
+		res = followOAuthRedirect(t, app, res.Header.Get("Location"))
+		flow.callbackCookie = oauthCookieFromResponse(t, res)
+		res = followOAuthRedirect(t, app, res.Header.Get("Location"), flow.handoffCookie)
+		res = followOAuthRedirect(t, app, res.Header.Get("Location"), flow.callbackCookie)
 	}
 	authURL, err := url.Parse(res.Header.Get("Location"))
 	if err != nil {
@@ -161,12 +194,59 @@ func startFlow(t *testing.T, app http.Handler, host string) (sealed, challenge s
 	if query.Get("state") == "" {
 		t.Fatal("no state in google redirect")
 	}
-	return query.Get("state"), query.Get("code_challenge")
+	flow.state = query.Get("state")
+	flow.challenge = query.Get("code_challenge")
+	return flow
 }
 
-func completeCallback(t *testing.T, app http.Handler, query string) *http.Response {
+func followOAuthRedirect(
+	t *testing.T,
+	app http.Handler,
+	location string,
+	cookies ...*http.Cookie,
+) *http.Response {
 	t.Helper()
-	return do(t, app, "GET", "/v1/auth/google/callback?"+query, "localhost:8080")
+	redirect, err := url.Parse(location)
+	if err != nil || !redirect.IsAbs() || redirect.Host == "" {
+		t.Fatalf("invalid OAuth redirect %q: %v", location, err)
+	}
+	res := do(t, app, http.MethodGet, redirect.RequestURI(), redirect.Host, cookies...)
+	if res.StatusCode != http.StatusFound {
+		t.Fatalf("OAuth redirect %q returned %d", location, res.StatusCode)
+	}
+	return res
+}
+
+func oauthCookieFromResponse(t *testing.T, res *http.Response) *http.Cookie {
+	t.Helper()
+	for _, cookie := range res.Cookies() {
+		if (strings.HasPrefix(cookie.Name, oauthBindingCookiePrefix) ||
+			strings.HasPrefix(cookie.Name, secureBindingCookiePrefix)) && cookie.MaxAge > 0 {
+			return cookie
+		}
+	}
+	t.Fatal("no OAuth binding cookie in response")
+	return nil
+}
+
+func newTestOAuthBinding(t *testing.T, origin string) (oauthBinding, *http.Cookie) {
+	t.Helper()
+	response := httptest.NewRecorder()
+	binding, err := (&Service{}).newOAuthBinding(response, origin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return binding, oauthCookieFromResponse(t, response.Result())
+}
+
+func completeCallback(
+	t *testing.T,
+	app http.Handler,
+	query string,
+	cookies ...*http.Cookie,
+) *http.Response {
+	t.Helper()
+	return do(t, app, "GET", "/v1/auth/google/callback?"+query, "localhost:3000", cookies...)
 }
 
 func seedUser(t *testing.T) User {
@@ -180,6 +260,10 @@ func seedUser(t *testing.T) User {
 		t.Fatal(err)
 	}
 	return user
+}
+
+func ptr[T any](value T) *T {
+	return &value
 }
 
 func seedSession(t *testing.T, expiresAt time.Time) *http.Cookie {
@@ -204,15 +288,20 @@ func TestCanonicalSignInFlow(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "sub-1", Email: "mika@example.com", Name: "Mika", Picture: "https://p.example/1.png"})
 	app := newTestApp(t, google)
 
-	sealed, challenge := startFlow(t, app, "localhost:3000")
-	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+	flow := startFlow(t, app, "localhost:3000")
+	res := completeCallback(
+		t,
+		app,
+		"code=granted&state="+url.QueryEscape(flow.state),
+		flow.callbackCookie,
+	)
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("callback: got status %d", res.StatusCode)
 	}
 	if loc := res.Header.Get("Location"); loc != "/prep" {
 		t.Fatalf("callback redirect: got %q", loc)
 	}
-	if oauth2.S256ChallengeFromVerifier(google.verifier) != challenge {
+	if oauth2.S256ChallengeFromVerifier(google.verifier) != flow.challenge {
 		t.Fatalf("token endpoint got verifier %q not matching challenge", google.verifier)
 	}
 	session := sessionFromResponse(t, res)
@@ -247,8 +336,13 @@ func TestPreviewSignInFlow(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "sub-2", Email: "ana@example.com", Name: "Ana"})
 	app := newTestApp(t, google)
 
-	sealed, _ := startFlow(t, app, testPreviewHost)
-	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+	flow := startFlow(t, app, testPreviewHost)
+	res := completeCallback(
+		t,
+		app,
+		"code=granted&state="+url.QueryEscape(flow.state),
+		flow.callbackCookie,
+	)
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("callback: got status %d", res.StatusCode)
 	}
@@ -261,10 +355,11 @@ func TestPreviewSignInFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code := handoff.Query().Get("code")
-
-	exchange := "/v1/auth/exchange?code=" + url.QueryEscape(code)
-	res = do(t, app, "GET", exchange, testPreviewHost)
+	if handoff.Query().Get("code") == "" || handoff.Query().Get("binding") == "" {
+		t.Fatal("callback did not issue a bound handoff")
+	}
+	exchange := "/v1/auth/exchange?" + handoff.RawQuery
+	res = do(t, app, "GET", exchange, testPreviewHost, flow.handoffCookie)
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("exchange: got status %d", res.StatusCode)
 	}
@@ -278,7 +373,7 @@ func TestPreviewSignInFlow(t *testing.T) {
 		t.Fatalf("me: got status %d", res.StatusCode)
 	}
 
-	res = do(t, app, "GET", exchange, testPreviewHost)
+	res = do(t, app, "GET", exchange, testPreviewHost, flow.handoffCookie)
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("code reuse: got status %d", res.StatusCode)
 	}
@@ -297,17 +392,20 @@ func TestPreviewSignInNormalizesOriginBeforeSealingState(t *testing.T) {
 	if response.Code != http.StatusFound {
 		t.Fatalf("normalized preview start returned %d", response.Code)
 	}
-	authURL, err := url.Parse(response.Header().Get("Location"))
+	bootstrapURL, err := url.Parse(response.Header().Get("Location"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sealed := authURL.Query().Get("state")
-	st, err := openState(testKey, sealed, time.Now())
+	bootstrap, err := openOAuthBootstrap(
+		testKey,
+		bootstrapURL.Query().Get("request"),
+		time.Now(),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if st.Origin != testPreviewOrigin {
-		t.Fatalf("sealed origin = %q, want %q", st.Origin, testPreviewOrigin)
+	if bootstrap.Origin != testPreviewOrigin {
+		t.Fatalf("sealed origin = %q, want %q", bootstrap.Origin, testPreviewOrigin)
 	}
 }
 
@@ -362,21 +460,33 @@ func TestExpiredHandoffCodeRejected(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{})
 	app := newTestApp(t, google)
 	user := seedUser(t)
-	code, codeHash, err := newSecret()
+	code, _, err := newSecret()
 	if err != nil {
 		t.Fatal(err)
 	}
+	binding, bindingCookie := newTestOAuthBinding(t, testPreviewOrigin)
+	bindingHash, _ := decodeBindingHash(binding)
 	err = New(testPool).CreateAuthCode(context.Background(), CreateAuthCodeParams{
-		CodeHash:  codeHash,
-		UserID:    user.ID,
-		Redirect:  "/prep",
-		ExpiresAt: time.Now().Add(-time.Second),
+		CodeHash:           hashHandoffCode(code),
+		UserID:             user.ID,
+		Origin:             ptr(testPreviewOrigin),
+		Redirect:           "/prep",
+		BrowserBindingID:   ptr(binding.ID),
+		BrowserBindingHash: bindingHash,
+		ExpiresAt:          time.Now().Add(-time.Second),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res := do(t, app, "GET", "/v1/auth/exchange?code="+url.QueryEscape(code), testPreviewHost)
+	res := do(
+		t,
+		app,
+		"GET",
+		"/v1/auth/exchange?code="+url.QueryEscape(code)+"&binding="+url.QueryEscape(binding.ID),
+		testPreviewHost,
+		bindingCookie,
+	)
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("got status %d", res.StatusCode)
 	}
@@ -424,8 +534,13 @@ func TestCallbackCancelReturnsToApp(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{})
 	app := newTestApp(t, google)
 
-	sealed, _ := startFlow(t, app, "localhost:3000")
-	res := completeCallback(t, app, "error=access_denied&state="+url.QueryEscape(sealed))
+	flow := startFlow(t, app, "localhost:3000")
+	res := completeCallback(
+		t,
+		app,
+		"error=access_denied&state="+url.QueryEscape(flow.state),
+		flow.callbackCookie,
+	)
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("got status %d", res.StatusCode)
 	}
@@ -439,8 +554,13 @@ func TestCallbackRejectsEmptySub(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "", Email: "x@example.com"})
 	app := newTestApp(t, google)
 
-	sealed, _ := startFlow(t, app, "localhost:3000")
-	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+	flow := startFlow(t, app, "localhost:3000")
+	res := completeCallback(
+		t,
+		app,
+		"code=granted&state="+url.QueryEscape(flow.state),
+		flow.callbackCookie,
+	)
 	if res.StatusCode != http.StatusBadRequest {
 		t.Fatalf("got status %d", res.StatusCode)
 	}
@@ -485,17 +605,19 @@ func TestStartRejectsPreviewSuffixOutsideHostname(t *testing.T) {
 func TestCallbackRevalidatesSealedOriginBeforeCodeExchange(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "sub-stale", Email: "stale@example.com"})
 	app := newTestApp(t, google)
+	binding, cookie := newTestOAuthBinding(t, testCanonical)
 	sealed, err := sealState(testKey, state{
-		Origin:    "https://evil.example/-scope.vercel.app",
-		Redirect:  "/prep",
-		Verifier:  "verifier-secret",
-		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+		Origin:          "https://evil.example/-scope.vercel.app",
+		Redirect:        "/prep",
+		Verifier:        "verifier-secret",
+		CallbackBinding: binding,
+		ExpiresAt:       time.Now().Add(stateTTL).Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed), cookie)
 
 	if res.StatusCode != http.StatusBadRequest || res.Header.Get("Location") != "" {
 		t.Fatalf("stale state returned %d with location %q", res.StatusCode, res.Header.Get("Location"))
@@ -508,17 +630,19 @@ func TestCallbackRevalidatesSealedOriginBeforeCodeExchange(t *testing.T) {
 func TestCancelledCallbackRevalidatesSealedOrigin(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{})
 	app := newTestApp(t, google)
+	binding, cookie := newTestOAuthBinding(t, testCanonical)
 	sealed, err := sealState(testKey, state{
-		Origin:    "https://evil.example/-scope.vercel.app",
-		Redirect:  "/prep",
-		Verifier:  "verifier-secret",
-		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+		Origin:          "https://evil.example/-scope.vercel.app",
+		Redirect:        "/prep",
+		Verifier:        "verifier-secret",
+		CallbackBinding: binding,
+		ExpiresAt:       time.Now().Add(stateTTL).Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res := completeCallback(t, app, "error=access_denied&state="+url.QueryEscape(sealed))
+	res := completeCallback(t, app, "error=access_denied&state="+url.QueryEscape(sealed), cookie)
 
 	if res.StatusCode != http.StatusBadRequest || res.Header.Get("Location") != "" {
 		t.Fatalf("cancelled stale state returned %d with location %q", res.StatusCode, res.Header.Get("Location"))

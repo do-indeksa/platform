@@ -11,8 +11,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Redirect to Google authorization */
+        /** Start browser-bound Google authorization */
         get: operations["startGoogleAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/google/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Bind a non-canonical sign-in to its initiating browser */
+        get: operations["bootstrapGoogleAuth"];
         put?: never;
         post?: never;
         delete?: never;
@@ -213,10 +230,34 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Redirect to Google with signed state and PKCE challenge */
+            /** @description Redirect to Google or the canonical preview bootstrap */
             302: {
                 headers: {
                     Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+            500: components["responses"]["Internal"];
+        };
+    };
+    bootstrapGoogleAuth: {
+        parameters: {
+            query: {
+                request: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the next browser-binding step or Google */
+            302: {
+                headers: {
+                    Location?: string;
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content?: never;
@@ -257,6 +298,7 @@ export interface operations {
         parameters: {
             query: {
                 code: string;
+                binding: string;
             };
             header?: never;
             path?: never;

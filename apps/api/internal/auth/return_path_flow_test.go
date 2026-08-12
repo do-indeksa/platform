@@ -14,22 +14,13 @@ func TestPreviewSignInPreservesNormalizedReturnPath(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "sub-preview-path", Email: "preview-path@example.com"})
 	app := newTestApp(t, google)
 	requested := "/sr/tasks/../prep/?tab=week#today"
-	res := do(
+	flow := startFlowWithRedirect(t, app, testPreviewHost, requested)
+	res := completeCallback(
 		t,
 		app,
-		http.MethodGet,
-		"/v1/auth/google?redirect="+url.QueryEscape(requested),
-		testPreviewHost,
+		"code=granted&state="+url.QueryEscape(flow.state),
+		flow.callbackCookie,
 	)
-	if res.StatusCode != http.StatusFound {
-		t.Fatalf("start returned %d", res.StatusCode)
-	}
-	authURL, err := url.Parse(res.Header.Get("Location"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	res = completeCallback(t, app, "code=granted&state="+url.QueryEscape(authURL.Query().Get("state")))
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("callback returned %d", res.StatusCode)
 	}
@@ -37,8 +28,7 @@ func TestPreviewSignInPreservesNormalizedReturnPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	code := handoff.Query().Get("code")
-	if code == "" {
+	if handoff.Query().Get("code") == "" || handoff.Query().Get("binding") == "" {
 		t.Fatal("callback did not issue handoff code")
 	}
 
@@ -46,8 +36,9 @@ func TestPreviewSignInPreservesNormalizedReturnPath(t *testing.T) {
 		t,
 		app,
 		http.MethodGet,
-		"/v1/auth/exchange?code="+url.QueryEscape(code),
+		"/v1/auth/exchange?"+handoff.RawQuery,
 		testPreviewHost,
+		flow.handoffCookie,
 	)
 	if res.StatusCode != http.StatusFound {
 		t.Fatalf("exchange returned %d", res.StatusCode)
@@ -89,9 +80,9 @@ func TestStartSanitizesAmbiguousReturnPathBeforeSealingState(t *testing.T) {
 func TestCallbackRejectsUnsafeReturnPathBeforeCodeExchange(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "sub-return-path", Email: "return-path@example.com"})
 	app := newTestApp(t, google)
-	sealed := unsafeReturnPathState(t, testCanonical)
+	sealed, cookie := unsafeReturnPathState(t, testCanonical)
 
-	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed), cookie)
 
 	assertUnsafeReturnPathRejected(t, res)
 	if google.verifier != "" {
@@ -102,9 +93,9 @@ func TestCallbackRejectsUnsafeReturnPathBeforeCodeExchange(t *testing.T) {
 func TestCancelledCallbackRejectsUnsafeReturnPath(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{})
 	app := newTestApp(t, google)
-	sealed := unsafeReturnPathState(t, testCanonical)
+	sealed, cookie := unsafeReturnPathState(t, testCanonical)
 
-	res := completeCallback(t, app, "error=access_denied&state="+url.QueryEscape(sealed))
+	res := completeCallback(t, app, "error=access_denied&state="+url.QueryEscape(sealed), cookie)
 
 	assertUnsafeReturnPathRejected(t, res)
 }
@@ -112,9 +103,9 @@ func TestCancelledCallbackRejectsUnsafeReturnPath(t *testing.T) {
 func TestPreviewCallbackRejectsUnsafeReturnPathBeforeHandoffMint(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{Sub: "sub-preview-return", Email: "preview-return@example.com"})
 	app := newTestApp(t, google)
-	sealed := unsafeReturnPathState(t, testPreviewOrigin)
+	sealed, cookie := unsafeReturnPathState(t, testPreviewOrigin)
 
-	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed))
+	res := completeCallback(t, app, "code=granted&state="+url.QueryEscape(sealed), cookie)
 
 	assertUnsafeReturnPathRejected(t, res)
 	if google.verifier != "" {
@@ -126,15 +117,20 @@ func TestExchangeRejectsStoredUnsafeReturnPathBeforeSessionIssue(t *testing.T) {
 	google := newFakeGoogle(t, userinfo{})
 	app := newTestApp(t, google)
 	user := seedUser(t)
-	code, codeHash, err := newSecret()
+	code, _, err := newSecret()
 	if err != nil {
 		t.Fatal(err)
 	}
+	binding, bindingCookie := newTestOAuthBinding(t, testPreviewOrigin)
+	bindingHash, _ := decodeBindingHash(binding)
 	err = New(testPool).CreateAuthCode(context.Background(), CreateAuthCodeParams{
-		CodeHash:  codeHash,
-		UserID:    user.ID,
-		Redirect:  `/\evil.example`,
-		ExpiresAt: time.Now().Add(codeTTL),
+		CodeHash:           hashHandoffCode(code),
+		UserID:             user.ID,
+		Origin:             ptr(testPreviewOrigin),
+		Redirect:           `/\evil.example`,
+		BrowserBindingID:   ptr(binding.ID),
+		BrowserBindingHash: bindingHash,
+		ExpiresAt:          time.Now().Add(codeTTL),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -144,8 +140,9 @@ func TestExchangeRejectsStoredUnsafeReturnPathBeforeSessionIssue(t *testing.T) {
 		t,
 		app,
 		http.MethodGet,
-		"/v1/auth/exchange?code="+url.QueryEscape(code),
+		"/v1/auth/exchange?code="+url.QueryEscape(code)+"&binding="+url.QueryEscape(binding.ID),
 		testPreviewHost,
+		bindingCookie,
 	)
 
 	assertUnsafeReturnPathRejected(t, res)
@@ -176,9 +173,19 @@ func TestExchangeRejectsStoredUnsafeReturnPathBeforeSessionIssue(t *testing.T) {
 
 func TestMintHandoffCodeRejectsUnsafeReturnPathBeforeInsert(t *testing.T) {
 	user := seedUser(t)
-	service := NewService(testPool, Config{})
+	service := NewService(testPool, Config{
+		CanonicalOrigin:     testCanonical,
+		PreviewOriginSuffix: "-scope.vercel.app",
+	})
+	binding, _ := newTestOAuthBinding(t, testPreviewOrigin)
 
-	_, err := service.MintHandoffCode(context.Background(), user.ID, `/\evil.example`)
+	_, err := service.MintHandoffCode(
+		context.Background(),
+		user.ID,
+		testPreviewOrigin,
+		`/\evil.example`,
+		binding,
+	)
 	if !errors.Is(err, errInvalidReturnPath) {
 		t.Fatalf("MintHandoffCode() error = %v, want invalid return path", err)
 	}
@@ -196,18 +203,26 @@ func TestMintHandoffCodeRejectsUnsafeReturnPathBeforeInsert(t *testing.T) {
 	}
 }
 
-func unsafeReturnPathState(t *testing.T, origin string) string {
+func unsafeReturnPathState(t *testing.T, origin string) (string, *http.Cookie) {
 	t.Helper()
+	callbackBinding, cookie := newTestOAuthBinding(t, testCanonical)
+	var handoffBinding *oauthBinding
+	if origin != testCanonical {
+		binding, _ := newTestOAuthBinding(t, origin)
+		handoffBinding = &binding
+	}
 	sealed, err := sealState(testKey, state{
-		Origin:    origin,
-		Redirect:  `/\evil.example`,
-		Verifier:  "verifier-secret",
-		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+		Origin:          origin,
+		Redirect:        `/\evil.example`,
+		Verifier:        "verifier-secret",
+		CallbackBinding: callbackBinding,
+		HandoffBinding:  handoffBinding,
+		ExpiresAt:       time.Now().Add(stateTTL).Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return sealed
+	return sealed, cookie
 }
 
 func assertUnsafeReturnPathRejected(t *testing.T, res *http.Response) {

@@ -19,6 +19,8 @@ var (
 	ErrNoSession         = errors.New("no valid session")
 )
 
+const handoffCodeHashPurpose = "do-indeksa/oauth-handoff/browser-bound/v1"
+
 type Config struct {
 	ClientID            string
 	ClientSecret        string
@@ -64,20 +66,37 @@ func (s *Service) IssueSession(ctx context.Context, userID uuid.UUID) (string, e
 	return token, nil
 }
 
-func (s *Service) MintHandoffCode(ctx context.Context, userID uuid.UUID, redirect string) (string, error) {
-	redirect, ok := normalizeReturnPath(redirect)
+func (s *Service) MintHandoffCode(
+	ctx context.Context,
+	userID uuid.UUID,
+	origin string,
+	redirect string,
+	binding oauthBinding,
+) (string, error) {
+	origin, ok := s.allowedOrigin(origin)
+	if !ok || origin == s.cfg.CanonicalOrigin {
+		return "", errInvalidState
+	}
+	redirect, ok = normalizeReturnPath(redirect)
 	if !ok {
 		return "", errInvalidReturnPath
 	}
-	code, codeHash, err := newSecret()
+	bindingHash, ok := decodeBindingHash(binding)
+	if !ok {
+		return "", errInvalidState
+	}
+	code, _, err := newSecret()
 	if err != nil {
 		return "", err
 	}
 	err = s.queries.CreateAuthCode(ctx, CreateAuthCodeParams{
-		CodeHash:  codeHash,
-		UserID:    userID,
-		Redirect:  redirect,
-		ExpiresAt: time.Now().Add(codeTTL),
+		CodeHash:           hashHandoffCode(code),
+		UserID:             userID,
+		Origin:             &origin,
+		Redirect:           redirect,
+		BrowserBindingID:   &binding.ID,
+		BrowserBindingHash: bindingHash,
+		ExpiresAt:          time.Now().Add(codeTTL),
 	})
 	if err != nil {
 		return "", err
@@ -85,17 +104,38 @@ func (s *Service) MintHandoffCode(ctx context.Context, userID uuid.UUID, redirec
 	return code, nil
 }
 
-func (s *Service) ExchangeHandoffCode(ctx context.Context, code string) (ConsumeAuthCodeRow, error) {
-	row, err := s.queries.ConsumeAuthCode(ctx, hashSecret(code))
+func (s *Service) ExchangeHandoffCode(
+	ctx context.Context,
+	code string,
+	origin string,
+	bindingID string,
+	bindingHash []byte,
+) (ConsumeAuthCodeRow, error) {
+	origin, ok := s.allowedOrigin(origin)
+	if !ok || origin == s.cfg.CanonicalOrigin || !validSecret(code) ||
+		!validBindingID(bindingID) ||
+		len(bindingHash) != 32 {
+		return ConsumeAuthCodeRow{}, pgx.ErrNoRows
+	}
+	row, err := s.queries.ConsumeAuthCode(ctx, ConsumeAuthCodeParams{
+		CodeHash:           hashHandoffCode(code),
+		Origin:             &origin,
+		BrowserBindingID:   &bindingID,
+		BrowserBindingHash: bindingHash,
+	})
 	if err != nil {
 		return ConsumeAuthCodeRow{}, err
 	}
 	redirect, ok := normalizeReturnPath(row.Redirect)
 	if !ok {
-		return ConsumeAuthCodeRow{}, errInvalidReturnPath
+		return row, errInvalidReturnPath
 	}
 	row.Redirect = redirect
 	return row, nil
+}
+
+func hashHandoffCode(code string) []byte {
+	return hashSecret(handoffCodeHashPurpose + "\x00" + code)
 }
 
 func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, error) {

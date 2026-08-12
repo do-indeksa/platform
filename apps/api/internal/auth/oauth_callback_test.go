@@ -25,11 +25,13 @@ func TestOAuthProviderFailureReturnsStableBadGatewayWithoutLeaks(t *testing.T) {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	service := newOAuthUpstreamTestService(server.URL)
+	binding, cookie := newTestOAuthBinding(t, testCanonical)
 	sealed, err := sealState(testKey, state{
-		Origin:    testCanonical,
-		Redirect:  "/prep",
-		Verifier:  testCodeVerifier,
-		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+		Origin:          testCanonical,
+		Redirect:        "/prep",
+		Verifier:        testCodeVerifier,
+		CallbackBinding: binding,
+		ExpiresAt:       time.Now().Add(stateTTL).Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -40,6 +42,8 @@ func TestOAuthProviderFailureReturnsStableBadGatewayWithoutLeaks(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
 	t.Cleanup(func() { slog.SetDefault(previousLogger) })
 	request := httptest.NewRequest(http.MethodGet, "/v1/auth/google/callback", nil)
+	request.Host = "localhost:3000"
+	request.AddCookie(cookie)
 	response := httptest.NewRecorder()
 	code := testAuthorizationCode
 	NewHandler(service).GoogleAuthCallback(response, request, api.GoogleAuthCallbackParams{
@@ -86,11 +90,13 @@ func TestOAuthInvalidGrantReturnsSanitizedBadRequest(t *testing.T) {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	service := newOAuthUpstreamTestService(server.URL)
+	binding, cookie := newTestOAuthBinding(t, testCanonical)
 	sealed, err := sealState(testKey, state{
-		Origin:    testCanonical,
-		Redirect:  "/prep",
-		Verifier:  testCodeVerifier,
-		ExpiresAt: time.Now().Add(stateTTL).Unix(),
+		Origin:          testCanonical,
+		Redirect:        "/prep",
+		Verifier:        testCodeVerifier,
+		CallbackBinding: binding,
+		ExpiresAt:       time.Now().Add(stateTTL).Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -101,6 +107,8 @@ func TestOAuthInvalidGrantReturnsSanitizedBadRequest(t *testing.T) {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
 	t.Cleanup(func() { slog.SetDefault(previousLogger) })
 	request := httptest.NewRequest(http.MethodGet, "/v1/auth/google/callback", nil)
+	request.Host = "localhost:3000"
+	request.AddCookie(cookie)
 	response := httptest.NewRecorder()
 	code := testAuthorizationCode
 	NewHandler(service).GoogleAuthCallback(response, request, api.GoogleAuthCallbackParams{

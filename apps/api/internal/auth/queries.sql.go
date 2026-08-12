@@ -14,39 +14,69 @@ import (
 
 const consumeAuthCode = `-- name: ConsumeAuthCode :one
 delete from auth_codes
-where code_hash = $1 and expires_at > now()
+where code_hash = $1
+    and origin = $2
+    and browser_binding_id = $3
+    and browser_binding_hash = $4
+    and expires_at > now()
 returning user_id, redirect
 `
+
+type ConsumeAuthCodeParams struct {
+	CodeHash           []byte
+	Origin             *string
+	BrowserBindingID   *string
+	BrowserBindingHash []byte
+}
 
 type ConsumeAuthCodeRow struct {
 	UserID   uuid.UUID
 	Redirect string
 }
 
-func (q *Queries) ConsumeAuthCode(ctx context.Context, codeHash []byte) (ConsumeAuthCodeRow, error) {
-	row := q.db.QueryRow(ctx, consumeAuthCode, codeHash)
+func (q *Queries) ConsumeAuthCode(ctx context.Context, arg ConsumeAuthCodeParams) (ConsumeAuthCodeRow, error) {
+	row := q.db.QueryRow(ctx, consumeAuthCode,
+		arg.CodeHash,
+		arg.Origin,
+		arg.BrowserBindingID,
+		arg.BrowserBindingHash,
+	)
 	var i ConsumeAuthCodeRow
 	err := row.Scan(&i.UserID, &i.Redirect)
 	return i, err
 }
 
 const createAuthCode = `-- name: CreateAuthCode :exec
-insert into auth_codes (code_hash, user_id, redirect, expires_at)
-values ($1, $2, $3, $4)
+insert into auth_codes (
+    code_hash,
+    user_id,
+    origin,
+    redirect,
+    browser_binding_id,
+    browser_binding_hash,
+    expires_at
+)
+values ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateAuthCodeParams struct {
-	CodeHash  []byte
-	UserID    uuid.UUID
-	Redirect  string
-	ExpiresAt time.Time
+	CodeHash           []byte
+	UserID             uuid.UUID
+	Origin             *string
+	Redirect           string
+	BrowserBindingID   *string
+	BrowserBindingHash []byte
+	ExpiresAt          time.Time
 }
 
 func (q *Queries) CreateAuthCode(ctx context.Context, arg CreateAuthCodeParams) error {
 	_, err := q.db.Exec(ctx, createAuthCode,
 		arg.CodeHash,
 		arg.UserID,
+		arg.Origin,
 		arg.Redirect,
+		arg.BrowserBindingID,
+		arg.BrowserBindingHash,
 		arg.ExpiresAt,
 	)
 	return err

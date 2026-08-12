@@ -4,13 +4,10 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/oapi-codegen/runtime/types"
-	"golang.org/x/oauth2"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
@@ -26,108 +23,6 @@ func NewHandler(service *Service) *Handler {
 
 func ParamErrorHandler(w http.ResponseWriter, _ *http.Request, err error) {
 	httpx.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
-}
-
-func (h *Handler) StartGoogleAuth(w http.ResponseWriter, r *http.Request, params api.StartGoogleAuthParams) {
-	origin, ok := h.service.allowedOrigin(requestOrigin(r))
-	if !ok {
-		httpx.WriteError(w, http.StatusBadRequest, "origin_not_allowed", "sign-in must start from a known origin")
-		return
-	}
-	verifier := oauth2.GenerateVerifier()
-	sealed, err := sealState(h.service.cfg.Secret, state{
-		Origin:    origin,
-		Redirect:  sanitizeReturnPath(params.Redirect),
-		Verifier:  verifier,
-		ExpiresAt: time.Now().Add(stateTTL).Unix(),
-	})
-	if err != nil {
-		h.serverError(w, err, "failed to start sign-in")
-		return
-	}
-	authURL := h.service.oauth().AuthCodeURL(sealed, oauth2.S256ChallengeOption(verifier))
-	http.Redirect(w, r, authURL, http.StatusFound)
-}
-
-func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, params api.GoogleAuthCallbackParams) {
-	ctx := r.Context()
-	st, err := openState(h.service.cfg.Secret, params.State, time.Now())
-	if err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
-		return
-	}
-	origin, ok := h.service.allowedOrigin(st.Origin)
-	if !ok {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
-		return
-	}
-	st.Origin = origin
-	redirect, ok := normalizeReturnPath(st.Redirect)
-	if !ok {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_state", "sign-in state is invalid or expired")
-		return
-	}
-	st.Redirect = redirect
-	if params.Error != nil && *params.Error != "" {
-		http.Redirect(w, r, st.Origin+st.Redirect, http.StatusFound)
-		return
-	}
-	if params.Code == nil || *params.Code == "" {
-		httpx.WriteError(w, http.StatusBadRequest, "missing_code", "authorization code is missing")
-		return
-	}
-	user, err := h.service.CompleteGoogleSignIn(ctx, *params.Code, st.Verifier)
-	switch {
-	case errors.Is(err, ErrCodeRejected):
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_code", "authorization code was rejected")
-		return
-	case errors.Is(err, ErrInvalidUserinfo):
-		httpx.WriteError(w, http.StatusBadRequest, "userinfo_failed", "google profile is incomplete")
-		return
-	case errors.Is(err, ErrProviderUnavailable):
-		slog.Warn("sign-in provider unavailable", "error", err)
-		httpx.WriteError(
-			w,
-			http.StatusBadGateway,
-			"oauth_provider_unavailable",
-			"sign-in provider is temporarily unavailable",
-		)
-		return
-	case err != nil:
-		h.serverError(w, err, "failed to complete sign-in")
-		return
-	}
-	if st.Origin == h.service.cfg.CanonicalOrigin {
-		if err := h.setSessionCookie(w, r, user); err != nil {
-			h.serverError(w, err, "failed to create session")
-			return
-		}
-		http.Redirect(w, r, st.Redirect, http.StatusFound)
-		return
-	}
-	code, err := h.service.MintHandoffCode(ctx, user.ID, st.Redirect)
-	if err != nil {
-		h.serverError(w, err, "failed to create session")
-		return
-	}
-	http.Redirect(w, r, st.Origin+"/api/v1/auth/exchange?code="+url.QueryEscape(code), http.StatusFound)
-}
-
-func (h *Handler) ExchangeAuthCode(w http.ResponseWriter, r *http.Request, params api.ExchangeAuthCodeParams) {
-	row, err := h.service.ExchangeHandoffCode(r.Context(), params.Code)
-	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, errInvalidReturnPath) {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_code", "code is invalid, expired or already used")
-		return
-	}
-	if err != nil {
-		h.serverError(w, err, "failed to create session")
-		return
-	}
-	if err := h.setSessionCookie(w, r, User{ID: row.UserID}); err != nil {
-		h.serverError(w, err, "failed to create session")
-		return
-	}
-	http.Redirect(w, r, row.Redirect, http.StatusFound)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
