@@ -46,6 +46,11 @@ HTTPS sessions use the host-prefixed `__Host-di_session` cookie with `Secure`,
 loopback development uses `di_session`; production does not accept that legacy
 name as a fallback.
 
+Every unsafe API request requires an exact configured browser `Origin`, or an
+equivalent `Referer` origin when `Origin` is unavailable, before endpoint
+authentication runs. This also applies when `SameSite=Lax` omits the session
+cookie, preventing cross-site logout responses from deleting it.
+
 The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.
