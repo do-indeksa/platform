@@ -22,13 +22,6 @@ export function SelectionBar({
       <p className="mr-1 w-[71px] shrink-0 font-normal tabular-nums">
         {t("selectionCount", { count })}
       </p>
-      <span
-        aria-disabled="true"
-        data-design-status="provisional"
-        className="hidden h-10 w-[132px] shrink-0 items-center justify-center rounded-[9px] bg-brand px-2 font-medium text-on-brand min-[375px]:flex"
-      >
-        {t("addToSet")}
-      </span>
       <Link
         href={href}
         onClick={onStart}
