@@ -76,6 +76,7 @@ func run() error {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID, middleware.Logger, middleware.Recoverer, middleware.NoCache)
 	r.Get("/healthz", handleHealth)
+	registerReadinessRoute(r, pool.Ping)
 	r.With(auth.RequestUserMiddleware(authService)).Handle(
 		"/graphql",
 		graph.NewHandler(graph.NewResolver(progressService)),
