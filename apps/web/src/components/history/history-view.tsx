@@ -165,6 +165,7 @@ export function HistoryView({
       data-testid="history-page"
       data-tab={initialTab}
       data-sync-status={syncStatus}
+      data-design-status={syncStatus === "degraded" ? "provisional" : "figma"}
       className="min-h-[calc(100vh-64px)] w-full overflow-hidden rounded-b-2xl bg-page xl:min-h-[calc(100vh-72px)]"
     >
       <div

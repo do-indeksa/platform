@@ -46,7 +46,10 @@ export function CabinetContinueCard({
       className="flex h-[642px] flex-col items-center gap-[18px] overflow-hidden rounded-[20px] bg-subtle p-6 md:h-[322px] md:flex-row md:justify-between md:gap-0 md:p-7 xl:p-8"
       aria-labelledby="cabinet-continue-title"
     >
-      <div className="flex h-[394px] w-full min-w-0 flex-col items-start gap-3 overflow-hidden md:h-[242px] md:w-[520px] md:shrink-0 xl:w-[760px]">
+      <div
+        data-testid="continue-run-content"
+        className="flex h-[394px] w-full min-w-0 flex-col items-start gap-3 overflow-hidden md:h-[242px] md:w-[520px] md:shrink-0 xl:w-[760px]"
+      >
         <p className="w-full text-xs leading-[1.4] font-semibold text-brand-ink uppercase">
           {content.kicker}
         </p>
@@ -108,7 +111,10 @@ export function CabinetContinueCard({
         </div>
       </div>
 
-      <div className="flex h-[190px] w-[260px] shrink-0 items-center justify-center md:h-[220px] xl:h-[258px] xl:w-[360px]">
+      <div
+        data-testid="continue-run-artwork"
+        className="flex h-[190px] w-[260px] shrink-0 items-center justify-center md:h-[220px] xl:h-[258px] xl:w-[360px]"
+      >
         <Image
           src="/cabinet/preparation-book.png"
           alt=""
