@@ -13,6 +13,7 @@ export function TrainingSettings({
   onlyNew,
   shuffle,
   prioritizeMistakes,
+  disabled,
   journalStatus,
   onDifficultyChange,
   onOnlyNewChange,
@@ -23,6 +24,7 @@ export function TrainingSettings({
   onlyNew: boolean;
   shuffle: boolean;
   prioritizeMistakes: boolean;
+  disabled: boolean;
   journalStatus: "loading" | "guest" | "synced" | "degraded";
   onDifficultyChange: (value: TrainingBuilderDifficulty) => void;
   onOnlyNewChange: (value: boolean) => void;
@@ -61,9 +63,10 @@ export function TrainingSettings({
           <button
             key={value}
             type="button"
+            disabled={disabled}
             aria-pressed={difficulty === value}
             onClick={() => onDifficultyChange(value)}
-            className={`h-10 min-w-0 flex-1 rounded-[10px] px-2 text-sm leading-5 font-semibold transition-colors ${
+            className={`h-10 min-w-0 flex-1 rounded-[10px] px-2 text-sm leading-5 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               difficulty === value
                 ? "bg-brand text-on-brand"
                 : "border border-line bg-surface text-ink hover:border-brand"
@@ -77,18 +80,21 @@ export function TrainingSettings({
       <div className="mt-3 grid">
         <TrainingToggle
           checked={onlyNew}
+          disabled={disabled}
           title={t("onlyNew.title")}
           description={t("onlyNew.description")}
           onChange={onOnlyNewChange}
         />
         <TrainingToggle
           checked={shuffle}
+          disabled={disabled}
           title={t("shuffle.title")}
           description={t("shuffle.description")}
           onChange={onShuffleChange}
         />
         <TrainingToggle
           checked={prioritizeMistakes}
+          disabled={disabled}
           title={t("mistakes.title")}
           description={t("mistakes.description")}
           onChange={onPrioritizeMistakesChange}
@@ -111,11 +117,13 @@ export function TrainingSettings({
 
 function TrainingToggle({
   checked,
+  disabled,
   title,
   description,
   onChange,
 }: {
   checked: boolean;
+  disabled: boolean;
   title: string;
   description: string;
   onChange: (value: boolean) => void;
@@ -133,10 +141,11 @@ function TrainingToggle({
       <button
         type="button"
         role="switch"
+        disabled={disabled}
         aria-checked={checked}
         aria-label={title}
         onClick={() => onChange(!checked)}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Image
           aria-hidden

@@ -9,12 +9,14 @@ export function TrainingSummary({
   quantities,
   actualCounts,
   total,
+  disabled,
   onRemove,
 }: {
   positions: readonly TrainingBuilderPositionView[];
   quantities: Readonly<Record<number, number>>;
   actualCounts: Readonly<Record<number, number>>;
   total: number;
+  disabled: boolean;
   onRemove: (position: TrainingBuilderPositionView) => void;
 }) {
   const t = useTranslations("trainingBuilder");
@@ -61,11 +63,12 @@ export function TrainingSummary({
               </span>
               <button
                 type="button"
+                disabled={disabled}
                 onClick={() => onRemove(position)}
                 aria-label={t("removePosition", {
                   position: position.number,
                 })}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-subtle"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <X aria-hidden size={14} strokeWidth={1.7} />
               </button>

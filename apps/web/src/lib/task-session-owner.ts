@@ -1,12 +1,14 @@
 import {
-  parseLearningRunOwner,
-  type LearningRunOwnerId,
-} from "./learning-run-owner";
+  browserStorageOwnerScope,
+  type BrowserStorageOwnerId,
+} from "./browser-storage-owner";
 
-export type TaskSessionOwnerId = LearningRunOwnerId;
+export type TaskSessionOwnerId = BrowserStorageOwnerId;
 
 export function taskSessionStorageScope(ownerId: TaskSessionOwnerId): string {
-  const parsed = parseLearningRunOwner(ownerId);
-  if (parsed === undefined) throw new Error("task session owner is invalid");
-  return parsed === null ? "guest" : `user:${parsed.toLowerCase()}`;
+  try {
+    return browserStorageOwnerScope(ownerId);
+  } catch {
+    throw new Error("task session owner is invalid");
+  }
 }
