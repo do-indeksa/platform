@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const USER_A = "a0209703-275b-4c6e-b815-25025b923ae8";
 const USER_B = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";

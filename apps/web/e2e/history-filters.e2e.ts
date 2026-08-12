@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const dayMs = 24 * 60 * 60 * 1_000;
 

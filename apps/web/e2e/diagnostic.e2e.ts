@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
