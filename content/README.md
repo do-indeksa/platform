@@ -16,7 +16,8 @@ still resolves to a statement and solution. Generated material is never marked
 
 Versioned evidence for manually promoted topic packs lives in `reviews/`. CI
 requires every `verified` task to appear in exactly one record, and each listed
-topic must be reviewed in full.
+topic record must cover its complete verified subset. Tasks still in `review`
+remain publishable for practice without entering exam-like generation.
 
 ## Immutable task snapshots
 

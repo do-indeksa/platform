@@ -88,11 +88,11 @@ export async function auditVerificationRecords(
       }
 
       const topicTasks = [...tasks.values()]
-        .filter((task) => task.topic === slug)
+        .filter((task) => task.topic === slug && task.status === "verified")
         .map((task) => task.id)
         .sort();
       if (!topicTasks.length)
-        throw new Error(`${filePath}: unknown topic ${slug}`);
+        throw new Error(`${filePath}: topic ${slug} has no verified tasks`);
       if (taskIds.toSorted().join(",") !== topicTasks.join(",")) {
         throw new Error(`${filePath}: review must cover every task in ${slug}`);
       }
