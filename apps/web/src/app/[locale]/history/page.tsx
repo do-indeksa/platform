@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { HistoryView, type HistoryTab } from "@/components/history";
+import { HistoryView } from "@/components/history";
 import { getTaskSummaries, getTopics } from "@/lib/content";
-import { parseTaskHistoryFilters } from "@/lib/task-history-filters";
+import { parseHistoryFeedFilters, parseHistoryTab } from "@/lib/history-feed";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -25,21 +25,19 @@ export default async function HistoryPage({ params, searchParams }: Props) {
   const topicNames = new Map(
     topics.map((topic) => [topic.slug, topicT(topic.slug)]),
   );
-  const tab = firstQueryValue(query.tab) === "variants" ? "variants" : "tasks";
-  const taskFilters = parseTaskHistoryFilters(
-    query,
-    new Set(topics.map((topic) => topic.slug)),
-  );
+  const tab = parseHistoryTab(firstQueryValue(query.tab));
+  const filters = parseHistoryFeedFilters(query);
 
   return (
     <HistoryView
-      initialTab={tab satisfies HistoryTab}
-      initialTaskFilters={taskFilters}
-      tasks={summaries.map(({ id, slot, topic }) => ({
+      initialTab={tab}
+      initialFilters={filters}
+      tasks={summaries.map(({ id, slot, topic, difficulty }) => ({
         id,
         slot,
         topic,
         topicName: topicNames.get(topic) ?? topic,
+        difficulty,
       }))}
     />
   );

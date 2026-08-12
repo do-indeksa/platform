@@ -300,6 +300,10 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
       await route.fulfill({ json: { data: { runs: [] } } });
       return;
     }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
     if (call.operationName === "SimulationCloudRun") {
       await route.fulfill({ json: { data: { run: null } } });
       return;
