@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"runtime/debug"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/go-chi/chi/v5/middleware"
@@ -39,8 +40,11 @@ func presentError(ctx context.Context, err error) error {
 	}
 }
 
-func recoverError(ctx context.Context, recovered any) error {
-	slog.Error("graphql panic recovered", "request_id", middleware.GetReqID(ctx), "error", recovered)
+func recoverError(ctx context.Context, _ any) error {
+	slog.Error("graphql panic recovered",
+		"request_id", middleware.GetReqID(ctx),
+		"stack", string(debug.Stack()),
+	)
 	return codedError("INTERNAL", "internal server error")
 }
 

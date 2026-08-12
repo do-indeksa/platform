@@ -22,6 +22,7 @@ import (
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 	"github.com/do-indeksa/platform/apps/api/internal/graph"
+	"github.com/do-indeksa/platform/apps/api/internal/httpx"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
 )
 
@@ -37,6 +38,8 @@ type apiServer struct {
 var _ api.ServerInterface = apiServer{}
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	configureRequestLogging(slog.Default())
 	if err := run(); err != nil {
 		slog.Error("api exited", "error", err)
 		os.Exit(1)
@@ -84,7 +87,7 @@ func run() error {
 
 	server := &http.Server{
 		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "8080"),
-		Handler:           r,
+		Handler:           httpx.ServerRequestID(r),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      30 * time.Second,
