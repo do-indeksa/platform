@@ -106,7 +106,7 @@ test("the plan follows current P1 positions and keeps completed work visible", a
     .getByRole("link", { name: "Start" })
     .click();
   await expect(page).toHaveURL(/\/en\/tasks\/eksponencijalne\/eks-001\?/);
-  await expect(page.getByText("Task 1 of 3", { exact: true })).toBeVisible();
+  await expect(page.getByText("1 of 3 tasks", { exact: true })).toBeVisible();
 
   const todayAt = new Date().toISOString();
   await page.evaluate(
