@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   loadTrainingBuilderDraft,
   saveTrainingBuilderDraft,
-  TRAINING_BUILDER_STORAGE_KEY,
+  trainingBuilderStorageKey,
 } from "./training-builder-storage";
 import {
   createDefaultTrainingBuilderDraft,
@@ -14,6 +14,9 @@ const positions: TrainingBuilderPosition[] = [
   { number: 4, topicSlugs: ["logs"], availableCount: 3 },
 ];
 const blueprintVersion = "2026.1";
+const USER_A = "39ec4650-762d-437f-9917-c31ab167cb99";
+const USER_B = "73ce6fba-0219-4549-a521-054085c09e5b";
+const LEGACY_STORAGE_KEY = "do-indeksa-training-builder";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -27,28 +30,59 @@ describe("training builder storage", () => {
       blueprintVersion,
     );
 
-    expect(saveTrainingBuilderDraft(draft, positions, blueprintVersion)).toBe(
-      true,
-    );
-    expect(loadTrainingBuilderDraft(positions, blueprintVersion)).toEqual(
-      draft,
-    );
-    expect(map.has(TRAINING_BUILDER_STORAGE_KEY)).toBe(true);
+    expect(
+      saveTrainingBuilderDraft(USER_A, draft, positions, blueprintVersion),
+    ).toBe(true);
+    expect(
+      loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
+    ).toEqual(draft);
+    expect(map.has(trainingBuilderStorageKey(USER_A))).toBe(true);
+    expect(
+      loadTrainingBuilderDraft(USER_B, positions, blueprintVersion),
+    ).toBeNull();
+    expect(
+      loadTrainingBuilderDraft(null, positions, blueprintVersion),
+    ).toBeNull();
   });
 
   it("ignores corrupt, oversized, and stale persisted input", () => {
-    const map = storage("not-json");
-    expect(loadTrainingBuilderDraft(positions, blueprintVersion)).toBeNull();
+    const map = storage();
+    const key = trainingBuilderStorageKey(USER_A);
+    map.set(key, "not-json");
+    expect(
+      loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
+    ).toBeNull();
 
-    map.set(TRAINING_BUILDER_STORAGE_KEY, "x".repeat(8_001));
-    expect(loadTrainingBuilderDraft(positions, blueprintVersion)).toBeNull();
+    map.set(key, "x".repeat(8_001));
+    expect(
+      loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
+    ).toBeNull();
 
     const stale = {
       ...createDefaultTrainingBuilderDraft(positions, blueprintVersion),
       blueprintVersion: "2025.1",
     };
-    map.set(TRAINING_BUILDER_STORAGE_KEY, JSON.stringify(stale));
-    expect(loadTrainingBuilderDraft(positions, blueprintVersion)).toBeNull();
+    map.set(key, JSON.stringify(stale));
+    expect(
+      loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
+    ).toBeNull();
+  });
+
+  it("does not claim the unowned legacy draft for a user or guest", () => {
+    const legacy = createDefaultTrainingBuilderDraft(
+      positions,
+      blueprintVersion,
+    );
+    const map = storage();
+    map.set(LEGACY_STORAGE_KEY, JSON.stringify(legacy));
+
+    expect(
+      loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
+    ).toBeNull();
+    expect(
+      loadTrainingBuilderDraft(null, positions, blueprintVersion),
+    ).toBeNull();
+    expect(map.get(LEGACY_STORAGE_KEY)).toBe(JSON.stringify(legacy));
   });
 
   it("reports unavailable browser storage without leaking exceptions", () => {
@@ -65,16 +99,17 @@ describe("training builder storage", () => {
       blueprintVersion,
     );
 
-    expect(loadTrainingBuilderDraft(positions, blueprintVersion)).toBeNull();
-    expect(saveTrainingBuilderDraft(draft, positions, blueprintVersion)).toBe(
-      false,
-    );
+    expect(
+      loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
+    ).toBeNull();
+    expect(
+      saveTrainingBuilderDraft(USER_A, draft, positions, blueprintVersion),
+    ).toBe(false);
   });
 });
 
-function storage(initial?: string) {
+function storage() {
   const map = new Map<string, string>();
-  if (initial !== undefined) map.set(TRAINING_BUILDER_STORAGE_KEY, initial);
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => map.get(key) ?? null,
     setItem: (key: string, value: string) => void map.set(key, value),
