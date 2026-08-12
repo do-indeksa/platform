@@ -80,7 +80,7 @@ func run() error {
 		middleware.Logger,
 		middleware.Recoverer,
 		middleware.NoCache,
-		auth.CookieMutationOriginMiddleware(authService),
+		auth.UnsafeRequestOriginMiddleware(authService),
 	)
 	r.Get("/healthz", handleHealth)
 	r.With(auth.RequestUserMiddleware(authService)).Handle(

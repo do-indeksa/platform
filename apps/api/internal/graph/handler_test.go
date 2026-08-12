@@ -37,6 +37,23 @@ func TestGraphQLRejectsCrossOriginSessionMutation(t *testing.T) {
 	}
 }
 
+func TestGraphQLRejectsCrossOriginRequestWithoutSession(t *testing.T) {
+	body := strings.NewReader(`{"query":"query { runs { id } }"}`)
+	request := httptest.NewRequest(http.MethodPost, "/graphql", body)
+	request.Host = "doindeksa.rs"
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://evil.example")
+	request.Header.Set("Sec-Fetch-Site", "cross-site")
+	response := httptest.NewRecorder()
+
+	graphApp.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden ||
+		!strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
+		t.Fatalf("anonymous cross-origin GraphQL returned %d: %s", response.Code, response.Body.String())
+	}
+}
+
 func TestGraphQLRejectsInvalidProductInput(t *testing.T) {
 	session := seedGraphSession(t, "")
 	_, payload := graphRequest(t, `query($id: ID!) { run(id: $id) { id } }`, map[string]any{

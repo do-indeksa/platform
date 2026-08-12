@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 	graphAuth = auth.NewService(graphTestPool, auth.Config{CanonicalOrigin: "https://doindeksa.rs"})
 	progressService := progress.NewService(graphTestPool)
 	router := chi.NewRouter()
-	router.Use(auth.CookieMutationOriginMiddleware(graphAuth))
+	router.Use(auth.UnsafeRequestOriginMiddleware(graphAuth))
 	router.With(auth.RequestUserMiddleware(graphAuth)).Handle(
 		"/graphql",
 		NewHandler(NewResolver(progressService)),
@@ -93,9 +93,9 @@ func graphRequest(
 	request := httptest.NewRequest(http.MethodPost, "/graphql", bytes.NewReader(body))
 	request.Host = "doindeksa.rs"
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://doindeksa.rs")
 	if session != nil {
 		request.AddCookie(session)
-		request.Header.Set("Origin", "https://doindeksa.rs")
 	}
 	graphApp.ServeHTTP(recorder, request)
 	response := recorder.Result()
