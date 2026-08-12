@@ -7,8 +7,10 @@ import {
   useEffect,
   useState,
 } from "react";
+import { AuthBootstrapError } from "@/components/auth-bootstrap-error";
 import { useRouter } from "@/i18n/navigation";
 import type { components } from "@/lib/api/schema";
+import { fetchCurrentUser } from "@/lib/auth-bootstrap";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
 import { prepareHistoryRuns, syncHistoryRuns } from "@/lib/history-run-store";
 import { syncDiagnosticOwner } from "@/lib/diagnostic-store";
@@ -21,6 +23,9 @@ import { syncSimulationOwner } from "@/lib/simulation-store";
 import { syncTaskHistory } from "@/lib/task-history-store";
 
 type User = components["schemas"]["User"];
+
+type AuthState =
+  { status: "loading" | "error" } | { status: "ready"; user: User | null };
 
 type UserContextValue = {
   user: User | null;
@@ -42,28 +47,28 @@ export function useUser(): UserContextValue {
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>();
+  const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/v1/me", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: User | null) => {
-        prepareLocalOwner(data?.id ?? null);
-        setUser(data);
+    void fetchCurrentUser(controller.signal)
+      .then((user) => {
+        prepareLocalOwner(user?.id ?? null);
+        setAuth({ status: "ready", user });
       })
       .catch((err: unknown) => {
         if (!(err instanceof DOMException && err.name === "AbortError")) {
-          prepareLocalOwner(null);
-          setUser(null);
+          setAuth({ status: "error" });
         }
       });
     return () => controller.abort();
-  }, []);
+  }, [bootstrapAttempt]);
 
   useEffect(() => {
-    if (user === undefined) return;
+    if (auth.status !== "ready") return;
+    const user = auth.user;
     let current = true;
     void (async () => {
       try {
@@ -80,7 +85,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => {
       current = false;
     };
-  }, [user]);
+  }, [auth]);
+
+  const retryBootstrap = useCallback(() => {
+    setAuth({ status: "loading" });
+    setBootstrapAttempt((attempt) => attempt + 1);
+  }, []);
 
   const signOut = useCallback(async () => {
     setSigningOut(true);
@@ -90,7 +100,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         clearLocalAttempts();
         clearProgressSync();
         prepareLocalOwner(null);
-        setUser(null);
+        setAuth({ status: "ready", user: null });
         router.refresh();
       }
     } catch {
@@ -99,11 +109,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
+  if (auth.status === "error") {
+    return <AuthBootstrapError retry={retryBootstrap} />;
+  }
+
+  const user = auth.status === "ready" ? auth.user : null;
+
   return (
     <UserContext
       value={{
         user: user ?? null,
-        loading: user === undefined,
+        loading: auth.status === "loading",
         signingOut,
         signOut,
       }}
