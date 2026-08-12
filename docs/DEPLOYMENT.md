@@ -68,6 +68,10 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
   public CI logs, or this repository.
 - App CI publishes immutable commit-SHA images only. Kargo promotion and ArgoCD
   reconciliation remain the sole production mutation path.
+- API and web builds are not independently promotable. CI publishes a release
+  marker with the same commit SHA only after both runtime images pass their
+  build, scan, and smoke gates. The marker records both runtime image digests;
+  Kargo discovers that marker tag and applies it to API and web together.
 
 ## Release gates
 
