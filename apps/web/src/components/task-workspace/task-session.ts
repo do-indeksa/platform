@@ -6,18 +6,23 @@ import {
   taskDraftStorageKey,
   type TaskDraft,
 } from "../../lib/task-draft";
+import {
+  taskSessionStorageScope,
+  type TaskSessionOwnerId,
+} from "../../lib/task-session-owner";
 import type { TaskWorkspaceItem, TaskWorkspaceStatus } from "./types";
 
-const CLOCK_STORAGE_PREFIX = "do-indeksa-practice-clock-v1:";
+const CLOCK_STORAGE_PREFIX = "do-indeksa-practice-clock-v2:";
 const MAX_CLOCK_AGE_MS = 12 * 60 * 60 * 1_000;
 
 export function readTaskWorkspaceStatus(
+  ownerId: TaskSessionOwnerId,
   task: TaskWorkspaceItem,
   practiceId: string | null,
 ): TaskWorkspaceStatus {
   try {
     const raw = sessionStorage.getItem(
-      taskDraftStorageKey(task.id, practiceId),
+      taskDraftStorageKey(ownerId, task.id, practiceId),
     );
     return parseTaskWorkspaceStatus(raw, task.partCount, task.maxHints);
   } catch {}
@@ -38,55 +43,104 @@ export function parseTaskWorkspaceStatus(
 }
 
 export function writeTaskDraftSession(
+  ownerId: TaskSessionOwnerId,
   taskId: string,
   practiceId: string | null,
   draft: TaskDraft,
 ): void {
-  writeSession(taskDraftStorageKey(taskId, practiceId), JSON.stringify(draft));
+  writeSession(
+    taskDraftStorageKey(ownerId, taskId, practiceId),
+    JSON.stringify(draft),
+  );
 }
 
 export function useStoredTaskStatuses(
   tasks: readonly TaskWorkspaceItem[],
   practiceId: string | null,
   refreshToken: string,
+  ownerId: TaskSessionOwnerId | undefined,
 ): Readonly<Record<string, TaskWorkspaceStatus>> {
-  const [statuses, setStatuses] = useState<
-    Readonly<Record<string, TaskWorkspaceStatus>>
-  >({});
+  const sessionKey =
+    ownerId === undefined
+      ? null
+      : [
+          taskSessionStorageScope(ownerId),
+          practiceId ?? "standalone",
+          ...tasks.map(
+            (task) => `${task.id}/${task.partCount}/${task.maxHints}`,
+          ),
+        ].join(":");
+  const [snapshot, setSnapshot] = useState<{
+    sessionKey: string | null;
+    statuses: Readonly<Record<string, TaskWorkspaceStatus>>;
+  }>({ sessionKey: null, statuses: {} });
 
   useEffect(() => {
+    if (ownerId === undefined || sessionKey === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSnapshot({ sessionKey: null, statuses: {} });
+      return;
+    }
     const next = Object.fromEntries(
-      tasks.map((task) => [task.id, readTaskWorkspaceStatus(task, practiceId)]),
+      tasks.map((task) => [
+        task.id,
+        readTaskWorkspaceStatus(ownerId, task, practiceId),
+      ]),
     );
     // Session storage is only available after hydration.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setStatuses(next);
-  }, [practiceId, refreshToken, tasks]);
+    setSnapshot({ sessionKey, statuses: next });
+  }, [ownerId, practiceId, refreshToken, sessionKey, tasks]);
 
-  return statuses;
+  return snapshot.sessionKey === sessionKey ? snapshot.statuses : {};
 }
 
-export function usePracticeElapsedSeconds(sessionId: string): number {
+export function practiceClockStorageKey(
+  ownerId: TaskSessionOwnerId,
+  sessionId: string,
+): string {
+  return `${CLOCK_STORAGE_PREFIX}${taskSessionStorageScope(ownerId)}:${sessionId}`;
+}
+
+export function usePracticeElapsedSeconds(
+  sessionId: string,
+  ownerId: TaskSessionOwnerId | undefined,
+): number {
   const storageKey = useMemo(
-    () => `${CLOCK_STORAGE_PREFIX}${sessionId}`,
-    [sessionId],
+    () =>
+      ownerId === undefined
+        ? null
+        : practiceClockStorageKey(ownerId, sessionId),
+    [ownerId, sessionId],
   );
-  const [elapsed, setElapsed] = useState(0);
+  const [clock, setClock] = useState<{
+    storageKey: string | null;
+    elapsed: number;
+  }>({ storageKey: null, elapsed: 0 });
 
   useEffect(() => {
+    if (storageKey === null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setClock({ storageKey: null, elapsed: 0 });
+      return;
+    }
     const now = Date.now();
     const startedAt = resolvePracticeStartedAt(readSession(storageKey), now);
     writeSession(storageKey, String(startedAt));
 
     const update = () => {
-      setElapsed(Math.max(0, Math.floor((Date.now() - startedAt) / 1_000)));
+      setClock({
+        storageKey,
+        elapsed: Math.max(0, Math.floor((Date.now() - startedAt) / 1_000)),
+      });
     };
     update();
     const interval = window.setInterval(update, 1_000);
     return () => window.clearInterval(interval);
   }, [storageKey]);
 
-  return elapsed;
+  return storageKey !== null && clock.storageKey === storageKey
+    ? clock.elapsed
+    : 0;
 }
 
 export function resolvePracticeStartedAt(
