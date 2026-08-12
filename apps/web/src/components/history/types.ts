@@ -1,6 +1,1 @@
-export type HistoryTaskMeta = {
-  id: string;
-  slot: number;
-  topic: string;
-  topicName: string;
-};
+export type { HistoryTaskMeta } from "@/lib/history-feed";

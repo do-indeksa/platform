@@ -512,6 +512,76 @@
   "history": {
     "title": "Istorija",
     "description": "Završeni zadaci i probni ispiti tokom pripreme za FTN P1.",
+    "feed": {
+      "title": "Istorija",
+      "loading": "Učitavamo istoriju...",
+      "tabsLabel": "Prikazi istorije",
+      "tabs": {
+        "all": "Sve",
+        "tasks": "Zadaci",
+        "trainings": "Vežbe",
+        "mocks": "Probni ispiti"
+      },
+      "degraded": "Sinhronizacija naloga još nije ažurna. Ispravna aktivnost sačuvana na ovom uređaju ostaje vidljiva.",
+      "filters": {
+        "label": "Filteri istorije",
+        "subjectLabel": "Prijemni ispit",
+        "allSubjects": "Svi ispiti",
+        "p1": "Matematika FTN P1",
+        "periodLabel": "Period",
+        "period": {
+          "all": "Sve vreme",
+          "7d": "Poslednjih 7 dana",
+          "30d": "Poslednjih 30 dana",
+          "90d": "Poslednjih 90 dana"
+        },
+        "difficultyLabel": "Težina",
+        "difficulty": {
+          "all": "Sve težine",
+          "easy": "Lako · 1-2",
+          "medium": "Srednje · 3-4",
+          "hard": "Teško · 5"
+        }
+      },
+      "actions": {
+        "label": "Radnje istorije",
+        "reset": "Poništi filtere",
+        "trend": "Napredak bodova",
+        "retry": "Ponovi poslednje greške",
+        "sync": {
+          "guest": "Sačuvano na ovom uređaju",
+          "synced": "Sinhronizovano sa nalogom",
+          "degraded": "Sinhronizacija zahteva pažnju"
+        }
+      },
+      "showMore": "Prikaži još",
+      "openTask": "Otvori pokušaj zadatka {id}",
+      "taskTitle": "Zadatak #{id}",
+      "withHelp": "Uz pomoć",
+      "outcome": {
+        "correct": "Tačno",
+        "incorrect": "Netačno",
+        "partial": "Delimično",
+        "skipped": "Preskočeno",
+        "ungraded": "Na pregledu"
+      },
+      "trainingTitle": "Vežba zadataka",
+      "diagnosticTitle": "P1 dijagnostika",
+      "trainingSubtitle": "FTN P1 · {count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+      "mockTitle": "Probni ispit P1",
+      "mockSubtitle": "FTN P1 · {count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+      "openMock": "Otvori rezultat probnog ispita",
+      "pendingScore": "Na pregledu",
+      "score": "{score} / {max}",
+      "empty": {
+        "title": "Istorija je prazna",
+        "description": "Ovde će se pojaviti završeni zadaci, vežbe, dijagnostike i rezultati P1 probnih ispita.",
+        "filteredTitle": "Nema odgovarajuće aktivnosti",
+        "filteredDescription": "Promeni prikaz ili poništi filtere da se vratiš na kompletnu istoriju.",
+        "reset": "Poništi filtere",
+        "tasks": "Pređi na zadatke"
+      }
+    },
     "kicker": "P1 · Tvoj rad",
     "intro": "Vrati se na prethodne odgovore, pogledaj greške u kontekstu i pretvori ih u kratku vežbu.",
     "syncNotice": {

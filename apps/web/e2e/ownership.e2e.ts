@@ -140,12 +140,21 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
   });
   await page.route("**/graphql", async (route) => {
     const call = route.request().postDataJSON() as { operationName?: string };
-    await route.fulfill({
-      json:
-        call.operationName === "AttemptJournal"
-          ? { data: { attempts: [] } }
-          : { data: { completedSimulationRuns: [] } },
-    });
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({ json: { data: { attempts: [] } } });
+      return;
+    }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
+      });
+      return;
+    }
+    await route.fulfill({ status: 400 });
   });
 
   await page.goto("/en/cabinet");
@@ -188,7 +197,7 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
 
   await page.goto("/en/history?tab=variants");
   await expect(
-    page.getByRole("heading", { name: "No completed mock exams yet" }),
+    page.getByRole("heading", { name: "History is empty" }),
   ).toBeVisible();
   await expect(page.getByText("private archived answer")).toHaveCount(0);
 });

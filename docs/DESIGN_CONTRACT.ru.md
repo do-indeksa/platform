@@ -98,7 +98,7 @@ mobile-навигацию, поэтому она не входит в целев
 | Task workspace         | Standalone task, diagnostic и simulation имеют собственные shells, не совпадающие с Figma Solution | W-04/W-05/W-07/W-09, S-03/S-04/S-06/S-08                                      | Solution SR `155:477` / `155:757`           | Standalone/practice workspace повторяет nodes; exam-only ограничения меняют поведение, а не произвольно композицию   |
 | Training builder       | Быстрый builder находится на overview; selected tasks стартуют из банка                            | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                      | Реализовать отдельный экран по nodes, заменив предметы на позиции/темы P1 в существующих slots                       |
 | Study plan             | `/prep` функционален, но имеет самостоятельную композицию                                          | W-10, S-09                                                                    | RU `214:4` / `214:450`                      | Пересобрать по nodes; фактический next action, readiness и progress занимают соответствующие Figma widgets           |
-| History                | `/history` функционален, но имеет самостоятельную композицию                                       | W-11, S-10                                                                    | RU all history `223:8` / `223:1160`         | Пересобрать populated/empty/filter states по nodes и подставить реальные attempt/run types                           |
+| History                | `/history` воспроизводит Figma feed, tabs, filters, rows и empty state на desktop/tablet/mobile     | W-11, S-10                                                                    | RU all history `223:8` / `223:1160`         | Поддерживать literal Figma-match и owner-scoped attempt/run/mock данные без Physics/P2 и баллов выше 60              |
 | Diagnostic result      | Реализован отдельный честный стартовый результат                                                   | W-09, S-08                                                                    | Отдельного production-ready экрана нет      | Считать provisional skeleton до появления утвержденного Figma node; доменная модель остается рабочей                 |
 | Mock result / rubric   | Реализованы 0-60, self-rubric и weak-position action                                               | W-08, S-07                                                                    | Отдельного production-ready rubric flow нет | Считать provisional skeleton до появления утвержденного Figma node; Figma mock scores не использовать                |
 | Exam catalog / faculty | Реализован актуальный FTN P1/P3-P8 catalog                                                         | W-12/W-13, S-11/S-12                                                          | Landing содержит демонстрационные cards     | Использовать точные landing card patterns; отдельные отсутствующие screens остаются provisional                      |
@@ -150,6 +150,8 @@ Figma unified feed, filters, rows и responsive states являются точн
 Данные различают standalone answer, practice run, diagnostic и полный mock.
 Task/mock detail сохраняет revision и grading provenance. Для отсутствующих в
 Figma degraded/error states используются provisional варианты тех же components.
+Linux visual regression фиксирует all/tasks/trainings/mocks/empty на размерах
+Figma для desktop, tablet и mobile; `tab=variants` остается совместимым alias.
 
 ## 6. Зафиксированные решения владельца
 

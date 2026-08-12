@@ -180,7 +180,7 @@ EN и SR, гостевые и авторизованные состояния.
 | Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
 | Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |
 | Пробный экзамен          | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор    |
-| История                  | готова для preview     | sync, фильтры, immutable task/mock detail и честный score trend полных P1 |
+| История                  | готова по Figma        | unified owner-scoped feed, immutable details, P1 filters и score trend    |
 | Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                     |
 | Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
 | Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
@@ -198,8 +198,8 @@ EN и SR, гостевые и авторизованные состояния.
 HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v1/attempts` только
 для дренирования старых локальных записей. Новые попытки, история, диагностика
 и пробный экзамен используют product API на `/graphql`: `Run`, `RunItem`,
-расширенный `Attempt`, start/record/checkpoint/submit/abandon lifecycle, recent
-history и bounded-проекцию `completedSimulationRuns` без N+1.
+расширенный `Attempt`, start/record/checkpoint/submit/abandon lifecycle,
+bounded run summaries, recent history и `completedSimulationRuns` без N+1.
 
 ## 6. Разбор PDF и Figma
 
