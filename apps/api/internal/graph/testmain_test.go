@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Migrate(graphTestPool); err != nil {
+	if err := db.Migrate(ctx, graphTestPool); err != nil {
 		log.Fatal(err)
 	}
 	graphAuth = auth.NewService(graphTestPool, auth.Config{})

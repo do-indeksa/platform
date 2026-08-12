@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
@@ -41,11 +40,11 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 
 	database := stdlib.OpenDBFromPool(pool)
 	t.Cleanup(func() { _ = database.Close() })
-	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
+	provider, err := newMigrationProvider(database)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := goose.UpTo(database, "migrations", 3); err != nil {
+	if _, err := provider.UpTo(ctx, 3); err != nil {
 		t.Fatal(err)
 	}
 
@@ -62,8 +61,8 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertLearningRunBackfill(t, ctx, database, pool, createdAt)
-	if err := goose.DownTo(database, "migrations", 3); err != nil {
+	assertLearningRunBackfill(t, ctx, provider, pool, createdAt)
+	if _, err := provider.DownTo(ctx, 3); err != nil {
 		t.Fatal(err)
 	}
 
@@ -77,19 +76,19 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 		t.Fatalf("legacy attempt changed after rollback: %q %v", taskID, correct)
 	}
 
-	assertLearningRunBackfill(t, ctx, database, pool, createdAt)
-	assertRunCheckpointMigrationRoundTrip(t, ctx, database, pool, userID, createdAt)
+	assertLearningRunBackfill(t, ctx, provider, pool, createdAt)
+	assertRunCheckpointMigrationRoundTrip(t, ctx, provider, pool, userID, createdAt)
 }
 
 func assertLearningRunBackfill(
 	t *testing.T,
 	ctx context.Context,
-	database *sql.DB,
+	provider *goose.Provider,
 	pool *pgxpool.Pool,
 	createdAt time.Time,
 ) {
 	t.Helper()
-	if err := goose.UpTo(database, "migrations", 4); err != nil {
+	if _, err := provider.UpTo(ctx, 4); err != nil {
 		t.Fatal(err)
 	}
 
@@ -110,7 +109,7 @@ func assertLearningRunBackfill(
 func assertRunCheckpointMigrationRoundTrip(
 	t *testing.T,
 	ctx context.Context,
-	database *sql.DB,
+	provider *goose.Provider,
 	pool *pgxpool.Pool,
 	userID uuid.UUID,
 	startedAt time.Time,
@@ -130,7 +129,7 @@ func assertRunCheckpointMigrationRoundTrip(
 		itemID, runID, userID); err != nil {
 		t.Fatal(err)
 	}
-	if err := goose.UpTo(database, "migrations", 5); err != nil {
+	if _, err := provider.UpTo(ctx, 5); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `
@@ -163,7 +162,7 @@ func assertRunCheckpointMigrationRoundTrip(
 		t.Fatal("checkpoint accepted a draft from another run")
 	}
 
-	if err := goose.DownTo(database, "migrations", 4); err != nil {
+	if _, err := provider.DownTo(ctx, 4); err != nil {
 		t.Fatal(err)
 	}
 	var storedItem uuid.UUID
@@ -173,7 +172,7 @@ func assertRunCheckpointMigrationRoundTrip(
 	if storedItem != itemID {
 		t.Fatalf("rollback changed run item: %s", storedItem)
 	}
-	if err := goose.UpTo(database, "migrations", 5); err != nil {
+	if _, err := provider.UpTo(ctx, 5); err != nil {
 		t.Fatal(err)
 	}
 	var checkpoints int
