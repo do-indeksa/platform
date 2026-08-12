@@ -1,5 +1,6 @@
 import type { TaskSummary } from "@/lib/content";
 import type { Attempt } from "@/lib/knowledge";
+import { TRAINING_BUILDER_PATH } from "./app-routes";
 
 export const TASK_BANK_PATH = "/tasks";
 export const MAX_PRACTICE_SET_SIZE = 30;
@@ -262,10 +263,14 @@ export function safeTaskBankReturnPath(
       target.pathname === "/" ||
       target.pathname === "/cabinet" ||
       target.pathname === TASK_BANK_PATH ||
+      target.pathname === TRAINING_BUILDER_PATH ||
       target.pathname === "/prep" ||
       target.pathname === "/history";
     const validOverviewQuery =
       (target.pathname !== "/" && target.pathname !== "/cabinet") ||
+      (!target.search && !target.hash);
+    const validTrainingQuery =
+      target.pathname !== TRAINING_BUILDER_PATH ||
       (!target.search && !target.hash);
     const validHistoryQuery =
       target.pathname !== "/history" ||
@@ -277,6 +282,7 @@ export function safeTaskBankReturnPath(
       target.origin !== base.origin ||
       !allowedPath ||
       !validOverviewQuery ||
+      !validTrainingQuery ||
       (target.pathname === "/prep" && (target.search || target.hash)) ||
       !validHistoryQuery
     ) {
