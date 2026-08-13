@@ -339,6 +339,46 @@ describe("syncAttempts", () => {
     );
   });
 
+  it.each([400, 413, 415])(
+    "discards a legacy batch after permanent HTTP %i",
+    async (status) => {
+      const map = mockStorage([attempt("kb-001")], 1);
+      const calls = mockFetch((call) =>
+        call.url === "/api/v1/attempts"
+          ? new Response(null, { status })
+          : journal(),
+      );
+      const store = await loadStore();
+
+      await store.syncAttempts(USER_A);
+
+      expect(
+        calls.filter((call) => call.url === "/api/v1/attempts"),
+      ).toHaveLength(1);
+      expect(stored(map)).toEqual([]);
+      expect(store.attemptsView()).toEqual([]);
+      expect(store.attemptJournalView()?.status).toBe("synced");
+    },
+  );
+
+  it("retains a legacy batch after a retryable server failure", async () => {
+    const map = mockStorage([attempt("kb-001")], 1);
+    const calls = mockFetch((call) =>
+      call.url === "/api/v1/attempts"
+        ? new Response(null, { status: 503 })
+        : journal(),
+    );
+    const store = await loadStore();
+
+    await store.syncAttempts(USER_A);
+
+    expect(
+      calls.filter((call) => call.url === "/api/v1/attempts"),
+    ).toHaveLength(1);
+    expect(stored(map)).toHaveLength(1);
+    expect(store.attemptsView()).toEqual([attempt("kb-001")]);
+  });
+
   it("keeps a failed rich attempt in the local signed-in view", async () => {
     const map = mockStorage([pendingAttempt(null)]);
     mockFetch((call) =>
