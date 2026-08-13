@@ -4,10 +4,11 @@ import { BookOpen, Clock, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { taskPracticeHref } from "@/lib/task-bank";
-import type {
-  CabinetExam,
-  CabinetPractice,
-  CabinetTask,
+import {
+  CABINET_TASK_MINUTES,
+  type CabinetExam,
+  type CabinetPractice,
+  type CabinetTask,
 } from "./cabinet-model";
 import { CabinetLinkButton } from "./cabinet-link-button";
 import type { CabinetResume } from "./use-cabinet-resume";
@@ -37,7 +38,9 @@ export function CabinetContinueCard({
     t,
   });
   const exact =
-    resume === null || resume.kind === "mock" ? "figma" : "provisional";
+    resume === null || resume.kind === "mock" || resume.kind === "practice"
+      ? "figma"
+      : "provisional";
 
   return (
     <section
@@ -196,6 +199,44 @@ function continueContent({
     };
   }
 
+  if (resume?.kind === "practice") {
+    const currentTask = tasks.find(({ id }) => id === resume.currentTaskId);
+    if (currentTask) {
+      return {
+        kicker: t("practice.kicker"),
+        title: t("practice.title", {
+          position: currentTask.slot,
+          topic: currentTask.topicLabel,
+        }),
+        description: t("practice.description", {
+          completed: resume.completed,
+          total: resume.total,
+        }),
+        progress: percent(resume.completed, resume.total),
+        meta: [
+          {
+            icon: Clock,
+            label: t("practice.minutes", {
+              minutes:
+                Math.max(1, resume.total - resume.completed) *
+                CABINET_TASK_MINUTES,
+            }),
+          },
+          {
+            icon: Sparkles,
+            label: t(
+              `practice.difficulty.${difficultyBand(currentTask.difficulty)}`,
+            ),
+          },
+        ],
+        primaryHref: resume.href,
+        primaryLabel: t("practice.primary"),
+        secondaryHref: `/tasks?position=${currentTask.slot}`,
+        secondaryLabel: t("practice.secondary"),
+      };
+    }
+  }
+
   if (
     resume?.kind === "diagnosticConflict" ||
     resume?.kind === "simulationConflict"
@@ -272,4 +313,10 @@ function continueContent({
 
 function percent(value: number, total: number): number {
   return total > 0 ? Math.round((value / total) * 100) : 0;
+}
+
+function difficultyBand(difficulty: number): CabinetPractice["difficulty"] {
+  if (difficulty <= 2) return "foundation";
+  if (difficulty >= 4) return "advanced";
+  return "exam";
 }
