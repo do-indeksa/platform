@@ -85,6 +85,7 @@ export async function installPracticeRuntimeClaimFixture(
               historyRequestCount === 1
                 ? []
                 : historyRuns(started, recorded, submitted),
+            latestSubmittedDiagnostic: null,
           },
         },
       });

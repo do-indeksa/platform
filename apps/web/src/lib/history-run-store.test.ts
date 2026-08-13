@@ -14,7 +14,11 @@ describe("history run store", () => {
   it("exposes an honest empty guest snapshot without a request", async () => {
     const store = await import("./history-run-store");
     await store.syncHistoryRuns(null);
-    expect(store.historyRunView()).toEqual({ status: "guest", entries: [] });
+    expect(store.historyRunView()).toEqual({
+      status: "guest",
+      entries: [],
+      latestSubmittedDiagnostic: null,
+    });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -35,7 +39,11 @@ describe("history run store", () => {
     await second;
     resolveFirst?.(response([]));
     await first;
-    expect(store.historyRunView()).toEqual({ status: "synced", entries: [] });
+    expect(store.historyRunView()).toEqual({
+      status: "synced",
+      entries: [],
+      latestSubmittedDiagnostic: null,
+    });
   });
 
   it("keeps the newest refresh when same-owner responses arrive out of order", async () => {
@@ -87,7 +95,9 @@ describe("history run store", () => {
   it("keeps visible entries while refreshing and after transient failure", async () => {
     let resolveRefresh: ((value: Response) => void) | undefined;
     vi.mocked(fetch)
-      .mockResolvedValueOnce(response([historyRun(runA)]))
+      .mockResolvedValueOnce(
+        response([historyRun(runA)], diagnosticMarker(runB)),
+      )
       .mockImplementationOnce(
         () =>
           new Promise<Response>((resolve) => {
@@ -100,11 +110,13 @@ describe("history run store", () => {
     const refresh = store.refreshHistoryRuns(userA);
     expect(store.historyRunView()?.status).toBe("synced");
     expect(store.historyRunView()?.entries.map(({ id }) => id)).toEqual([runA]);
+    expect(store.historyRunView()?.latestSubmittedDiagnostic?.id).toBe(runB);
 
     resolveRefresh?.(new Response(null, { status: 503 }));
     await expect(refresh).resolves.toBe(false);
     expect(store.historyRunView()?.status).toBe("degraded");
     expect(store.historyRunView()?.entries.map(({ id }) => id)).toEqual([runA]);
+    expect(store.historyRunView()?.latestSubmittedDiagnostic?.id).toBe(runB);
   });
 
   it("does not refresh a different or malformed active owner", async () => {
@@ -125,15 +137,22 @@ describe("history run store", () => {
     expect(store.historyRunView()).toEqual({
       status: "degraded",
       entries: [],
+      latestSubmittedDiagnostic: null,
     });
   });
 });
 
-function response(runs: unknown[]): Response {
-  return new Response(JSON.stringify({ data: { runs } }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+function response(
+  runs: unknown[],
+  latestSubmittedDiagnostic: unknown = null,
+): Response {
+  return new Response(
+    JSON.stringify({ data: { runs, latestSubmittedDiagnostic } }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 }
 
 const runA = "a4c92799-136d-4136-bbed-2b95bded5a5b";
@@ -155,5 +174,13 @@ function historyRun(id: string) {
     correctItemCount: 1,
     earnedPoints: null,
     maxPoints: null,
+  };
+}
+
+function diagnosticMarker(id: string) {
+  return {
+    id,
+    kind: "DIAGNOSTIC",
+    submittedAt: "2026-08-13T10:15:00.000Z",
   };
 }

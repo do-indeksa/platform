@@ -165,6 +165,85 @@ test("an expired exam date is treated as incomplete", async ({ page }) => {
   );
 });
 
+test("a clean device restores a submitted all-skipped diagnostic baseline", async ({
+  page,
+}) => {
+  const submittedAt = new Date().toISOString();
+  const diagnosticId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+  const operations: string[] = [];
+  await page.unroute("**/api/v1/me");
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as { operationName?: string };
+    if (call.operationName) operations.push(call.operationName);
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({ json: { data: { attempts: [] } } });
+      return;
+    }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({
+        json: {
+          data: {
+            runs: [],
+            latestSubmittedDiagnostic: {
+              id: diagnosticId,
+              kind: "DIAGNOSTIC",
+              submittedAt,
+            },
+          },
+        },
+      });
+      return;
+    }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
+      });
+      return;
+    }
+    await route.fulfill({ status: 400 });
+  });
+
+  await page.goto("/en/prep");
+  await expect(page.getByTestId("prep-plan")).toHaveAttribute(
+    "data-state",
+    "ready",
+  );
+  await page.getByRole("tab", { name: "This week" }).click();
+
+  await expect(page.getByTestId("prep-action-diagnostic")).toContainText(
+    "Done",
+  );
+  await expect(page.getByTestId("next-action")).toContainText(
+    "Solve 3 tasks from position 1",
+  );
+  await expect(page.getByTestId("next-action")).not.toContainText(
+    "Take the short diagnostic",
+  );
+  expect(operations).toContain("AttemptJournal");
+  expect(operations).toContain("HistoryRuns");
+  expect(
+    await page.evaluate(() => {
+      const diagnostic = localStorage.getItem("do-indeksa-diagnostic");
+      return {
+        attempts: localStorage.getItem("do-indeksa-attempts"),
+        diagnostic: diagnostic === null ? null : JSON.parse(diagnostic).state,
+      };
+    }),
+  ).toMatchObject({
+    attempts: null,
+    diagnostic: { runId: null, phase: null },
+  });
+});
+
 test("the plan follows current P1 positions and keeps completed work visible", async ({
   page,
 }) => {

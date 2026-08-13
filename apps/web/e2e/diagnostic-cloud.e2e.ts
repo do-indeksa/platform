@@ -156,6 +156,14 @@ test("a failed explicit abandon keeps the local diagnostic recoverable", async (
       await route.fulfill({ json: { data: { attempts: [] } } });
       return;
     }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({
+        json: {
+          data: { runs: [], latestSubmittedDiagnostic: null },
+        },
+      });
+      return;
+    }
     if (call.operationName === "CompletedSimulationArchive") {
       await route.fulfill({
         json: { data: { completedSimulationRuns: [] } },

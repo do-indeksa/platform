@@ -145,7 +145,11 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
       return;
     }
     if (call.operationName === "HistoryRuns") {
-      await route.fulfill({ json: { data: { runs: [] } } });
+      await route.fulfill({
+        json: {
+          data: { runs: [], latestSubmittedDiagnostic: null },
+        },
+      });
       return;
     }
     if (call.operationName === "CompletedSimulationArchive") {
