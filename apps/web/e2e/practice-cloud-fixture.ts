@@ -8,6 +8,7 @@ import {
 } from "./diagnostic-cloud-fixture";
 
 export const practiceRunId = "7ff78318-3436-4b4e-99b8-77ef34366ad3";
+export const practiceOwnerId = "39ec4650-762d-437f-9917-c31ab167cb99";
 
 export async function practiceCloudFixture() {
   const tasks = (await loadFixtureTasks()).slice(0, 3);
@@ -60,11 +61,12 @@ export async function installPracticeCloudRoutes(
   page: Page,
   fixture: Awaited<ReturnType<typeof practiceCloudFixture>>,
   calls: E2EGraphQLCall[],
+  options: { practiceIndex?: "active" | "offline" } = {},
 ): Promise<void> {
   await page.route("**/api/v1/me", (route) =>
     route.fulfill({
       json: {
-        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        id: practiceOwnerId,
         email: "portfolio@example.test",
         name: "Portfolio User",
       },
@@ -99,6 +101,10 @@ export async function installPracticeCloudRoutes(
       return;
     }
     if (call.operationName === "PracticeRunIndex") {
+      if (options.practiceIndex === "offline") {
+        await route.fulfill({ status: 503, body: "" });
+        return;
+      }
       await route.fulfill({
         json: {
           data: {
@@ -121,4 +127,55 @@ export async function installPracticeCloudRoutes(
     }
     await route.fulfill({ status: 500 });
   });
+}
+
+export function localPracticeRuntimeFixture(
+  fixture: Awaited<ReturnType<typeof practiceCloudFixture>>,
+  draft: string,
+) {
+  const startedAt = Date.parse(fixture.run.startedAt);
+  const checkpointUpdatedAt = Date.parse(fixture.run.checkpoint.updatedAt);
+  return {
+    version: 1,
+    state: {
+      runs: [
+        {
+          assignment: {
+            runId: fixture.run.id,
+            blueprintVersion: fixture.run.blueprintVersion,
+            contentRevision: fixture.run.contentRevision,
+            tasks: fixture.tasks,
+          },
+          runOwnerId: practiceOwnerId,
+          startedAt,
+          startedRemotely: true,
+          checkpointVersion: fixture.run.checkpoint.version,
+          checkpointRevision: fixture.run.checkpoint.version,
+          syncedAttemptCounts: fixture.tasks.map(() => 0),
+          currentIndex: 1,
+          activeDurationMs: fixture.run.checkpoint.activeDurationMs,
+          items: fixture.tasks.map((task, index) => ({
+            taskId: task.id,
+            attempts: [],
+            draft:
+              index === 1
+                ? {
+                    nextAttempt: 1,
+                    answers: Array.from(
+                      { length: task.answerPartCount },
+                      (_, answerIndex) => (answerIndex === 0 ? draft : ""),
+                    ),
+                    helpLevel: 0,
+                  }
+                : null,
+          })),
+          checkpointDirty: false,
+          checkpointFlight: null,
+          phase: "active",
+          submission: null,
+          updatedAt: Math.max(startedAt, checkpointUpdatedAt),
+        },
+      ],
+    },
+  };
 }

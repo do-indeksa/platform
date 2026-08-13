@@ -14,6 +14,7 @@ import {
 import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
 import {
   installPracticeCloudRoutes,
+  localPracticeRuntimeFixture,
   practiceCloudFixture,
   practiceRunId,
 } from "./practice-cloud-fixture";
@@ -285,6 +286,7 @@ test("an authenticated cloud practice resumes the exact task and draft", async (
   const fixture = await practiceCloudFixture();
   const calls: E2EGraphQLCall[] = [];
   await installPracticeCloudRoutes(page, fixture, calls);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/cabinet");
 
   const continuation = page.getByTestId("continue-run");
@@ -295,6 +297,7 @@ test("an authenticated cloud practice resumes the exact task and draft", async (
     exact: true,
   });
   await expect(link).toHaveAttribute("href", /runtime=1$/);
+  expect((await documentMetrics(page)).widthFits).toBe(true);
   const href = await link.getAttribute("href");
   expect(href).not.toBeNull();
   const resumeUrl = new URL(href!, "http://localhost:3100");
@@ -315,6 +318,50 @@ test("an authenticated cloud practice resumes the exact task and draft", async (
   await expect(page.getByRole("textbox").first()).toHaveValue("cloud draft");
   expect(calls.map(({ operationName }) => operationName)).toEqual(
     expect.arrayContaining(["PracticeRunIndex", "PracticeCloudRun"]),
+  );
+});
+
+test("an offline practice index keeps the local task and draft resumable", async ({
+  page,
+}) => {
+  const fixture = await practiceCloudFixture();
+  const local = localPracticeRuntimeFixture(fixture, "local offline draft");
+  const calls: E2EGraphQLCall[] = [];
+  await installPracticeCloudRoutes(page, fixture, calls, {
+    practiceIndex: "offline",
+  });
+  await page.addInitScript((runtime) => {
+    localStorage.setItem(
+      "do-indeksa-practice-runtime",
+      JSON.stringify(runtime),
+    );
+  }, local);
+  await page.goto("/en/cabinet");
+
+  const continuation = page.getByTestId("continue-run");
+  await expect(continuation).toHaveAttribute("data-design-status", "figma");
+  const link = continuation.getByRole("link", {
+    name: "Continue",
+    exact: true,
+  });
+  await expect(link).toHaveAttribute(
+    "href",
+    new RegExp(`practice=${practiceRunId}.*runtime=1$`),
+  );
+
+  await link.click();
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-runtime-state",
+    "bound",
+  );
+  await expect(page.getByRole("textbox").first()).toHaveValue(
+    "local offline draft",
+  );
+  expect(calls.map(({ operationName }) => operationName)).toContain(
+    "PracticeRunIndex",
+  );
+  expect(calls.map(({ operationName }) => operationName)).not.toContain(
+    "PracticeCloudRun",
   );
 });
 
