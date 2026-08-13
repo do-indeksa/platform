@@ -59,8 +59,8 @@ func TestValidateBuilderDraftInput(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if _, err := validateBuilderDraftInput(test.user, test.input);
-				!errors.Is(err, ErrInvalidInput) {
+			_, err := validateBuilderDraftInput(test.user, test.input)
+			if !errors.Is(err, ErrInvalidInput) {
 				t.Fatalf("validateBuilderDraftInput() error = %v, want ErrInvalidInput", err)
 			}
 		})
@@ -69,12 +69,12 @@ func TestValidateBuilderDraftInput(t *testing.T) {
 
 func TestBuilderDraftFromRowOrdersNonZeroQuantities(t *testing.T) {
 	row := TrainingBuilderDraft{
-		BlueprintVersion: "2026.1",
-		Position1Quantity: 3,
-		Position4Quantity: 2,
+		BlueprintVersion:   "2026.1",
+		Position1Quantity:  3,
+		Position4Quantity:  2,
 		Position10Quantity: 1,
-		Difficulty: string(DifficultyAdvanced),
-		Version: 7,
+		Difficulty:         string(DifficultyAdvanced),
+		Version:            7,
 	}
 	draft := builderDraftFromRow(row)
 	if len(draft.Quantities) != 3 ||
