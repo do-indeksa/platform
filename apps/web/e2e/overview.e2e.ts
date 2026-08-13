@@ -4,6 +4,7 @@ import {
   installCloudRoutes,
   runId as remoteDiagnosticRunId,
   taskIds,
+  type E2EGraphQLCall,
 } from "./diagnostic-cloud-fixture";
 import {
   installSimulationCloudRoutes,
@@ -11,6 +12,11 @@ import {
   simulationRunId,
 } from "./simulation-cloud-fixture";
 import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
+import {
+  installPracticeCloudRoutes,
+  practiceCloudFixture,
+  practiceRunId,
+} from "./practice-cloud-fixture";
 
 const localizedCabinets = [
   {
@@ -271,6 +277,45 @@ test("an authenticated cloud mock is resumable without demo timing", async ({
     continuation.getByRole("link", { name: "Continue exam", exact: true }),
   ).toHaveAttribute("href", new RegExp(`run=${simulationRunId}`));
   await expect(continuation.getByText(/remaining$/)).toBeVisible();
+});
+
+test("an authenticated cloud practice resumes the exact task and draft", async ({
+  page,
+}) => {
+  const fixture = await practiceCloudFixture();
+  const calls: E2EGraphQLCall[] = [];
+  await installPracticeCloudRoutes(page, fixture, calls);
+  await page.goto("/en/cabinet");
+
+  const continuation = page.getByTestId("continue-run");
+  await expect(continuation).toHaveAttribute("data-design-status", "figma");
+  await expect(continuation.getByText("0 of 3 tasks")).toBeVisible();
+  const link = continuation.getByRole("link", {
+    name: "Continue",
+    exact: true,
+  });
+  await expect(link).toHaveAttribute("href", /runtime=1$/);
+  const href = await link.getAttribute("href");
+  expect(href).not.toBeNull();
+  const resumeUrl = new URL(href!, "http://localhost:3100");
+  expect(resumeUrl.pathname).toBe(
+    `/en/tasks/${fixture.tasks[1].topic}/${fixture.tasks[1].id}`,
+  );
+  expect(resumeUrl.searchParams.get("set")?.split(",")).toEqual(
+    fixture.tasks.map(({ id }) => id),
+  );
+  expect(resumeUrl.searchParams.get("practice")).toBe(practiceRunId);
+  expect(resumeUrl.searchParams.get("runtime")).toBe("1");
+
+  await link.click();
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-runtime-state",
+    "bound",
+  );
+  await expect(page.getByRole("textbox").first()).toHaveValue("cloud draft");
+  expect(calls.map(({ operationName }) => operationName)).toEqual(
+    expect.arrayContaining(["PracticeRunIndex", "PracticeCloudRun"]),
+  );
 });
 
 test("a cloud conflict is surfaced as a resolution action", async ({

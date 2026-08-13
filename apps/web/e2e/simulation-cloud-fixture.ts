@@ -97,6 +97,10 @@ export async function installSimulationCloudRoutes(
       await route.fulfill({ json: { data: { runs: [] } } });
       return;
     }
+    if (call.operationName === "PracticeRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
     if (call.operationName === "SimulationRunIndex") {
       await route.fulfill({
         json: {
