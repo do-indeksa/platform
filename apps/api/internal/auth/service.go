@@ -32,6 +32,7 @@ type Config struct {
 
 type Service struct {
 	cfg             Config
+	pool            *pgxpool.Pool
 	queries         *Queries
 	endpoint        oauth2.Endpoint
 	userinfoURL     string
@@ -42,6 +43,7 @@ type Service struct {
 func NewService(pool *pgxpool.Pool, cfg Config) *Service {
 	return &Service{
 		cfg:             cfg,
+		pool:            pool,
 		queries:         New(pool),
 		endpoint:        googleEndpoint,
 		userinfoURL:     googleUserinfoURL,
@@ -110,28 +112,65 @@ func (s *Service) ExchangeHandoffCode(
 	origin string,
 	bindingID string,
 	bindingHash []byte,
-) (ConsumeAuthCodeRow, error) {
+) (HandoffExchange, error) {
 	origin, ok := s.allowedOrigin(origin)
 	if !ok || origin == s.cfg.CanonicalOrigin || !validSecret(code) ||
 		!validBindingID(bindingID) ||
 		len(bindingHash) != 32 {
-		return ConsumeAuthCodeRow{}, pgx.ErrNoRows
+		return HandoffExchange{}, pgx.ErrNoRows
 	}
-	row, err := s.queries.ConsumeAuthCode(ctx, ConsumeAuthCodeParams{
+	token, tokenHash, err := newSecret()
+	if err != nil {
+		return HandoffExchange{}, err
+	}
+	return s.exchangeHandoffCode(ctx, ConsumeAuthCodeParams{
 		CodeHash:           hashHandoffCode(code),
 		Origin:             &origin,
 		BrowserBindingID:   &bindingID,
 		BrowserBindingHash: bindingHash,
-	})
+	}, token, tokenHash)
+}
+
+type HandoffExchange struct {
+	SessionToken string
+	Redirect     string
+}
+
+func (s *Service) exchangeHandoffCode(
+	ctx context.Context,
+	params ConsumeAuthCodeParams,
+	token string,
+	tokenHash []byte,
+) (HandoffExchange, error) {
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return ConsumeAuthCodeRow{}, err
+		return HandoffExchange{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	queries := s.queries.WithTx(tx)
+	row, err := queries.ConsumeAuthCode(ctx, params)
+	if err != nil {
+		return HandoffExchange{}, err
 	}
 	redirect, ok := normalizeReturnPath(row.Redirect)
 	if !ok {
-		return row, errInvalidReturnPath
+		if err := tx.Commit(ctx); err != nil {
+			return HandoffExchange{}, err
+		}
+		return HandoffExchange{}, errInvalidReturnPath
 	}
-	row.Redirect = redirect
-	return row, nil
+	if err := queries.CreateSession(ctx, CreateSessionParams{
+		TokenHash: tokenHash,
+		UserID:    row.UserID,
+		ExpiresAt: time.Now().Add(sessionTTL),
+	}); err != nil {
+		return HandoffExchange{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return HandoffExchange{}, err
+	}
+	return HandoffExchange{SessionToken: token, Redirect: redirect}, nil
 }
 
 func hashHandoffCode(code string) []byte {
