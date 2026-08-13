@@ -7,6 +7,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql/errcode"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -45,17 +46,7 @@ func strictGraphQLRequests(next http.Handler) http.Handler {
 			writeGraphQLTransportError(w, http.StatusBadRequest, "BAD_REQUEST", "request body could not be read")
 			return
 		}
-		decoder := json.NewDecoder(bytes.NewReader(body))
-		var envelope map[string]json.RawMessage
-		if err := decoder.Decode(&envelope); err != nil || envelope == nil {
-			writeGraphQLTransportError(w, http.StatusBadRequest, "BAD_REQUEST", "body must contain one json object")
-			return
-		}
-		if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-			writeGraphQLTransportError(w, http.StatusBadRequest, "BAD_REQUEST", "body must contain one json object")
-			return
-		}
-		query, valid := validGraphQLRequestEnvelope(envelope)
+		query, valid := validGraphQLRequestEnvelope(body)
 		if !valid {
 			writeGraphQLTransportError(w, http.StatusBadRequest, "BAD_REQUEST", "graphql request envelope is invalid")
 			return
@@ -76,31 +67,71 @@ func strictGraphQLRequests(next http.Handler) http.Handler {
 	})
 }
 
-func validGraphQLRequestEnvelope(envelope map[string]json.RawMessage) (string, bool) {
-	var query *string
-	if raw, exists := envelope["query"]; exists && json.Unmarshal(raw, &query) != nil {
+func validGraphQLRequestEnvelope(body []byte) (string, bool) {
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	opening, err := decoder.Token()
+	if err != nil || opening != json.Delim('{') {
 		return "", false
 	}
-	if raw, exists := envelope["operationName"]; exists {
-		var operationName *string
-		if json.Unmarshal(raw, &operationName) != nil {
+
+	seen := make(map[string]struct{})
+	var query string
+	for decoder.More() {
+		token, err := decoder.Token()
+		field, ok := token.(string)
+		if err != nil || !ok {
 			return "", false
 		}
-	}
-	for _, field := range []string{"variables", "extensions"} {
-		raw, exists := envelope[field]
-		if !exists {
-			continue
-		}
-		var value map[string]json.RawMessage
-		if json.Unmarshal(raw, &value) != nil {
+		if _, duplicate := seen[field]; duplicate {
 			return "", false
 		}
+		seen[field] = struct{}{}
+		if canonical, protocol := canonicalGraphQLRequestField(field); protocol && field != canonical {
+			return "", false
+		}
+
+		var raw json.RawMessage
+		if err := decoder.Decode(&raw); err != nil {
+			return "", false
+		}
+		switch field {
+		case "query":
+			var value *string
+			if json.Unmarshal(raw, &value) != nil {
+				return "", false
+			}
+			if value != nil {
+				query = *value
+			}
+		case "operationName":
+			var value *string
+			if json.Unmarshal(raw, &value) != nil {
+				return "", false
+			}
+		case "variables", "extensions":
+			var value map[string]json.RawMessage
+			if json.Unmarshal(raw, &value) != nil {
+				return "", false
+			}
+		}
 	}
-	if query == nil {
-		return "", true
+	closing, err := decoder.Token()
+	if err != nil || closing != json.Delim('}') {
+		return "", false
 	}
-	return *query, true
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return "", false
+	}
+	return query, true
+}
+
+func canonicalGraphQLRequestField(field string) (string, bool) {
+	for _, canonical := range [...]string{"query", "operationName", "variables", "extensions"} {
+		if strings.EqualFold(field, canonical) {
+			return canonical, true
+		}
+	}
+	return "", false
 }
 
 func writeGraphQLBodyTooLarge(w http.ResponseWriter) {
