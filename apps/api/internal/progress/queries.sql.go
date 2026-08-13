@@ -697,6 +697,7 @@ where runs.user_id = $1
   and runs.status = 'submitted'
   and runs.blueprint_version ~ '^ftn-p1:[0-9]{4}[.][0-9]+$'
   and runs.content_revision ~ '^sha256:[a-f0-9]{64}$'
+  and runs.duration_ms between 0 and 4 * 60 * 60 * 1000
   and (
     runs.deadline_at is null
     or runs.deadline_at = runs.started_at + interval '4 hours'

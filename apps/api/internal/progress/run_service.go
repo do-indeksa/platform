@@ -179,12 +179,16 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 	if submittedAt.Before(run.StartedAt) {
 		return RunAggregate{}, invalidInput("submittedAt")
 	}
-	if !validActiveDuration(input.ActiveDurationMs, submittedAt.Sub(run.StartedAt)) {
+	runKind := RunKind(run.Kind)
+	if !validRunActiveDuration(runKind, input.ActiveDurationMs, submittedAt.Sub(run.StartedAt)) {
 		return RunAggregate{}, invalidInput("activeDurationMs")
 	}
 	duration := input.ActiveDurationMs
 	if duration == nil {
 		elapsed := submittedAt.Sub(run.StartedAt).Milliseconds()
+		if runKind == RunKindSimulation && elapsed > p1SimulationDuration.Milliseconds() {
+			elapsed = p1SimulationDuration.Milliseconds()
+		}
 		duration = &elapsed
 	}
 

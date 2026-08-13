@@ -35,6 +35,13 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	if err := validateAttemptScore(normalized.Outcome, normalized.EarnedPoints, target.maxPoints); err != nil {
 		return Attempt{}, err
 	}
+	if !validRunActiveDuration(
+		target.mode,
+		normalized.ActiveDurationMs,
+		normalized.SubmittedAt.Sub(normalized.StartedAt),
+	) {
+		return Attempt{}, invalidInput("activeDurationMs")
+	}
 
 	outcome := string(normalized.Outcome)
 	gradingKind := string(normalized.GradingKind)

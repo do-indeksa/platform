@@ -59,6 +59,93 @@ func TestImpossibleActiveDurationsAreRejected(t *testing.T) {
 	}
 }
 
+func TestSimulationActiveDurationIsBoundedByItsDeadline(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := sampleRunInput(RunKindSimulation)
+	run.StartedAt = time.Now().Add(-6 * time.Hour).UTC().Truncate(time.Microsecond)
+	deadline := run.StartedAt.Add(p1SimulationDuration)
+	run.DeadlineAt = &deadline
+	if _, err := service.StartRun(ctx, userID, run); err != nil {
+		t.Fatal(err)
+	}
+
+	tooLong := p1SimulationDuration.Milliseconds() + 1
+	attempt := sampleAttemptInput(run.Items[0].ID, run.StartedAt)
+	attempt.StartedAt = run.StartedAt
+	attempt.SubmittedAt = run.StartedAt.Add(5 * time.Hour)
+	attempt.ActiveDurationMs = &tooLong
+	if _, err := service.RecordAttempt(ctx, userID, attempt); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("simulation attempt duration: got %v", err)
+	}
+	if _, err := service.CheckpointRun(ctx, userID, CheckpointRunInput{
+		ID:               run.ID,
+		CurrentOrdinal:   1,
+		ActiveDurationMs: &tooLong,
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("simulation checkpoint duration: got %v", err)
+	}
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID:               run.ID,
+		SubmittedAt:      run.StartedAt.Add(6 * time.Hour),
+		ActiveDurationMs: &tooLong,
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("simulation submit duration: got %v", err)
+	}
+
+	submitted, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID:          run.ID,
+		SubmittedAt: run.StartedAt.Add(6 * time.Hour),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if submitted.Run.DurationMs == nil || *submitted.Run.DurationMs != p1SimulationDuration.Milliseconds() {
+		t.Fatalf("late simulation duration was not capped: %+v", submitted.Run.DurationMs)
+	}
+}
+
+func TestNonSimulationActiveDurationKeepsElapsedBound(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := sampleRunInput(RunKindDiagnostic)
+	run.StartedAt = time.Now().Add(-6 * time.Hour).UTC().Truncate(time.Microsecond)
+	deadline := run.StartedAt.Add(8 * time.Hour)
+	run.DeadlineAt = &deadline
+	if _, err := service.StartRun(ctx, userID, run); err != nil {
+		t.Fatal(err)
+	}
+
+	longDuration := int64((5 * time.Hour) / time.Millisecond)
+	attempt := sampleAttemptInput(run.Items[0].ID, run.StartedAt)
+	attempt.StartedAt = run.StartedAt
+	attempt.SubmittedAt = run.StartedAt.Add(5 * time.Hour)
+	attempt.ActiveDurationMs = &longDuration
+	if _, err := service.RecordAttempt(ctx, userID, attempt); err != nil {
+		t.Fatalf("diagnostic attempt duration changed: %v", err)
+	}
+	if _, err := service.CheckpointRun(ctx, userID, CheckpointRunInput{
+		ID:               run.ID,
+		CurrentOrdinal:   1,
+		ActiveDurationMs: &longDuration,
+	}); err != nil {
+		t.Fatalf("diagnostic checkpoint duration changed: %v", err)
+	}
+	submitted, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID:               run.ID,
+		SubmittedAt:      run.StartedAt.Add(5 * time.Hour),
+		ActiveDurationMs: &longDuration,
+	})
+	if err != nil {
+		t.Fatalf("diagnostic submit duration changed: %v", err)
+	}
+	if submitted.Run.DurationMs == nil || *submitted.Run.DurationMs != longDuration {
+		t.Fatalf("diagnostic duration was capped: %+v", submitted.Run.DurationMs)
+	}
+}
+
 func TestStandaloneAttemptRejectsZeroPointCeiling(t *testing.T) {
 	service := NewService(testPool)
 	userID := seedProgressUser(t, "")
