@@ -2,6 +2,7 @@
 
 import { parseLearningRunOwner } from "./learning-run-owner";
 import { acknowledgePracticeRuntimeRun } from "./attempts-store";
+import { refreshHistoryRuns } from "./history-run-store";
 import { PracticeGraphQLError } from "./practice-cloud-client";
 import {
   MAX_PRACTICE_ATTEMPTS_PER_TASK,
@@ -170,9 +171,11 @@ async function drainPracticeRun(
         if (!acknowledgePracticeRuntimeRun(context.ownerId, current)) {
           return { status: "conflict", code: "LOCAL_STATE" };
         }
-        return usePracticeRuntime.getState().finishSubmission(runId)
-          ? { status: "synced" }
-          : { status: "aborted" };
+        if (!usePracticeRuntime.getState().finishSubmission(runId)) {
+          return { status: "aborted" };
+        }
+        void refreshHistoryRuns(context.ownerId);
+        return { status: "synced" };
       }
       if (current.phase === "abandoning") {
         await context.transport.abandon(

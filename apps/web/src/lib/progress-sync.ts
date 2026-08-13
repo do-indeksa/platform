@@ -1,5 +1,6 @@
 import { validate as isUuid } from "uuid";
 import { acknowledgeGraphQLRun } from "./attempts-store";
+import { refreshHistoryRuns } from "./history-run-store";
 import {
   parseCompletedProgressRun,
   type CompletedProgressAttempt,
@@ -154,6 +155,7 @@ async function flushOwner(userId: string, generation: number): Promise<void> {
     if (!saveOutbox(pending.filter((candidate) => candidate !== current))) {
       return;
     }
+    if (entry.run.kind !== "SIMULATION") void refreshHistoryRuns(userId);
   }
 }
 

@@ -8,10 +8,15 @@ import {
 
 const mocks = vi.hoisted(() => ({
   acknowledgeGraphQLRun: vi.fn<(runId: string) => Promise<boolean>>(),
+  refreshHistoryRuns: vi.fn<(userId: string) => Promise<boolean>>(),
 }));
 
 vi.mock("./attempts-store", () => ({
   acknowledgeGraphQLRun: mocks.acknowledgeGraphQLRun,
+}));
+
+vi.mock("./history-run-store", () => ({
+  refreshHistoryRuns: mocks.refreshHistoryRuns,
 }));
 
 const STORAGE_KEY = "do-indeksa-progress-outbox";
@@ -132,6 +137,8 @@ async function loadSync() {
 beforeEach(() => {
   mocks.acknowledgeGraphQLRun.mockReset();
   mocks.acknowledgeGraphQLRun.mockResolvedValue(true);
+  mocks.refreshHistoryRuns.mockReset();
+  mocks.refreshHistoryRuns.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -172,6 +179,7 @@ describe("progress outbox", () => {
     expect(calls[3].variables.input).not.toHaveProperty("answer");
     expect(JSON.stringify(calls)).not.toMatch(/expected|solution/i);
     expect(mocks.acknowledgeGraphQLRun).toHaveBeenCalledWith(runId);
+    expect(mocks.refreshHistoryRuns).toHaveBeenCalledWith(userId);
     expect(pending(map)).toHaveLength(0);
     expect(sync.isProgressRunSynced(runId)).toBe(true);
 
@@ -202,6 +210,7 @@ describe("progress outbox", () => {
         input: { deadlineAt: "2026-08-10T14:00:00.000Z" },
       },
     });
+    expect(mocks.refreshHistoryRuns).not.toHaveBeenCalled();
   });
 
   it("uploads a legacy queued run without inventing answer shape", async () => {
@@ -296,6 +305,7 @@ describe("progress outbox", () => {
     expect(await sync.queueCompletedProgressRun(completedRun())).toBe(true);
     expect(pending(map)).toHaveLength(1);
     expect(mocks.acknowledgeGraphQLRun).not.toHaveBeenCalled();
+    expect(mocks.refreshHistoryRuns).not.toHaveBeenCalled();
   });
 
   it("rejects malformed GraphQL error envelopes", async () => {

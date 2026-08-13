@@ -19,6 +19,14 @@ import {
   type PracticeRuntimeTransport,
 } from "./practice-runtime-sync";
 
+const mocks = vi.hoisted(() => ({
+  refreshHistoryRuns: vi.fn<(userId: string) => Promise<boolean>>(),
+}));
+
+vi.mock("./history-run-store", () => ({
+  refreshHistoryRuns: mocks.refreshHistoryRuns,
+}));
+
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const ownerA = "39ec4650-762d-437f-9917-c31ab167cb99";
 const ownerB = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
@@ -49,6 +57,8 @@ const assignment: PracticeCloudAssignment = {
 
 describe("practice runtime sync", () => {
   beforeEach(() => {
+    mocks.refreshHistoryRuns.mockReset();
+    mocks.refreshHistoryRuns.mockResolvedValue(true);
     usePracticeRuntime.setState({
       ...emptyPracticeRuntimeState(),
       authOwnerId: undefined,
@@ -94,6 +104,60 @@ describe("practice runtime sync", () => {
       "attempt:2",
       "submit",
     ]);
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+    expect(mocks.refreshHistoryRuns).toHaveBeenCalledOnce();
+    expect(mocks.refreshHistoryRuns).toHaveBeenCalledWith(ownerA);
+  });
+
+  it("does not refresh history until a queued submission succeeds", async () => {
+    startOwned();
+    appendAttempt(1, "incorrect", 60_000);
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, startedAt + 120_000, 60_000),
+    ).toBe(true);
+    let offline = true;
+    const transport = createTransport({
+      submit: vi.fn(async () => {
+        if (offline) throw new Error("network unavailable");
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "offline" });
+    expect(mocks.refreshHistoryRuns).not.toHaveBeenCalled();
+    expect(currentRun().phase).toBe("submitting");
+
+    offline = false;
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+    expect(mocks.refreshHistoryRuns).toHaveBeenCalledOnce();
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
+  it("keeps a submitted run complete when history refresh is degraded", async () => {
+    startOwned();
+    appendAttempt(1, "correct", 60_000);
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, startedAt + 120_000, 60_000),
+    ).toBe(true);
+    mocks.refreshHistoryRuns.mockImplementationOnce(async () => {
+      expect(usePracticeRuntime.getState().runs).toEqual([]);
+      return false;
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, {
+        transport: createTransport(),
+      }),
+    ).resolves.toEqual({ status: "synced" });
+
+    expect(mocks.refreshHistoryRuns).toHaveBeenCalledWith(ownerA);
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
 
