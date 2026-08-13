@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
-	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -17,10 +15,8 @@ func (s *Service) CheckpointRun(
 	userID uuid.UUID,
 	input CheckpointRunInput,
 ) (RunCheckpointAggregate, error) {
-	if input.ID == uuid.Nil || input.ExpectedVersion < 0 ||
-		input.CurrentOrdinal < 1 || input.CurrentOrdinal > maxRunItems ||
-		len(input.Drafts) > int(MaxRunCheckpointDrafts) {
-		return RunCheckpointAggregate{}, invalidInput("checkpoint")
+	if err := validateCheckpointInput(input); err != nil {
+		return RunCheckpointAggregate{}, err
 	}
 
 	tx, err := s.pool.Begin(ctx)
@@ -188,14 +184,24 @@ func validateCheckpointItems(input CheckpointRunInput, items []RunItem) error {
 	for _, item := range items {
 		itemIDs[item.ID] = struct{}{}
 	}
-	seen := make(map[uuid.UUID]struct{}, len(input.Drafts))
 	for _, draft := range input.Drafts {
-		if draft.RunItemID == uuid.Nil || draft.Answer == "" || strings.ContainsRune(draft.Answer, '\x00') ||
-			utf8.RuneCountInString(draft.Answer) > maxAnswerCharacters {
-			return invalidInput("drafts")
-		}
 		if _, ok := itemIDs[draft.RunItemID]; !ok {
 			return invalidInput("drafts.runItemId")
+		}
+	}
+	return nil
+}
+
+func validateCheckpointInput(input CheckpointRunInput) error {
+	if input.ID == uuid.Nil || input.ExpectedVersion < 0 ||
+		input.CurrentOrdinal < 1 || input.CurrentOrdinal > maxRunItems ||
+		len(input.Drafts) > int(MaxRunCheckpointDrafts) {
+		return invalidInput("checkpoint")
+	}
+	seen := make(map[uuid.UUID]struct{}, len(input.Drafts))
+	for _, draft := range input.Drafts {
+		if draft.RunItemID == uuid.Nil || draft.Answer == "" || !validAnswerText(draft.Answer) {
+			return invalidInput("drafts")
 		}
 		if _, duplicate := seen[draft.RunItemID]; duplicate {
 			return invalidInput("drafts.runItemId")

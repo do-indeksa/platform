@@ -26,7 +26,7 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 	if !validRunKind(input.Kind) {
 		return StartRunInput{}, invalidInput("kind")
 	}
-	if input.BlueprintVersion == "" || len(input.BlueprintVersion) > maxBlueprintSize {
+	if !validMetadataText(input.BlueprintVersion, maxBlueprintSize) {
 		return StartRunInput{}, invalidInput("blueprintVersion")
 	}
 	if !validRevision(input.ContentRevision) {

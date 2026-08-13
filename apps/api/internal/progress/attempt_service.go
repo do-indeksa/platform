@@ -150,12 +150,8 @@ func resolveAttemptTarget(
 		}, nil
 	}
 	target := input.Standalone
-	if target == nil || !validTaskID(target.TaskID) || target.ExamPosition < 1 ||
-		target.ExamPosition > 10 || !validRevision(target.TaskRevision) {
+	if target == nil || !validStandaloneAttemptTarget(*target) {
 		return attemptTarget{}, invalidInput("standalone")
-	}
-	if target.MaxPoints != nil && (*target.MaxPoints < 1 || *target.MaxPoints > 60) {
-		return attemptTarget{}, invalidInput("standalone.maxPoints")
 	}
 	return attemptTarget{
 		taskID:       target.TaskID,
