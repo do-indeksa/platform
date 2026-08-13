@@ -53,11 +53,7 @@ export function clearPracticeRuntimeSyncSchedule(): void {
 }
 
 async function drain(runId: string, job: SyncJob): Promise<void> {
-  if (
-    jobs.get(runId) !== job ||
-    job.running ||
-    !job.pending
-  ) {
+  if (jobs.get(runId) !== job || job.running || !job.pending) {
     return;
   }
   if (job.timer !== null) clearTimeout(job.timer);

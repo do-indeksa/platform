@@ -118,14 +118,7 @@ export function usePracticeWorkspaceRuntime({
           : ("mismatch" as const),
       snapshot: null,
     };
-  }, [
-    context,
-    hydrated,
-    ownerId,
-    runs,
-    runtimeOwnerId,
-    runtimeRequired,
-  ]);
+  }, [context, hydrated, ownerId, runs, runtimeOwnerId, runtimeRequired]);
   const status: RuntimeStatus = inspection.status;
   const snapshot = inspection.snapshot;
   const preferredDraft = useMemo<TaskDraft | null | undefined>(
@@ -155,11 +148,7 @@ export function usePracticeWorkspaceRuntime({
   const scheduleSync = useCallback(
     (immediate: boolean) => {
       if (context !== null && typeof context.ownerId === "string") {
-        schedulePracticeRuntimeSync(
-          context.runId,
-          context.ownerId,
-          immediate,
-        );
+        schedulePracticeRuntimeSync(context.runId, context.ownerId, immediate);
       }
     },
     [context],

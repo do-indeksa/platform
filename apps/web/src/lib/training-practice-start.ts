@@ -27,12 +27,7 @@ export async function beginTrainingPracticeRun(
   const ownerGeneration = initial.authOwnerGeneration;
   const assignment = await (
     dependencies.createAssignment ?? createTrainingPracticeAssignment
-  )(
-    input.runId,
-    input.blueprintVersion,
-    input.selectedTaskIds,
-    input.catalog,
-  );
+  )(input.runId, input.blueprintVersion, input.selectedTaskIds, input.catalog);
   const current = usePracticeRuntime.getState();
   if (
     assignment === null ||

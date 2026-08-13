@@ -26,10 +26,7 @@ test("builder order, drafts, attempts, and current task survive reload", async (
     selectedTaskIds,
   );
   const slotCounts = Object.values(
-    Object.groupBy(
-      initial.assignment.tasks,
-      (task) => String(task.slot),
-    ),
+    Object.groupBy(initial.assignment.tasks, (task) => String(task.slot)),
   )
     .map((group) => group?.length ?? 0)
     .toSorted();
@@ -48,14 +45,10 @@ test("builder order, drafts, attempts, and current task survive reload", async (
     "data-runtime-state",
     "bound",
   );
-  await expect(page.getByRole("textbox").first()).toHaveValue(
-    "durable answer",
-  );
+  await expect(page.getByRole("textbox").first()).toHaveValue("durable answer");
 
   await page.getByRole("button", { name: "Skip", exact: true }).click();
-  await expect
-    .poll(async () => (await readRuntime(page)).currentIndex)
-    .toBe(1);
+  await expect.poll(async () => (await readRuntime(page)).currentIndex).toBe(1);
   const skipped = await readRuntime(page);
   expect(skipped.items[0]).toMatchObject({
     taskId: selectedTaskIds[0],
@@ -69,7 +62,9 @@ test("builder order, drafts, attempts, and current task survive reload", async (
     "data-runtime-state",
     "bound",
   );
-  await expect(page).toHaveURL(new RegExp(`/tasks/.+/${selectedTaskIds[1]}\\?`));
+  await expect(page).toHaveURL(
+    new RegExp(`/tasks/.+/${selectedTaskIds[1]}\\?`),
+  );
   await expect(page.locator("[data-task-rail-item]").first()).toHaveAttribute(
     "data-task-status",
     "skipped",
@@ -126,9 +121,7 @@ test("signed offline work remains local and clears on an owner change", async ({
   await expect
     .poll(async () => (await readRuntime(page)).items[0].draft?.answers[0])
     .toBe("offline private draft");
-  await expect
-    .poll(() => graphQlCalls.includes("StartPracticeRun"))
-    .toBe(true);
+  await expect.poll(() => graphQlCalls.includes("StartPracticeRun")).toBe(true);
   const offline = await readRuntime(page);
   expect(offline.runOwnerId).toBe(OWNER_A);
   expect(offline.startedRemotely).toBe(false);
@@ -160,9 +153,9 @@ test("signed offline work remains local and clears on an owner change", async ({
   await expect
     .poll(async () => (await readRuntimeEnvelope(page)).state.runs)
     .toEqual([]);
-  await expect(page.getByText("offline private draft", { exact: true })).toHaveCount(
-    0,
-  );
+  await expect(
+    page.getByText("offline private draft", { exact: true }),
+  ).toHaveCount(0);
 });
 
 async function installMutableAuth(page: Page) {

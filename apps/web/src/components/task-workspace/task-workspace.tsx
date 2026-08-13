@@ -133,12 +133,7 @@ export function TaskWorkspace({
       answers: state.answers,
       hintsShown: state.hintsShown,
     });
-  }, [
-    changeRuntimeDraft,
-    state.answers,
-    state.hintsShown,
-    workspaceReady,
-  ]);
+  }, [changeRuntimeDraft, state.answers, state.hintsShown, workspaceReady]);
 
   const recordJournalAttempt = (
     outcome: "CORRECT" | "INCORRECT" | "SKIPPED",

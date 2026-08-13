@@ -14,9 +14,7 @@ export function createPracticeActiveClock(
 
   const read = () =>
     durationMs +
-    (activeSince === null
-      ? 0
-      : Math.max(0, Math.floor(now() - activeSince)));
+    (activeSince === null ? 0 : Math.max(0, Math.floor(now() - activeSince)));
 
   return {
     read,

@@ -9,10 +9,7 @@ export function taskDraftFromPracticeWorkspace(
   const draft = snapshot.draft;
   if (latest === undefined && draft === null) return null;
   const answers = [...(draft?.answers ?? latest?.answers ?? [])];
-  const helpLevel = Math.max(
-    latest?.helpLevel ?? 0,
-    draft?.helpLevel ?? 0,
-  );
+  const helpLevel = Math.max(latest?.helpLevel ?? 0, draft?.helpLevel ?? 0);
   const hintsShown = Math.min(helpLevel, maxHints, 2);
 
   if (latest?.outcome === "correct") {

@@ -155,7 +155,9 @@ function inspectBinding(context: PracticeWorkspaceContext) {
 
 function snapshot(
   run: ReturnType<typeof usePracticeRuntime.getState>["runs"][number],
-  item: ReturnType<typeof usePracticeRuntime.getState>["runs"][number]["items"][number],
+  item: ReturnType<
+    typeof usePracticeRuntime.getState
+  >["runs"][number]["items"][number],
 ): PracticeWorkspaceSnapshot {
   const attempts = run.items.flatMap((candidate) => candidate.attempts);
   return {
