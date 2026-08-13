@@ -69,6 +69,14 @@ The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.
 
+Authenticated `DELETE /v1/me` (and its canonical `/api/v1/me` alias) removes
+the user selected by the current unexpired session in one SQL statement. The
+database foreign keys cascade through every server-owned session, handoff code,
+attempt, run, checkpoint, preparation preference, and training draft. A missing,
+expired, or already consumed session returns the same unauthorized response.
+Browser-local data is outside this API boundary and must be cleared by the
+future settings UI after the server confirms deletion.
+
 ## Container
 
 ```sh
