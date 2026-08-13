@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  clearTrainingBuilderDraft,
   loadTrainingBuilderDraft,
   saveTrainingBuilderDraft,
   trainingBuilderStorageKey,
@@ -37,6 +38,8 @@ describe("training builder storage", () => {
       loadTrainingBuilderDraft(USER_A, positions, blueprintVersion),
     ).toEqual(draft);
     expect(map.has(trainingBuilderStorageKey(USER_A))).toBe(true);
+    expect(clearTrainingBuilderDraft(USER_A)).toBe(true);
+    expect(map.has(trainingBuilderStorageKey(USER_A))).toBe(false);
     expect(
       loadTrainingBuilderDraft(USER_B, positions, blueprintVersion),
     ).toBeNull();
@@ -105,6 +108,7 @@ describe("training builder storage", () => {
     expect(
       saveTrainingBuilderDraft(USER_A, draft, positions, blueprintVersion),
     ).toBe(false);
+    expect(clearTrainingBuilderDraft(USER_A)).toBe(false);
   });
 });
 
@@ -113,6 +117,7 @@ function storage() {
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => map.get(key) ?? null,
     setItem: (key: string, value: string) => void map.set(key, value),
+    removeItem: (key: string) => void map.delete(key),
   });
   return map;
 }
