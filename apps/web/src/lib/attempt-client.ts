@@ -89,7 +89,7 @@ export async function sendLegacyAttempts(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(attempts.map(toPublicAttempt)),
   });
-  if (response.status === 400) return false;
+  if ([400, 413, 415].includes(response.status)) return false;
   if (!response.ok) {
     throw new Error(
       `legacy attempt flush failed with status ${response.status}`,
