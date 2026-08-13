@@ -86,7 +86,11 @@ func TestRunLifecycleRoundTrip(t *testing.T) {
 	if _, err := service.RecordAttempt(ctx, userID, attemptInput); err != nil {
 		t.Fatalf("saved attempt retry after submit failed: %v", err)
 	}
-	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{ID: input.ID}); err != nil {
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID:               input.ID,
+		SubmittedAt:      submittedAt,
+		ActiveDurationMs: &duration,
+	}); err != nil {
 		t.Fatalf("submit retry failed: %v", err)
 	}
 
@@ -244,6 +248,75 @@ func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
 	}
 	if _, err := service.ListCompletedSimulationRuns(ctx, ownerID, MaxCompletedSimulationRuns+1); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("oversized archive limit: got %v", err)
+	}
+}
+
+func TestCompletedSimulationArchiveFiltersCausallyInvalidLegacyRuns(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+
+	valid := sampleRunInput(RunKindSimulation)
+	if _, err := service.StartRun(ctx, userID, valid); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RecordAttempt(ctx, userID, sampleAttemptInput(valid.Items[0].ID, valid.StartedAt)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID: valid.ID, SubmittedAt: valid.StartedAt.Add(20 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	beforeRun := sampleRunInput(RunKindSimulation)
+	beforeAttempt := sampleAttemptInput(beforeRun.Items[0].ID, beforeRun.StartedAt)
+	if _, err := service.StartRun(ctx, userID, beforeRun); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RecordAttempt(ctx, userID, beforeAttempt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID: beforeRun.ID, SubmittedAt: beforeRun.StartedAt.Add(21 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update attempts
+		set started_at = $3, submitted_at = $4
+		where public_id = $1 and user_id = $2
+	`, beforeAttempt.ID, userID, beforeRun.StartedAt.Add(-2*time.Minute), beforeRun.StartedAt.Add(-time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+
+	afterSubmit := sampleRunInput(RunKindSimulation)
+	afterAttempt := sampleAttemptInput(afterSubmit.Items[0].ID, afterSubmit.StartedAt)
+	if _, err := service.StartRun(ctx, userID, afterSubmit); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.RecordAttempt(ctx, userID, afterAttempt); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID: afterSubmit.ID, SubmittedAt: afterSubmit.StartedAt.Add(22 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update attempts
+		set started_at = $3, submitted_at = $4
+		where public_id = $1 and user_id = $2
+	`, afterAttempt.ID, userID, afterSubmit.StartedAt.Add(23*time.Minute), afterSubmit.StartedAt.Add(24*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+
+	runs, err := service.ListCompletedSimulationRuns(ctx, userID, MaxCompletedSimulationRuns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(runs) != 1 || runs[0].Run.ID != valid.ID {
+		t.Fatalf("archive retained causally invalid runs: %+v", runs)
 	}
 }
 

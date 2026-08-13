@@ -64,6 +64,16 @@ from runs
 where id = $1 and user_id = $2
 for update;
 
+-- name: RunHasAttemptAfter :one
+select exists (
+    select 1
+    from attempts a
+    join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+    where i.run_id = sqlc.arg(run_id)
+      and a.user_id = sqlc.arg(user_id)
+      and coalesce(a.submitted_at, a.created_at) > sqlc.arg(submitted_at)
+);
+
 -- name: AbandonRun :one
 update runs
 set status = 'abandoned',
@@ -106,6 +116,20 @@ where runs.user_id = $1
       and min(run_items.max_points) >= 1
       and sum(run_items.max_points) = 60
       and bool_and(run_items.task_revision ~ '^sha256:[a-f0-9]{64}$')
+  )
+  and not exists (
+    select 1
+    from attempts
+    join run_items on run_items.id = attempts.run_item_id
+      and run_items.user_id = attempts.user_id
+    where run_items.run_id = runs.id
+      and attempts.user_id = runs.user_id
+      and (
+        attempts.started_at is null
+        or attempts.submitted_at is null
+        or attempts.started_at < runs.started_at
+        or attempts.submitted_at > runs.submitted_at
+      )
   )
 order by runs.submitted_at desc, runs.id
 limit $2;
@@ -237,7 +261,8 @@ select
     i.max_points as item_max_points,
     i.task_revision,
     r.kind as run_kind,
-    r.status as run_status
+    r.status as run_status,
+    r.started_at as run_started_at
 from run_items i
 join runs r on r.id = i.run_id and r.user_id = i.user_id
 where i.id = $1 and i.user_id = $2

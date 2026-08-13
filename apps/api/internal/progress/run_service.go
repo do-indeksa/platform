@@ -154,7 +154,18 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	if RunStatus(run.Status) == RunStatusSubmitted {
+	status := RunStatus(run.Status)
+	if status != RunStatusActive && status != RunStatusSubmitted {
+		return RunAggregate{}, ErrInvalidTransition
+	}
+	submission, err := normalizeRunSubmission(run, input, time.Now().UTC())
+	if err != nil {
+		return RunAggregate{}, err
+	}
+	if status == RunStatusSubmitted {
+		if !sameRunSubmission(run, submission) {
+			return RunAggregate{}, ErrConflict
+		}
 		if err := queries.DeleteRunCheckpoint(ctx, DeleteRunCheckpointParams{
 			RunID: input.ID, UserID: userID,
 		}); err != nil {
@@ -169,34 +180,23 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 		}
 		return aggregate, nil
 	}
-	if RunStatus(run.Status) != RunStatusActive {
-		return RunAggregate{}, ErrInvalidTransition
-	}
-	submittedAt, err := normalizeClientTime(input.SubmittedAt, time.Now().UTC(), "submittedAt")
+	hasLaterAttempt, err := queries.RunHasAttemptAfter(ctx, RunHasAttemptAfterParams{
+		RunID:       input.ID,
+		UserID:      userID,
+		SubmittedAt: requiredTime(submission.submittedAt),
+	})
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	if submittedAt.Before(run.StartedAt) {
+	if hasLaterAttempt {
 		return RunAggregate{}, invalidInput("submittedAt")
-	}
-	runKind := RunKind(run.Kind)
-	if !validRunActiveDuration(runKind, input.ActiveDurationMs, submittedAt.Sub(run.StartedAt)) {
-		return RunAggregate{}, invalidInput("activeDurationMs")
-	}
-	duration := input.ActiveDurationMs
-	if duration == nil {
-		elapsed := submittedAt.Sub(run.StartedAt).Milliseconds()
-		if runKind == RunKindSimulation && elapsed > p1SimulationDuration.Milliseconds() {
-			elapsed = p1SimulationDuration.Milliseconds()
-		}
-		duration = &elapsed
 	}
 
 	if _, err := queries.SubmitRun(ctx, SubmitRunParams{
 		ID:          input.ID,
 		UserID:      userID,
-		SubmittedAt: requiredTime(submittedAt),
-		DurationMs:  duration,
+		SubmittedAt: requiredTime(submission.submittedAt),
+		DurationMs:  &submission.activeDurationMs,
 	}); err != nil {
 		return RunAggregate{}, classifyWriteError(err)
 	}
