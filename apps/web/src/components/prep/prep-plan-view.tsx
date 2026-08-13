@@ -203,10 +203,7 @@ export function PrepPlanView({
         maxPoints={maxPoints}
         minDate={day.key}
         onClose={() => setSettingsOpen(false)}
-        onSave={(preferences) => {
-          setPreferences(preferences);
-          setSettingsOpen(false);
-        }}
+        onSave={setPreferences}
       />
     </main>
   );

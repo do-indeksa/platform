@@ -197,6 +197,8 @@
     "goalDisclaimer": "The current P1 maximum is {max} points. A target is a planning reference and does not guarantee admission or funding.",
     "cancelSettings": "Cancel",
     "saveSettings": "Save",
+    "settingsSaveConflict": "This plan changed on another device. Review the current values and save again.",
+    "settingsSaveUnavailable": "The plan could not be saved. Check your connection and try again.",
     "nextEyebrow": "Next action",
     "startAction": "Start",
     "allDoneTitle": "Today's plan is complete",

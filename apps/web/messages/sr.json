@@ -197,6 +197,8 @@
     "goalDisclaimer": "Aktuelni maksimum za P1 je {max} bodova. Cilj služi za planiranje i ne garantuje upis ni budžetsko mesto.",
     "cancelSettings": "Otkaži",
     "saveSettings": "Sačuvaj",
+    "settingsSaveConflict": "Plan je izmenjen na drugom uređaju. Proveri aktuelne vrednosti i sačuvaj ponovo.",
+    "settingsSaveUnavailable": "Plan nije sačuvan. Proveri vezu i pokušaj ponovo.",
     "nextEyebrow": "Sledeći korak",
     "startAction": "Počni",
     "allDoneTitle": "Današnji plan je završen",
