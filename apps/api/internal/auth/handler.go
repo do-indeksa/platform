@@ -61,6 +61,25 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	cookie, err := h.service.requestSessionCookie(r)
+	if err != nil {
+		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
+		return
+	}
+	deleted, err := h.service.DeleteAccount(r.Context(), cookie.Value)
+	if err != nil {
+		h.serverError(w, err, "failed to delete account")
+		return
+	}
+	if !deleted {
+		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
+		return
+	}
+	http.SetCookie(w, h.service.sessionCookie("", -1))
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) setSessionCookie(w http.ResponseWriter, r *http.Request, user User) error {
 	token, err := h.service.IssueSession(r.Context(), user.ID)
 	if err != nil {

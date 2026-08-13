@@ -199,6 +199,22 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/Internal"
+    delete:
+      operationId: deleteAccount
+      summary: Delete the current account and all server-owned user data
+      responses:
+        "204":
+          description: Account deleted, every session revoked, and cookie cleared
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/Internal"
 components:
   schemas:
     Attempt:
