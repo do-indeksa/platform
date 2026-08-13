@@ -147,7 +147,7 @@ func sameRunInput(existing RunAggregate, input StartRunInput) bool {
 		existing.Run.BlueprintVersion != input.BlueprintVersion ||
 		existing.Run.ContentRevision != input.ContentRevision ||
 		!existing.Run.StartedAt.Equal(input.StartedAt) ||
-		!sameOptionalTime(existing.Run.DeadlineAt, input.DeadlineAt) ||
+		!sameRunDeadline(existing.Run, input) ||
 		len(existing.Items) != len(input.Items) {
 		return false
 	}
@@ -160,6 +160,14 @@ func sameRunInput(existing RunAggregate, input StartRunInput) bool {
 		}
 	}
 	return true
+}
+
+func sameRunDeadline(run Run, input StartRunInput) bool {
+	if sameOptionalTime(run.DeadlineAt, input.DeadlineAt) {
+		return true
+	}
+	return input.Kind == RunKindSimulation && !run.DeadlineAt.Valid && input.DeadlineAt != nil &&
+		input.DeadlineAt.Equal(input.StartedAt.Add(p1SimulationDuration))
 }
 
 func sameAttempt(attempt Attempt, input CreateAttemptParams) bool {

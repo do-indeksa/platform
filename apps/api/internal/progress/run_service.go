@@ -42,6 +42,22 @@ func (s *Service) StartRun(ctx context.Context, userID uuid.UUID, input StartRun
 		if !sameRunInput(existing, normalized) {
 			return RunAggregate{}, ErrConflict
 		}
+		if normalized.Kind == RunKindSimulation && !existing.Run.DeadlineAt.Valid {
+			existing.Run, err = queries.CanonicalizeSimulationDeadline(ctx, CanonicalizeSimulationDeadlineParams{
+				DeadlineAt: requiredTime(*normalized.DeadlineAt),
+				ID:         normalized.ID,
+				UserID:     userID,
+			})
+			if errors.Is(err, pgx.ErrNoRows) {
+				return RunAggregate{}, ErrConflict
+			}
+			if err != nil {
+				return RunAggregate{}, classifyWriteError(err)
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return RunAggregate{}, err
+			}
+		}
 		return existing, nil
 	}
 	if err != nil {
