@@ -181,6 +181,18 @@ type SavePrepPreferencesInput struct {
 	ExamDate string `json:"examDate"`
 }
 
+type SaveTrainingBuilderDraftInput struct {
+	// Use zero to create the first saved draft, then the latest server version.
+	ExpectedVersion  int64  `json:"expectedVersion"`
+	BlueprintVersion string `json:"blueprintVersion"`
+	// A full replacement containing only non-zero quantities.
+	Quantities         []TrainingBuilderQuantityInput `json:"quantities"`
+	Difficulty         TrainingBuilderDifficulty      `json:"difficulty"`
+	OnlyNew            bool                           `json:"onlyNew"`
+	Shuffle            bool                           `json:"shuffle"`
+	PrioritizeMistakes bool                           `json:"prioritizeMistakes"`
+}
+
 type StandaloneAttemptTargetInput struct {
 	TaskID       string `json:"taskId"`
 	ExamPosition int32  `json:"examPosition"`
@@ -202,6 +214,28 @@ type SubmitRunInput struct {
 	ID               string    `json:"id"`
 	SubmittedAt      time.Time `json:"submittedAt"`
 	ActiveDurationMs *int64    `json:"activeDurationMs,omitempty"`
+}
+
+type TrainingBuilderDraft struct {
+	BlueprintVersion string `json:"blueprintVersion"`
+	// Only non-zero quantities, ordered by exam position.
+	Quantities         []TrainingBuilderQuantity `json:"quantities"`
+	Difficulty         TrainingBuilderDifficulty `json:"difficulty"`
+	OnlyNew            bool                      `json:"onlyNew"`
+	Shuffle            bool                      `json:"shuffle"`
+	PrioritizeMistakes bool                      `json:"prioritizeMistakes"`
+	Version            int64                     `json:"version"`
+	UpdatedAt          time.Time                 `json:"updatedAt"`
+}
+
+type TrainingBuilderQuantity struct {
+	ExamPosition int32 `json:"examPosition"`
+	Quantity     int32 `json:"quantity"`
+}
+
+type TrainingBuilderQuantityInput struct {
+	ExamPosition int32 `json:"examPosition"`
+	Quantity     int32 `json:"quantity"`
 }
 
 type AttemptOutcome string
@@ -488,6 +522,63 @@ func (e *RunStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e RunStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type TrainingBuilderDifficulty string
+
+const (
+	TrainingBuilderDifficultyFoundation TrainingBuilderDifficulty = "FOUNDATION"
+	TrainingBuilderDifficultyBalanced   TrainingBuilderDifficulty = "BALANCED"
+	TrainingBuilderDifficultyAdvanced   TrainingBuilderDifficulty = "ADVANCED"
+)
+
+var AllTrainingBuilderDifficulty = []TrainingBuilderDifficulty{
+	TrainingBuilderDifficultyFoundation,
+	TrainingBuilderDifficultyBalanced,
+	TrainingBuilderDifficultyAdvanced,
+}
+
+func (e TrainingBuilderDifficulty) IsValid() bool {
+	switch e {
+	case TrainingBuilderDifficultyFoundation, TrainingBuilderDifficultyBalanced, TrainingBuilderDifficultyAdvanced:
+		return true
+	}
+	return false
+}
+
+func (e TrainingBuilderDifficulty) String() string {
+	return string(e)
+}
+
+func (e *TrainingBuilderDifficulty) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TrainingBuilderDifficulty(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TrainingBuilderDifficulty", str)
+	}
+	return nil
+}
+
+func (e TrainingBuilderDifficulty) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TrainingBuilderDifficulty) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TrainingBuilderDifficulty) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

@@ -1,0 +1,49 @@
+enum TrainingBuilderDifficulty {
+  FOUNDATION
+  BALANCED
+  ADVANCED
+}
+
+type TrainingBuilderQuantity {
+  examPosition: Int!
+  quantity: Int!
+}
+
+type TrainingBuilderDraft {
+  blueprintVersion: String!
+  """Only non-zero quantities, ordered by exam position."""
+  quantities: [TrainingBuilderQuantity!]!
+  difficulty: TrainingBuilderDifficulty!
+  onlyNew: Boolean!
+  shuffle: Boolean!
+  prioritizeMistakes: Boolean!
+  version: Int64!
+  updatedAt: Time!
+}
+
+input TrainingBuilderQuantityInput {
+  examPosition: Int!
+  quantity: Int!
+}
+
+input SaveTrainingBuilderDraftInput {
+  """Use zero to create the first saved draft, then the latest server version."""
+  expectedVersion: Int64!
+  blueprintVersion: String!
+  """A full replacement containing only non-zero quantities."""
+  quantities: [TrainingBuilderQuantityInput!]! = []
+  difficulty: TrainingBuilderDifficulty!
+  onlyNew: Boolean!
+  shuffle: Boolean!
+  prioritizeMistakes: Boolean!
+}
+
+extend type Query {
+  trainingBuilderDraft: TrainingBuilderDraft
+}
+
+extend type Mutation {
+  saveTrainingBuilderDraft(
+    input: SaveTrainingBuilderDraftInput!
+  ): TrainingBuilderDraft!
+}

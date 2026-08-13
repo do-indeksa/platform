@@ -11,6 +11,7 @@ import (
 
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
 
 func requestUser(ctx context.Context) (auth.User, error) {
@@ -25,13 +26,13 @@ func presentError(ctx context.Context, err error) error {
 	switch {
 	case errors.Is(err, auth.ErrNoSession):
 		return codedError("UNAUTHENTICATED", "authentication required")
-	case errors.Is(err, progress.ErrInvalidInput):
+	case errors.Is(err, progress.ErrInvalidInput), errors.Is(err, training.ErrInvalidInput):
 		return codedError("BAD_USER_INPUT", "input is invalid")
-	case errors.Is(err, progress.ErrConflict):
+	case errors.Is(err, progress.ErrConflict), errors.Is(err, training.ErrConflict):
 		return codedError("CONFLICT", "write conflicts with existing data")
 	case errors.Is(err, progress.ErrInvalidTransition):
 		return codedError("INVALID_STATE", "run state does not allow this operation")
-	case errors.Is(err, progress.ErrNotFound):
+	case errors.Is(err, progress.ErrNotFound), errors.Is(err, training.ErrNotFound):
 		return codedError("NOT_FOUND", "record not found")
 	default:
 		slog.Error("graphql operation failed", "request_id", middleware.GetReqID(ctx), "error", err)
