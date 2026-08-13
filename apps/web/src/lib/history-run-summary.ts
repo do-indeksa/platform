@@ -27,15 +27,34 @@ export type HistoryRunSummary = {
   maxPoints?: number;
 };
 
+export type SubmittedRunSummary = {
+  id: string;
+  kind: HistoryRunKind;
+  submittedAt: string;
+};
+
+export type HistoryRunResponse = {
+  entries: HistoryRunSummary[];
+  latestSubmittedDiagnostic: SubmittedRunSummary | null;
+};
+
 export function parseHistoryRunResponse(
   value: unknown,
   limit = HISTORY_RUN_LIMIT,
-): HistoryRunSummary[] | null {
+): HistoryRunResponse | null {
   if (!isRecord(value) || !isGraphQLSuccess(value) || !isRecord(value.data)) {
     return null;
   }
   const runs = value.data.runs;
   if (!Array.isArray(runs) || runs.length > limit) return null;
+
+  const latestSubmittedDiagnostic = value.data.latestSubmittedDiagnostic;
+  const parsedLatest =
+    latestSubmittedDiagnostic === null
+      ? null
+      : parseSubmittedRunSummary(latestSubmittedDiagnostic);
+  if (parsedLatest === null && latestSubmittedDiagnostic !== null) return null;
+  if (parsedLatest !== null && parsedLatest.kind !== "DIAGNOSTIC") return null;
 
   const ids = new Set<string>();
   const parsed: HistoryRunSummary[] = [];
@@ -45,7 +64,28 @@ export function parseHistoryRunResponse(
     ids.add(run.id);
     parsed.push(run);
   }
-  return parsed;
+  return { entries: parsed, latestSubmittedDiagnostic: parsedLatest };
+}
+
+export function parseSubmittedRunSummary(
+  value: unknown,
+): SubmittedRunSummary | null {
+  if (!isRecord(value)) return null;
+  const { id, kind, submittedAt } = value;
+  if (
+    typeof id !== "string" ||
+    !isUuid(id) ||
+    typeof kind !== "string" ||
+    !RUN_KINDS.has(kind) ||
+    !isTimestamp(submittedAt)
+  ) {
+    return null;
+  }
+  return {
+    id,
+    kind: kind as HistoryRunKind,
+    submittedAt,
+  };
 }
 
 export function parseHistoryRunSummary(

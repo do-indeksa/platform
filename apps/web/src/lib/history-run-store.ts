@@ -3,11 +3,15 @@
 import { useSyncExternalStore } from "react";
 import { validate as isUuid } from "uuid";
 import { fetchHistoryRuns } from "./history-run-client";
-import type { HistoryRunSummary } from "./history-run-summary";
+import type {
+  HistoryRunSummary,
+  SubmittedRunSummary,
+} from "./history-run-summary";
 
 export type HistoryRunSnapshot = {
   status: "guest" | "synced" | "degraded";
   entries: readonly HistoryRunSummary[];
+  latestSubmittedDiagnostic: SubmittedRunSummary | null;
 };
 
 let authKnown = false;
@@ -15,6 +19,7 @@ let activeOwnerId: string | null | undefined;
 let authGeneration = 0;
 let refreshGeneration = 0;
 let serverEntries: HistoryRunSummary[] | null = null;
+let serverLatestSubmittedDiagnostic: SubmittedRunSummary | null = null;
 let serverUnavailable = false;
 let snapshot: HistoryRunSnapshot | null = null;
 const listeners = new Set<() => void>();
@@ -22,13 +27,18 @@ const listeners = new Set<() => void>();
 export function historyRunView(): HistoryRunSnapshot | null {
   if (!authKnown) return null;
   if (activeOwnerId === null || activeOwnerId === undefined) {
-    snapshot ??= { status: "guest", entries: [] };
+    snapshot ??= {
+      status: "guest",
+      entries: [],
+      latestSubmittedDiagnostic: null,
+    };
     return snapshot;
   }
   if (serverEntries === null && !serverUnavailable) return null;
   snapshot ??= {
     status: serverUnavailable ? "degraded" : "synced",
     entries: serverEntries ?? [],
+    latestSubmittedDiagnostic: serverLatestSubmittedDiagnostic,
   };
   return snapshot;
 }
@@ -50,9 +60,10 @@ export async function refreshHistoryRuns(userId: string): Promise<boolean> {
   const refresh = ++refreshGeneration;
 
   try {
-    const entries = await fetchHistoryRuns();
+    const result = await fetchHistoryRuns();
     if (!isCurrentRefresh(userId, ownerGeneration, refresh)) return false;
-    serverEntries = entries;
+    serverEntries = result.entries;
+    serverLatestSubmittedDiagnostic = result.latestSubmittedDiagnostic;
     serverUnavailable = false;
   } catch {
     if (!isCurrentRefresh(userId, ownerGeneration, refresh)) return false;
@@ -71,6 +82,7 @@ function activateOwner(userId: string | null): void {
   authGeneration += 1;
   activeOwnerId = normalizeOwner(userId);
   serverEntries = null;
+  serverLatestSubmittedDiagnostic = null;
   serverUnavailable = false;
   emit();
 }

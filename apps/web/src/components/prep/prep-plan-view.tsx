@@ -7,6 +7,8 @@ import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useAttempts } from "@/lib/attempts-store";
 import type { TaskReference } from "@/lib/content";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
+import { useHistoryRuns } from "@/lib/history-run-store";
+import { prepDiagnosticCompletion } from "@/lib/prep-diagnostic-completion";
 import {
   buildPrepPlan,
   prepPracticeTaskCount,
@@ -43,10 +45,13 @@ export function PrepPlanView({
   const { user, loading: ownerLoading } = useUser();
   const ownerId = ownerLoading ? undefined : (user?.id ?? null);
   const attempts = useAttempts();
+  const runSnapshot = useHistoryRuns();
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const diagnosticPhase = useDiagnostic((state) => state.phase);
-  const diagnosticStartedAt = useDiagnostic((state) => state.startedAt);
+  const diagnosticCompletedAt = useDiagnostic((state) =>
+    state.phase === "done" ? (state.completedAt.at(-1) ?? null) : null,
+  );
   const {
     preferences: { goalPoints, examDate },
     ready: preferencesReady,
@@ -74,15 +79,18 @@ export function PrepPlanView({
     examDate !== null &&
     daysUntilExam !== null &&
     daysUntilExam >= 0;
-  const diagnosticCompletedToday =
-    diagnosticPhase === "done" &&
-    diagnosticStartedAt !== null &&
-    diagnosticStartedAt >= day.startMs &&
-    diagnosticStartedAt < day.endMs;
+  const diagnosticCompletion = prepDiagnosticCompletion({
+    localPhase: diagnosticPhase,
+    localCompletedAt: diagnosticCompletedAt,
+    latestSubmittedDiagnostic: runSnapshot?.latestSubmittedDiagnostic ?? null,
+    dayStartMs: day.startMs,
+    dayEndMs: day.endMs,
+  });
 
   if (
     !hydrated ||
     attempts === null ||
+    runSnapshot === null ||
     !diagnosticOwnerKnown ||
     !preferencesReady
   ) {
@@ -102,8 +110,8 @@ export function PrepPlanView({
       maxPoints,
       daysUntilExam,
     }),
-    diagnosticCompleted: diagnosticPhase === "done",
-    diagnosticCompletedToday,
+    diagnosticCompleted: diagnosticCompletion.completed,
+    diagnosticCompletedToday: diagnosticCompletion.completedToday,
   });
   const taskById = new Map(taskReferences.map((task) => [task.id, task]));
   const formattedExamDate = examDate

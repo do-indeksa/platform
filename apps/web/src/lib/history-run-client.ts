@@ -1,7 +1,7 @@
 import {
   HISTORY_RUN_LIMIT,
   parseHistoryRunResponse,
-  type HistoryRunSummary,
+  type HistoryRunResponse,
 } from "./history-run-summary";
 
 const HISTORY_RUNS = `
@@ -22,10 +22,15 @@ const HISTORY_RUNS = `
       earnedPoints
       maxPoints
     }
+    latestSubmittedDiagnostic: latestSubmittedRun(kind: DIAGNOSTIC) {
+      id
+      kind
+      submittedAt
+    }
   }
 `;
 
-export async function fetchHistoryRuns(): Promise<HistoryRunSummary[]> {
+export async function fetchHistoryRuns(): Promise<HistoryRunResponse> {
   const response = await fetch("/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
