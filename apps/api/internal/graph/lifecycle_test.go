@@ -55,13 +55,12 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 		"contentRevision":  "content-revision",
 		"startedAt":        startedAt,
 		"items": []map[string]any{{
-			"id":              itemID,
-			"taskId":          "log-001",
-			"examPosition":    3,
-			"topic":           "logaritmi",
-			"maxPoints":       6,
-			"answerPartCount": 2,
-			"taskRevision":    "task-revision",
+			"id":           itemID,
+			"taskId":       "log-001",
+			"examPosition": 3,
+			"topic":        "logaritmi",
+			"maxPoints":    6,
+			"taskRevision": "task-revision",
 		}},
 	}}
 
@@ -73,7 +72,7 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 			Status string `json:"status"`
 			Items  []struct {
 				ID              string `json:"id"`
-				AnswerPartCount int    `json:"answerPartCount"`
+				AnswerPartCount *int   `json:"answerPartCount"`
 				Attempts        []any  `json:"recentAttempts"`
 			} `json:"items"`
 		} `json:"startRun"`
@@ -82,7 +81,7 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	if started.StartRun.ID != runID || started.StartRun.Status != "ACTIVE" ||
-		len(started.StartRun.Items) != 1 || started.StartRun.Items[0].AnswerPartCount != 2 ||
+		len(started.StartRun.Items) != 1 || started.StartRun.Items[0].AnswerPartCount != nil ||
 		len(started.StartRun.Items[0].Attempts) != 0 {
 		t.Fatalf("unexpected start result: %+v", started.StartRun)
 	}
