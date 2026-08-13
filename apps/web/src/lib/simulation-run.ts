@@ -4,6 +4,10 @@ const TASK_ID_PATTERN = /^[a-z0-9-]{1,64}$/;
 const VERSION_PATTERN = /^\d{4}\.\d+$/;
 const TASK_REVISION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 
+export const FTN_P1_SIMULATION_TASK_COUNT = 10;
+export const FTN_P1_SIMULATION_MAX_POINTS = 60;
+export const FTN_P1_SIMULATION_DURATION_MS = 4 * 60 * 60 * 1_000;
+
 export type SimulationRoute = "/simulation/new" | "/simulation/result";
 
 export type SimulationRunQuery = {
@@ -49,6 +53,36 @@ export function isSimulationTaskId(value: unknown): value is string {
 
 export function isSimulationBlueprintVersion(value: unknown): value is string {
   return typeof value === "string" && VERSION_PATTERN.test(value);
+}
+
+export function isFtnP1SimulationBlueprintVersion(
+  value: unknown,
+): value is string {
+  const prefix = "ftn-p1:";
+  return (
+    typeof value === "string" &&
+    value.startsWith(prefix) &&
+    isSimulationBlueprintVersion(value.slice(prefix.length))
+  );
+}
+
+export function isCompleteFtnP1SimulationItems(
+  items: readonly { examPosition: number; maxPoints?: number }[],
+): boolean {
+  return (
+    items.length === FTN_P1_SIMULATION_TASK_COUNT &&
+    items.every(
+      ({ examPosition, maxPoints }, index) =>
+        Number.isInteger(examPosition) &&
+        examPosition === index + 1 &&
+        typeof maxPoints === "number" &&
+        Number.isInteger(maxPoints) &&
+        maxPoints >= 1 &&
+        maxPoints <= FTN_P1_SIMULATION_MAX_POINTS,
+    ) &&
+    items.reduce((sum, { maxPoints }) => sum + (maxPoints ?? 0), 0) ===
+      FTN_P1_SIMULATION_MAX_POINTS
+  );
 }
 
 export function isSimulationTaskRevision(value: unknown): value is string {

@@ -175,6 +175,7 @@ async function sendRun(
       blueprintVersion: run.blueprintVersion,
       contentRevision: run.contentRevision,
       startedAt: run.startedAt,
+      ...(run.deadlineAt === undefined ? {} : { deadlineAt: run.deadlineAt }),
       items: run.items.map((item) => ({
         id: item.id,
         taskId: item.taskId,

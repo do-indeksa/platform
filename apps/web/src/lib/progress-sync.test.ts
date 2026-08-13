@@ -175,6 +175,29 @@ describe("progress outbox", () => {
     expect(pending(map)).toHaveLength(0);
   });
 
+  it("upgrades and sends the canonical deadline for a legacy simulation", async () => {
+    mockStorage();
+    const calls = mockGraphQL();
+    const sync = await loadSync();
+    const run = completedRun();
+    run.kind = "SIMULATION";
+    run.blueprintVersion = "ftn-p1:2026.1";
+    for (const item of run.items) {
+      item.maxPoints = 6;
+      if (item.attempt.outcome === "CORRECT") item.attempt.earnedPoints = 6;
+    }
+
+    expect(await sync.queueCompletedProgressRun(run)).toBe(true);
+    await sync.syncProgress(userId);
+
+    expect(calls[0]).toMatchObject({
+      operationName: "StartRun",
+      variables: {
+        input: { deadlineAt: "2026-08-10T14:00:00.000Z" },
+      },
+    });
+  });
+
   it("retains a failed run and retries it idempotently", async () => {
     const map = mockStorage();
     let unavailable = true;

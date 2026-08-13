@@ -1,4 +1,7 @@
 import {
+  FTN_P1_SIMULATION_DURATION_MS,
+  FTN_P1_SIMULATION_MAX_POINTS,
+  FTN_P1_SIMULATION_TASK_COUNT,
   isSimulationBlueprintVersion,
   isSimulationRunId,
   isSimulationTaskId,
@@ -6,7 +9,6 @@ import {
 import { MAX_ANSWER_LENGTH } from "./task-draft";
 import {
   SIMULATION_MAX_ANSWER_PARTS,
-  SIMULATION_MAX_TASKS,
   type SimulationGradeItem,
   type SimulationHistoryEntry,
 } from "./simulation-types";
@@ -78,20 +80,21 @@ function parseRun(value: unknown): SimulationArchiveRun | null {
 
   const startedAt = timestamp(value.startedAt);
   const finishedAt = timestamp(value.submittedAt);
-  const deadlineAt =
+  const storedDeadlineAt =
     value.deadlineAt === null ? null : timestamp(value.deadlineAt);
   if (
     startedAt === null ||
     finishedAt === null ||
     finishedAt < startedAt ||
-    (deadlineAt === null && value.deadlineAt !== null) ||
+    (storedDeadlineAt === null && value.deadlineAt !== null) ||
     !integer(value.activeDurationMs, 0, MAX_DURATION_MS) ||
     !Array.isArray(value.items) ||
-    value.items.length < 1 ||
-    value.items.length > SIMULATION_MAX_TASKS
+    value.items.length !== FTN_P1_SIMULATION_TASK_COUNT
   ) {
     return null;
   }
+  const deadlineAt = startedAt + FTN_P1_SIMULATION_DURATION_MS;
+  if (storedDeadlineAt !== null && storedDeadlineAt !== deadlineAt) return null;
 
   const items: ParsedItem[] = [];
   const taskIds = new Set<string>();
@@ -102,7 +105,7 @@ function parseRun(value: unknown): SimulationArchiveRun | null {
     items.push(item);
   }
   const maxPoints = items.reduce((sum, item) => sum + item.maxPoints, 0);
-  if (maxPoints < 1 || maxPoints > 60) return null;
+  if (maxPoints !== FTN_P1_SIMULATION_MAX_POINTS) return null;
 
   const scoreKnown = items.every(({ earnedPoints }) => earnedPoints !== null);
   const score = scoreKnown
@@ -132,7 +135,7 @@ function parseRun(value: unknown): SimulationArchiveRun | null {
     startedAt,
     finishedAt,
     durationMs: value.activeDurationMs,
-    timedOut: deadlineAt !== null && finishedAt >= deadlineAt,
+    timedOut: finishedAt >= deadlineAt,
     score,
     maxPoints,
     correctCount: items.filter(({ outcome }) => outcome === "correct").length,
@@ -260,7 +263,7 @@ function buildHistoryEntry(
   startedAt: number,
   finishedAt: number,
   durationMs: number,
-  deadlineAt: number | null,
+  deadlineAt: number,
   items: ParsedItem[],
   score: number,
   maxPoints: number,
@@ -284,7 +287,7 @@ function buildHistoryEntry(
     startedAt,
     finishedAt,
     durationMs,
-    timedOut: deadlineAt !== null && finishedAt >= deadlineAt,
+    timedOut: finishedAt >= deadlineAt,
     score,
     maxPoints,
     correctCount: results.filter(({ outcome }) => outcome === "correct").length,

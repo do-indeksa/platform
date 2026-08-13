@@ -79,7 +79,9 @@ describe("simulation cloud client", () => {
       "StartRun",
       "CheckpointRun",
     ]);
-    expect(calls[0].variables.input).not.toHaveProperty("deadlineAt");
+    expect(calls[0].variables.input).toMatchObject({
+      deadlineAt: "2026-08-10T14:00:00.000Z",
+    });
     expect(calls[1].variables.input).toMatchObject({
       id: runId,
       expectedVersion: 2,
@@ -228,6 +230,9 @@ describe("simulation cloud client", () => {
         .slice(1)
         .every(({ variables }) => variables.input.gradingKind === "AUTO"),
     ).toBe(true);
+    expect(calls[0].variables.input).toMatchObject({
+      deadlineAt: "2026-08-10T14:00:00.000Z",
+    });
   });
 
   it("preserves coded GraphQL conflicts for explicit recovery", async () => {
