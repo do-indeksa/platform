@@ -164,7 +164,21 @@ test("a completed guest practice is claimed and submitted exactly once", async (
     }),
   ).toEqual([]);
 
-  await page.goto("/en/history");
+  await expect.poll(() => server.operationCount("HistoryRuns")).toBe(2);
+  expect(server.snapshot().historyRequestCount).toBe(2);
+  const navigationCount = await page.evaluate(
+    () => performance.getEntriesByType("navigation").length,
+  );
+  await page
+    .getByTestId("desktop-navigation")
+    .getByRole("link", { name: "History", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/en\/history$/);
+  expect(
+    await page.evaluate(
+      () => performance.getEntriesByType("navigation").length,
+    ),
+  ).toBe(navigationCount);
   await expect(page.getByTestId("history-page")).toHaveAttribute(
     "data-sync-status",
     "synced",
