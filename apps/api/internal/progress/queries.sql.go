@@ -46,6 +46,52 @@ func (q *Queries) AbandonRun(ctx context.Context, arg AbandonRunParams) (Run, er
 	return i, err
 }
 
+const canonicalizeDiagnosticCheckpoint = `-- name: CanonicalizeDiagnosticCheckpoint :one
+update run_checkpoints
+set current_ordinal = greatest(run_checkpoints.current_ordinal, $1),
+    updated_at = case
+      when run_checkpoints.current_ordinal < $1
+        or exists (
+          select 1
+          from run_checkpoint_drafts
+          where run_checkpoint_drafts.run_id = $2
+            and run_checkpoint_drafts.user_id = $3
+        )
+        then now()
+      else run_checkpoints.updated_at
+    end
+where run_id = $2
+  and user_id = $3
+  and version = $4
+returning run_id, user_id, version, current_ordinal, active_duration_ms, updated_at
+`
+
+type CanonicalizeDiagnosticCheckpointParams struct {
+	CurrentOrdinal int16
+	RunID          uuid.UUID
+	UserID         uuid.UUID
+	Version        int64
+}
+
+func (q *Queries) CanonicalizeDiagnosticCheckpoint(ctx context.Context, arg CanonicalizeDiagnosticCheckpointParams) (RunCheckpoint, error) {
+	row := q.db.QueryRow(ctx, canonicalizeDiagnosticCheckpoint,
+		arg.CurrentOrdinal,
+		arg.RunID,
+		arg.UserID,
+		arg.Version,
+	)
+	var i RunCheckpoint
+	err := row.Scan(
+		&i.RunID,
+		&i.UserID,
+		&i.Version,
+		&i.CurrentOrdinal,
+		&i.ActiveDurationMs,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const canonicalizeSimulationDeadline = `-- name: CanonicalizeSimulationDeadline :one
 update runs
 set deadline_at = $1,
@@ -534,6 +580,8 @@ select
     i.task_revision,
     r.kind as run_kind,
     r.status as run_status,
+    r.blueprint_version as run_blueprint_version,
+    r.content_revision as run_content_revision,
     r.started_at as run_started_at
 from run_items i
 join runs r on r.id = i.run_id and r.user_id = i.user_id
@@ -547,16 +595,18 @@ type GetRunItemTargetParams struct {
 }
 
 type GetRunItemTargetRow struct {
-	ID              uuid.UUID
-	RunID           uuid.UUID
-	TaskID          string
-	ExamPosition    int16
-	ItemMaxPoints   *int16
-	AnswerPartCount *int16
-	TaskRevision    string
-	RunKind         string
-	RunStatus       string
-	RunStartedAt    time.Time
+	ID                  uuid.UUID
+	RunID               uuid.UUID
+	TaskID              string
+	ExamPosition        int16
+	ItemMaxPoints       *int16
+	AnswerPartCount     *int16
+	TaskRevision        string
+	RunKind             string
+	RunStatus           string
+	RunBlueprintVersion string
+	RunContentRevision  string
+	RunStartedAt        time.Time
 }
 
 func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetParams) (GetRunItemTargetRow, error) {
@@ -572,6 +622,8 @@ func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetPara
 		&i.TaskRevision,
 		&i.RunKind,
 		&i.RunStatus,
+		&i.RunBlueprintVersion,
+		&i.RunContentRevision,
 		&i.RunStartedAt,
 	)
 	return i, err

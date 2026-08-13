@@ -39,6 +39,9 @@ func (s *Service) StartRun(ctx context.Context, userID uuid.UUID, input StartRun
 		if loadErr != nil {
 			return RunAggregate{}, loadErr
 		}
+		if _, err := classifySnapshottedDiagnosticAssignment(existing.Run, existing.Items); err != nil {
+			return RunAggregate{}, err
+		}
 		if !sameRunInput(existing, normalized) {
 			return RunAggregate{}, ErrConflict
 		}
@@ -184,6 +187,9 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 	if err := validateSnapshottedSimulationSubmission(
 		ctx, queries, userID, run, submission.submittedAt,
 	); err != nil {
+		return RunAggregate{}, err
+	}
+	if err := validateSnapshottedDiagnosticSubmission(ctx, queries, userID, run); err != nil {
 		return RunAggregate{}, err
 	}
 	hasLaterAttempt, err := queries.RunHasAttemptAfter(ctx, RunHasAttemptAfterParams{

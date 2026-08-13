@@ -326,7 +326,7 @@ func correctSimulationAttempt(run StartRunInput, index int, submittedAt time.Tim
 	answer := `["42"]`
 	maximum := *run.Items[index].MaxPoints
 	return RecordAttemptInput{
-		ID:           simulationAutoAttemptID(run.Items[index].ID),
+		ID:           progressAutoAttemptID(run.Items[index].ID),
 		RunItemID:    &run.Items[index].ID,
 		StartedAt:    run.StartedAt,
 		SubmittedAt:  submittedAt,
@@ -347,7 +347,7 @@ func incorrectSimulationAttempt(run StartRunInput, index int, submittedAt time.T
 
 func skippedSimulationAttempt(run StartRunInput, index int, submittedAt time.Time) RecordAttemptInput {
 	return RecordAttemptInput{
-		ID:          simulationAutoAttemptID(run.Items[index].ID),
+		ID:          progressAutoAttemptID(run.Items[index].ID),
 		RunItemID:   &run.Items[index].ID,
 		StartedAt:   run.StartedAt,
 		SubmittedAt: submittedAt,
@@ -412,7 +412,7 @@ func TestSimulationIDsMatchWebUUIDv5(t *testing.T) {
 		t.Fatalf("run item id = %s", got)
 	}
 	itemID := uuid.MustParse("239d709c-bc13-5e11-bac2-65e22b5c1c1d")
-	if got := simulationAutoAttemptID(itemID).String(); got != "a64adf9f-1dc7-5eec-ba21-8dd43fb21963" {
+	if got := progressAutoAttemptID(itemID).String(); got != "a64adf9f-1dc7-5eec-ba21-8dd43fb21963" {
 		t.Fatalf("auto id = %s", got)
 	}
 	if got := simulationRubricAttemptID(itemID).String(); got != "b9f4760a-c274-52b9-ac0d-b9a29aa60753" {

@@ -10,14 +10,14 @@ import (
 const (
 	clientClockSkew         = 5 * time.Minute
 	p1SimulationDuration    = 4 * time.Hour
-	p1SimulationTaskCount   = 10
+	p1TaskCount             = 10
 	p1SimulationTotalPoints = int16(60)
 	maxAnswerPartCount      = int16(6)
 )
 
 var (
-	p1SimulationBlueprintPattern = regexp.MustCompile(`^ftn-p1:[0-9]{4}[.][0-9]+$`)
-	snapshotRevisionPattern      = regexp.MustCompile(`^sha256:[a-f0-9]{64}$`)
+	p1BlueprintPattern      = regexp.MustCompile(`^ftn-p1:[0-9]{4}[.][0-9]+$`)
+	snapshotRevisionPattern = regexp.MustCompile(`^sha256:[a-f0-9]{64}$`)
 )
 
 func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error) {
@@ -46,7 +46,7 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 		input.DeadlineAt = &deadline
 	}
 	if input.Kind == RunKindSimulation {
-		if !p1SimulationBlueprintPattern.MatchString(input.BlueprintVersion) {
+		if !p1BlueprintPattern.MatchString(input.BlueprintVersion) {
 			return StartRunInput{}, invalidInput("blueprintVersion")
 		}
 		if !snapshotRevisionPattern.MatchString(input.ContentRevision) {
@@ -57,18 +57,42 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			return StartRunInput{}, invalidInput("deadlineAt")
 		}
 		input.DeadlineAt = &expectedDeadline
-		if len(input.Items) != p1SimulationTaskCount {
+		if len(input.Items) != p1TaskCount {
 			return StartRunInput{}, invalidInput("items")
 		}
 	}
 	if len(input.Items) == 0 || len(input.Items) > maxRunItems {
 		return StartRunInput{}, invalidInput("items")
 	}
+	snapshottedItems := 0
+	for _, item := range input.Items {
+		if item.AnswerPartCount != nil {
+			snapshottedItems++
+		}
+	}
+	if (input.Kind == RunKindSimulation || input.Kind == RunKindDiagnostic) &&
+		snapshottedItems != 0 && snapshottedItems != len(input.Items) {
+		return StartRunInput{}, invalidInput("items.answerPartCount")
+	}
+	strictDiagnostic := input.Kind == RunKindDiagnostic && snapshottedItems > 0
+	if strictDiagnostic {
+		if len(input.Items) != p1TaskCount {
+			return StartRunInput{}, invalidInput("items")
+		}
+		if !p1BlueprintPattern.MatchString(input.BlueprintVersion) {
+			return StartRunInput{}, invalidInput("blueprintVersion")
+		}
+		if !snapshotRevisionPattern.MatchString(input.ContentRevision) {
+			return StartRunInput{}, invalidInput("contentRevision")
+		}
+		if input.StartedAt.UnixMilli() <= 0 {
+			return StartRunInput{}, invalidInput("startedAt")
+		}
+	}
 	ids := make(map[uuid.UUID]struct{}, len(input.Items))
 	taskIDs := make(map[string]struct{}, len(input.Items))
 	positions := make(map[int16]struct{}, len(input.Items))
 	var totalPoints int16
-	snapshottedItems := 0
 	for index, item := range input.Items {
 		if item.ID == uuid.Nil || !validTaskID(item.TaskID) || !validTaskID(item.Topic) ||
 			item.ExamPosition < 1 || item.ExamPosition > 10 || !validRevision(item.TaskRevision) {
@@ -84,7 +108,6 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			if *item.AnswerPartCount < 1 || *item.AnswerPartCount > maxAnswerPartCount {
 				return StartRunInput{}, invalidInput("items.answerPartCount")
 			}
-			snapshottedItems++
 		}
 		if _, duplicate := ids[item.ID]; duplicate {
 			return StartRunInput{}, invalidInput("items.id")
@@ -94,14 +117,17 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 		}
 		ids[item.ID] = struct{}{}
 		taskIDs[item.TaskID] = struct{}{}
-		if input.Kind == RunKindSimulation {
+		if input.Kind == RunKindSimulation || strictDiagnostic {
 			if item.ExamPosition != int16(index+1) {
 				return StartRunInput{}, invalidInput("items.examPosition")
 			}
 			if !snapshotRevisionPattern.MatchString(item.TaskRevision) {
 				return StartRunInput{}, invalidInput("items.taskRevision")
 			}
-			if item.MaxPoints == nil {
+			if input.Kind == RunKindSimulation && item.MaxPoints == nil {
+				return StartRunInput{}, invalidInput("items.maxPoints")
+			}
+			if input.Kind == RunKindDiagnostic && item.MaxPoints != nil {
 				return StartRunInput{}, invalidInput("items.maxPoints")
 			}
 			if item.AnswerPartCount != nil && item.ID != runItemSnapshotID(input.ID, item.TaskID) {
@@ -112,9 +138,6 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			}
 			positions[item.ExamPosition] = struct{}{}
 		}
-	}
-	if input.Kind == RunKindSimulation && snapshottedItems != 0 && snapshottedItems != len(input.Items) {
-		return StartRunInput{}, invalidInput("items.answerPartCount")
 	}
 	if input.Kind == RunKindSimulation && totalPoints != p1SimulationTotalPoints {
 		return StartRunInput{}, invalidInput("items.maxPoints")

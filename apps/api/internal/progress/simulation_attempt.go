@@ -2,19 +2,15 @@ package progress
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"slices"
 	"time"
-	"unicode/utf16"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
-const maxSimulationAnswerLength = 200
-
-func simulationAutoAttemptID(runItemID uuid.UUID) uuid.UUID {
+func progressAutoAttemptID(runItemID uuid.UUID) uuid.UUID {
 	return uuid.NewSHA1(runItemID, []byte("attempt:1"))
 }
 
@@ -32,7 +28,7 @@ func validateSnapshottedSimulationAttempt(
 	if input.RunItemID == nil || input.HelpLevel != 0 || !input.StartedAt.Equal(target.runStartedAt) {
 		return invalidInput("attempt")
 	}
-	expectedID := simulationAutoAttemptID(*input.RunItemID)
+	expectedID := progressAutoAttemptID(*input.RunItemID)
 	if input.GradingKind == GradingKindRubricSelf {
 		expectedID = simulationRubricAttemptID(*input.RunItemID)
 	}
@@ -40,7 +36,7 @@ func validateSnapshottedSimulationAttempt(
 		return invalidInput("id")
 	}
 
-	parts, hasAnswer := parseSimulationAnswer(input.Answer, *target.answerPartCount)
+	parts, hasAnswer := parseAnswerParts(input.Answer, *target.answerPartCount)
 	hasSubmittedAnswer := hasAnswer && slices.ContainsFunc(parts, func(part string) bool {
 		return !simulationAnswerPartBlank(part)
 	})
@@ -97,7 +93,7 @@ func validateSnapshottedSimulationRubricPredecessor(
 		return nil
 	}
 	auto, err := queries.GetAttempt(ctx, GetAttemptParams{
-		PublicID: simulationAutoAttemptID(*input.RunItemID), UserID: userID,
+		PublicID: progressAutoAttemptID(*input.RunItemID), UserID: userID,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return invalidInput("grading")
@@ -281,7 +277,7 @@ func simulationAttemptParts(attempt *Attempt, count int16) ([]string, bool) {
 	if attempt.Outcome != nil && AttemptOutcome(*attempt.Outcome) == AttemptOutcomeSkipped {
 		return make([]string, count), true
 	}
-	return parseSimulationAnswer(attempt.Answer, count)
+	return parseAnswerParts(attempt.Answer, count)
 }
 
 func simulationAttemptSkipped(attempt *Attempt, parts []string) bool {
@@ -295,28 +291,12 @@ func simulationInputParts(input RecordAttemptInput, count int16) ([]string, bool
 	if input.Outcome == AttemptOutcomeSkipped {
 		return make([]string, count), true
 	}
-	return parseSimulationAnswer(input.Answer, count)
+	return parseAnswerParts(input.Answer, count)
 }
 
 func simulationInputSkipped(input RecordAttemptInput, parts []string) bool {
 	return input.Outcome == AttemptOutcomeSkipped ||
 		!slices.ContainsFunc(parts, func(part string) bool { return part != "" })
-}
-
-func parseSimulationAnswer(value *string, count int16) ([]string, bool) {
-	if value == nil {
-		return nil, false
-	}
-	var parts []string
-	if err := json.Unmarshal([]byte(*value), &parts); err != nil || len(parts) != int(count) {
-		return nil, false
-	}
-	for _, part := range parts {
-		if len(utf16.Encode([]rune(part))) > maxSimulationAnswerLength {
-			return nil, false
-		}
-	}
-	return parts, true
 }
 
 // Keep this set aligned with ECMAScript TrimString, which defines String.trim().

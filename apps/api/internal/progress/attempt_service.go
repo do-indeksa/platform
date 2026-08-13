@@ -43,6 +43,12 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	); err != nil {
 		return Attempt{}, err
 	}
+	diagnosticTransition, err := validateSnapshottedDiagnosticAttempt(
+		ctx, queries, userID, normalized, target, hasExisting,
+	)
+	if err != nil {
+		return Attempt{}, err
+	}
 	if !validRunActiveDuration(
 		target.mode,
 		normalized.ActiveDurationMs,
@@ -81,6 +87,16 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 		if !sameAttempt(existing, params) {
 			return Attempt{}, ErrConflict
 		}
+		if diagnosticTransition != nil {
+			if err := applyDiagnosticAttemptTransition(
+				ctx, queries, userID, diagnosticTransition,
+			); err != nil {
+				return Attempt{}, err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return Attempt{}, err
+			}
+		}
 		return existing, nil
 	}
 	if target.runItemID.Valid && target.runStatus != RunStatusActive {
@@ -98,10 +114,25 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 		if !sameAttempt(existing, params) {
 			return Attempt{}, ErrConflict
 		}
+		if diagnosticTransition != nil {
+			if err := applyDiagnosticAttemptTransition(
+				ctx, queries, userID, diagnosticTransition,
+			); err != nil {
+				return Attempt{}, err
+			}
+			if err := tx.Commit(ctx); err != nil {
+				return Attempt{}, err
+			}
+		}
 		return existing, nil
 	}
 	if err != nil {
 		return Attempt{}, classifyWriteError(err)
+	}
+	if err := applyDiagnosticAttemptTransition(
+		ctx, queries, userID, diagnosticTransition,
+	); err != nil {
+		return Attempt{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return Attempt{}, err
@@ -127,8 +158,11 @@ func (s *Service) ListAttemptJournal(ctx context.Context, userID uuid.UUID, limi
 }
 
 type attemptTarget struct {
+	runID           uuid.UUID
 	runItemID       pgtype.UUID
 	runStatus       RunStatus
+	runBlueprint    string
+	runRevision     string
 	taskID          string
 	examPosition    int16
 	mode            RunKind
@@ -153,8 +187,11 @@ func resolveAttemptTarget(
 			return attemptTarget{}, err
 		}
 		return attemptTarget{
+			runID:           row.RunID,
 			runItemID:       pgtype.UUID{Bytes: *input.RunItemID, Valid: true},
 			runStatus:       RunStatus(row.RunStatus),
+			runBlueprint:    row.RunBlueprintVersion,
+			runRevision:     row.RunContentRevision,
 			taskID:          row.TaskID,
 			examPosition:    row.ExamPosition,
 			mode:            RunKind(row.RunKind),

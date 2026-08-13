@@ -264,11 +264,32 @@ select
     i.task_revision,
     r.kind as run_kind,
     r.status as run_status,
+    r.blueprint_version as run_blueprint_version,
+    r.content_revision as run_content_revision,
     r.started_at as run_started_at
 from run_items i
 join runs r on r.id = i.run_id and r.user_id = i.user_id
 where i.id = $1 and i.user_id = $2
 for share of r;
+
+-- name: CanonicalizeDiagnosticCheckpoint :one
+update run_checkpoints
+set current_ordinal = greatest(run_checkpoints.current_ordinal, sqlc.arg(current_ordinal)),
+    updated_at = case
+      when run_checkpoints.current_ordinal < sqlc.arg(current_ordinal)
+        or exists (
+          select 1
+          from run_checkpoint_drafts
+          where run_checkpoint_drafts.run_id = sqlc.arg(run_id)
+            and run_checkpoint_drafts.user_id = sqlc.arg(user_id)
+        )
+        then now()
+      else run_checkpoints.updated_at
+    end
+where run_id = sqlc.arg(run_id)
+  and user_id = sqlc.arg(user_id)
+  and version = sqlc.arg(version)
+returning *;
 
 -- name: CreateAttempt :one
 insert into attempts (
