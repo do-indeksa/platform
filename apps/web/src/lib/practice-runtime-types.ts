@@ -73,6 +73,11 @@ export type PracticeRuntimeDraftChange = {
   activeDurationMs: number;
 };
 
+export type PracticeRuntimeVisit = {
+  currentIndex: number;
+  activeDurationMs: number;
+};
+
 export type PracticeRuntimeAttemptInput = {
   taskId: string;
   startedAt: number;

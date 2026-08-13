@@ -112,8 +112,9 @@ describe("task files", () => {
   it("exposes task shape metadata for persisted workspace drafts", async () => {
     const references = await getTaskWorkspaceReferences();
     expect(references).toHaveLength(30);
-    expect(references[0]).toEqual({
+    expect(references[0]).toMatchObject({
       id: "kb-001",
+      revision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
       slot: 1,
       topic: "kompleksni-brojevi",
       partCount: 4,

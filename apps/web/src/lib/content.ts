@@ -65,6 +65,7 @@ export type TaskSummary = Pick<
 export type TaskReference = Pick<Task, "id" | "slot" | "topic">;
 
 export type TaskWorkspaceReference = TaskReference & {
+  revision: string;
   partCount: number;
   maxHints: number;
 };
@@ -237,8 +238,9 @@ async function buildTaskWorkspaceReferences(): Promise<
   const groups = await Promise.all(
     topics.map(async (topic) =>
       (await getTasks(topic.slug)).map(
-        ({ id, slot, topic: taskTopic, check, hints }) => ({
+        ({ id, revision, slot, topic: taskTopic, check, hints }) => ({
           id,
+          revision,
           slot,
           topic: taskTopic,
           partCount: check.length,
