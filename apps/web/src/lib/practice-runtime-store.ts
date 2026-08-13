@@ -152,7 +152,8 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             input.activeDurationMs < run.activeDurationMs ||
             !isAnswers(input.answers, task.answerPartCount) ||
             !isHelpLevel(input.helpLevel) ||
-            input.helpLevel < (latest?.helpLevel ?? 0)
+            input.helpLevel <
+              Math.max(latest?.helpLevel ?? 0, item.draft?.helpLevel ?? 0)
           ) {
             return null;
           }
