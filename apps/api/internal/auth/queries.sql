@@ -21,6 +21,14 @@ update sessions set expires_at = $2 where token_hash = $1;
 -- name: DeleteSession :exec
 delete from sessions where token_hash = $1;
 
+-- name: DeleteAccountBySession :execrows
+delete from users
+where id = (
+    select user_id
+    from sessions
+    where token_hash = $1 and expires_at > now()
+);
+
 -- name: DeleteExpiredSessions :exec
 delete from sessions where expires_at <= now();
 
