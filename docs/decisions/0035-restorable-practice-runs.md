@@ -35,9 +35,10 @@ and point to any task in the assignment.
 
 Submission is deliberately partial: at least one valid attempt must exist, but
 the user may finish without visiting every task. Submission removes the mutable
-checkpoint transactionally. Attempt, checkpoint, and submit writes serialize
-on the parent run row, so validation and transitions cannot interleave. No
-GraphQL schema or database migration is required.
+checkpoint transactionally and cannot reduce its accumulated active duration.
+Attempt, checkpoint, and submit writes serialize on the parent run row, so
+validation and transitions cannot interleave. No GraphQL schema or database
+migration is required.
 
 **Consequences.** Every strict practice payload accepted by the API has a
 bounded assignment, complete retry history, and enough draft metadata for a

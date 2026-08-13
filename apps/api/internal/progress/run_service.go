@@ -173,7 +173,7 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 	}
 	if status == RunStatusSubmitted {
 		if err := validateSnapshottedPracticeSubmission(
-			ctx, queries, userID, run, submission.submittedAt,
+			ctx, queries, userID, run, submission.submittedAt, submission.activeDurationMs,
 		); err != nil {
 			return RunAggregate{}, err
 		}
@@ -203,7 +203,7 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 		return RunAggregate{}, err
 	}
 	if err := validateSnapshottedPracticeSubmission(
-		ctx, queries, userID, run, submission.submittedAt,
+		ctx, queries, userID, run, submission.submittedAt, submission.activeDurationMs,
 	); err != nil {
 		return RunAggregate{}, err
 	}

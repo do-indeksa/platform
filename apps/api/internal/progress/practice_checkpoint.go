@@ -56,6 +56,7 @@ func validateSnapshottedPracticeSubmission(
 	userID uuid.UUID,
 	run Run,
 	submittedAt time.Time,
+	activeDurationMs int64,
 ) error {
 	state, strict, err := loadSnapshottedPracticeState(ctx, queries, userID, run, nil)
 	if err != nil || !strict {
@@ -66,6 +67,10 @@ func validateSnapshottedPracticeSubmission(
 	}
 	if submittedAt.Before(state.lastSubmittedAt) {
 		return invalidInput("submittedAt")
+	}
+	if state.checkpoint != nil && state.checkpoint.Checkpoint.ActiveDurationMs != nil &&
+		activeDurationMs < *state.checkpoint.Checkpoint.ActiveDurationMs {
+		return invalidInput("activeDurationMs")
 	}
 	return nil
 }

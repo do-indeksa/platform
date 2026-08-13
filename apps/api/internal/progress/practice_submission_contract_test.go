@@ -32,6 +32,36 @@ func TestSnapshottedPracticeSubmissionRequiresOneValidAttempt(t *testing.T) {
 	}
 }
 
+func TestSnapshottedPracticeSubmissionPreservesCheckpointDuration(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := startPracticeRun(t, service, userID, 1)
+	checkpointDuration := int64((5 * time.Minute) / time.Millisecond)
+	if _, err := service.CheckpointRun(ctx, userID, CheckpointRunInput{
+		ID: run.ID, CurrentOrdinal: 1, ActiveDurationMs: &checkpointDuration,
+		Drafts: []RunCheckpointDraftInput{practiceDraft(run, 0, 1, 0)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	attempt := practiceAttempt(run, 0, 1, run.StartedAt, run.StartedAt.Add(time.Minute), AttemptOutcomeCorrect, 0)
+	if _, err := service.RecordAttempt(ctx, userID, attempt); err != nil {
+		t.Fatal(err)
+	}
+	submittedAt := run.StartedAt.Add(10 * time.Minute)
+	shortDuration := int64(time.Minute / time.Millisecond)
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID: run.ID, SubmittedAt: submittedAt, ActiveDurationMs: &shortDuration,
+	}); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("short duration: %v", err)
+	}
+	if _, err := service.SubmitRun(ctx, userID, SubmitRunInput{
+		ID: run.ID, SubmittedAt: submittedAt, ActiveDurationMs: &checkpointDuration,
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestSnapshottedPracticeSubmissionRejectsMalformedStoredAttempt(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(testPool)
