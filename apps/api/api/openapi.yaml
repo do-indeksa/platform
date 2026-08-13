@@ -178,6 +178,10 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "413":
+          $ref: "#/components/responses/RequestTooLarge"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/Internal"
   /v1/me:
@@ -332,6 +336,18 @@ components:
             $ref: "#/components/schemas/Error"
     BadGateway:
       description: OAuth provider is temporarily unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RequestTooLarge:
+      description: Request body exceeds the endpoint limit
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: Request body is not application/json
       content:
         application/json:
           schema:
