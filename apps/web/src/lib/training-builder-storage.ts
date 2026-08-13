@@ -53,3 +53,14 @@ export function saveTrainingBuilderDraft(
     return false;
   }
 }
+
+export function clearTrainingBuilderDraft(
+  ownerId: BrowserStorageOwnerId,
+): boolean {
+  try {
+    localStorage.removeItem(trainingBuilderStorageKey(ownerId));
+    return true;
+  } catch {
+    return false;
+  }
+}
