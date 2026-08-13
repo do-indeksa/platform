@@ -171,6 +171,20 @@ func TestGraphQLRejectsInvalidEnvelopeTypesWithoutReflectingBody(t *testing.T) {
 	}
 }
 
+func TestGraphQLRejectsTrailingDocumentBeforeUpdatingExistingState(t *testing.T) {
+	session := seedGraphTransportSession(t, "-strict-update")
+	created := saveGraphPrepPreferences(t, session, 0, 42, "2028-02-29")
+	body := prepPreferencesRequestBodyForVersion(t, created.Version, 55)
+	body = append(body, []byte(` {"second":true}`)...)
+	request := graphTransportRequest(t, bytes.NewReader(body), "application/json", session)
+	response := httptest.NewRecorder()
+
+	graphApp.ServeHTTP(response, request)
+
+	assertGraphTransportError(t, response.Result(), http.StatusBadRequest, "BAD_REQUEST")
+	assertGraphPrepPreferences(t, session, &created)
+}
+
 func TestGraphQLAdvertisesOnlyConfiguredMethods(t *testing.T) {
 	request := httptest.NewRequest(http.MethodOptions, "/graphql", nil)
 	response := httptest.NewRecorder()
@@ -238,10 +252,19 @@ func TestGraphQLRejectsDeclaredOversizeWithoutReading(t *testing.T) {
 
 func prepPreferencesRequestBody(t *testing.T, goalPoints int32) []byte {
 	t.Helper()
+	return prepPreferencesRequestBodyForVersion(t, 0, goalPoints)
+}
+
+func prepPreferencesRequestBodyForVersion(
+	t *testing.T,
+	expectedVersion int64,
+	goalPoints int32,
+) []byte {
+	t.Helper()
 	body, err := json.Marshal(map[string]any{
 		"query": savePrepPreferencesMutation,
 		"variables": map[string]any{
-			"input": prepPreferencesInput(0, goalPoints, "2028-02-29"),
+			"input": prepPreferencesInput(expectedVersion, goalPoints, "2028-02-29"),
 		},
 	})
 	if err != nil {
