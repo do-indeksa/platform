@@ -216,13 +216,15 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             items: run.items.with(itemIndex, {
               ...item,
               attempts: [...item.attempts, attempt],
-              draft: isTerminal(input.outcome)
-                ? null
-                : {
-                    nextAttempt: attemptNumber + 1,
-                    answers: [...input.answers],
-                    helpLevel: input.helpLevel,
-                  },
+              draft:
+                isTerminal(input.outcome) ||
+                attemptNumber === MAX_PRACTICE_ATTEMPTS_PER_TASK
+                  ? null
+                  : {
+                      nextAttempt: attemptNumber + 1,
+                      answers: [...input.answers],
+                      helpLevel: input.helpLevel,
+                    },
             }),
             checkpointDirty: true,
             checkpointRevision: run.checkpointRevision + 1,

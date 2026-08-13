@@ -114,6 +114,23 @@ describe("practice runtime persistence", () => {
     expect(appendAttempt("kb-001", 3, "incorrect", 1, 240_000)).toBeNull();
   });
 
+  it("persists the final bounded retry without creating attempt twenty-one", () => {
+    startOwned();
+    let lastId: string | null = null;
+    for (let number = 1; number <= 20; number += 1) {
+      lastId = appendAttempt("kb-001", number, "incorrect", 0, number * 60_000);
+      expect(lastId).not.toBeNull();
+    }
+
+    expect(currentRun().items[0].attempts).toHaveLength(20);
+    expect(currentRun().items[0].attempts.at(-1)).toMatchObject({
+      id: lastId,
+      number: 20,
+    });
+    expect(currentRun().items[0].draft).toBeNull();
+    expect(appendAttempt("kb-001", 21, "incorrect", 0, 21 * 60_000)).toBeNull();
+  });
+
   it("keeps exact in-flight state while newer retries arrive", () => {
     startOwned();
     expect(usePracticeRuntime.getState().markStartedRemotely(runId)).toBe(true);
