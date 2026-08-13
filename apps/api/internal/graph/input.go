@@ -7,7 +7,48 @@ import (
 
 	"github.com/do-indeksa/platform/apps/api/internal/graph/model"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
+
+func trainingSaveBuilderDraftInput(
+	input model.SaveTrainingBuilderDraftInput,
+) (training.SaveBuilderDraftInput, error) {
+	quantities := make([]training.PositionQuantity, len(input.Quantities))
+	for index, quantity := range input.Quantities {
+		quantities[index] = training.PositionQuantity{
+			ExamPosition: quantity.ExamPosition,
+			Quantity:     quantity.Quantity,
+		}
+	}
+	difficulty, err := trainingDifficulty(input.Difficulty)
+	if err != nil {
+		return training.SaveBuilderDraftInput{}, err
+	}
+	return training.SaveBuilderDraftInput{
+		ExpectedVersion:    input.ExpectedVersion,
+		BlueprintVersion:   input.BlueprintVersion,
+		Quantities:         quantities,
+		Difficulty:         difficulty,
+		OnlyNew:            input.OnlyNew,
+		Shuffle:            input.Shuffle,
+		PrioritizeMistakes: input.PrioritizeMistakes,
+	}, nil
+}
+
+func trainingDifficulty(
+	difficulty model.TrainingBuilderDifficulty,
+) (training.Difficulty, error) {
+	switch difficulty {
+	case model.TrainingBuilderDifficultyFoundation:
+		return training.DifficultyFoundation, nil
+	case model.TrainingBuilderDifficultyBalanced:
+		return training.DifficultyBalanced, nil
+	case model.TrainingBuilderDifficultyAdvanced:
+		return training.DifficultyAdvanced, nil
+	default:
+		return "", fmt.Errorf("%w: difficulty", training.ErrInvalidInput)
+	}
+}
 
 const (
 	minInt16 = -1 << 15

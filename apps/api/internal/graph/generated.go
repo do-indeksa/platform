@@ -82,12 +82,13 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AbandonRun          func(childComplexity int, input model.AbandonRunInput) int
-		CheckpointRun       func(childComplexity int, input model.CheckpointRunInput) int
-		RecordAttempt       func(childComplexity int, input model.RecordAttemptInput) int
-		SavePrepPreferences func(childComplexity int, input model.SavePrepPreferencesInput) int
-		StartRun            func(childComplexity int, input model.StartRunInput) int
-		SubmitRun           func(childComplexity int, input model.SubmitRunInput) int
+		AbandonRun               func(childComplexity int, input model.AbandonRunInput) int
+		CheckpointRun            func(childComplexity int, input model.CheckpointRunInput) int
+		RecordAttempt            func(childComplexity int, input model.RecordAttemptInput) int
+		SavePrepPreferences      func(childComplexity int, input model.SavePrepPreferencesInput) int
+		SaveTrainingBuilderDraft func(childComplexity int, input model.SaveTrainingBuilderDraftInput) int
+		StartRun                 func(childComplexity int, input model.StartRunInput) int
+		SubmitRun                func(childComplexity int, input model.SubmitRunInput) int
 	}
 
 	PrepPreferences struct {
@@ -104,6 +105,7 @@ type ComplexityRoot struct {
 		PrepPreferences         func(childComplexity int) int
 		Run                     func(childComplexity int, id string) int
 		Runs                    func(childComplexity int, limit int32) int
+		TrainingBuilderDraft    func(childComplexity int) int
 	}
 
 	Run struct {
@@ -168,6 +170,22 @@ type ComplexityRoot struct {
 		Kind        func(childComplexity int) int
 		SubmittedAt func(childComplexity int) int
 	}
+
+	TrainingBuilderDraft struct {
+		BlueprintVersion   func(childComplexity int) int
+		Difficulty         func(childComplexity int) int
+		OnlyNew            func(childComplexity int) int
+		PrioritizeMistakes func(childComplexity int) int
+		Quantities         func(childComplexity int) int
+		Shuffle            func(childComplexity int) int
+		UpdatedAt          func(childComplexity int) int
+		Version            func(childComplexity int) int
+	}
+
+	TrainingBuilderQuantity struct {
+		ExamPosition func(childComplexity int) int
+		Quantity     func(childComplexity int) int
+	}
 }
 
 // endregion ***************************** api!.gotpl *****************************
@@ -181,6 +199,7 @@ type MutationResolver interface {
 	SubmitRun(ctx context.Context, input model.SubmitRunInput) (*model.Run, error)
 	AbandonRun(ctx context.Context, input model.AbandonRunInput) (*model.Run, error)
 	SavePrepPreferences(ctx context.Context, input model.SavePrepPreferencesInput) (*model.PrepPreferences, error)
+	SaveTrainingBuilderDraft(ctx context.Context, input model.SaveTrainingBuilderDraftInput) (*model.TrainingBuilderDraft, error)
 }
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
@@ -189,6 +208,7 @@ type QueryResolver interface {
 	CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error)
 	Attempts(ctx context.Context, limit int32) ([]model.Attempt, error)
 	PrepPreferences(ctx context.Context) (*model.PrepPreferences, error)
+	TrainingBuilderDraft(ctx context.Context) (*model.TrainingBuilderDraft, error)
 }
 type RunItemResolver interface {
 	RecentAttempts(ctx context.Context, obj *model.RunItem, limit int32) ([]model.Attempt, error)
@@ -457,6 +477,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SavePrepPreferences(childComplexity, args["input"].(model.SavePrepPreferencesInput)), true
+	case "Mutation.saveTrainingBuilderDraft":
+		if e.ComplexityRoot.Mutation.SaveTrainingBuilderDraft == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_saveTrainingBuilderDraft_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SaveTrainingBuilderDraft(childComplexity, args["input"].(model.SaveTrainingBuilderDraftInput)), true
 	case "Mutation.startRun":
 		if e.ComplexityRoot.Mutation.StartRun == nil {
 			break
@@ -567,6 +598,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Runs(childComplexity, args["limit"].(int32)), true
+	case "Query.trainingBuilderDraft":
+		if e.ComplexityRoot.Query.TrainingBuilderDraft == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.TrainingBuilderDraft(childComplexity), true
 
 	case "Run.activeDurationMs":
 		if e.ComplexityRoot.Run.ActiveDurationMs == nil {
@@ -849,6 +886,68 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.SubmittedRunSummary.SubmittedAt(childComplexity), true
 
+	case "TrainingBuilderDraft.blueprintVersion":
+		if e.ComplexityRoot.TrainingBuilderDraft.BlueprintVersion == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.BlueprintVersion(childComplexity), true
+	case "TrainingBuilderDraft.difficulty":
+		if e.ComplexityRoot.TrainingBuilderDraft.Difficulty == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.Difficulty(childComplexity), true
+	case "TrainingBuilderDraft.onlyNew":
+		if e.ComplexityRoot.TrainingBuilderDraft.OnlyNew == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.OnlyNew(childComplexity), true
+	case "TrainingBuilderDraft.prioritizeMistakes":
+		if e.ComplexityRoot.TrainingBuilderDraft.PrioritizeMistakes == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.PrioritizeMistakes(childComplexity), true
+	case "TrainingBuilderDraft.quantities":
+		if e.ComplexityRoot.TrainingBuilderDraft.Quantities == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.Quantities(childComplexity), true
+	case "TrainingBuilderDraft.shuffle":
+		if e.ComplexityRoot.TrainingBuilderDraft.Shuffle == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.Shuffle(childComplexity), true
+	case "TrainingBuilderDraft.updatedAt":
+		if e.ComplexityRoot.TrainingBuilderDraft.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.UpdatedAt(childComplexity), true
+	case "TrainingBuilderDraft.version":
+		if e.ComplexityRoot.TrainingBuilderDraft.Version == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderDraft.Version(childComplexity), true
+
+	case "TrainingBuilderQuantity.examPosition":
+		if e.ComplexityRoot.TrainingBuilderQuantity.ExamPosition == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderQuantity.ExamPosition(childComplexity), true
+	case "TrainingBuilderQuantity.quantity":
+		if e.ComplexityRoot.TrainingBuilderQuantity.Quantity == nil {
+			break
+		}
+
+		return e.ComplexityRoot.TrainingBuilderQuantity.Quantity(childComplexity), true
+
 	}
 	return 0, false
 }
@@ -863,9 +962,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputRecordAttemptInput,
 		ec.unmarshalInputRunCheckpointDraftInput,
 		ec.unmarshalInputSavePrepPreferencesInput,
+		ec.unmarshalInputSaveTrainingBuilderDraftInput,
 		ec.unmarshalInputStandaloneAttemptTargetInput,
 		ec.unmarshalInputStartRunInput,
 		ec.unmarshalInputSubmitRunInput,
+		ec.unmarshalInputTrainingBuilderQuantityInput,
 	)
 	first := true
 
@@ -940,7 +1041,7 @@ func newExecutionContext(
 	}
 }
 
-//go:embed "schema/learning.graphqls" "schema/prep.graphqls"
+//go:embed "schema/learning.graphqls" "schema/prep.graphqls" "schema/training.graphqls"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -954,6 +1055,7 @@ func sourceData(filename string) string {
 var sources = []*ast.Source{
 	{Name: "schema/learning.graphqls", Input: sourceData("schema/learning.graphqls"), BuiltIn: false},
 	{Name: "schema/prep.graphqls", Input: sourceData("schema/prep.graphqls"), BuiltIn: false},
+	{Name: "schema/training.graphqls", Input: sourceData("schema/training.graphqls"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -1185,6 +1287,38 @@ func (ec *executionContext) childFields_SubmittedRunSummary(ctx context.Context,
 	return nil, fmt.Errorf("no field named %q was found under type SubmittedRunSummary", field.Name)
 }
 
+func (ec *executionContext) childFields_TrainingBuilderDraft(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "blueprintVersion":
+		return ec.fieldContext_TrainingBuilderDraft_blueprintVersion(ctx, field)
+	case "quantities":
+		return ec.fieldContext_TrainingBuilderDraft_quantities(ctx, field)
+	case "difficulty":
+		return ec.fieldContext_TrainingBuilderDraft_difficulty(ctx, field)
+	case "onlyNew":
+		return ec.fieldContext_TrainingBuilderDraft_onlyNew(ctx, field)
+	case "shuffle":
+		return ec.fieldContext_TrainingBuilderDraft_shuffle(ctx, field)
+	case "prioritizeMistakes":
+		return ec.fieldContext_TrainingBuilderDraft_prioritizeMistakes(ctx, field)
+	case "version":
+		return ec.fieldContext_TrainingBuilderDraft_version(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_TrainingBuilderDraft_updatedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TrainingBuilderDraft", field.Name)
+}
+
+func (ec *executionContext) childFields_TrainingBuilderQuantity(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "examPosition":
+		return ec.fieldContext_TrainingBuilderQuantity_examPosition(ctx, field)
+	case "quantity":
+		return ec.fieldContext_TrainingBuilderQuantity_quantity(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type TrainingBuilderQuantity", field.Name)
+}
+
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "name":
@@ -1349,6 +1483,20 @@ func (ec *executionContext) field_Mutation_savePrepPreferences_args(ctx context.
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
 		func(ctx context.Context, v any) (model.SavePrepPreferencesInput, error) {
 			return ec.unmarshalNSavePrepPreferencesInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSavePrepPreferencesInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_saveTrainingBuilderDraft_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.SaveTrainingBuilderDraftInput, error) {
+			return ec.unmarshalNSaveTrainingBuilderDraftInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSaveTrainingBuilderDraftInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -2575,6 +2723,50 @@ func (ec *executionContext) fieldContext_Mutation_savePrepPreferences(ctx contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_saveTrainingBuilderDraft(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_saveTrainingBuilderDraft(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SaveTrainingBuilderDraft(ctx, fc.Args["input"].(model.SaveTrainingBuilderDraftInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.TrainingBuilderDraft) graphql.Marshaler {
+			return ec.marshalNTrainingBuilderDraft2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDraft(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_saveTrainingBuilderDraft(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TrainingBuilderDraft(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_saveTrainingBuilderDraft_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PrepPreferences_goalPoints(ctx context.Context, field graphql.CollectedField, obj *model.PrepPreferences) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2914,6 +3106,38 @@ func (ec *executionContext) fieldContext_Query_prepPreferences(_ context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_PrepPreferences(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_trainingBuilderDraft(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_trainingBuilderDraft(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().TrainingBuilderDraft(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.TrainingBuilderDraft) graphql.Marshaler {
+			return ec.marshalOTrainingBuilderDraft2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDraft(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_trainingBuilderDraft(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TrainingBuilderDraft(ctx, field)
 		},
 	}
 	return fc, nil
@@ -4076,6 +4300,245 @@ func (ec *executionContext) _SubmittedRunSummary_submittedAt(ctx context.Context
 }
 func (ec *executionContext) fieldContext_SubmittedRunSummary_submittedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("SubmittedRunSummary", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_blueprintVersion(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_blueprintVersion(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BlueprintVersion, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_blueprintVersion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_quantities(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_quantities(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Quantities, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []model.TrainingBuilderQuantity) graphql.Marshaler {
+			return ec.marshalNTrainingBuilderQuantity2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantityᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_quantities(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TrainingBuilderDraft",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_TrainingBuilderQuantity(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_difficulty(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_difficulty(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Difficulty, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.TrainingBuilderDifficulty) graphql.Marshaler {
+			return ec.marshalNTrainingBuilderDifficulty2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDifficulty(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_difficulty(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type TrainingBuilderDifficulty does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_onlyNew(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_onlyNew(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OnlyNew, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_onlyNew(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_shuffle(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_shuffle(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Shuffle, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_shuffle(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_prioritizeMistakes(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_prioritizeMistakes(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PrioritizeMistakes, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_prioritizeMistakes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_version(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_version(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Version, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_version(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type Int64 does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderDraft_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderDraft) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderDraft_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderDraft_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderDraft", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderQuantity_examPosition(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderQuantity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderQuantity_examPosition(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ExamPosition, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderQuantity_examPosition(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderQuantity", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _TrainingBuilderQuantity_quantity(ctx context.Context, field graphql.CollectedField, obj *model.TrainingBuilderQuantity) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_TrainingBuilderQuantity_quantity(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Quantity, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_TrainingBuilderQuantity_quantity(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("TrainingBuilderQuantity", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -5486,6 +5949,82 @@ func (ec *executionContext) unmarshalInputSavePrepPreferencesInput(ctx context.C
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSaveTrainingBuilderDraftInput(ctx context.Context, obj any) (model.SaveTrainingBuilderDraftInput, error) {
+	var it model.SaveTrainingBuilderDraftInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["quantities"]; !present {
+		asMap["quantities"] = []any{}
+	}
+
+	fieldsInOrder := [...]string{"expectedVersion", "blueprintVersion", "quantities", "difficulty", "onlyNew", "shuffle", "prioritizeMistakes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "expectedVersion":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expectedVersion"))
+			data, err := ec.unmarshalNInt642int64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExpectedVersion = data
+		case "blueprintVersion":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("blueprintVersion"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BlueprintVersion = data
+		case "quantities":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantities"))
+			data, err := ec.unmarshalNTrainingBuilderQuantityInput2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantityInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Quantities = data
+		case "difficulty":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("difficulty"))
+			data, err := ec.unmarshalNTrainingBuilderDifficulty2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDifficulty(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Difficulty = data
+		case "onlyNew":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("onlyNew"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OnlyNew = data
+		case "shuffle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shuffle"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Shuffle = data
+		case "prioritizeMistakes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("prioritizeMistakes"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PrioritizeMistakes = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputStandaloneAttemptTargetInput(ctx context.Context, obj any) (model.StandaloneAttemptTargetInput, error) {
 	var it model.StandaloneAttemptTargetInput
 	if obj == nil {
@@ -5648,6 +6187,43 @@ func (ec *executionContext) unmarshalInputSubmitRunInput(ctx context.Context, ob
 				return it, err
 			}
 			it.ActiveDurationMs = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTrainingBuilderQuantityInput(ctx context.Context, obj any) (model.TrainingBuilderQuantityInput, error) {
+	var it model.TrainingBuilderQuantityInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"examPosition", "quantity"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "examPosition":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("examPosition"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExamPosition = data
+		case "quantity":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("quantity"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Quantity = data
 		}
 	}
 	return it, nil
@@ -5987,6 +6563,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "saveTrainingBuilderDraft":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_saveTrainingBuilderDraft(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6201,6 +6784,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_prepPreferences(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "trainingBuilderDraft":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_trainingBuilderDraft(ctx, field)
 				if res == graphql.RequiredNull {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -6680,6 +7285,122 @@ func (ec *executionContext) _SubmittedRunSummary(ctx context.Context, sel ast.Se
 			}
 		case "submittedAt":
 			out.Values[i] = ec._SubmittedRunSummary_submittedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var trainingBuilderDraftImplementors = []string{"TrainingBuilderDraft"}
+
+func (ec *executionContext) _TrainingBuilderDraft(ctx context.Context, sel ast.SelectionSet, obj *model.TrainingBuilderDraft) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trainingBuilderDraftImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrainingBuilderDraft")
+		case "blueprintVersion":
+			out.Values[i] = ec._TrainingBuilderDraft_blueprintVersion(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "quantities":
+			out.Values[i] = ec._TrainingBuilderDraft_quantities(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "difficulty":
+			out.Values[i] = ec._TrainingBuilderDraft_difficulty(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "onlyNew":
+			out.Values[i] = ec._TrainingBuilderDraft_onlyNew(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "shuffle":
+			out.Values[i] = ec._TrainingBuilderDraft_shuffle(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "prioritizeMistakes":
+			out.Values[i] = ec._TrainingBuilderDraft_prioritizeMistakes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "version":
+			out.Values[i] = ec._TrainingBuilderDraft_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._TrainingBuilderDraft_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var trainingBuilderQuantityImplementors = []string{"TrainingBuilderQuantity"}
+
+func (ec *executionContext) _TrainingBuilderQuantity(ctx context.Context, sel ast.SelectionSet, obj *model.TrainingBuilderQuantity) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, trainingBuilderQuantityImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TrainingBuilderQuantity")
+		case "examPosition":
+			out.Values[i] = ec._TrainingBuilderQuantity_examPosition(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "quantity":
+			out.Values[i] = ec._TrainingBuilderQuantity_quantity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -7469,6 +8190,11 @@ func (ec *executionContext) unmarshalNSavePrepPreferencesInput2githubᚗcomᚋdo
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNSaveTrainingBuilderDraftInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSaveTrainingBuilderDraftInput(ctx context.Context, v any) (model.SaveTrainingBuilderDraftInput, error) {
+	res, err := ec.unmarshalInputSaveTrainingBuilderDraftInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNStartRunInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐStartRunInput(ctx context.Context, v any) (model.StartRunInput, error) {
 	res, err := ec.unmarshalInputStartRunInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7509,6 +8235,69 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNTrainingBuilderDifficulty2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDifficulty(ctx context.Context, v any) (model.TrainingBuilderDifficulty, error) {
+	var res model.TrainingBuilderDifficulty
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTrainingBuilderDifficulty2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDifficulty(ctx context.Context, sel ast.SelectionSet, v model.TrainingBuilderDifficulty) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNTrainingBuilderDraft2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDraft(ctx context.Context, sel ast.SelectionSet, v model.TrainingBuilderDraft) graphql.Marshaler {
+	return ec._TrainingBuilderDraft(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTrainingBuilderDraft2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDraft(ctx context.Context, sel ast.SelectionSet, v *model.TrainingBuilderDraft) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TrainingBuilderDraft(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTrainingBuilderQuantity2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantity(ctx context.Context, sel ast.SelectionSet, v model.TrainingBuilderQuantity) graphql.Marshaler {
+	return ec._TrainingBuilderQuantity(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTrainingBuilderQuantity2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.TrainingBuilderQuantity) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNTrainingBuilderQuantity2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantity(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalNTrainingBuilderQuantityInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantityInput(ctx context.Context, v any) (model.TrainingBuilderQuantityInput, error) {
+	res, err := ec.unmarshalInputTrainingBuilderQuantityInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNTrainingBuilderQuantityInput2ᚕgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantityInputᚄ(ctx context.Context, v any) ([]model.TrainingBuilderQuantityInput, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]model.TrainingBuilderQuantityInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNTrainingBuilderQuantityInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderQuantityInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -7837,6 +8626,13 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	_ = ctx
 	res := graphql.MarshalTime(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOTrainingBuilderDraft2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐTrainingBuilderDraft(ctx context.Context, sel ast.SelectionSet, v *model.TrainingBuilderDraft) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TrainingBuilderDraft(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
