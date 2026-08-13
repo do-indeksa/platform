@@ -691,9 +691,29 @@ type InsertAttemptsParams struct {
 const listAttemptJournal = `-- name: ListAttemptJournal :many
 with recent_attempt_ids as (
     select id
-    from attempts
-    where attempts.user_id = $1
-    order by coalesce(submitted_at, created_at) desc, id desc
+    from attempts projected
+    where projected.user_id = $1
+      and not (
+        projected.run_item_id is null
+        and projected.source = 'practice'
+        and exists (
+          select 1
+          from attempts canonical
+          where canonical.user_id = projected.user_id
+            and canonical.run_item_id is not null
+            and canonical.source = projected.source
+            and canonical.task_id = projected.task_id
+            and canonical.slot = projected.slot
+            and canonical.started_at is not distinct from projected.started_at
+            and canonical.submitted_at is not distinct from projected.submitted_at
+            and canonical.answer is not distinct from projected.answer
+            and canonical.outcome is not distinct from projected.outcome
+            and canonical.help_level = projected.help_level
+            and canonical.grading_kind is not distinct from projected.grading_kind
+            and canonical.task_revision is not distinct from projected.task_revision
+        )
+      )
+    order by coalesce(projected.submitted_at, projected.created_at) desc, projected.id desc
     limit $2
 )
 select a.id, a.user_id, a.task_id, a.slot, a.correct, a.source, a.created_at, a.help_level, a.public_id, a.run_item_id, a.started_at, a.submitted_at, a.active_duration_ms, a.answer, a.outcome, a.grading_kind, a.earned_points, a.max_points, a.task_revision
@@ -751,9 +771,29 @@ const listAttempts = `-- name: ListAttempts :many
 select task_id, slot, correct, source, help_level, created_at
 from (
     select id, task_id, slot, correct, source, help_level, created_at
-    from attempts
-    where user_id = $1
-      and (outcome is null or outcome in ('correct', 'incorrect'))
+    from attempts projected
+    where projected.user_id = $1
+      and (projected.outcome is null or projected.outcome in ('correct', 'incorrect'))
+      and not (
+        projected.run_item_id is null
+        and projected.source = 'practice'
+        and exists (
+          select 1
+          from attempts canonical
+          where canonical.user_id = projected.user_id
+            and canonical.run_item_id is not null
+            and canonical.source = projected.source
+            and canonical.task_id = projected.task_id
+            and canonical.slot = projected.slot
+            and canonical.started_at is not distinct from projected.started_at
+            and canonical.submitted_at is not distinct from projected.submitted_at
+            and canonical.answer is not distinct from projected.answer
+            and canonical.outcome is not distinct from projected.outcome
+            and canonical.help_level = projected.help_level
+            and canonical.grading_kind is not distinct from projected.grading_kind
+            and canonical.task_revision is not distinct from projected.task_revision
+        )
+      )
     order by created_at desc, id desc
     limit 1000
 ) recent

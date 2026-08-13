@@ -92,3 +92,62 @@ func TestAttemptJournalPreservesRichAndLegacyRows(t *testing.T) {
 		}
 	}
 }
+
+func TestAttemptProjectionsPreferCanonicalPracticeAttempt(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	ownerID := seedProgressUser(t, "-canonical-practice")
+	run := startPracticeRun(t, service, ownerID, 1)
+	canonical := practiceAttempt(
+		run,
+		0,
+		1,
+		run.StartedAt,
+		run.StartedAt.Add(time.Minute),
+		AttemptOutcomeIncorrect,
+		1,
+	)
+	if _, err := service.RecordAttempt(ctx, ownerID, canonical); err != nil {
+		t.Fatal(err)
+	}
+
+	standalone := canonical
+	standalone.ID = uuid.New()
+	standalone.RunItemID = nil
+	standalone.Standalone = &StandaloneAttemptTarget{
+		TaskID:       run.Items[0].TaskID,
+		ExamPosition: run.Items[0].ExamPosition,
+		TaskRevision: run.Items[0].TaskRevision,
+	}
+	if _, err := service.RecordAttempt(ctx, ownerID, standalone); err != nil {
+		t.Fatal(err)
+	}
+
+	retry := standalone
+	retry.ID = uuid.New()
+	retry.StartedAt = canonical.SubmittedAt
+	retry.SubmittedAt = canonical.SubmittedAt.Add(time.Minute)
+	retry.ActiveDurationMs = int64Pointer(time.Minute.Milliseconds())
+	if _, err := service.RecordAttempt(ctx, ownerID, retry); err != nil {
+		t.Fatal(err)
+	}
+
+	journal, err := service.ListAttemptJournal(ctx, ownerID, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(journal) != 2 || journal[0].PublicID != canonical.ID || journal[1].PublicID != retry.ID {
+		t.Fatalf("canonical attempt or real retry was projected incorrectly: %+v", journal)
+	}
+	if !journal[0].RunItemID.Valid {
+		t.Fatalf("standalone duplicate won over canonical attempt: %+v", journal[0])
+	}
+
+	mastery, err := service.List(ctx, ownerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mastery) != 2 {
+		t.Fatalf("mastery counted an exact duplicate: %+v", mastery)
+	}
+}
