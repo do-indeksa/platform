@@ -98,6 +98,23 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) er
 	return err
 }
 
+const deleteAccountBySession = `-- name: DeleteAccountBySession :execrows
+delete from users
+where id = (
+    select user_id
+    from sessions
+    where token_hash = $1 and expires_at > now()
+)
+`
+
+func (q *Queries) DeleteAccountBySession(ctx context.Context, tokenHash []byte) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteAccountBySession, tokenHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteExpiredAuthCodes = `-- name: DeleteExpiredAuthCodes :exec
 delete from auth_codes where expires_at <= now()
 `

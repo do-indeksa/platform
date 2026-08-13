@@ -174,6 +174,11 @@ func (s *Service) Logout(ctx context.Context, token string) error {
 	return s.queries.DeleteSession(ctx, hashSecret(token))
 }
 
+func (s *Service) DeleteAccount(ctx context.Context, token string) (bool, error) {
+	deleted, err := s.queries.DeleteAccountBySession(ctx, hashSecret(token))
+	return deleted == 1, err
+}
+
 func (s *Service) CleanupExpired(ctx context.Context) error {
 	if err := s.queries.DeleteExpiredSessions(ctx); err != nil {
 		return err
