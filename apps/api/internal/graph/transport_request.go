@@ -8,6 +8,7 @@ import (
 	"mime"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql/errcode"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 )
 
@@ -54,8 +55,18 @@ func strictGraphQLRequests(next http.Handler) http.Handler {
 			writeGraphQLTransportError(w, http.StatusBadRequest, "BAD_REQUEST", "body must contain one json object")
 			return
 		}
-		if !validGraphQLRequestEnvelope(envelope) {
+		query, valid := validGraphQLRequestEnvelope(envelope)
+		if !valid {
 			writeGraphQLTransportError(w, http.StatusBadRequest, "BAD_REQUEST", "graphql request envelope is invalid")
+			return
+		}
+		if len(query) > maxGraphQLDocumentBytes {
+			writeGraphQLTransportError(
+				w,
+				http.StatusUnprocessableEntity,
+				errcode.ParseFailed,
+				"graphql document exceeds 16 KiB",
+			)
 			return
 		}
 
@@ -65,15 +76,15 @@ func strictGraphQLRequests(next http.Handler) http.Handler {
 	})
 }
 
-func validGraphQLRequestEnvelope(envelope map[string]json.RawMessage) bool {
-	for _, field := range []string{"query", "operationName"} {
-		raw, exists := envelope[field]
-		if !exists {
-			continue
-		}
-		var value *string
-		if json.Unmarshal(raw, &value) != nil {
-			return false
+func validGraphQLRequestEnvelope(envelope map[string]json.RawMessage) (string, bool) {
+	var query *string
+	if raw, exists := envelope["query"]; exists && json.Unmarshal(raw, &query) != nil {
+		return "", false
+	}
+	if raw, exists := envelope["operationName"]; exists {
+		var operationName *string
+		if json.Unmarshal(raw, &operationName) != nil {
+			return "", false
 		}
 	}
 	for _, field := range []string{"variables", "extensions"} {
@@ -83,10 +94,13 @@ func validGraphQLRequestEnvelope(envelope map[string]json.RawMessage) bool {
 		}
 		var value map[string]json.RawMessage
 		if json.Unmarshal(raw, &value) != nil {
-			return false
+			return "", false
 		}
 	}
-	return true
+	if query == nil {
+		return "", true
+	}
+	return *query, true
 }
 
 func writeGraphQLBodyTooLarge(w http.ResponseWriter) {
