@@ -23,14 +23,14 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := s.queries.WithTx(tx)
 
+	target, err := resolveAttemptTarget(ctx, queries, userID, normalized)
+	if err != nil {
+		return Attempt{}, err
+	}
 	existing, existingErr := queries.GetAttempt(ctx, GetAttemptParams{PublicID: normalized.ID, UserID: userID})
 	hasExisting := existingErr == nil
 	if existingErr != nil && !errors.Is(existingErr, pgx.ErrNoRows) {
 		return Attempt{}, existingErr
-	}
-	target, err := resolveAttemptTarget(ctx, queries, userID, normalized)
-	if err != nil {
-		return Attempt{}, err
 	}
 	if err := validateAttemptScore(normalized.Outcome, normalized.EarnedPoints, target.maxPoints); err != nil {
 		return Attempt{}, err
@@ -41,6 +41,12 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	if err := validateSnapshottedSimulationRubricPredecessor(
 		ctx, queries, userID, normalized, target,
 	); err != nil {
+		return Attempt{}, err
+	}
+	practiceTransition, err := validateSnapshottedPracticeAttempt(
+		ctx, queries, userID, normalized, target, hasExisting,
+	)
+	if err != nil {
 		return Attempt{}, err
 	}
 	diagnosticTransition, err := validateSnapshottedDiagnosticAttempt(
@@ -97,6 +103,16 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 				return Attempt{}, err
 			}
 		}
+		if err := applyPracticeAttemptTransition(
+			ctx, queries, userID, practiceTransition,
+		); err != nil {
+			return Attempt{}, err
+		}
+		if practiceTransition != nil && diagnosticTransition == nil {
+			if err := tx.Commit(ctx); err != nil {
+				return Attempt{}, err
+			}
+		}
 		return existing, nil
 	}
 	if target.runItemID.Valid && target.runStatus != RunStatusActive {
@@ -124,6 +140,16 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 				return Attempt{}, err
 			}
 		}
+		if err := applyPracticeAttemptTransition(
+			ctx, queries, userID, practiceTransition,
+		); err != nil {
+			return Attempt{}, err
+		}
+		if practiceTransition != nil && diagnosticTransition == nil {
+			if err := tx.Commit(ctx); err != nil {
+				return Attempt{}, err
+			}
+		}
 		return existing, nil
 	}
 	if err != nil {
@@ -131,6 +157,11 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	}
 	if err := applyDiagnosticAttemptTransition(
 		ctx, queries, userID, diagnosticTransition,
+	); err != nil {
+		return Attempt{}, err
+	}
+	if err := applyPracticeAttemptTransition(
+		ctx, queries, userID, practiceTransition,
 	); err != nil {
 		return Attempt{}, err
 	}
@@ -170,6 +201,9 @@ type attemptTarget struct {
 	answerPartCount *int16
 	taskRevision    string
 	runStartedAt    time.Time
+	runDeadlineAt   pgtype.Timestamptz
+	runSubmittedAt  pgtype.Timestamptz
+	runDurationMs   *int64
 }
 
 func resolveAttemptTarget(
@@ -199,6 +233,9 @@ func resolveAttemptTarget(
 			answerPartCount: row.AnswerPartCount,
 			taskRevision:    row.TaskRevision,
 			runStartedAt:    row.RunStartedAt,
+			runDeadlineAt:   row.RunDeadlineAt,
+			runSubmittedAt:  row.RunSubmittedAt,
+			runDurationMs:   row.RunDurationMs,
 		}, nil
 	}
 	target := input.Standalone

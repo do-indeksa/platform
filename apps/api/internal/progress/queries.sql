@@ -266,11 +266,14 @@ select
     r.status as run_status,
     r.blueprint_version as run_blueprint_version,
     r.content_revision as run_content_revision,
-    r.started_at as run_started_at
+    r.started_at as run_started_at,
+    r.deadline_at as run_deadline_at,
+    r.submitted_at as run_submitted_at,
+    r.duration_ms as run_duration_ms
 from run_items i
 join runs r on r.id = i.run_id and r.user_id = i.user_id
 where i.id = $1 and i.user_id = $2
-for share of r;
+for update of r;
 
 -- name: CanonicalizeDiagnosticCheckpoint :one
 update run_checkpoints
@@ -289,6 +292,21 @@ set current_ordinal = greatest(run_checkpoints.current_ordinal, sqlc.arg(current
 where run_id = sqlc.arg(run_id)
   and user_id = sqlc.arg(user_id)
   and version = sqlc.arg(version)
+returning *;
+
+-- name: ConsumeRunCheckpointDraft :one
+with deleted as (
+    delete from run_checkpoint_drafts
+    where run_id = sqlc.arg(run_id)
+      and run_item_id = sqlc.arg(run_item_id)
+      and user_id = sqlc.arg(user_id)
+    returning run_id, user_id
+)
+update run_checkpoints
+set updated_at = now()
+where run_checkpoints.run_id = sqlc.arg(run_id)
+  and run_checkpoints.user_id = sqlc.arg(user_id)
+  and exists (select 1 from deleted)
 returning *;
 
 -- name: CreateAttempt :one

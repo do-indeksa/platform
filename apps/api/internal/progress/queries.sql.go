@@ -135,6 +135,42 @@ func (q *Queries) CanonicalizeSimulationDeadline(ctx context.Context, arg Canoni
 	return i, err
 }
 
+const consumeRunCheckpointDraft = `-- name: ConsumeRunCheckpointDraft :one
+with deleted as (
+    delete from run_checkpoint_drafts
+    where run_id = $1
+      and run_item_id = $3
+      and user_id = $2
+    returning run_id, user_id
+)
+update run_checkpoints
+set updated_at = now()
+where run_checkpoints.run_id = $1
+  and run_checkpoints.user_id = $2
+  and exists (select 1 from deleted)
+returning run_id, user_id, version, current_ordinal, active_duration_ms, updated_at
+`
+
+type ConsumeRunCheckpointDraftParams struct {
+	RunID     uuid.UUID
+	UserID    uuid.UUID
+	RunItemID uuid.UUID
+}
+
+func (q *Queries) ConsumeRunCheckpointDraft(ctx context.Context, arg ConsumeRunCheckpointDraftParams) (RunCheckpoint, error) {
+	row := q.db.QueryRow(ctx, consumeRunCheckpointDraft, arg.RunID, arg.UserID, arg.RunItemID)
+	var i RunCheckpoint
+	err := row.Scan(
+		&i.RunID,
+		&i.UserID,
+		&i.Version,
+		&i.CurrentOrdinal,
+		&i.ActiveDurationMs,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createAttempt = `-- name: CreateAttempt :one
 insert into attempts (
     public_id,
@@ -582,11 +618,14 @@ select
     r.status as run_status,
     r.blueprint_version as run_blueprint_version,
     r.content_revision as run_content_revision,
-    r.started_at as run_started_at
+    r.started_at as run_started_at,
+    r.deadline_at as run_deadline_at,
+    r.submitted_at as run_submitted_at,
+    r.duration_ms as run_duration_ms
 from run_items i
 join runs r on r.id = i.run_id and r.user_id = i.user_id
 where i.id = $1 and i.user_id = $2
-for share of r
+for update of r
 `
 
 type GetRunItemTargetParams struct {
@@ -607,6 +646,9 @@ type GetRunItemTargetRow struct {
 	RunBlueprintVersion string
 	RunContentRevision  string
 	RunStartedAt        time.Time
+	RunDeadlineAt       pgtype.Timestamptz
+	RunSubmittedAt      pgtype.Timestamptz
+	RunDurationMs       *int64
 }
 
 func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetParams) (GetRunItemTargetRow, error) {
@@ -625,6 +667,9 @@ func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetPara
 		&i.RunBlueprintVersion,
 		&i.RunContentRevision,
 		&i.RunStartedAt,
+		&i.RunDeadlineAt,
+		&i.RunSubmittedAt,
+		&i.RunDurationMs,
 	)
 	return i, err
 }
