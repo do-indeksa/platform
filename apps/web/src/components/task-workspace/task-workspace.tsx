@@ -67,8 +67,10 @@ export function TaskWorkspace({
   const {
     status: runtimeStatus,
     preferredDraft,
+    taskStatuses: runtimeTaskStatuses,
     changeDraft: changeRuntimeDraft,
     recordAttempt: recordRuntimeAttempt,
+    finish: finishRuntime,
   } = practiceRuntime;
   const workspaceOwnerId =
     runtimeStatus === "loading" || runtimeStatus === "mismatch"
@@ -107,6 +109,7 @@ export function TaskWorkspace({
   const workspaceReady = draftReady && runtimeStatus !== "mismatch";
   const statuses: Readonly<Record<string, TaskWorkspaceStatus>> = {
     ...storedStatuses,
+    ...runtimeTaskStatuses,
     [taskId]: currentStatus(state),
   };
   const previous =
@@ -293,6 +296,12 @@ export function TaskWorkspace({
     router.push(next?.href ?? returnTo);
   };
 
+  const finishPractice = () => {
+    if (!workspaceReady || !finishRuntime()) return false;
+    router.push(returnTo);
+    return true;
+  };
+
   const recordHistoryHelp = (helpLevel: number) => {
     if (historyEntryId.current) {
       markTaskHistoryHelp(historyEntryId.current, helpLevel);
@@ -328,6 +337,7 @@ export function TaskWorkspace({
           elapsedSeconds={elapsedSeconds}
           statementVisible={statementVisible}
           returnTo={returnTo}
+          onFinish={finishPractice}
           onToggleStatement={() => setStatementVisible((visible) => !visible)}
         />
 
@@ -343,6 +353,7 @@ export function TaskWorkspace({
                 : { [taskId]: state.activeDurationMs }),
             }}
             returnTo={returnTo}
+            onFinish={finishPractice}
           />
           <QuestionPanel
             ordinal={taskIndex + 1}

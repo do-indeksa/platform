@@ -70,6 +70,11 @@ test("builder order, drafts, attempts, and current task survive reload", async (
     "bound",
   );
   await expect(page).toHaveURL(new RegExp(`/tasks/.+/${selectedTaskIds[1]}\\?`));
+  await expect(page.locator("[data-task-rail-item]").first()).toHaveAttribute(
+    "data-task-status",
+    "skipped",
+  );
+  const validRuntimeUrl = page.url();
 
   const reordered = new URL(page.url());
   reordered.searchParams.set(
@@ -80,6 +85,17 @@ test("builder order, drafts, attempts, and current task survive reload", async (
   );
   await page.goto(reordered.toString());
   await expect(page).toHaveURL(/\/en\/training\/new$/);
+
+  await page.goto(validRuntimeUrl);
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-runtime-state",
+    "bound",
+  );
+  await page.getByRole("link", { name: "Back to practice" }).click();
+  await expect(page).toHaveURL(/\/en\/training\/new$/);
+  await expect
+    .poll(async () => (await readRuntimeEnvelope(page)).state.runs)
+    .toEqual([]);
 });
 
 test("signed offline work remains local and clears on an owner change", async ({
@@ -104,6 +120,7 @@ test("signed offline work remains local and clears on an owner change", async ({
     "bound",
   );
   const runtimeUrl = page.url();
+  const nextTaskId = (await readRuntime(page)).assignment.tasks[1].id;
 
   await page.getByRole("textbox").first().fill("offline private draft");
   await expect
@@ -125,6 +142,17 @@ test("signed offline work remains local and clears on an owner change", async ({
     "data-runtime-state",
     "bound",
   );
+
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await expect
+    .poll(async () => (await readRuntime(page)).items[0].attempts[0]?.outcome)
+    .toBe("skipped");
+  await expect(page).toHaveURL(new RegExp(`/tasks/.+/${nextTaskId}\\?`));
+  await page.getByRole("link", { name: "Back to practice" }).click();
+  await expect(page).toHaveURL(/\/en\/training\/new$/);
+  await expect
+    .poll(async () => (await readRuntime(page)).phase)
+    .toBe("submitting");
 
   auth.useOwner(OWNER_B);
   await page.goto(runtimeUrl);
@@ -181,6 +209,7 @@ type PersistedRun = {
   };
   runOwnerId: string | null;
   startedRemotely: boolean;
+  phase: "active" | "submitting" | "abandoning";
   currentIndex: number;
   items: Array<{
     taskId: string;

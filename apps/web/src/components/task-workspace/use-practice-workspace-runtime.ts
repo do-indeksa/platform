@@ -8,9 +8,11 @@ import { schedulePracticeRuntimeSync } from "@/lib/practice-runtime-sync-schedul
 import {
   appendPracticeWorkspaceAttempt,
   changePracticeWorkspaceDraft,
+  finishPracticeWorkspace,
   inspectPracticeWorkspace,
   visitPracticeWorkspace,
   type PracticeWorkspaceContext,
+  type PracticeWorkspaceTaskStatus,
 } from "@/lib/practice-workspace-runtime";
 import { taskDraftFromPracticeWorkspace } from "@/lib/practice-workspace-draft";
 import type { TaskDraft } from "@/lib/task-draft";
@@ -18,6 +20,9 @@ import { useHydrated } from "@/lib/use-hydrated";
 import type { TaskWorkspaceItem } from "./types";
 
 const ACTIVE_CHECKPOINT_INTERVAL_MS = 15_000;
+const EMPTY_TASK_STATUSES: Readonly<
+  Record<string, PracticeWorkspaceTaskStatus>
+> = Object.freeze({});
 
 type RuntimeStatus = "loading" | "legacy" | "bound" | "mismatch";
 
@@ -267,10 +272,37 @@ export function usePracticeWorkspaceRuntime({
     [activeDuration, context, scheduleSync, status],
   );
 
+  const finish = useCallback(() => {
+    if (status === "legacy") return true;
+    if (status !== "bound" || context === null) return false;
+    const current = inspectPracticeWorkspace(context);
+    if (current.status !== "bound") return false;
+    const clock = clockRef.current?.clock;
+    const activeDurationMs =
+      clock?.pause() ?? current.snapshot.activeDurationMs;
+    const transition = finishPracticeWorkspace(context, {
+      submittedAt: Math.max(Date.now(), current.snapshot.latestSubmittedAt),
+      activeDurationMs,
+    });
+    if (transition === null) {
+      if (clock !== undefined && document.visibilityState === "visible") {
+        clock.resume();
+      }
+      return false;
+    }
+    if (transition !== "removed") scheduleSync(true);
+    return true;
+  }, [context, scheduleSync, status]);
+
   return {
     status,
     preferredDraft,
+    taskStatuses:
+      status === "bound" && snapshot !== null
+        ? snapshot.taskStatuses
+        : EMPTY_TASK_STATUSES,
     changeDraft,
     recordAttempt,
+    finish,
   };
 }
