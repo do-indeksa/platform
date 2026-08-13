@@ -109,7 +109,7 @@ export function finishPracticeWorkspace(
   if (binding.status !== "bound") return null;
 
   const store = usePracticeRuntime.getState();
-  if (binding.run.runOwnerId === null) {
+  if (binding.run.runOwnerId === null && !hasAttempts(binding.run)) {
     store.remove(context.runId);
     return "removed";
   }

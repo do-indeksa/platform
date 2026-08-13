@@ -30,6 +30,7 @@ type RecordedAttempt = {
   startedAt: number;
   submittedAt: number;
   activeDurationMs: number;
+  persistedInRun: boolean;
 };
 
 export function usePracticeWorkspaceRuntime({
@@ -256,6 +257,7 @@ export function usePracticeWorkspaceRuntime({
         startedAt: attempt.startedAt,
         submittedAt,
         activeDurationMs: Math.max(0, submittedAt - attempt.startedAt),
+        persistedInRun: status === "bound",
       };
     },
     [activeDuration, context, scheduleSync, status],

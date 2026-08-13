@@ -1,6 +1,7 @@
 "use client";
 
 import { parseLearningRunOwner } from "./learning-run-owner";
+import { acknowledgePracticeRuntimeRun } from "./attempts-store";
 import { PracticeGraphQLError } from "./practice-cloud-client";
 import {
   MAX_PRACTICE_ATTEMPTS_PER_TASK,
@@ -166,6 +167,9 @@ async function drainPracticeRun(
           context.signal,
         );
         if (!isCurrentContext(context)) return { status: "aborted" };
+        if (!acknowledgePracticeRuntimeRun(context.ownerId, current)) {
+          return { status: "conflict", code: "LOCAL_STATE" };
+        }
         return usePracticeRuntime.getState().finishSubmission(runId)
           ? { status: "synced" }
           : { status: "aborted" };

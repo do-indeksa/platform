@@ -22,6 +22,13 @@ import {
   type StoredAttempt,
 } from "./attempt-journal";
 import { loadStoredAttempts, writeStoredAttempts } from "./attempt-storage";
+import {
+  practiceRuntimeAttempts,
+  samePracticeAction,
+  uniqueAttemptIds,
+} from "./practice-attempt-view";
+import { usePracticeRuntime } from "./practice-runtime-store";
+import type { PersistedPracticeRun } from "./practice-runtime-types";
 
 const LEGACY_BATCH_SIZE = 500;
 
@@ -39,13 +46,18 @@ let authKnown = false;
 let activeOwnerId: string | null | undefined;
 let authGeneration = 0;
 let serverUnavailable = false;
+let acknowledgedAttempts: ServerAttempt[] = [];
+let acknowledgedOwnerId: string | null = null;
 let flushChain: Promise<void> = Promise.resolve();
 let fetchSequence = 0;
 let view: Attempt[] | null = null;
 let journalSnapshot: AttemptJournalSnapshot | null = null;
+let projectedRuntimeRuns = usePracticeRuntime.getState().runs;
 const listeners = new Set<() => void>();
+let unsubscribePracticeRuntime: (() => void) | null = null;
 
 export function attemptsView(): Attempt[] | null {
+  invalidateChangedRuntime();
   if (!authKnown) return null;
   localAttempts ??= loadStoredAttempts();
   if (
@@ -61,6 +73,7 @@ export function attemptsView(): Attempt[] | null {
 }
 
 export function attemptJournalView(): AttemptJournalSnapshot | null {
+  invalidateChangedRuntime();
   if (!authKnown) return null;
   localAttempts ??= loadStoredAttempts();
   if (
@@ -86,6 +99,7 @@ export async function syncAttempts(userId: string | null): Promise<void> {
     fetchSequence += 1;
     serverAttempts = null;
     serverUnavailable = false;
+    clearAcknowledgedAttempts();
     emit();
     return;
   }
@@ -96,6 +110,7 @@ export async function syncAttempts(userId: string | null): Promise<void> {
     fetchSequence += 1;
     serverAttempts = null;
     serverUnavailable = false;
+    clearAcknowledgedAttempts();
     emit();
     return;
   }
@@ -114,6 +129,7 @@ export async function syncAttempts(userId: string | null): Promise<void> {
   if (ownerChanged) {
     serverAttempts = null;
     serverUnavailable = false;
+    if (acknowledgedOwnerId !== userId) clearAcknowledgedAttempts();
     emit();
   }
 
@@ -142,6 +158,61 @@ export function recordPracticeAttempt(value: PracticeAttemptInput): boolean {
       .then(() => fetchServer(userId, generation))
       .then(emit, () => emit());
   }
+  return true;
+}
+
+export function acknowledgePracticeRuntimeRun(
+  userId: string,
+  run: PersistedPracticeRun,
+): boolean {
+  if (
+    (typeof activeOwnerId === "string" && activeOwnerId !== userId) ||
+    (acknowledgedOwnerId !== null && acknowledgedOwnerId !== userId) ||
+    run.runOwnerId !== userId ||
+    run.phase !== "submitting" ||
+    run.submission === null ||
+    run.items.some(
+      (item, index) => run.syncedAttemptCounts[index] !== item.attempts.length,
+    )
+  ) {
+    return false;
+  }
+  const confirmed = practiceRuntimeAttempts([run]);
+  const expectedAttemptCount = run.items.reduce(
+    (total, item) => total + item.attempts.length,
+    0,
+  );
+  if (confirmed.length !== expectedAttemptCount) return false;
+  const confirmedIds = new Set(confirmed.map(({ id }) => id));
+  if (confirmedIds.size !== expectedAttemptCount) return false;
+  localAttempts ??= loadStoredAttempts();
+  const retained = localAttempts.filter((attempt) => {
+    if (
+      attempt.transport === "graphql" &&
+      attempt.runId === run.assignment.runId &&
+      attempt.ownerId === userId
+    ) {
+      return false;
+    }
+    if (
+      attempt.transport !== "graphql-standalone" ||
+      (attempt.ownerId !== null && attempt.ownerId !== userId)
+    ) {
+      return true;
+    }
+    return !confirmed.some((entry) =>
+      samePracticeAction(entry.journal, toJournalAttempt(attempt)),
+    );
+  });
+  if (retained.length !== localAttempts.length && !saveLocal(retained)) {
+    return false;
+  }
+  acknowledgedOwnerId = userId;
+  acknowledgedAttempts = uniqueAttemptIds([
+    ...acknowledgedAttempts,
+    ...confirmed,
+  ]).slice(-MAX_STORED_ATTEMPTS);
+  if (confirmedIds.size > 0) emit();
   return true;
 }
 
@@ -209,6 +280,7 @@ export function clearLocalAttempts(): void {
   fetchSequence += 1;
   serverAttempts = null;
   serverUnavailable = false;
+  clearAcknowledgedAttempts();
   authKnown = true;
   writeStoredAttempts([]);
   localAttempts = [];
@@ -225,40 +297,66 @@ export function useAttemptJournal(): AttemptJournalSnapshot | null {
 
 function merged(): Attempt[] {
   const ownerId = activeOwnerId ?? null;
+  const runtime = practiceRuntimeAttempts(
+    usePracticeRuntime
+      .getState()
+      .runs.filter((run) => run.runOwnerId === ownerId),
+  );
+  const canonical = canonicalPracticeEntries([
+    ...(serverAttempts ?? []),
+    ...currentAcknowledgedAttempts(ownerId),
+    ...runtime,
+  ]);
   const serverIds = new Set(
-    (serverAttempts ?? []).flatMap((entry) =>
-      entry.id === null ? [] : [entry.id],
-    ),
+    canonical.flatMap((entry) => (entry.id === null ? [] : [entry.id])),
+  );
+  const canonicalActions = canonical.flatMap(({ journal }) =>
+    journal?.runItemId === undefined ? [] : [journal],
   );
   const local = (localAttempts ?? [])
     .filter((attempt) => isAttemptVisible(attempt, ownerId))
     .filter(
       (attempt) =>
         attempt.transport !== "graphql-standalone" ||
-        !serverIds.has(attempt.input.id),
+        (!serverIds.has(attempt.input.id) &&
+          !canonicalActions.some((canonical) =>
+            samePracticeAction(canonical, toJournalAttempt(attempt)),
+          )),
     )
     .flatMap(toMasteryAttempt);
-  if (!activeOwnerId || serverAttempts === null) return local;
   return [
-    ...serverAttempts.flatMap(({ attempt }) =>
-      attempt === null ? [] : [attempt],
-    ),
+    ...canonical.flatMap(({ attempt }) => (attempt === null ? [] : [attempt])),
     ...local,
   ].toSorted((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
 
 function mergedJournal(): JournalAttempt[] {
   const ownerId = activeOwnerId ?? null;
-  const serverJournal = (serverAttempts ?? []).flatMap(({ journal }) =>
+  const canonical = canonicalPracticeEntries([
+    ...(serverAttempts ?? []),
+    ...currentAcknowledgedAttempts(ownerId),
+    ...practiceRuntimeAttempts(
+      usePracticeRuntime
+        .getState()
+        .runs.filter((run) => run.runOwnerId === ownerId),
+    ),
+  ]);
+  const serverJournal = canonical.flatMap(({ journal }) =>
     journal === null ? [] : [journal],
   );
   const serverIds = new Set(serverJournal.map(({ id }) => id));
+  const canonicalActions = serverJournal.filter(
+    ({ runItemId }) => runItemId !== undefined,
+  );
   const localJournal = (localAttempts ?? [])
     .filter(
       (attempt): attempt is PendingPracticeAttempt =>
         attempt.transport === "graphql-standalone" &&
         isAttemptVisible(attempt, ownerId) &&
-        !serverIds.has(attempt.input.id),
+        !serverIds.has(attempt.input.id) &&
+        !canonicalActions.some((canonical) =>
+          samePracticeAction(canonical, toJournalAttempt(attempt)),
+        ),
     )
     .map(toJournalAttempt);
   return [...serverJournal, ...localJournal].toSorted(
@@ -270,18 +368,28 @@ function journalStatus(): AttemptJournalSnapshot["status"] {
   if (!activeOwnerId) return "guest";
   if (serverUnavailable) return "degraded";
   const serverIds = new Set(
-    (serverAttempts ?? []).flatMap(({ journal }) =>
-      journal === null ? [] : [journal.id],
-    ),
+    [
+      ...(serverAttempts ?? []),
+      ...currentAcknowledgedAttempts(activeOwnerId),
+    ].flatMap(({ journal }) => (journal === null ? [] : [journal.id])),
   );
-  return (localAttempts ?? []).some(
+  const pendingStandalone = (localAttempts ?? []).some(
     (attempt) =>
       attempt.transport === "graphql-standalone" &&
       attempt.ownerId === activeOwnerId &&
       !serverIds.has(attempt.input.id),
-  )
-    ? "degraded"
-    : "synced";
+  );
+  const pendingRuntime = usePracticeRuntime
+    .getState()
+    .runs.some(
+      (run) =>
+        run.runOwnerId === activeOwnerId &&
+        run.items.some(
+          (item, index) =>
+            run.syncedAttemptCounts[index] < item.attempts.length,
+        ),
+    );
+  return pendingStandalone || pendingRuntime ? "degraded" : "synced";
 }
 
 function scheduleFlush(userId: string, generation: number): Promise<void> {
@@ -351,6 +459,11 @@ async function fetchServer(
     return false;
   }
   serverAttempts = parsed;
+  const serverIds = new Set(parsed.map(({ id }) => id));
+  acknowledgedAttempts = acknowledgedAttempts.filter(
+    ({ id }) => !serverIds.has(id),
+  );
+  if (acknowledgedAttempts.length === 0) acknowledgedOwnerId = null;
   serverUnavailable = false;
   return true;
 }
@@ -394,11 +507,57 @@ function toMasteryAttempt(attempt: StoredAttempt): Attempt[] {
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  if (listeners.size === 1) {
+    unsubscribePracticeRuntime = usePracticeRuntime.subscribe(emit);
+  }
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      unsubscribePracticeRuntime?.();
+      unsubscribePracticeRuntime = null;
+    }
+  };
 }
 
 function emit(): void {
+  projectedRuntimeRuns = usePracticeRuntime.getState().runs;
   view = null;
   journalSnapshot = null;
   for (const listener of listeners) listener();
+}
+
+function invalidateChangedRuntime(): void {
+  const runs = usePracticeRuntime.getState().runs;
+  if (runs === projectedRuntimeRuns) return;
+  projectedRuntimeRuns = runs;
+  view = null;
+  journalSnapshot = null;
+}
+
+function canonicalPracticeEntries(
+  entries: readonly ServerViewAttempt[],
+): ServerViewAttempt[] {
+  const unique = uniqueAttemptIds(entries);
+  const canonical = unique.flatMap(({ journal }) =>
+    journal?.runItemId === undefined ? [] : [journal],
+  );
+  return unique.filter(
+    ({ journal }) =>
+      journal === null ||
+      journal.runItemId !== undefined ||
+      !canonical.some((candidate) => samePracticeAction(candidate, journal)),
+  );
+}
+
+function currentAcknowledgedAttempts(
+  ownerId: string | null | undefined,
+): ServerAttempt[] {
+  return ownerId !== null && ownerId === acknowledgedOwnerId
+    ? acknowledgedAttempts
+    : [];
+}
+
+function clearAcknowledgedAttempts(): void {
+  acknowledgedAttempts = [];
+  acknowledgedOwnerId = null;
 }

@@ -143,7 +143,7 @@ describe("practice workspace runtime", () => {
     });
   });
 
-  it("removes a guest run locally", () => {
+  it("keeps a completed guest run for a future owner claim", () => {
     syncPracticeRuntimeOwner(null);
     expect(
       usePracticeRuntime.getState().start({
@@ -157,12 +157,58 @@ describe("practice workspace runtime", () => {
       runId: guest.assignment.runId,
       ownerId: null,
     };
+    expect(
+      appendPracticeWorkspaceAttempt(guestContext, {
+        startedAt,
+        submittedAt: startedAt + 10_000,
+        activeDurationMs: 10_000,
+        answers: ["1", "2"],
+        outcome: "correct",
+        helpLevel: 0,
+        runActiveDurationMs: 10_000,
+      }),
+    ).not.toBeNull();
 
     expect(
       finishPracticeWorkspace(guestContext, {
         submittedAt: startedAt + 12_000,
         activeDurationMs: 12_000,
       }),
+    ).toBe("submitting");
+    expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
+      runOwnerId: null,
+      phase: "submitting",
+      submission: {
+        submittedAt: startedAt + 12_000,
+        activeDurationMs: 12_000,
+      },
+    });
+
+    syncPracticeRuntimeOwner(ownerA);
+    expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
+      runOwnerId: ownerA,
+      phase: "submitting",
+    });
+  });
+
+  it("removes an empty guest run locally", () => {
+    syncPracticeRuntimeOwner(null);
+    expect(
+      usePracticeRuntime.getState().start({
+        assignment: { ...assignment, runId: crypto.randomUUID() },
+        startedAt,
+      }),
+    ).toBe(true);
+    const guest = usePracticeRuntime.getState().runs[0];
+
+    expect(
+      finishPracticeWorkspace(
+        { ...context(), runId: guest.assignment.runId, ownerId: null },
+        {
+          submittedAt: startedAt + 12_000,
+          activeDurationMs: 12_000,
+        },
+      ),
     ).toBe("removed");
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });

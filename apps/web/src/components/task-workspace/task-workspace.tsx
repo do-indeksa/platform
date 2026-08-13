@@ -145,17 +145,19 @@ export function TaskWorkspace({
       helpLevel,
     );
     if (timing === null) return null;
-    recordPracticeAttempt({
-      taskId,
-      slot,
-      taskRevision,
-      startedAt: new Date(timing.startedAt).toISOString(),
-      submittedAt: new Date(timing.submittedAt).toISOString(),
-      activeDurationMs: timing.activeDurationMs,
-      answer: JSON.stringify(state.answers),
-      outcome,
-      helpLevel,
-    });
+    if (!timing.persistedInRun) {
+      recordPracticeAttempt({
+        taskId,
+        slot,
+        taskRevision,
+        startedAt: new Date(timing.startedAt).toISOString(),
+        submittedAt: new Date(timing.submittedAt).toISOString(),
+        activeDurationMs: timing.activeDurationMs,
+        answer: JSON.stringify(state.answers),
+        outcome,
+        helpLevel,
+      });
+    }
     return timing.activeDurationMs;
   };
 
@@ -233,7 +235,7 @@ export function TaskWorkspace({
     if (!state.solved && !state.burned) {
       activeDurationMs = recordJournalAttempt("SKIPPED", 3);
       if (activeDurationMs === null) return;
-      recordHistoryHelp(3);
+      recordSkippedHistory(3);
     }
     setState((current) => ({
       ...current,
@@ -275,7 +277,7 @@ export function TaskWorkspace({
         state.hintsShown,
       );
       if (activeDurationMs === null) return;
-      recordHistoryHelp(state.hintsShown);
+      recordSkippedHistory(state.hintsShown);
       const skipped = {
         answers: state.answers,
         view: "solution" as const,
@@ -297,7 +299,7 @@ export function TaskWorkspace({
     return true;
   };
 
-  const recordHistoryHelp = (helpLevel: number) => {
+  const recordSkippedHistory = (helpLevel: number) => {
     if (historyEntryId.current) {
       markTaskHistoryHelp(historyEntryId.current, helpLevel);
       return;
@@ -308,7 +310,7 @@ export function TaskWorkspace({
           taskId,
           slot,
           source: "practice",
-          outcome: "incorrect",
+          outcome: "skipped",
           answers: state.answers,
           helpLevel,
         },

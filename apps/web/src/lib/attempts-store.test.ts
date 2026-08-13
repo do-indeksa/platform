@@ -551,6 +551,133 @@ describe("GraphQL run fallback", () => {
   });
 });
 
+describe("practice runtime projection", () => {
+  it("shows one canonical attempt and suppresses an exact standalone duplicate", async () => {
+    mockStorage([pendingAttempt(null)]);
+    mockFetch(() => journal());
+    const store = await loadStore();
+    const runtime = await import("./practice-runtime-store");
+    runtime.syncPracticeRuntimeOwner(null);
+    await store.syncAttempts(null);
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()?.entries[0].runItemId).toBeUndefined();
+    expect(
+      runtime.usePracticeRuntime.getState().start({
+        assignment: {
+          runId: RUN_ID,
+          blueprintVersion: "ftn-p1:2026.1",
+          contentRevision: `sha256:${"b".repeat(64)}`,
+          tasks: [
+            {
+              id: "kb-001",
+              revision: REVISION,
+              slot: 1,
+              topic: "kompleksni-brojevi",
+              answerPartCount: 2,
+            },
+          ],
+        },
+        startedAt: Date.parse("2026-07-12T09:59:50.000Z"),
+      }),
+    ).toBe(true);
+    expect(
+      runtime.usePracticeRuntime.getState().appendAttempt(RUN_ID, {
+        taskId: "kb-001",
+        startedAt: Date.parse("2026-07-12T09:59:50.000Z"),
+        submittedAt: Date.parse("2026-07-12T10:00:00.000Z"),
+        activeDurationMs: 10_000,
+        answers: ["2", "3"],
+        outcome: "correct",
+        helpLevel: 1,
+        currentIndex: 0,
+        runActiveDurationMs: 10_000,
+      }),
+    ).toMatch(/^[0-9a-f-]{36}$/);
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "guest",
+      entries: [
+        {
+          runItemId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          taskId: "kb-001",
+          answer: '["2","3"]',
+          taskRevision: REVISION,
+        },
+      ],
+    });
+  });
+
+  it("keeps a submitted attempt visible until the server journal catches up", async () => {
+    mockStorage();
+    mockFetch(() => journal());
+    const store = await loadStore();
+    const runtime = await import("./practice-runtime-store");
+    await store.syncAttempts(USER_A);
+    runtime.syncPracticeRuntimeOwner(USER_A);
+    expect(
+      runtime.usePracticeRuntime.getState().start({
+        assignment: {
+          runId: RUN_ID,
+          blueprintVersion: "ftn-p1:2026.1",
+          contentRevision: `sha256:${"b".repeat(64)}`,
+          tasks: [
+            {
+              id: "kb-001",
+              revision: REVISION,
+              slot: 1,
+              topic: "kompleksni-brojevi",
+              answerPartCount: 2,
+            },
+          ],
+        },
+        startedAt: Date.parse("2026-07-12T09:59:50.000Z"),
+      }),
+    ).toBe(true);
+    expect(
+      runtime.usePracticeRuntime.getState().appendAttempt(RUN_ID, {
+        taskId: "kb-001",
+        startedAt: Date.parse("2026-07-12T09:59:50.000Z"),
+        submittedAt: Date.parse("2026-07-12T10:00:00.000Z"),
+        activeDurationMs: 10_000,
+        answers: ["2", "3"],
+        outcome: "correct",
+        helpLevel: 1,
+        currentIndex: 0,
+        runActiveDurationMs: 10_000,
+      }),
+    ).toMatch(/^[0-9a-f-]{36}$/);
+    expect(
+      runtime.usePracticeRuntime
+        .getState()
+        .beginSubmission(
+          RUN_ID,
+          Date.parse("2026-07-12T10:00:01.000Z"),
+          10_000,
+        ),
+    ).toBe(true);
+    const submitting = runtime.usePracticeRuntime.getState().runs[0];
+    const synced = {
+      ...submitting,
+      startedRemotely: true,
+      checkpointVersion: 1,
+      syncedAttemptCounts: [1],
+      checkpointDirty: false,
+    };
+    runtime.usePracticeRuntime.setState({ runs: [synced] });
+
+    expect(store.acknowledgePracticeRuntimeRun(USER_A, synced)).toBe(true);
+    expect(runtime.usePracticeRuntime.getState().finishSubmission(RUN_ID)).toBe(
+      true,
+    );
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()?.entries).toHaveLength(1);
+
+    await store.syncAttempts(USER_B);
+    expect(store.attemptsView()).toEqual([]);
+    expect(store.attemptJournalView()?.entries).toEqual([]);
+  });
+});
+
 describe("clearLocalAttempts", () => {
   it("empties the journal and invalidates the signed-in view", async () => {
     const map = mockStorage([pendingAttempt(USER_A)]);
