@@ -59,7 +59,8 @@ func TestValidateBuilderDraftInput(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if _, err := validateBuilderDraftInput(test.user, test.input); !errors.Is(err, ErrInvalidInput) {
+			_, err := validateBuilderDraftInput(test.user, test.input)
+			if !errors.Is(err, ErrInvalidInput) {
 				t.Fatalf("validateBuilderDraftInput() error = %v, want ErrInvalidInput", err)
 			}
 		})
