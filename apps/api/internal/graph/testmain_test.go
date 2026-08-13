@@ -21,6 +21,7 @@ import (
 	"github.com/do-indeksa/platform/apps/api/db"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
 
 var (
@@ -54,11 +55,12 @@ func TestMain(m *testing.M) {
 	}
 	graphAuth = auth.NewService(graphTestPool, auth.Config{CanonicalOrigin: "https://doindeksa.rs"})
 	progressService := progress.NewService(graphTestPool)
+	trainingService := training.NewService(graphTestPool)
 	router := chi.NewRouter()
 	router.Use(auth.UnsafeRequestOriginMiddleware(graphAuth))
 	router.With(auth.RequestUserMiddleware(graphAuth)).Handle(
 		"/graphql",
-		NewHandler(NewResolver(progressService)),
+		NewHandler(NewResolver(progressService, trainingService)),
 	)
 	graphApp = router
 

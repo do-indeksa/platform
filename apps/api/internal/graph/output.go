@@ -9,8 +9,49 @@ import (
 
 	"github.com/do-indeksa/platform/apps/api/internal/graph/model"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
 
+func graphTrainingBuilderDraft(
+	draft training.BuilderDraft,
+) (*model.TrainingBuilderDraft, error) {
+	difficulty, err := graphTrainingDifficulty(draft.Difficulty)
+	if err != nil {
+		return nil, err
+	}
+	quantities := make([]model.TrainingBuilderQuantity, len(draft.Quantities))
+	for index, quantity := range draft.Quantities {
+		quantities[index] = model.TrainingBuilderQuantity{
+			ExamPosition: quantity.ExamPosition,
+			Quantity:     quantity.Quantity,
+		}
+	}
+	return &model.TrainingBuilderDraft{
+		BlueprintVersion:   draft.BlueprintVersion,
+		Quantities:         quantities,
+		Difficulty:         difficulty,
+		OnlyNew:            draft.OnlyNew,
+		Shuffle:            draft.Shuffle,
+		PrioritizeMistakes: draft.PrioritizeMistakes,
+		Version:            draft.Version,
+		UpdatedAt:          draft.UpdatedAt,
+	}, nil
+}
+
+func graphTrainingDifficulty(
+	difficulty training.Difficulty,
+) (model.TrainingBuilderDifficulty, error) {
+	switch difficulty {
+	case training.DifficultyFoundation:
+		return model.TrainingBuilderDifficultyFoundation, nil
+	case training.DifficultyBalanced:
+		return model.TrainingBuilderDifficultyBalanced, nil
+	case training.DifficultyAdvanced:
+		return model.TrainingBuilderDifficultyAdvanced, nil
+	default:
+		return "", fmt.Errorf("unknown training difficulty %q", difficulty)
+	}
+}
 func graphRun(aggregate progress.RunAggregate) (*model.Run, error) {
 	kind, err := graphRunKind(aggregate.Run.Kind)
 	if err != nil {
