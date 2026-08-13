@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { TrainingBuilder } from "@/components/training-builder";
-import { getTaskSummaries } from "@/lib/content";
+import { getPracticeTaskReferences } from "@/lib/content";
 import { getP1Blueprint } from "@/lib/exam-blueprint";
 
 type Props = {
@@ -18,7 +18,7 @@ export default async function TrainingBuilderPage({ params }: Props) {
   const { locale } = await params;
   const [blueprint, tasks, topicT] = await Promise.all([
     getP1Blueprint(),
-    getTaskSummaries(),
+    getPracticeTaskReferences(),
     getTranslations({ locale, namespace: "topics" }),
   ]);
   const positions = blueprint.positions.map((position) => ({
@@ -34,11 +34,7 @@ export default async function TrainingBuilderPage({ params }: Props) {
     <TrainingBuilder
       blueprintVersion={blueprint.version}
       positions={positions}
-      tasks={tasks.map(({ id, topic, difficulty }) => ({
-        id,
-        topic,
-        difficulty,
-      }))}
+      tasks={tasks}
     />
   );
 }

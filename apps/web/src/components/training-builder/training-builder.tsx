@@ -2,12 +2,13 @@
 
 import { ChevronLeft, Play, Save } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@/components/user-provider";
 import { Link, useRouter } from "@/i18n/navigation";
 import { TRAINING_BUILDER_PATH } from "@/lib/app-routes";
 import { useAttemptJournal, useAttempts } from "@/lib/attempts-store";
 import { taskPracticeHref } from "@/lib/task-bank";
+import { syncPracticeRuntimeRun } from "@/lib/practice-runtime-sync";
 import {
   buildTrainingSet,
   createDefaultTrainingBuilderDraft,
@@ -16,6 +17,7 @@ import {
   setTrainingPositionQuantity,
   type TrainingBuilderDifficulty,
 } from "@/lib/training-builder";
+import { beginTrainingPracticeRun } from "@/lib/training-practice-start";
 import {
   TrainingPositionsStep,
   type TrainingBuilderPreset,
@@ -54,6 +56,8 @@ export function TrainingBuilder({
     save: saveDraft,
   } = useTrainingBuilderDraft(ownerId, positions, blueprintVersion);
   const [showAllPositions, setShowAllPositions] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const startingRef = useRef(false);
   const visibleShowAllPositions = draftReady && showAllPositions;
 
   useEffect(() => {
@@ -102,9 +106,19 @@ export function TrainingBuilder({
     commitDraft(createDefaultTrainingBuilderDraft(positions, blueprintVersion));
     setShowAllPositions(false);
   };
-  const start = () => {
-    if (!draftReady || !journal) return;
+  const start = async () => {
+    if (
+      !draftReady ||
+      !journal ||
+      ownerId === undefined ||
+      startingRef.current
+    ) {
+      return;
+    }
+    startingRef.current = true;
+    setStarting(true);
     const practiceId = crypto.randomUUID();
+    const startedAt = Date.now();
     const selection = buildTrainingSet({
       draft,
       positions,
@@ -113,7 +127,25 @@ export function TrainingBuilder({
       seed: practiceId,
     });
     const firstTask = taskById.get(selection.taskIds[0]);
-    if (!firstTask) return;
+    if (!firstTask) {
+      startingRef.current = false;
+      setStarting(false);
+      return;
+    }
+    const started = await beginTrainingPracticeRun({
+      ownerId,
+      runId: practiceId,
+      startedAt,
+      blueprintVersion,
+      selectedTaskIds: selection.taskIds,
+      catalog: tasks,
+    });
+    if (!started) {
+      startingRef.current = false;
+      setStarting(false);
+      return;
+    }
+    if (ownerId !== null) void syncPracticeRuntimeRun(practiceId, ownerId);
     router.push(
       taskPracticeHref(
         firstTask,
@@ -166,7 +198,12 @@ export function TrainingBuilder({
     0,
   );
   const journalStatus = journal?.status ?? "loading";
-  const canStart = draftReady && journal !== null && preview.taskIds.length > 0;
+  const canStart =
+    draftReady &&
+    journal !== null &&
+    ownerId !== undefined &&
+    preview.taskIds.length > 0 &&
+    !starting;
 
   return (
     <main
@@ -258,7 +295,7 @@ export function TrainingBuilder({
             <button
               type="button"
               disabled={!canStart}
-              onClick={start}
+              onClick={() => void start()}
               aria-label={
                 journal === null
                   ? t("preparing")
