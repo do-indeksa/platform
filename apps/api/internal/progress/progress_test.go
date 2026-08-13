@@ -76,7 +76,14 @@ func newTestApp(t *testing.T) http.Handler {
 	}
 	router := chi.NewRouter()
 	router.Use(auth.UnsafeRequestOriginMiddleware(authSvc))
-	return api.HandlerFromMux(server, router)
+	for _, baseURL := range []string{"", "/api"} {
+		api.HandlerWithOptions(server, api.ChiServerOptions{
+			BaseURL:          baseURL,
+			BaseRouter:       router,
+			ErrorHandlerFunc: auth.ParamErrorHandler,
+		})
+	}
+	return router
 }
 
 func seedSession(t *testing.T, suffix string) *http.Cookie {
@@ -118,6 +125,9 @@ func do(t *testing.T, app http.Handler, method, target string, body any, cookies
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(method, target, reader)
 	req.Host = "doindeksa.rs"
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	for _, cookie := range cookies {
 		req.AddCookie(cookie)
 	}
@@ -364,14 +374,14 @@ func TestOversizedBodyRejected(t *testing.T) {
 		batch[i].TaskId = strings.Repeat("a", 64)
 	}
 	res := do(t, app, "POST", "/v1/attempts", batch, session)
-	if res.StatusCode != http.StatusBadRequest {
+	if res.StatusCode != http.StatusRequestEntityTooLarge {
 		t.Fatalf("got status %d", res.StatusCode)
 	}
 	var apiErr api.Error
 	if err := json.NewDecoder(res.Body).Decode(&apiErr); err != nil {
 		t.Fatal(err)
 	}
-	if apiErr.Code != "invalid_body" {
+	if apiErr.Code != "request_too_large" {
 		t.Fatalf("got error code %q", apiErr.Code)
 	}
 }
