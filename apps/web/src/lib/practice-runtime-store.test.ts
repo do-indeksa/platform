@@ -52,6 +52,7 @@ describe("practice runtime persistence", () => {
     usePracticeRuntime.setState({
       ...emptyPracticeRuntimeState(),
       authOwnerId: undefined,
+      authOwnerGeneration: 0,
     });
   });
 
@@ -83,6 +84,31 @@ describe("practice runtime persistence", () => {
     );
   });
 
+  it("bounds local runs without evicting durable work", () => {
+    syncPracticeRuntimeOwner(ownerA);
+    const runIds = Array.from({ length: 21 }, () => crypto.randomUUID());
+
+    runIds.slice(0, 20).forEach((nextRunId, index) => {
+      expect(
+        usePracticeRuntime.getState().start({
+          assignment: { ...assignment, runId: nextRunId },
+          startedAt: startedAt + index,
+        }),
+      ).toBe(true);
+    });
+    expect(
+      usePracticeRuntime.getState().start({
+        assignment: { ...assignment, runId: runIds[20] },
+        startedAt: startedAt + 20,
+      }),
+    ).toBe(false);
+
+    expect(usePracticeRuntime.getState().runs).toHaveLength(20);
+    expect(
+      usePracticeRuntime.getState().runs.map((run) => run.assignment.runId),
+    ).toEqual(runIds.slice(0, 20).reverse());
+  });
+
   it("appends deterministic retries and keeps globally causal order", () => {
     startOwned();
     const first = appendAttempt("kb-001", 1, "incorrect", 0, 60_000);
@@ -112,6 +138,41 @@ describe("practice runtime persistence", () => {
       ],
     });
     expect(appendAttempt("kb-001", 3, "incorrect", 1, 240_000)).toBeNull();
+  });
+
+  it("accepts valid client clock skew without regressing updated time", () => {
+    syncPracticeRuntimeOwner(ownerA);
+    const futureStart = Date.now() + 60_000;
+    expect(
+      usePracticeRuntime
+        .getState()
+        .start({ assignment, startedAt: futureStart }),
+    ).toBe(true);
+
+    expect(
+      usePracticeRuntime.getState().appendAttempt(runId, {
+        taskId: "kb-001",
+        startedAt: futureStart,
+        submittedAt: futureStart + 1,
+        activeDurationMs: 1,
+        answers: ["1", ""],
+        outcome: "incorrect",
+        helpLevel: 0,
+        currentIndex: 0,
+        runActiveDurationMs: 1,
+      }),
+    ).not.toBeNull();
+    expect(currentRun().updatedAt).toBeGreaterThanOrEqual(futureStart);
+  });
+
+  it("does not return an attempt ID when strict persistence rejects it", () => {
+    startOwned();
+    usePracticeRuntime.setState({
+      runs: [{ ...currentRun(), checkpointVersion: -1 }],
+    });
+
+    expect(appendAttempt("kb-001", 1, "incorrect", 0, 60_000)).toBeNull();
+    expect(currentRun().items[0].attempts).toEqual([]);
   });
 
   it("persists the final bounded retry without creating attempt twenty-one", () => {
