@@ -71,6 +71,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
     new Set(referenceById.keys()),
   );
   const practiceId = parsePracticeId(firstQueryValue(query.practice));
+  const runtimeRequired = firstQueryValue(query.runtime) === "1";
   const selectedSequence = practiceSet
     .map((taskId) => referenceById.get(taskId))
     .filter(
@@ -104,7 +105,13 @@ export default async function TaskPage({ params, searchParams }: Props) {
     revision: candidate.revision,
     slot: candidate.slot,
     topic: candidate.topic,
-    href: taskHref(candidate, returnTo, activePracticeSet, practiceId),
+    href: taskHref(
+      candidate,
+      returnTo,
+      activePracticeSet,
+      practiceId,
+      runtimeRequired,
+    ),
     partCount: candidate.partCount,
     maxHints: candidate.maxHints,
   }));
@@ -133,6 +140,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
       reportHref={reportHref}
       reportAccessibleLabel={t("reportProblemLabel", { id: task.id })}
       practiceId={practiceId}
+      runtimeRequired={runtimeRequired}
     />
   );
 }
@@ -148,9 +156,11 @@ function taskHref(
   returnTo: string,
   practiceSet: readonly string[],
   practiceId: string | null,
+  runtimeRequired: boolean,
 ): string {
   const params = new URLSearchParams({ returnTo });
   if (practiceSet.length > 0) params.set("set", practiceSet.join(","));
   if (practiceId) params.set("practice", practiceId);
+  if (practiceId && runtimeRequired) params.set("runtime", "1");
   return `/tasks/${task.topic}/${task.id}?${params}`;
 }

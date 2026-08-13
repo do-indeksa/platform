@@ -186,6 +186,15 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
           ) {
             return null;
           }
+          if (
+            run.currentIndex === input.currentIndex &&
+            run.activeDurationMs === input.activeDurationMs &&
+            item.draft !== null &&
+            item.draft.helpLevel === input.helpLevel &&
+            sameAnswers(item.draft.answers, input.answers)
+          ) {
+            return run;
+          }
           return {
             ...run,
             currentIndex: input.currentIndex,
@@ -427,6 +436,7 @@ function updateRun(
   if (index < 0) return false;
   const next = update(state.runs[index]);
   if (next === null) return false;
+  if (next === state.runs[index]) return true;
   const parsed = parsePersistedPracticeRuntimeState({
     runs: state.runs.with(index, next),
   });
@@ -437,6 +447,16 @@ function updateRun(
 
 function nextRunUpdateTime(run: PersistedPracticeRun): number {
   return Math.max(Date.now(), run.startedAt, run.updatedAt);
+}
+
+function sameAnswers(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((answer, index) => answer === right[index])
+  );
 }
 
 export {

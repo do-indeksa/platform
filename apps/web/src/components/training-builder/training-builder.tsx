@@ -152,6 +152,7 @@ export function TrainingBuilder({
         TRAINING_BUILDER_PATH,
         selection.taskIds,
         practiceId,
+        { requireRuntime: true },
       ),
     );
   };

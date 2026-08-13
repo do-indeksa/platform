@@ -26,40 +26,38 @@ export type PracticeWorkspaceContext = {
 
 export type PracticeWorkspaceSnapshot = {
   startedAt: number;
+  latestSubmittedAt: number;
   currentIndex: number;
   activeDurationMs: number;
   attempts: PracticeCloudAttempt[];
   draft: PracticeRuntimeDraft | null;
 };
 
+export type PracticeWorkspaceInspection =
+  | { status: "bound"; snapshot: PracticeWorkspaceSnapshot }
+  | { status: "missing" | "mismatch" };
+
+export function inspectPracticeWorkspace(
+  context: PracticeWorkspaceContext,
+): PracticeWorkspaceInspection {
+  const binding = inspectBinding(context);
+  return binding.status === "bound"
+    ? { status: "bound", snapshot: snapshot(binding.run, binding.item) }
+    : binding;
+}
+
 export function readPracticeWorkspace(
   context: PracticeWorkspaceContext,
 ): PracticeWorkspaceSnapshot | null {
-  const binding = resolveBinding(context);
-  if (binding === null) return null;
-  return {
-    startedAt: binding.run.startedAt,
-    currentIndex: binding.run.currentIndex,
-    activeDurationMs: binding.run.activeDurationMs,
-    attempts: binding.item.attempts.map((attempt) => ({
-      ...attempt,
-      answers: [...attempt.answers],
-    })),
-    draft:
-      binding.item.draft === null
-        ? null
-        : {
-            ...binding.item.draft,
-            answers: [...binding.item.draft.answers],
-          },
-  };
+  const inspection = inspectPracticeWorkspace(context);
+  return inspection.status === "bound" ? inspection.snapshot : null;
 }
 
 export function visitPracticeWorkspace(
   context: PracticeWorkspaceContext,
   activeDurationMs: number,
 ): boolean {
-  if (resolveBinding(context) === null) return false;
+  if (inspectBinding(context).status !== "bound") return false;
   return usePracticeRuntime.getState().visit(context.runId, {
     currentIndex: context.currentIndex,
     activeDurationMs,
@@ -74,7 +72,7 @@ export function changePracticeWorkspaceDraft(
     activeDurationMs: number;
   },
 ): boolean {
-  if (resolveBinding(context) === null) return false;
+  if (inspectBinding(context).status !== "bound") return false;
   return usePracticeRuntime.getState().changeDraft(context.runId, {
     taskId: context.task.id,
     answers: input.answers,
@@ -91,7 +89,7 @@ export function appendPracticeWorkspaceAttempt(
     "taskId" | "currentIndex" | "runActiveDurationMs"
   > & { runActiveDurationMs: number },
 ): string | null {
-  if (resolveBinding(context) === null) return null;
+  if (inspectBinding(context).status !== "bound") return null;
   return usePracticeRuntime.getState().appendAttempt(context.runId, {
     ...input,
     taskId: context.task.id,
@@ -99,14 +97,16 @@ export function appendPracticeWorkspaceAttempt(
   });
 }
 
-function resolveBinding(context: PracticeWorkspaceContext) {
+function inspectBinding(context: PracticeWorkspaceContext) {
   const state = usePracticeRuntime.getState();
-  if (state.authOwnerId !== context.ownerId) return null;
+  if (state.authOwnerId !== context.ownerId) {
+    return { status: "mismatch" as const };
+  }
   const run = state.runs.find(
     (candidate) => candidate.assignment.runId === context.runId,
   );
+  if (run === undefined) return { status: "missing" as const };
   if (
-    run === undefined ||
     run.phase !== "active" ||
     run.runOwnerId !== context.ownerId ||
     context.currentIndex < 0 ||
@@ -117,10 +117,37 @@ function resolveBinding(context: PracticeWorkspaceContext) {
       sameTask(task, context.sequence[index]),
     )
   ) {
-    return null;
+    return { status: "mismatch" as const };
   }
   const item = run.items[context.currentIndex];
-  return item?.taskId === context.task.id ? { run, item } : null;
+  return item?.taskId === context.task.id
+    ? { status: "bound" as const, run, item }
+    : { status: "mismatch" as const };
+}
+
+function snapshot(
+  run: ReturnType<typeof usePracticeRuntime.getState>["runs"][number],
+  item: ReturnType<typeof usePracticeRuntime.getState>["runs"][number]["items"][number],
+): PracticeWorkspaceSnapshot {
+  return {
+    startedAt: run.startedAt,
+    latestSubmittedAt: run.items
+      .flatMap((candidate) => candidate.attempts)
+      .reduce(
+        (latest, attempt) => Math.max(latest, attempt.submittedAt),
+        run.startedAt,
+      ),
+    currentIndex: run.currentIndex,
+    activeDurationMs: run.activeDurationMs,
+    attempts: item.attempts.map((attempt) => ({
+      ...attempt,
+      answers: [...attempt.answers],
+    })),
+    draft:
+      item.draft === null
+        ? null
+        : { ...item.draft, answers: [...item.draft.answers] },
+  };
 }
 
 function sameTask(

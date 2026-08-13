@@ -132,6 +132,7 @@ export function taskPracticeHref(
   returnTo: string,
   practiceSet: readonly string[] = [],
   practiceId?: string,
+  options: { requireRuntime?: boolean } = {},
 ): string {
   if (!task) return TASK_BANK_PATH;
   const params = new URLSearchParams({ returnTo });
@@ -140,6 +141,9 @@ export function taskPracticeHref(
   }
   const validPracticeId = parsePracticeId(practiceId);
   if (validPracticeId) params.set("practice", validPracticeId);
+  if (validPracticeId && options.requireRuntime === true) {
+    params.set("runtime", "1");
+  }
   return `${TASK_BANK_PATH}/${task.topic}/${task.id}?${params}`;
 }
 

@@ -297,6 +297,22 @@ describe("practice runtime persistence", () => {
     });
   });
 
+  it("treats an identical draft as a successful no-op", () => {
+    startOwned();
+    const draft = {
+      taskId: "kb-001",
+      answers: ["one", ""],
+      helpLevel: 1,
+      currentIndex: 0,
+      activeDurationMs: 30_000,
+    };
+    expect(usePracticeRuntime.getState().changeDraft(runId, draft)).toBe(true);
+    const revision = currentRun().checkpointRevision;
+
+    expect(usePracticeRuntime.getState().changeDraft(runId, draft)).toBe(true);
+    expect(currentRun().checkpointRevision).toBe(revision);
+  });
+
   it("queues submission offline and removes the run only after success", () => {
     startOwned();
     appendAttempt("kb-001", 1, "correct", 0, 60_000);

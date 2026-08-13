@@ -84,7 +84,7 @@ test("builder controls produce a bounded practice and return to the draft", asyn
 
   await page.getByRole("button", { name: /Start 4-task practice/ }).click();
   await expect(page).toHaveURL(
-    /\/en\/tasks\/.+\?returnTo=%2Ftraining%2Fnew&set=.+&practice=[0-9a-f-]{36}$/,
+    /\/en\/tasks\/.+\?returnTo=%2Ftraining%2Fnew&set=.+&practice=[0-9a-f-]{36}&runtime=1$/,
   );
   await expect(page.getByText("1 of 4 tasks", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Back to practice/ }).click();

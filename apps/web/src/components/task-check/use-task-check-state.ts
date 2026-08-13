@@ -27,6 +27,7 @@ export function useTaskCheckState(
   confirmMessage: string,
   practiceId: string | null,
   ownerId: TaskSessionOwnerId | undefined,
+  preferredDraft?: TaskDraft | null,
 ): [TaskCheckState, Dispatch<SetStateAction<TaskCheckState>>, boolean] {
   const storageKey =
     ownerId === undefined
@@ -53,11 +54,23 @@ export function useTaskCheckState(
       setRestoredKey(null);
       return;
     }
-    const draft = parseTaskDraft(readSession(storageKey), partCount, maxHints);
+    if (restoredKey === restorationKey) return;
+    const raw =
+      preferredDraft === undefined
+        ? readSession(storageKey)
+        : JSON.stringify(preferredDraft ?? createTaskDraft(partCount));
+    const draft = parseTaskDraft(raw, partCount, maxHints);
     // Session storage is external state and can only be restored after hydration.
     setState({ ...(draft ?? createTaskDraft(partCount)), results: null });
     setRestoredKey(restorationKey);
-  }, [maxHints, partCount, restorationKey, storageKey]);
+  }, [
+    maxHints,
+    partCount,
+    preferredDraft,
+    restorationKey,
+    restoredKey,
+    storageKey,
+  ]);
 
   useEffect(() => {
     if (!draftReady || storageKey === null) return;

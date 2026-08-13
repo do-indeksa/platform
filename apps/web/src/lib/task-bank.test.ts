@@ -211,7 +211,12 @@ describe("practice navigation input", () => {
     expect(parsePracticeId(practiceId)).toBe(practiceId);
     expect(parsePracticeId("not-a-uuid")).toBeNull();
     expect(
+      taskPracticeHref(tasks[0], "/history?tab=tasks", [], practiceId, {
+        requireRuntime: true,
+      }),
+    ).toContain(`practice=${practiceId}&runtime=1`);
+    expect(
       taskPracticeHref(tasks[0], "/history?tab=tasks", [], practiceId),
-    ).toContain(`practice=${practiceId}`);
+    ).not.toContain("runtime=");
   });
 });
