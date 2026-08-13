@@ -119,7 +119,13 @@ export function usePrepPreferences(ownerId: BrowserStorageOwnerId | undefined) {
       }
       return result;
     },
-    [hydrationKey, ownerId, ready, snapshot.state.serverVersion],
+    [
+      hydrationKey,
+      ownerId,
+      ready,
+      snapshot.hydrationId,
+      snapshot.state.serverVersion,
+    ],
   );
 
   return {
