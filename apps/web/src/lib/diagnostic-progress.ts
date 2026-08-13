@@ -17,6 +17,7 @@ export type DiagnosticProgressTask = {
   slot: number;
   examPosition: number;
   topic: string;
+  answerPartCount: number;
 };
 
 export function persistCompletedDiagnosticRun(
@@ -108,6 +109,7 @@ export function buildCompletedDiagnosticRun(
           taskId: task.id,
           examPosition: task.examPosition,
           topic: task.topic,
+          answerPartCount: task.answerPartCount,
           taskRevision: task.revision,
           attempt: {
             id: progressAttemptId(itemId),

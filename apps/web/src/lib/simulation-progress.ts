@@ -109,6 +109,7 @@ export function buildSimulationAutoGradeRun(
           examPosition: task.examPosition,
           topic: task.topic,
           maxPoints: task.maxPoints,
+          answerPartCount: task.fields.length,
           taskRevision: task.revision,
           attempt: {
             id: progressAttemptId(itemId),
@@ -163,16 +164,34 @@ function buildValidatedSimulationRun(
       items: progress.items.map((item, index) => {
         const result = entry.results[index];
         const itemId = progressRunItemId(entry.id, item.taskId);
+        const answers = canonicalSimulationAnswers(entry.answers[index]);
         const rubricScore = entry.rubricScores?.[index];
         const rubricAssessed =
           rubricScore !== undefined && rubricScore !== null;
+        const autoResult = autoGradeResult(answers);
+        const autoAttempt = {
+          id: progressAttemptId(itemId),
+          startedAt,
+          submittedAt,
+          ...(autoResult.outcome === "SKIPPED"
+            ? {}
+            : { answer: JSON.stringify(answers) }),
+          outcome: autoResult.outcome,
+          helpLevel: 0,
+          gradingKind: "AUTO" as const,
+          ...(autoResult.earnedPoints === undefined
+            ? {}
+            : { earnedPoints: autoResult.earnedPoints }),
+        };
         return {
           id: itemId,
           taskId: item.taskId,
           examPosition: item.examPosition,
           topic: item.topic,
           maxPoints: item.maxPoints,
+          answerPartCount: item.answerPartCount ?? answers.length,
           taskRevision: item.taskRevision,
+          ...(rubricAssessed ? { previousAttempt: autoAttempt } : {}),
           attempt: {
             id: rubricAssessed
               ? progressRubricAttemptId(itemId)
@@ -181,7 +200,7 @@ function buildValidatedSimulationRun(
             submittedAt,
             ...(result.outcome === "unanswered"
               ? {}
-              : { answer: JSON.stringify(entry.answers[index]) }),
+              : { answer: JSON.stringify(answers) }),
             outcome:
               result.outcome === "correct"
                 ? "CORRECT"
@@ -203,6 +222,22 @@ function buildValidatedSimulationRun(
   } catch {
     return null;
   }
+}
+
+function canonicalSimulationAnswers(answers: readonly string[]): string[] {
+  return answers.some((answer) => answer.trim() !== "")
+    ? [...answers]
+    : answers.map(() => "");
+}
+
+function autoGradeResult(answers: readonly string[]): {
+  outcome: "CORRECT" | "INCORRECT" | "SKIPPED";
+  earnedPoints?: number;
+} {
+  if (answers.every((answer) => answer.trim() === "")) {
+    return { outcome: "SKIPPED" };
+  }
+  return { outcome: "INCORRECT", earnedPoints: 0 };
 }
 
 function validatedHistoryEntry(

@@ -15,5 +15,6 @@ export type DiagnosticResultTask = Pick<
   DiagnosticTaskView,
   "id" | "revision" | "slot" | "examPosition" | "topic" | "topicName"
 > & {
+  answerPartCount: number;
   practiceTask: { id: string; topic: string } | null;
 };

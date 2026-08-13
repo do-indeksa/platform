@@ -18,6 +18,7 @@ const tasks: DiagnosticProgressTask[] = Array.from(
     slot: index + 1,
     examPosition: index + 1,
     topic: `topic-${index + 1}`,
+    answerPartCount: 1,
   }),
 );
 
@@ -83,7 +84,7 @@ describe("diagnostic cloud client", () => {
       (calls[0].variables.input.items as Record<string, unknown>[]).every(
         (item) =>
           Object.keys(item).toSorted().join(",") ===
-          "examPosition,id,taskId,taskRevision,topic",
+          "answerPartCount,examPosition,id,taskId,taskRevision,topic",
       ),
     ).toBe(true);
   });

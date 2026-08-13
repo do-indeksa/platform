@@ -5,6 +5,10 @@ import {
   isFtnP1SimulationBlueprintVersion,
   isSimulationTaskRevision,
 } from "./simulation-run";
+import {
+  hasSnapshottedSimulationAnswerShape,
+  isRestorableSimulationAttemptSet,
+} from "./simulation-attempt-contract";
 
 const TASK_ID_PATTERN = /^[a-z0-9-]{1,64}$/;
 const MAX_BLUEPRINT_LENGTH = 64;
@@ -37,7 +41,9 @@ export type CompletedProgressItem = {
   examPosition: number;
   topic: string;
   maxPoints?: number;
+  answerPartCount?: number;
   taskRevision: string;
+  previousAttempt?: CompletedProgressAttempt;
   attempt: CompletedProgressAttempt;
 };
 
@@ -130,6 +136,11 @@ export function parseCompletedProgressRun(
       !isSimulationTaskRevision(value.contentRevision) ||
       !isCompleteFtnP1SimulationItems(items) ||
       items.some((item) => !isSimulationTaskRevision(item.taskRevision)) ||
+      !isRestorableSimulationAttemptSet(
+        items,
+        value.startedAt as string,
+        value.submittedAt as string,
+      ) ||
       (value.activeDurationMs !== undefined &&
         value.activeDurationMs > FTN_P1_SIMULATION_DURATION_MS) ||
       (deadlineAt !== undefined && deadlineAt !== expectedDeadlineAt)
@@ -137,6 +148,12 @@ export function parseCompletedProgressRun(
       return null;
     }
     deadlineAt = expectedDeadlineAt;
+  }
+  if (
+    value.kind !== "SIMULATION" &&
+    items.some((item) => item.previousAttempt !== undefined)
+  ) {
+    return null;
   }
 
   return {
@@ -168,6 +185,7 @@ function parseItem(
     !isInteger(value.examPosition, 1, 10) ||
     !isTaskId(value.topic) ||
     !isOptionalInteger(value.maxPoints, 1, 60) ||
+    !isOptionalInteger(value.answerPartCount, 1, 6) ||
     !isBoundedString(value.taskRevision, MAX_REVISION_LENGTH) ||
     value.id !== progressRunItemId(runId, value.taskId)
   ) {
@@ -180,11 +198,36 @@ function parseItem(
     runSubmittedAt,
     maximumAttemptActiveDurationMs,
   );
+  const previousAttempt =
+    value.previousAttempt === undefined
+      ? undefined
+      : parseAttempt(
+          value.previousAttempt,
+          value.maxPoints,
+          runStartedAt,
+          runSubmittedAt,
+        );
   const expectedAttemptId =
     attempt?.gradingKind === "RUBRIC_SELF"
       ? progressRubricAttemptId(value.id)
       : progressAttemptId(value.id);
-  if (attempt === null || attempt.id !== expectedAttemptId) {
+  if (
+    attempt === null ||
+    previousAttempt === null ||
+    attempt.id !== expectedAttemptId ||
+    (previousAttempt !== undefined &&
+      (value.answerPartCount === undefined ||
+        attempt.gradingKind !== "RUBRIC_SELF" ||
+        previousAttempt.gradingKind !== "AUTO" ||
+        previousAttempt.id !== progressAttemptId(value.id))) ||
+    (value.answerPartCount !== undefined &&
+      (!hasSnapshottedSimulationAnswerShape(attempt, value.answerPartCount) ||
+        (previousAttempt !== undefined &&
+          !hasSnapshottedSimulationAnswerShape(
+            previousAttempt,
+            value.answerPartCount,
+          ))))
+  ) {
     return null;
   }
   return {
@@ -193,7 +236,11 @@ function parseItem(
     examPosition: value.examPosition,
     topic: value.topic,
     ...(value.maxPoints === undefined ? {} : { maxPoints: value.maxPoints }),
+    ...(value.answerPartCount === undefined
+      ? {}
+      : { answerPartCount: value.answerPartCount }),
     taskRevision: value.taskRevision,
+    ...(previousAttempt === undefined ? {} : { previousAttempt }),
     attempt,
   };
 }

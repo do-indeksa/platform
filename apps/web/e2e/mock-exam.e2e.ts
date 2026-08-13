@@ -415,9 +415,10 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
       });
     }),
   ).toBe(true);
-  expect(
-    operations.filter((operation) => operation === "RecordAttempt"),
-  ).toHaveLength(20);
+  const attemptCalls = graphQLCalls.filter(
+    (call) => call.operationName === "RecordAttempt",
+  );
+  expect(attemptCalls).toHaveLength(30);
   expect(operations.at(-1)).toBe("SubmitRun");
   const startCall = graphQLCalls.find(
     (call) => call.operationName === "StartRun",
@@ -429,26 +430,41 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
     contentRevision: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
   });
   expect(
-    graphQLCalls
-      .filter((call) => call.operationName === "RecordAttempt")
-      .map((call) => call.variables.input?.outcome),
+    attemptCalls.slice(0, 10).map((call) => call.variables.input?.outcome),
+  ).toEqual(["INCORRECT", ...Array(9).fill("SKIPPED")]);
+  const finalAttemptCalls = attemptCalls.slice(10);
+  expect(
+    finalAttemptCalls.map((call) => call.variables.input?.gradingKind),
+  ).toEqual(Array.from({ length: 10 }, () => ["AUTO", "RUBRIC_SELF"]).flat());
+  expect(
+    finalAttemptCalls.map((call) => call.variables.input?.outcome),
   ).toEqual([
     "INCORRECT",
-    ...Array(9).fill("SKIPPED"),
     "INCORRECT",
-    ...Array(9).fill("SKIPPED"),
+    ...Array.from({ length: 9 }, () => ["SKIPPED", "SKIPPED"]).flat(),
   ]);
   expect(
-    graphQLCalls
-      .filter((call) => call.operationName === "RecordAttempt")
-      .slice(10)
-      .map((call) => call.variables.input?.gradingKind),
-  ).toEqual(Array(10).fill("RUBRIC_SELF"));
+    finalAttemptCalls
+      .filter((_, index) => index % 2 === 0)
+      .map((call) => call.variables.input?.id),
+  ).toEqual(attemptCalls.slice(0, 10).map((call) => call.variables.input?.id));
+  expect(
+    finalAttemptCalls.every(
+      (call, index) =>
+        index % 2 === 0 ||
+        call.variables.input?.id !==
+          finalAttemptCalls[index - 1].variables.input?.id,
+    ),
+  ).toBe(true);
   const startItems = startCall.variables.input?.items as {
     taskRevision: string;
     maxPoints: number;
+    answerPartCount: number;
   }[];
   expect(startItems).toHaveLength(10);
+  expect(startItems.map((item) => item.answerPartCount)).toEqual(
+    answerPartCounts,
+  );
   expect(
     startItems.every(
       (item) =>

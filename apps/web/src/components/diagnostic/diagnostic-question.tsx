@@ -40,12 +40,13 @@ export function DiagnosticQuestion({
   const progress = ((currentIndex + 1) / tasks.length) * 100;
   const syncTasks = useMemo(
     () =>
-      tasks.map(({ id, revision, slot, examPosition, topic }) => ({
+      tasks.map(({ id, revision, slot, examPosition, topic, fields }) => ({
         id,
         revision,
         slot,
         examPosition,
         topic,
+        answerPartCount: fields.length,
       })),
     [tasks],
   );
@@ -128,7 +129,7 @@ export function DiagnosticQuestion({
       finishDiagnosticCloudUpload(state.runId as string);
       persistCompletedDiagnosticRun(
         state,
-        tasks,
+        syncTasks,
         blueprintVersion,
         contentRevision,
       );

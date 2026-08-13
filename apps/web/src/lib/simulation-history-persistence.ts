@@ -180,7 +180,9 @@ function isProgressMetadata(
       item.examPosition === index + 1 &&
       typeof item.topic === "string" &&
       TOPIC_PATTERN.test(item.topic) &&
-      item.maxPoints === results[index].maxPoints
+      item.maxPoints === results[index].maxPoints &&
+      (item.answerPartCount === undefined ||
+        isFiniteInteger(item.answerPartCount, 1, SIMULATION_MAX_ANSWER_PARTS))
     );
   });
 }
@@ -248,6 +250,9 @@ function cloneHistoryEntry(
               examPosition: item.examPosition,
               topic: item.topic,
               maxPoints: item.maxPoints,
+              ...(item.answerPartCount === undefined
+                ? {}
+                : { answerPartCount: item.answerPartCount }),
             })),
           },
         }),

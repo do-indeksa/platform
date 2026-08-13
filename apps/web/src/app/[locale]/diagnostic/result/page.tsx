@@ -51,6 +51,7 @@ export default async function DiagnosticResultPage({
         examPosition,
         topic: task.topic,
         topicName: topicT(task.topic),
+        answerPartCount: task.check.length,
         practiceTask: practiceTask
           ? { id: practiceTask.id, topic: practiceTask.topic }
           : null,

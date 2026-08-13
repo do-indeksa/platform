@@ -33,14 +33,16 @@ const taskViews: SimulationTaskView[] = Array.from(
     fields: [{ kind: "value" }],
   }),
 );
-const tasks: SimulationProgressItem[] = taskViews.map((task) => ({
-  taskId: task.id,
-  taskRevision: task.revision,
-  slot: task.slot,
-  examPosition: task.examPosition,
-  topic: task.topic,
-  maxPoints: task.maxPoints,
-}));
+const tasks: (SimulationProgressItem & { answerPartCount: number })[] =
+  taskViews.map((task) => ({
+    taskId: task.id,
+    taskRevision: task.revision,
+    slot: task.slot,
+    examPosition: task.examPosition,
+    topic: task.topic,
+    maxPoints: task.maxPoints,
+    answerPartCount: task.fields.length,
+  }));
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -99,7 +101,7 @@ describe("simulation cloud client", () => {
       (calls[0].variables.input.items as Record<string, unknown>[]).every(
         (item) =>
           Object.keys(item).toSorted().join(",") ===
-          "examPosition,id,maxPoints,taskId,taskRevision,topic",
+          "answerPartCount,examPosition,id,maxPoints,taskId,taskRevision,topic",
       ),
     ).toBe(true);
   });
@@ -206,6 +208,9 @@ describe("simulation cloud client", () => {
       ...activeState(),
       phase: "submitting" as const,
       submittedAt: startedAt + 3 * 60_000,
+      answers: taskViews.map((_, index) =>
+        index === 1 ? [""] : [`wrong-${index}`],
+      ),
     };
     const results = taskViews.map((task, index) => ({
       taskId: task.id,

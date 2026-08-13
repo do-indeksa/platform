@@ -18,6 +18,7 @@ const COMPLETED_SIMULATION_ARCHIVE = `
         examPosition
         topic
         maxPoints
+        answerPartCount
         taskRevision
         answer
         outcome

@@ -46,6 +46,7 @@ function tasks(): DiagnosticProgressTask[] {
     slot: index + 1,
     examPosition: index + 1,
     topic: `topic-${index + 1}`,
+    answerPartCount: 1,
   }));
 }
 
