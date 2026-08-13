@@ -3,11 +3,11 @@ package auth
 import (
 	"context"
 	"net/http"
+	"sync"
 )
 
 type requestIdentity struct {
-	user User
-	err  error
+	resolve func() (User, error)
 }
 
 type requestIdentityKey struct{}
@@ -15,8 +15,9 @@ type requestIdentityKey struct{}
 func RequestUserMiddleware(service *Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			user, err := service.RequestUser(r)
-			identity := requestIdentity{user: user, err: err}
+			identity := requestIdentity{resolve: sync.OnceValues(func() (User, error) {
+				return service.RequestUser(r)
+			})}
 			ctx := context.WithValue(r.Context(), requestIdentityKey{}, identity)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -25,8 +26,8 @@ func RequestUserMiddleware(service *Service) func(http.Handler) http.Handler {
 
 func RequestContextUser(ctx context.Context) (User, error) {
 	identity, ok := ctx.Value(requestIdentityKey{}).(requestIdentity)
-	if !ok {
+	if !ok || identity.resolve == nil {
 		return User{}, ErrNoSession
 	}
-	return identity.user, identity.err
+	return identity.resolve()
 }
