@@ -3,7 +3,9 @@ package progress
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
@@ -54,10 +56,33 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		httpx.WriteError(
+			w,
+			http.StatusUnsupportedMediaType,
+			"unsupported_media_type",
+			"content type must be application/json",
+		)
+		return
+	}
+	if r.ContentLength > maxBodyBytes {
+		writeAttemptBodyTooLarge(w)
+		return
+	}
 	var body []api.NewAttempt
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		httpx.WriteError(w, http.StatusBadRequest, "invalid_body", "body must be a json array of attempts")
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&body); err != nil {
+		writeAttemptBodyError(w, err)
+		return
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		writeAttemptBodyError(w, err)
+		return
+	}
+	if body == nil {
+		writeAttemptBodyError(w, nil)
 		return
 	}
 	if len(body) == 0 || len(body) > maxBatchSize {
@@ -92,6 +117,29 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func writeAttemptBodyError(w http.ResponseWriter, err error) {
+	var maxBytesError *http.MaxBytesError
+	if errors.As(err, &maxBytesError) {
+		writeAttemptBodyTooLarge(w)
+		return
+	}
+	httpx.WriteError(
+		w,
+		http.StatusBadRequest,
+		"invalid_body",
+		"body must contain one json array of attempts",
+	)
+}
+
+func writeAttemptBodyTooLarge(w http.ResponseWriter) {
+	httpx.WriteError(
+		w,
+		http.StatusRequestEntityTooLarge,
+		"request_too_large",
+		"request body exceeds 256 KiB",
+	)
 }
 
 func (h *Handler) requestUser(w http.ResponseWriter, r *http.Request) (auth.User, bool) {

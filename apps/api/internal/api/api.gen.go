@@ -112,8 +112,14 @@ type Forbidden = Error
 // Internal defines model for Internal.
 type Internal = Error
 
+// RequestTooLarge defines model for RequestTooLarge.
+type RequestTooLarge = Error
+
 // Unauthorized defines model for Unauthorized.
 type Unauthorized = Error
+
+// UnsupportedMediaType defines model for UnsupportedMediaType.
+type UnsupportedMediaType = Error
 
 // RecordAttemptsJSONBody defines parameters for RecordAttempts.
 type RecordAttemptsJSONBody = []NewAttempt
