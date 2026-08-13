@@ -48,6 +48,7 @@ export async function installPracticeRuntimeClaimFixture(
   let recorded: RecordAttemptInput | null = null;
   let submitted: SubmitRunInput | null = null;
   let historyRequestCount = 0;
+  const checkpointExpectedVersions: number[] = [];
   const operations: string[] = [];
 
   await page.unroute("**/api/v1/me");
@@ -116,6 +117,7 @@ export async function installPracticeRuntimeClaimFixture(
         await route.fulfill({ status: 400 });
         return;
       }
+      checkpointExpectedVersions.push(expectedVersion);
       await route.fulfill({
         json: {
           data: {
@@ -154,6 +156,9 @@ export async function installPracticeRuntimeClaimFixture(
     },
     operationCount(operationName: string) {
       return operations.filter((entry) => entry === operationName).length;
+    },
+    checkpointExpectedVersions() {
+      return [...checkpointExpectedVersions];
     },
     snapshot() {
       return { started, recorded, submitted, historyRequestCount };

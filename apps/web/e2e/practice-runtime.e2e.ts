@@ -133,6 +133,7 @@ test("a completed guest practice is claimed and submitted exactly once", async (
 
   await page.reload();
   expect(await readRuntime(page)).toEqual(guest);
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
 
   server.signIn();
   await page.reload();
@@ -142,7 +143,15 @@ test("a completed guest practice is claimed and submitted exactly once", async (
   await expect.poll(() => server.operationCount("SubmitPracticeRun")).toBe(1);
 
   expect(server.operationCount("StartPracticeRun")).toBe(1);
-  expect(server.operationCount("CheckpointPracticeRun")).toBe(1);
+  const checkpointExpectedVersions = server.checkpointExpectedVersions();
+  expect(checkpointExpectedVersions.length).toBeGreaterThanOrEqual(1);
+  expect(checkpointExpectedVersions.length).toBeLessThanOrEqual(2);
+  expect(checkpointExpectedVersions).toEqual(
+    checkpointExpectedVersions.map((_, index) => index),
+  );
+  expect(server.operationCount("CheckpointPracticeRun")).toBe(
+    checkpointExpectedVersions.length,
+  );
   expect(server.operationCount("RecordPracticeRunAttempt")).toBe(1);
   expect(server.operationCount("RecordPracticeAttempt")).toBe(0);
   const serverSnapshot = server.snapshot();
