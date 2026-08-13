@@ -1,10 +1,11 @@
 import { expect, test, type Page } from "./test";
+import { installPracticeRuntimeClaimFixture } from "./practice-runtime-claim-fixture";
 
 const STORAGE_KEY = "do-indeksa-practice-runtime";
 const OWNER_A = "39ec4650-762d-437f-9917-c31ab167cb99";
 const OWNER_B = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
 
-test("builder order, drafts, attempts, and current task survive reload", async ({
+test("builder order, drafts, attempts, and guest completion survive reload", async ({
   page,
 }) => {
   await page.goto("/en/training/new");
@@ -89,8 +90,94 @@ test("builder order, drafts, attempts, and current task survive reload", async (
   await page.getByRole("link", { name: "Back to practice" }).click();
   await expect(page).toHaveURL(/\/en\/training\/new$/);
   await expect
+    .poll(async () => (await readRuntime(page)).phase)
+    .toBe("submitting");
+  const completed = await readRuntime(page);
+  expect(completed).toMatchObject({
+    runOwnerId: null,
+    phase: "submitting",
+  });
+  expect(completed.items[0].attempts).toEqual([
+    expect.objectContaining({ outcome: "skipped" }),
+  ]);
+
+  await page.reload();
+  expect(await readRuntime(page)).toEqual(completed);
+});
+
+test("a completed guest practice is claimed and submitted exactly once", async ({
+  page,
+}) => {
+  const server = await installPracticeRuntimeClaimFixture(page, OWNER_A);
+  await page.goto("/en/training/new");
+  await page.getByRole("button", { name: /Start 5-task practice/ }).click();
+  const first = await readRuntime(page);
+  const runId = first.assignment.runId;
+  await expect(page).toHaveURL(new RegExp(`practice=${runId}`));
+
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await expect
+    .poll(async () => (await readRuntime(page)).items[0].attempts.length)
+    .toBe(1);
+  await page.getByRole("link", { name: "Back to practice" }).click();
+  await expect(page).toHaveURL(/\/en\/training\/new$/);
+  await expect
+    .poll(async () => (await readRuntime(page)).phase)
+    .toBe("submitting");
+  const guest = await readRuntime(page);
+  const guestAttemptId = guest.items[0].attempts[0].id;
+  expect(guest).toMatchObject({
+    runOwnerId: null,
+    assignment: { runId },
+  });
+
+  await page.reload();
+  expect(await readRuntime(page)).toEqual(guest);
+
+  server.signIn();
+  await page.reload();
+  await expect
     .poll(async () => (await readRuntimeEnvelope(page)).state.runs)
     .toEqual([]);
+  await expect.poll(() => server.operationCount("SubmitPracticeRun")).toBe(1);
+
+  expect(server.operationCount("StartPracticeRun")).toBe(1);
+  expect(server.operationCount("CheckpointPracticeRun")).toBe(1);
+  expect(server.operationCount("RecordPracticeRunAttempt")).toBe(1);
+  expect(server.operationCount("RecordPracticeAttempt")).toBe(0);
+  const serverSnapshot = server.snapshot();
+  expect(serverSnapshot.started?.id).toBe(runId);
+  expect(serverSnapshot.started?.items.map(({ taskId }) => taskId)).toEqual(
+    first.assignment.tasks.map(({ id }) => id),
+  );
+  expect(serverSnapshot).toMatchObject({
+    recorded: {
+      id: guestAttemptId,
+      outcome: "SKIPPED",
+    },
+    submitted: { id: runId },
+  });
+  expect(
+    await page.evaluate(() => {
+      const raw = localStorage.getItem("do-indeksa-attempts");
+      return raw ? JSON.parse(raw).attempts : [];
+    }),
+  ).toEqual([]);
+
+  await page.goto("/en/history");
+  await expect(page.getByTestId("history-page")).toHaveAttribute(
+    "data-sync-status",
+    "synced",
+  );
+  await expect(
+    page.getByRole("link", {
+      name: `Open attempt for task ${first.assignment.tasks[0].id}`,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Practice training", { exact: true }),
+  ).toBeVisible();
+  expect(server.operationCount("SubmitPracticeRun")).toBe(1);
 });
 
 test("signed offline work remains local and clears on an owner change", async ({
@@ -198,6 +285,7 @@ type RuntimeEnvelope = {
 
 type PersistedRun = {
   assignment: {
+    runId: string;
     tasks: Array<{ id: string; slot: number }>;
   };
   runOwnerId: string | null;
@@ -207,6 +295,6 @@ type PersistedRun = {
   items: Array<{
     taskId: string;
     draft: { answers: string[] } | null;
-    attempts: Array<{ number: number; outcome: string }>;
+    attempts: Array<{ id: string; number: number; outcome: string }>;
   }>;
 };
