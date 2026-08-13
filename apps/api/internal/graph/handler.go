@@ -13,8 +13,11 @@ import (
 )
 
 const (
-	maxGraphQLBodyBytes  = 256 << 10
-	maxGraphQLComplexity = 2000
+	maxGraphQLBodyBytes       = 256 << 10
+	maxGraphQLDocumentBytes   = 16 << 10
+	maxGraphQLDocumentTokens  = 4096
+	maxGraphQLCachedDocuments = 1000
+	maxGraphQLComplexity      = 2000
 )
 
 func NewHandler(resolver *Resolver) http.Handler {
@@ -65,7 +68,8 @@ func NewHandler(resolver *Resolver) http.Handler {
 	server := handler.New(NewExecutableSchema(config))
 	server.AddTransport(transport.Options{AllowedMethods: []string{http.MethodOptions, http.MethodPost}})
 	server.AddTransport(transport.POST{})
-	server.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+	server.SetQueryCache(lru.New[*ast.QueryDocument](maxGraphQLCachedDocuments))
+	server.SetParserTokenLimit(maxGraphQLDocumentTokens)
 	server.SetErrorPresenter(errorPresenter)
 	server.SetRecoverFunc(recoverError)
 	server.Use(extension.FixedComplexityLimit(maxGraphQLComplexity))
