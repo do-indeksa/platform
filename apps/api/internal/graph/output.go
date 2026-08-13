@@ -40,14 +40,15 @@ func graphRun(aggregate progress.RunAggregate) (*model.Run, error) {
 			mappedAttempts[j] = mapped
 		}
 		items[i] = model.RunItem{
-			ID:             item.ID.String(),
-			TaskID:         item.TaskID,
-			Ordinal:        int32(item.Ordinal),
-			ExamPosition:   int32(item.ExamPosition),
-			Topic:          item.Topic,
-			MaxPoints:      graphInt16(item.MaxPoints),
-			TaskRevision:   item.TaskRevision,
-			RecentAttempts: mappedAttempts,
+			ID:              item.ID.String(),
+			TaskID:          item.TaskID,
+			Ordinal:         int32(item.Ordinal),
+			ExamPosition:    int32(item.ExamPosition),
+			Topic:           item.Topic,
+			MaxPoints:       graphInt16(item.MaxPoints),
+			AnswerPartCount: graphInt16(item.AnswerPartCount),
+			TaskRevision:    item.TaskRevision,
+			RecentAttempts:  mappedAttempts,
 		}
 	}
 	return &model.Run{
@@ -185,11 +186,12 @@ func graphCompletedSimulationRun(
 	items := make([]model.CompletedSimulationRunItem, len(aggregate.Items))
 	for index, item := range aggregate.Items {
 		mapped := model.CompletedSimulationRunItem{
-			TaskID:       item.TaskID,
-			ExamPosition: int32(item.ExamPosition),
-			Topic:        item.Topic,
-			MaxPoints:    graphInt16(item.MaxPoints),
-			TaskRevision: item.TaskRevision,
+			TaskID:          item.TaskID,
+			ExamPosition:    int32(item.ExamPosition),
+			Topic:           item.Topic,
+			MaxPoints:       graphInt16(item.MaxPoints),
+			AnswerPartCount: graphInt16(item.AnswerPartCount),
+			TaskRevision:    item.TaskRevision,
 		}
 		if attempt, ok := attemptsByItem[item.ID]; ok {
 			if progress.RunKind(attempt.Source) != progress.RunKindSimulation {

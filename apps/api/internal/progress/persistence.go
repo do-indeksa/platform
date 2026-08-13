@@ -155,11 +155,16 @@ func sameRunInput(existing RunAggregate, input StartRunInput) bool {
 		stored := existing.Items[i]
 		if stored.ID != item.ID || stored.Ordinal != int16(i+1) || stored.TaskID != item.TaskID ||
 			stored.ExamPosition != item.ExamPosition || stored.Topic != item.Topic ||
-			stored.TaskRevision != item.TaskRevision || !samePointer(stored.MaxPoints, item.MaxPoints) {
+			stored.TaskRevision != item.TaskRevision || !samePointer(stored.MaxPoints, item.MaxPoints) ||
+			!compatibleOptionalSnapshot(stored.AnswerPartCount, item.AnswerPartCount) {
 			return false
 		}
 	}
 	return true
+}
+
+func compatibleOptionalSnapshot[T comparable](stored, input *T) bool {
+	return stored == nil || input == nil || *stored == *input
 }
 
 func sameRunDeadline(run Run, input StartRunInput) bool {

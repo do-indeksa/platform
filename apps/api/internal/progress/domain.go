@@ -79,12 +79,13 @@ type StartRunInput struct {
 }
 
 type NewRunItem struct {
-	ID           uuid.UUID
-	TaskID       string
-	ExamPosition int16
-	Topic        string
-	MaxPoints    *int16
-	TaskRevision string
+	ID              uuid.UUID
+	TaskID          string
+	ExamPosition    int16
+	Topic           string
+	MaxPoints       *int16
+	AnswerPartCount *int16
+	TaskRevision    string
 }
 
 type StandaloneAttemptTarget struct {

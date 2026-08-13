@@ -65,14 +65,15 @@ type RunCheckpointDraft struct {
 }
 
 type RunItem struct {
-	ID           uuid.UUID
-	RunID        uuid.UUID
-	UserID       uuid.UUID
-	TaskID       string
-	Ordinal      int16
-	ExamPosition int16
-	Topic        string
-	MaxPoints    *int16
-	TaskRevision string
-	CreatedAt    time.Time
+	ID              uuid.UUID
+	RunID           uuid.UUID
+	UserID          uuid.UUID
+	TaskID          string
+	Ordinal         int16
+	ExamPosition    int16
+	Topic           string
+	MaxPoints       *int16
+	TaskRevision    string
+	CreatedAt       time.Time
+	AnswerPartCount *int16
 }

@@ -67,15 +67,16 @@ func (s *Service) StartRun(ctx context.Context, userID uuid.UUID, input StartRun
 	items := make([]RunItem, len(normalized.Items))
 	for i, item := range normalized.Items {
 		items[i], err = queries.CreateRunItem(ctx, CreateRunItemParams{
-			ID:           item.ID,
-			RunID:        run.ID,
-			UserID:       userID,
-			TaskID:       item.TaskID,
-			Ordinal:      int16(i + 1),
-			ExamPosition: item.ExamPosition,
-			Topic:        item.Topic,
-			MaxPoints:    item.MaxPoints,
-			TaskRevision: item.TaskRevision,
+			ID:              item.ID,
+			RunID:           run.ID,
+			UserID:          userID,
+			TaskID:          item.TaskID,
+			Ordinal:         int16(i + 1),
+			ExamPosition:    item.ExamPosition,
+			Topic:           item.Topic,
+			MaxPoints:       item.MaxPoints,
+			AnswerPartCount: item.AnswerPartCount,
+			TaskRevision:    item.TaskRevision,
 		})
 		if err != nil {
 			return RunAggregate{}, classifyWriteError(err)
@@ -179,6 +180,11 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 			return RunAggregate{}, err
 		}
 		return aggregate, nil
+	}
+	if err := validateSnapshottedSimulationSubmission(
+		ctx, queries, userID, run, submission.submittedAt,
+	); err != nil {
+		return RunAggregate{}, err
 	}
 	hasLaterAttempt, err := queries.RunHasAttemptAfter(ctx, RunHasAttemptAfterParams{
 		RunID:       input.ID,

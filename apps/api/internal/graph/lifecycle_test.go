@@ -17,7 +17,7 @@ mutation StartRun($input: StartRunInput!) {
     id
     kind
     status
-    items { id taskId examPosition recentAttempts { id } }
+    items { id taskId examPosition answerPartCount recentAttempts { id } }
   }
 }`
 
@@ -55,12 +55,13 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 		"contentRevision":  "content-revision",
 		"startedAt":        startedAt,
 		"items": []map[string]any{{
-			"id":           itemID,
-			"taskId":       "log-001",
-			"examPosition": 3,
-			"topic":        "logaritmi",
-			"maxPoints":    6,
-			"taskRevision": "task-revision",
+			"id":              itemID,
+			"taskId":          "log-001",
+			"examPosition":    3,
+			"topic":           "logaritmi",
+			"maxPoints":       6,
+			"answerPartCount": 2,
+			"taskRevision":    "task-revision",
 		}},
 	}}
 
@@ -71,8 +72,9 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 			ID     string `json:"id"`
 			Status string `json:"status"`
 			Items  []struct {
-				ID       string `json:"id"`
-				Attempts []any  `json:"recentAttempts"`
+				ID              string `json:"id"`
+				AnswerPartCount int    `json:"answerPartCount"`
+				Attempts        []any  `json:"recentAttempts"`
 			} `json:"items"`
 		} `json:"startRun"`
 	}
@@ -80,7 +82,8 @@ func TestGraphQLRunLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	if started.StartRun.ID != runID || started.StartRun.Status != "ACTIVE" ||
-		len(started.StartRun.Items) != 1 || len(started.StartRun.Items[0].Attempts) != 0 {
+		len(started.StartRun.Items) != 1 || started.StartRun.Items[0].AnswerPartCount != 2 ||
+		len(started.StartRun.Items[0].Attempts) != 0 {
 		t.Fatalf("unexpected start result: %+v", started.StartRun)
 	}
 
