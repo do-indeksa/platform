@@ -293,6 +293,7 @@
     "title": "Create a practice set",
     "description": "Build your set from the P1 positions you need",
     "saveDraft": "Save local draft",
+    "saveAccountDraft": "Save draft to account",
     "subjectStep": "Choose the exam",
     "p1": "Mathematics (P1)",
     "onlyP1": "Current format · {version}",
@@ -344,9 +345,15 @@
     "start": "Start practice",
     "startLabel": "Start {count}-task practice",
     "saveLocal": "Save on this device",
+    "saveAccount": "Save to your account",
+    "saving": "Saving...",
     "saved": "Saved on this device",
+    "savedAccount": "Saved to your account",
     "restored": "Local draft restored",
+    "restoredAccount": "Account draft restored",
+    "saveConflict": "Review changes and save again",
     "saveFailed": "Could not save locally",
+    "saveAccountFailed": "Could not save to your account",
     "selectedCount": "Requested tasks: {count}"
   },
   "diagnostic": {
