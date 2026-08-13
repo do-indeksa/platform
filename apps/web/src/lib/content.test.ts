@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import { describe, expect, it } from "vitest";
 import { checkAnswer, type CheckPart } from "./answer";
 import {
+  getPracticeTaskReferences,
   getTaskReferences,
   getTaskSummaries,
   getTaskWorkspaceReferences,
@@ -118,6 +119,25 @@ describe("task files", () => {
       partCount: 4,
       maxHints: 2,
     });
+  });
+
+  it("exposes strict practice metadata without task content", async () => {
+    const [references, tasks] = await Promise.all([
+      getPracticeTaskReferences(),
+      getTasks("kompleksni-brojevi"),
+    ]);
+    expect(references).toHaveLength(30);
+    expect(references[0]).toEqual({
+      id: "kb-001",
+      revision: tasks.find(({ id }) => id === "kb-001")?.revision,
+      slot: 1,
+      topic: "kompleksni-brojevi",
+      difficulty: 2,
+      answerPartCount: 4,
+    });
+    expect(JSON.stringify(references[0])).not.toMatch(
+      /statement|solution|expected|check|gradingRule|"answer":/i,
+    );
   });
 
   it("creates a readable search index from Markdown and math", () => {
