@@ -72,6 +72,7 @@ func NewHandler(resolver *Resolver) http.Handler {
 	server.SetParserTokenLimit(maxGraphQLDocumentTokens)
 	server.SetErrorPresenter(errorPresenter)
 	server.SetRecoverFunc(recoverError)
+	server.Use(singleCommandMutations{})
 	server.Use(extension.FixedComplexityLimit(maxGraphQLComplexity))
 
 	return strictGraphQLRequests(server)
