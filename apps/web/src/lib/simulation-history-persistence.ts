@@ -1,4 +1,5 @@
 import {
+  FTN_P1_SIMULATION_DURATION_MS,
   isSimulationBlueprintVersion,
   isSimulationRunId,
   isSimulationTaskId,
@@ -77,7 +78,7 @@ function isHistoryEntry(value: unknown): value is SimulationHistoryEntry {
     isTimestamp(value.startedAt) &&
     isTimestamp(value.finishedAt) &&
     value.finishedAt >= value.startedAt &&
-    isFiniteInteger(value.durationMs, 0, 24 * 60 * 60 * 1_000) &&
+    isFiniteInteger(value.durationMs, 0, FTN_P1_SIMULATION_DURATION_MS) &&
     typeof value.timedOut === "boolean" &&
     isFiniteInteger(value.score, 0, 1_000) &&
     isFiniteInteger(value.maxPoints, 1, 1_000) &&

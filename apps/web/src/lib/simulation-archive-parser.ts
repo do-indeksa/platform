@@ -20,7 +20,6 @@ import type {
 const REVISION_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const TOPIC_PATTERN = /^[a-z0-9-]{1,64}$/;
 const BLUEPRINT_PREFIX = "ftn-p1:";
-const MAX_DURATION_MS = 24 * 60 * 60 * 1_000;
 
 type ParsedItem = {
   taskId: string;
@@ -87,7 +86,7 @@ function parseRun(value: unknown): SimulationArchiveRun | null {
     finishedAt === null ||
     finishedAt < startedAt ||
     (storedDeadlineAt === null && value.deadlineAt !== null) ||
-    !integer(value.activeDurationMs, 0, MAX_DURATION_MS) ||
+    !integer(value.activeDurationMs, 0, FTN_P1_SIMULATION_DURATION_MS) ||
     !Array.isArray(value.items) ||
     value.items.length !== FTN_P1_SIMULATION_TASK_COUNT
   ) {

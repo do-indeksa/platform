@@ -234,6 +234,13 @@ describe("completed progress runs", () => {
         run.deadlineAt = "2026-08-10T13:59:59.000Z";
       },
     ],
+    [
+      "an oversized active duration",
+      (run: CompletedProgressRun) => {
+        run.activeDurationMs = 4 * 60 * 60 * 1_000 + 1;
+        run.submittedAt = "2026-08-10T15:00:00.000Z";
+      },
+    ],
   ])("rejects a simulation with %s", (_name, mutate) => {
     const run = completedSimulationRun();
     mutate(run);

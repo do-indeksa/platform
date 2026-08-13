@@ -208,6 +208,10 @@ describe("simulation archive parser", () => {
     wrongDeadline.data.completedSimulationRuns[0].deadlineAt =
       "2026-08-10T13:59:59.000Z";
     expect(parseSimulationArchiveResponse(wrongDeadline, 20)).toBeNull();
+    const overlong = response();
+    overlong.data.completedSimulationRuns[0].activeDurationMs =
+      4 * 60 * 60 * 1_000 + 1;
+    expect(parseSimulationArchiveResponse(overlong, 20)).toBeNull();
   });
 
   it("derives the canonical deadline for a complete legacy archive row", () => {

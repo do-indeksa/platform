@@ -129,6 +129,8 @@ export function parseCompletedProgressRun(
       !isSimulationTaskRevision(value.contentRevision) ||
       !isCompleteFtnP1SimulationItems(items) ||
       items.some((item) => !isSimulationTaskRevision(item.taskRevision)) ||
+      (value.activeDurationMs !== undefined &&
+        value.activeDurationMs > FTN_P1_SIMULATION_DURATION_MS) ||
       (deadlineAt !== undefined && deadlineAt !== expectedDeadlineAt)
     ) {
       return null;
