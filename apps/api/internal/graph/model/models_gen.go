@@ -79,6 +79,15 @@ type NewRunItemInput struct {
 	TaskRevision    string `json:"taskRevision"`
 }
 
+// A signed-in student's server-owned Study Plan settings.
+type PrepPreferences struct {
+	GoalPoints int32 `json:"goalPoints"`
+	// Calendar date in YYYY-MM-DD form, independent of browser timezone.
+	ExamDate  string    `json:"examDate"`
+	Version   int64     `json:"version"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
 type Query struct {
 }
 
@@ -158,6 +167,14 @@ type RunSummary struct {
 	CorrectItemCount   int32      `json:"correctItemCount"`
 	EarnedPoints       *int32     `json:"earnedPoints,omitempty"`
 	MaxPoints          *int32     `json:"maxPoints,omitempty"`
+}
+
+type SavePrepPreferencesInput struct {
+	// Use zero to create the first record, then the latest server version.
+	ExpectedVersion int64 `json:"expectedVersion"`
+	GoalPoints      int32 `json:"goalPoints"`
+	// A valid calendar date in YYYY-MM-DD form.
+	ExamDate string `json:"examDate"`
 }
 
 type StandaloneAttemptTargetInput struct {

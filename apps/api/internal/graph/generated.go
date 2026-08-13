@@ -82,17 +82,26 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AbandonRun    func(childComplexity int, input model.AbandonRunInput) int
-		CheckpointRun func(childComplexity int, input model.CheckpointRunInput) int
-		RecordAttempt func(childComplexity int, input model.RecordAttemptInput) int
-		StartRun      func(childComplexity int, input model.StartRunInput) int
-		SubmitRun     func(childComplexity int, input model.SubmitRunInput) int
+		AbandonRun          func(childComplexity int, input model.AbandonRunInput) int
+		CheckpointRun       func(childComplexity int, input model.CheckpointRunInput) int
+		RecordAttempt       func(childComplexity int, input model.RecordAttemptInput) int
+		SavePrepPreferences func(childComplexity int, input model.SavePrepPreferencesInput) int
+		StartRun            func(childComplexity int, input model.StartRunInput) int
+		SubmitRun           func(childComplexity int, input model.SubmitRunInput) int
+	}
+
+	PrepPreferences struct {
+		ExamDate   func(childComplexity int) int
+		GoalPoints func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		Version    func(childComplexity int) int
 	}
 
 	Query struct {
 		Attempts                func(childComplexity int, limit int32) int
 		CompletedSimulationRuns func(childComplexity int, limit int32) int
 		LatestSubmittedRun      func(childComplexity int, kind model.RunKind) int
+		PrepPreferences         func(childComplexity int) int
 		Run                     func(childComplexity int, id string) int
 		Runs                    func(childComplexity int, limit int32) int
 	}
@@ -171,6 +180,7 @@ type MutationResolver interface {
 	CheckpointRun(ctx context.Context, input model.CheckpointRunInput) (*model.RunCheckpoint, error)
 	SubmitRun(ctx context.Context, input model.SubmitRunInput) (*model.Run, error)
 	AbandonRun(ctx context.Context, input model.AbandonRunInput) (*model.Run, error)
+	SavePrepPreferences(ctx context.Context, input model.SavePrepPreferencesInput) (*model.PrepPreferences, error)
 }
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
@@ -178,6 +188,7 @@ type QueryResolver interface {
 	LatestSubmittedRun(ctx context.Context, kind model.RunKind) (*model.SubmittedRunSummary, error)
 	CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error)
 	Attempts(ctx context.Context, limit int32) ([]model.Attempt, error)
+	PrepPreferences(ctx context.Context) (*model.PrepPreferences, error)
 }
 type RunItemResolver interface {
 	RecentAttempts(ctx context.Context, obj *model.RunItem, limit int32) ([]model.Attempt, error)
@@ -435,6 +446,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RecordAttempt(childComplexity, args["input"].(model.RecordAttemptInput)), true
+	case "Mutation.savePrepPreferences":
+		if e.ComplexityRoot.Mutation.SavePrepPreferences == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_savePrepPreferences_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SavePrepPreferences(childComplexity, args["input"].(model.SavePrepPreferencesInput)), true
 	case "Mutation.startRun":
 		if e.ComplexityRoot.Mutation.StartRun == nil {
 			break
@@ -457,6 +479,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SubmitRun(childComplexity, args["input"].(model.SubmitRunInput)), true
+
+	case "PrepPreferences.examDate":
+		if e.ComplexityRoot.PrepPreferences.ExamDate == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PrepPreferences.ExamDate(childComplexity), true
+	case "PrepPreferences.goalPoints":
+		if e.ComplexityRoot.PrepPreferences.GoalPoints == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PrepPreferences.GoalPoints(childComplexity), true
+	case "PrepPreferences.updatedAt":
+		if e.ComplexityRoot.PrepPreferences.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PrepPreferences.UpdatedAt(childComplexity), true
+	case "PrepPreferences.version":
+		if e.ComplexityRoot.PrepPreferences.Version == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PrepPreferences.Version(childComplexity), true
 
 	case "Query.attempts":
 		if e.ComplexityRoot.Query.Attempts == nil {
@@ -492,6 +539,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.LatestSubmittedRun(childComplexity, args["kind"].(model.RunKind)), true
+	case "Query.prepPreferences":
+		if e.ComplexityRoot.Query.PrepPreferences == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.PrepPreferences(childComplexity), true
 	case "Query.run":
 		if e.ComplexityRoot.Query.Run == nil {
 			break
@@ -809,6 +862,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputNewRunItemInput,
 		ec.unmarshalInputRecordAttemptInput,
 		ec.unmarshalInputRunCheckpointDraftInput,
+		ec.unmarshalInputSavePrepPreferencesInput,
 		ec.unmarshalInputStandaloneAttemptTargetInput,
 		ec.unmarshalInputStartRunInput,
 		ec.unmarshalInputSubmitRunInput,
@@ -886,7 +940,7 @@ func newExecutionContext(
 	}
 }
 
-//go:embed "schema/learning.graphqls"
+//go:embed "schema/learning.graphqls" "schema/prep.graphqls"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -899,6 +953,7 @@ func sourceData(filename string) string {
 
 var sources = []*ast.Source{
 	{Name: "schema/learning.graphqls", Input: sourceData("schema/learning.graphqls"), BuiltIn: false},
+	{Name: "schema/prep.graphqls", Input: sourceData("schema/prep.graphqls"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -988,6 +1043,20 @@ func (ec *executionContext) childFields_CompletedSimulationRunItem(ctx context.C
 		return ec.fieldContext_CompletedSimulationRunItem_earnedPoints(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type CompletedSimulationRunItem", field.Name)
+}
+
+func (ec *executionContext) childFields_PrepPreferences(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "goalPoints":
+		return ec.fieldContext_PrepPreferences_goalPoints(ctx, field)
+	case "examDate":
+		return ec.fieldContext_PrepPreferences_examDate(ctx, field)
+	case "version":
+		return ec.fieldContext_PrepPreferences_version(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_PrepPreferences_updatedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PrepPreferences", field.Name)
 }
 
 func (ec *executionContext) childFields_Run(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -1266,6 +1335,20 @@ func (ec *executionContext) field_Mutation_recordAttempt_args(ctx context.Contex
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
 		func(ctx context.Context, v any) (model.RecordAttemptInput, error) {
 			return ec.unmarshalNRecordAttemptInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRecordAttemptInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_savePrepPreferences_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.SavePrepPreferencesInput, error) {
+			return ec.unmarshalNSavePrepPreferencesInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSavePrepPreferencesInput(ctx, v)
 		})
 	if err != nil {
 		return nil, err
@@ -2448,6 +2531,142 @@ func (ec *executionContext) fieldContext_Mutation_abandonRun(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_savePrepPreferences(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_savePrepPreferences(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SavePrepPreferences(ctx, fc.Args["input"].(model.SavePrepPreferencesInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.PrepPreferences) graphql.Marshaler {
+			return ec.marshalNPrepPreferences2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐPrepPreferences(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_savePrepPreferences(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PrepPreferences(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_savePrepPreferences_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PrepPreferences_goalPoints(ctx context.Context, field graphql.CollectedField, obj *model.PrepPreferences) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PrepPreferences_goalPoints(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.GoalPoints, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PrepPreferences_goalPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PrepPreferences", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _PrepPreferences_examDate(ctx context.Context, field graphql.CollectedField, obj *model.PrepPreferences) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PrepPreferences_examDate(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ExamDate, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PrepPreferences_examDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PrepPreferences", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PrepPreferences_version(ctx context.Context, field graphql.CollectedField, obj *model.PrepPreferences) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PrepPreferences_version(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Version, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int64) graphql.Marshaler {
+			return ec.marshalNInt642int64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PrepPreferences_version(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PrepPreferences", field, false, false, errors.New("field of type Int64 does not have child fields"))
+}
+
+func (ec *executionContext) _PrepPreferences_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.PrepPreferences) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PrepPreferences_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PrepPreferences_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PrepPreferences", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
 func (ec *executionContext) _Query_run(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2664,6 +2883,38 @@ func (ec *executionContext) fieldContext_Query_attempts(ctx context.Context, fie
 	if fc.Args, err = ec.field_Query_attempts_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_prepPreferences(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_prepPreferences(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().PrepPreferences(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.PrepPreferences) graphql.Marshaler {
+			return ec.marshalOPrepPreferences2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐPrepPreferences(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_prepPreferences(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PrepPreferences(ctx, field)
+		},
 	}
 	return fc, nil
 }
@@ -5191,6 +5442,50 @@ func (ec *executionContext) unmarshalInputRunCheckpointDraftInput(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSavePrepPreferencesInput(ctx context.Context, obj any) (model.SavePrepPreferencesInput, error) {
+	var it model.SavePrepPreferencesInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"expectedVersion", "goalPoints", "examDate"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "expectedVersion":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("expectedVersion"))
+			data, err := ec.unmarshalNInt642int64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExpectedVersion = data
+		case "goalPoints":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("goalPoints"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.GoalPoints = data
+		case "examDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("examDate"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExamDate = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputStandaloneAttemptTargetInput(ctx context.Context, obj any) (model.StandaloneAttemptTargetInput, error) {
 	var it model.StandaloneAttemptTargetInput
 	if obj == nil {
@@ -5685,6 +5980,66 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "savePrepPreferences":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_savePrepPreferences(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var prepPreferencesImplementors = []string{"PrepPreferences"}
+
+func (ec *executionContext) _PrepPreferences(ctx context.Context, sel ast.SelectionSet, obj *model.PrepPreferences) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, prepPreferencesImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PrepPreferences")
+		case "goalPoints":
+			out.Values[i] = ec._PrepPreferences_goalPoints(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "examDate":
+			out.Values[i] = ec._PrepPreferences_examDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "version":
+			out.Values[i] = ec._PrepPreferences_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._PrepPreferences_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5825,6 +6180,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}()
 				res = ec._Query_attempts(ctx, field)
 				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "prepPreferences":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_prepPreferences(ctx, field)
+				if res == graphql.RequiredNull {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
 				return res
@@ -6941,6 +7318,20 @@ func (ec *executionContext) unmarshalNNewRunItemInput2ᚕgithubᚗcomᚋdoᚑind
 	return res, nil
 }
 
+func (ec *executionContext) marshalNPrepPreferences2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐPrepPreferences(ctx context.Context, sel ast.SelectionSet, v model.PrepPreferences) graphql.Marshaler {
+	return ec._PrepPreferences(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPrepPreferences2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐPrepPreferences(ctx context.Context, sel ast.SelectionSet, v *model.PrepPreferences) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PrepPreferences(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNRecordAttemptInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRecordAttemptInput(ctx context.Context, v any) (model.RecordAttemptInput, error) {
 	res, err := ec.unmarshalInputRecordAttemptInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7071,6 +7462,11 @@ func (ec *executionContext) marshalNRunSummary2ᚕgithubᚗcomᚋdoᚑindeksaᚋ
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNSavePrepPreferencesInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSavePrepPreferencesInput(ctx context.Context, v any) (model.SavePrepPreferencesInput, error) {
+	res, err := ec.unmarshalInputSavePrepPreferencesInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNStartRunInput2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐStartRunInput(ctx context.Context, v any) (model.StartRunInput, error) {
@@ -7369,6 +7765,13 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 	_ = ctx
 	res := graphql.MarshalInt64(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOPrepPreferences2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐPrepPreferences(ctx context.Context, sel ast.SelectionSet, v *model.PrepPreferences) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PrepPreferences(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalORun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRun(ctx context.Context, sel ast.SelectionSet, v *model.Run) graphql.Marshaler {

@@ -1,0 +1,25 @@
+"""A signed-in student's server-owned Study Plan settings."""
+type PrepPreferences {
+  goalPoints: Int!
+  """Calendar date in YYYY-MM-DD form, independent of browser timezone."""
+  examDate: String!
+  version: Int64!
+  updatedAt: Time!
+}
+
+input SavePrepPreferencesInput {
+  """Use zero to create the first record, then the latest server version."""
+  expectedVersion: Int64!
+  goalPoints: Int!
+  """A valid calendar date in YYYY-MM-DD form."""
+  examDate: String!
+}
+
+extend type Query {
+  prepPreferences: PrepPreferences
+}
+
+extend type Mutation {
+  """Create or replace Study Plan settings when expectedVersion is current."""
+  savePrepPreferences(input: SavePrepPreferencesInput!): PrepPreferences!
+}
