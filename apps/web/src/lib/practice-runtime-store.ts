@@ -39,6 +39,7 @@ import {
   type PracticeRuntimeAttemptInput,
   type PracticeRuntimeDraftChange,
   type PracticeRuntimeStart,
+  type PracticeRuntimeVisit,
 } from "./practice-runtime-types";
 
 export const PRACTICE_RUNTIME_STORE_VERSION = 1;
@@ -49,6 +50,7 @@ type PracticeRuntimeState = PersistedPracticeRuntimeState & {
   syncOwner: (userId: string | null) => void;
   start: (input: PracticeRuntimeStart) => boolean;
   restore: (remote: PracticeCloudRun) => boolean;
+  visit: (runId: string, input: PracticeRuntimeVisit) => boolean;
   changeDraft: (runId: string, input: PracticeRuntimeDraftChange) => boolean;
   appendAttempt: (
     runId: string,
@@ -132,6 +134,33 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
         if (parsed.runs.length === 0) return false;
         set({ runs: parsed.runs });
         return true;
+      },
+      visit: (runId, input) => {
+        const current = get().runs.find(
+          (run) => run.assignment.runId === runId,
+        );
+        if (
+          current?.phase !== "active" ||
+          !isIndex(input.currentIndex, current.items.length) ||
+          !isDuration(input.activeDurationMs) ||
+          input.activeDurationMs < current.activeDurationMs
+        ) {
+          return false;
+        }
+        if (
+          input.currentIndex === current.currentIndex &&
+          input.activeDurationMs === current.activeDurationMs
+        ) {
+          return true;
+        }
+        return updateRun(set, get, runId, (run) => ({
+          ...run,
+          currentIndex: input.currentIndex,
+          activeDurationMs: input.activeDurationMs,
+          checkpointDirty: true,
+          checkpointRevision: run.checkpointRevision + 1,
+          updatedAt: nextRunUpdateTime(run),
+        }));
       },
       changeDraft: (runId, input) =>
         updateRun(set, get, runId, (run) => {
@@ -424,4 +453,5 @@ export type {
   PracticeRuntimeAttemptInput,
   PracticeRuntimeDraftChange,
   PracticeRuntimeStart,
+  PracticeRuntimeVisit,
 } from "./practice-runtime-types";

@@ -101,6 +101,9 @@ export default async function TaskPage({ params, searchParams }: Props) {
   const activePracticeSet = practiceSet.includes(task.id) ? practiceSet : [];
   const workspaceSequence = sequence.map((candidate) => ({
     id: candidate.id,
+    revision: candidate.revision,
+    slot: candidate.slot,
+    topic: candidate.topic,
     href: taskHref(candidate, returnTo, activePracticeSet, practiceId),
     partCount: candidate.partCount,
     maxHints: candidate.maxHints,
@@ -117,6 +120,7 @@ export default async function TaskPage({ params, searchParams }: Props) {
       taskId={task.id}
       slot={task.slot}
       taskRevision={task.revision}
+      taskTopic={task.topic}
       topicName={workspaceTopicT(topic.slug)}
       source={task.source}
       statementHtml={statementHtml}

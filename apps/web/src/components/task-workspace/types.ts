@@ -2,6 +2,9 @@ import type { CheckPart } from "@/lib/answer";
 
 export type TaskWorkspaceItem = {
   id: string;
+  revision: string;
+  slot: number;
+  topic: string;
   href: string;
   partCount: number;
   maxHints: number;
@@ -14,6 +17,7 @@ export type TaskWorkspaceProps = {
   taskId: string;
   slot: number;
   taskRevision: string;
+  taskTopic: string;
   topicName: string;
   source: string;
   statementHtml: string;
