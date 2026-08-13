@@ -28,6 +28,7 @@ func TestRegisterHTTPRoutes(t *testing.T) {
 		{http.MethodGet, "/auth/google/callback?state=test"},
 		{http.MethodPost, "/auth/logout"},
 		{http.MethodGet, "/me"},
+		{http.MethodDelete, "/me"},
 	}
 
 	for _, prefix := range []string{"/v1", "/api/v1"} {
