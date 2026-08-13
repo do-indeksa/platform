@@ -165,7 +165,7 @@ func (h *Handler) ExchangeAuthCode(
 		h.invalidCode(w)
 		return
 	}
-	row, err := h.service.ExchangeHandoffCode(
+	exchange, err := h.service.ExchangeHandoffCode(
 		r.Context(),
 		params.Code,
 		origin,
@@ -183,13 +183,12 @@ func (h *Handler) ExchangeAuthCode(
 		h.serverError(w, err, "failed to create session")
 		return
 	}
-	if err := h.setSessionCookie(w, r, User{ID: row.UserID}); err != nil {
-		h.service.clearOAuthBinding(w, origin, params.Binding)
-		h.serverError(w, err, "failed to create session")
-		return
-	}
+	http.SetCookie(
+		w,
+		h.service.sessionCookie(exchange.SessionToken, int(sessionTTL.Seconds())),
+	)
 	h.service.clearOAuthBinding(w, origin, params.Binding)
-	http.Redirect(w, r, row.Redirect, http.StatusFound)
+	http.Redirect(w, r, exchange.Redirect, http.StatusFound)
 }
 
 func (h *Handler) exchangeBinding(
