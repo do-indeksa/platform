@@ -14,6 +14,7 @@ const TASK_ID_PATTERN = /^[a-z0-9-]{1,64}$/;
 const MAX_BLUEPRINT_LENGTH = 64;
 const MAX_REVISION_LENGTH = 128;
 const MAX_RUN_ITEMS = 100;
+const MAX_PRACTICE_ATTEMPTS_PER_ITEM = 20;
 const MAX_ANSWER_CHARACTERS = 8_192;
 const CLIENT_CLOCK_SKEW_MS = 5 * 60 * 1_000;
 const ISO_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -67,8 +68,22 @@ export function progressRunItemId(runId: string, taskId: string): string {
 }
 
 export function progressAttemptId(runItemId: string): string {
+  return progressPracticeAttemptId(runItemId, 1);
+}
+
+export function progressPracticeAttemptId(
+  runItemId: string,
+  attemptNumber: number,
+): string {
   if (!isUuid(runItemId)) throw new TypeError("run item ID must be valid");
-  return uuidV5("attempt:1", runItemId);
+  if (
+    !Number.isInteger(attemptNumber) ||
+    attemptNumber < 1 ||
+    attemptNumber > MAX_PRACTICE_ATTEMPTS_PER_ITEM
+  ) {
+    throw new TypeError("practice attempt number must be between 1 and 20");
+  }
+  return uuidV5(`attempt:${attemptNumber}`, runItemId);
 }
 
 export function progressRubricAttemptId(runItemId: string): string {
