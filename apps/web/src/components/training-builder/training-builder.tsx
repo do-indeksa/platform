@@ -51,7 +51,9 @@ export function TrainingBuilder({
   const {
     draft,
     status: draftStatus,
+    syncStatus: draftSyncStatus,
     ready: draftReady,
+    saving: draftSaving,
     commit: commitDraft,
     save: saveDraft,
   } = useTrainingBuilderDraft(ownerId, positions, blueprintVersion);
@@ -201,10 +203,33 @@ export function TrainingBuilder({
   const journalStatus = journal?.status ?? "loading";
   const canStart =
     draftReady &&
+    !draftSaving &&
     journal !== null &&
     ownerId !== undefined &&
     preview.taskIds.length > 0 &&
     !starting;
+  const accountDraft = typeof ownerId === "string";
+  const saveDraftLabel = accountDraft ? t("saveAccountDraft") : t("saveDraft");
+  const draftStatusLabel =
+    draftStatus === "saving"
+      ? t("saving")
+      : draftStatus === "saved"
+        ? accountDraft
+          ? t("savedAccount")
+          : t("saved")
+        : draftStatus === "restored"
+          ? accountDraft && draftSyncStatus === "synced"
+            ? t("restoredAccount")
+            : t("restored")
+          : draftStatus === "conflict"
+            ? t("saveConflict")
+            : draftStatus === "error"
+              ? accountDraft
+                ? t("saveAccountFailed")
+                : t("saveFailed")
+              : accountDraft
+                ? t("saveAccount")
+                : t("saveLocal");
 
   return (
     <main
@@ -233,14 +258,14 @@ export function TrainingBuilder({
           </div>
           <button
             type="button"
-            onClick={saveDraft}
-            disabled={!draftReady}
-            aria-label={t("saveDraft")}
-            title={t("saveDraft")}
+            onClick={() => void saveDraft()}
+            disabled={!draftReady || draftSaving}
+            aria-label={saveDraftLabel}
+            title={saveDraftLabel}
             className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg px-2 text-sm leading-5 text-muted hover:bg-subtle disabled:cursor-not-allowed disabled:opacity-40 md:px-3"
           >
             <Save aria-hidden size={15} strokeWidth={1.6} />
-            <span className="hidden xl:inline">{t("saveDraft")}</span>
+            <span className="hidden xl:inline">{saveDraftLabel}</span>
           </button>
         </div>
 
@@ -252,7 +277,7 @@ export function TrainingBuilder({
               quantities={draft.quantities}
               selectedTotal={selectedTotal}
               showAllPositions={visibleShowAllPositions}
-              disabled={!draftReady}
+              disabled={!draftReady || draftSaving}
               journalReady={draftReady && journal !== null}
               onPresetSelect={selectPreset}
               onReset={reset}
@@ -271,7 +296,7 @@ export function TrainingBuilder({
               quantities={draft.quantities}
               actualCounts={preview.counts}
               total={preview.taskIds.length}
-              disabled={!draftReady}
+              disabled={!draftReady || draftSaving}
               onRemove={(position) =>
                 commitDraft(setTrainingPositionQuantity(draft, position, 0))
               }
@@ -281,7 +306,7 @@ export function TrainingBuilder({
               onlyNew={draft.onlyNew}
               shuffle={draft.shuffle}
               prioritizeMistakes={draft.prioritizeMistakes}
-              disabled={!draftReady}
+              disabled={!draftReady || draftSaving}
               journalStatus={journalStatus}
               onDifficultyChange={(difficulty: TrainingBuilderDifficulty) =>
                 commitDraft({ ...draft, difficulty })
@@ -320,27 +345,17 @@ export function TrainingBuilder({
             </button>
             <button
               type="button"
-              onClick={saveDraft}
-              disabled={!draftReady}
+              onClick={() => void saveDraft()}
+              disabled={!draftReady || draftSaving}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-sm leading-5 font-semibold text-ink hover:border-brand disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Save aria-hidden size={15} strokeWidth={1.6} />
-              {draftStatus === "saved"
-                ? t("saved")
-                : draftStatus === "restored"
-                  ? t("restored")
-                  : draftStatus === "error"
-                    ? t("saveFailed")
-                    : t("saveLocal")}
+              {draftStatusLabel}
             </button>
             <p className="sr-only" role="status" aria-live="polite">
-              {draftStatus === "saved"
-                ? t("saved")
-                : draftStatus === "restored"
-                  ? t("restored")
-                  : draftStatus === "error"
-                    ? t("saveFailed")
-                    : t("selectedCount", { count: selectedTotal })}
+              {draftStatus === "idle"
+                ? t("selectedCount", { count: selectedTotal })
+                : draftStatusLabel}
             </p>
           </aside>
         </div>

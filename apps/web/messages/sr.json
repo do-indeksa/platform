@@ -295,6 +295,7 @@
     "title": "Napravi vežbanje",
     "description": "Sastavi svoj skup iz potrebnih P1 pozicija",
     "saveDraft": "Sačuvaj lokalni nacrt",
+    "saveAccountDraft": "Sačuvaj nacrt na nalogu",
     "subjectStep": "Izaberi ispit",
     "p1": "Matematika (P1)",
     "onlyP1": "Aktuelni format · {version}",
@@ -346,9 +347,15 @@
     "start": "Počni vežbanje",
     "startLabel": "Počni vežbanje sa {count} zadataka",
     "saveLocal": "Sačuvaj na ovom uređaju",
+    "saveAccount": "Sačuvaj na nalogu",
+    "saving": "Čuvanje...",
     "saved": "Sačuvano na ovom uređaju",
+    "savedAccount": "Sačuvano na nalogu",
     "restored": "Lokalni nacrt je vraćen",
+    "restoredAccount": "Nacrt sa naloga je vraćen",
+    "saveConflict": "Pregledaj izmene i sačuvaj ponovo",
     "saveFailed": "Lokalno čuvanje nije uspelo",
+    "saveAccountFailed": "Čuvanje na nalogu nije uspelo",
     "selectedCount": "Zatraženo zadataka: {count}"
   },
   "diagnostic": {
