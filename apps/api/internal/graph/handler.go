@@ -63,19 +63,12 @@ func NewHandler(resolver *Resolver) http.Handler {
 	}
 
 	server := handler.New(NewExecutableSchema(config))
-	server.AddTransport(transport.Options{})
+	server.AddTransport(transport.Options{AllowedMethods: []string{http.MethodOptions, http.MethodPost}})
 	server.AddTransport(transport.POST{})
 	server.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 	server.SetErrorPresenter(errorPresenter)
 	server.SetRecoverFunc(recoverError)
 	server.Use(extension.FixedComplexityLimit(maxGraphQLComplexity))
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.ContentLength > maxGraphQLBodyBytes {
-			http.Error(w, "request body is too large", http.StatusRequestEntityTooLarge)
-			return
-		}
-		r.Body = http.MaxBytesReader(w, r.Body, maxGraphQLBodyBytes)
-		server.ServeHTTP(w, r)
-	})
+	return strictGraphQLRequests(server)
 }
