@@ -37,7 +37,7 @@ export async function hydratePrepPreferences(
 
   try {
     const remote = await fetchServerPrepPreferences(signal);
-    if (remote !== null) return syncedState(ownerId, remote);
+    if (remote !== null) return syncedState(ownerId, remote, signal);
     if (!isComplete(local)) {
       return {
         preferences: { ...EMPTY_PREP_PREFERENCES },
@@ -49,12 +49,13 @@ export async function hydratePrepPreferences(
       return syncedState(
         ownerId,
         await saveServerPrepPreferences(0, local, signal),
+        signal,
       );
     } catch (error) {
       if (!isConflict(error)) throw error;
       const winner = await fetchServerPrepPreferences(signal);
       if (winner === null) throw error;
-      return syncedState(ownerId, winner);
+      return syncedState(ownerId, winner, signal);
     }
   } catch (error) {
     if (isAbortError(error)) throw error;
@@ -85,7 +86,7 @@ export async function savePrepPreferencesForOwner(
     if (expectedVersion === null) {
       const current = await fetchServerPrepPreferences(signal);
       if (current !== null) {
-        const state = syncedState(ownerId, current);
+        const state = syncedState(ownerId, current, signal);
         return samePreferences(current, preferences)
           ? { status: "saved", state }
           : { status: "conflict", state };
@@ -97,14 +98,14 @@ export async function savePrepPreferencesForOwner(
       preferences,
       signal,
     );
-    return { status: "saved", state: syncedState(ownerId, saved) };
+    return { status: "saved", state: syncedState(ownerId, saved, signal) };
   } catch (error) {
     if (isAbortError(error)) throw error;
     if (!isConflict(error)) return { status: "unavailable" };
     try {
       const current = await fetchServerPrepPreferences(signal);
       if (current === null) return { status: "unavailable" };
-      const state = syncedState(ownerId, current);
+      const state = syncedState(ownerId, current, signal);
       return samePreferences(current, preferences)
         ? { status: "saved", state }
         : { status: "conflict", state };
@@ -118,7 +119,9 @@ export async function savePrepPreferencesForOwner(
 function syncedState(
   ownerId: string,
   remote: ServerPrepPreferences,
+  signal?: AbortSignal,
 ): PrepPreferencesSyncState {
+  signal?.throwIfAborted();
   const preferences = {
     goalPoints: remote.goalPoints,
     examDate: remote.examDate,

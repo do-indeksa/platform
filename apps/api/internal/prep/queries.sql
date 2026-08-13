@@ -1,6 +1,6 @@
 -- name: GetPreferences :one
 select goal_points,
-       exam_date::text as exam_date,
+       to_char(exam_date, 'YYYY-MM-DD') as exam_date,
        version,
        updated_at
 from prep_preferences
@@ -11,7 +11,7 @@ insert into prep_preferences (user_id, goal_points, exam_date)
 values (sqlc.arg(user_id), sqlc.arg(goal_points), sqlc.arg(exam_date)::date)
 on conflict (user_id) do nothing
 returning goal_points,
-          exam_date::text as exam_date,
+          to_char(exam_date, 'YYYY-MM-DD') as exam_date,
           version,
           updated_at;
 
@@ -25,6 +25,6 @@ where user_id = sqlc.arg(user_id)
   and version = sqlc.arg(expected_version)
   and version < 9223372036854775807
 returning goal_points,
-          exam_date::text as exam_date,
+          to_char(exam_date, 'YYYY-MM-DD') as exam_date,
           version,
           updated_at;

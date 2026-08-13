@@ -120,11 +120,14 @@ test("Study Plan preferences sync by owner across devices", async ({
   await expect(page.getByRole("button", { name: "Edit plan" })).toHaveCount(0);
   expect(await readPreferenceReads(page)).toEqual([]);
   expect(await readPreferences(page, ownerKey(USER_B))).toBeNull();
+  await writePreferences(page, ownerKey(USER_B), {
+    goalPoints: 35,
+    examDate: DATE_B,
+  });
   releaseUserB();
 
-  await expectReadyWithGoal(page, "Not set");
+  await expectReadyWithGoal(page, "35/60 points");
   await expect(page.getByText("45/60 points", { exact: true })).toHaveCount(0);
-  await savePreferences(page, "35", DATE_B);
   expect(server.read(USER_B)).toEqual({
     goalPoints: 35,
     examDate: DATE_B,

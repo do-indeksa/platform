@@ -18,7 +18,7 @@ insert into prep_preferences (user_id, goal_points, exam_date)
 values ($1, $2, $3::date)
 on conflict (user_id) do nothing
 returning goal_points,
-          exam_date::text as exam_date,
+          to_char(exam_date, 'YYYY-MM-DD') as exam_date,
           version,
           updated_at
 `
@@ -50,7 +50,7 @@ func (q *Queries) CreatePreferences(ctx context.Context, arg CreatePreferencesPa
 
 const getPreferences = `-- name: GetPreferences :one
 select goal_points,
-       exam_date::text as exam_date,
+       to_char(exam_date, 'YYYY-MM-DD') as exam_date,
        version,
        updated_at
 from prep_preferences
@@ -86,7 +86,7 @@ where user_id = $3
   and version = $4
   and version < 9223372036854775807
 returning goal_points,
-          exam_date::text as exam_date,
+          to_char(exam_date, 'YYYY-MM-DD') as exam_date,
           version,
           updated_at
 `

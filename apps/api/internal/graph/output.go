@@ -8,8 +8,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/do-indeksa/platform/apps/api/internal/graph/model"
+	"github.com/do-indeksa/platform/apps/api/internal/prep"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
 )
+
+func graphPrepPreferences(preferences prep.Preferences) *model.PrepPreferences {
+	return &model.PrepPreferences{
+		GoalPoints: preferences.GoalPoints,
+		ExamDate:   preferences.ExamDate,
+		Version:    preferences.Version,
+		UpdatedAt:  preferences.UpdatedAt,
+	}
+}
 
 func graphRun(aggregate progress.RunAggregate) (*model.Run, error) {
 	kind, err := graphRunKind(aggregate.Run.Kind)

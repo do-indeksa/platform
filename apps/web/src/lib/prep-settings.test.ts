@@ -29,6 +29,21 @@ describe("parsePrepPreferences", () => {
       goalPoints: null,
       examDate: null,
     });
+    expect(
+      parsePrepPreferences({ goalPoints: 42, examDate: "0000-01-01" }),
+    ).toEqual({ goalPoints: 42, examDate: null });
+  });
+
+  it("keeps the complete four-digit calendar range timezone independent", () => {
+    expect(
+      parsePrepPreferences({ goalPoints: 42, examDate: "0001-01-01" }),
+    ).toEqual({ goalPoints: 42, examDate: "0001-01-01" });
+    expect(
+      parsePrepPreferences({ goalPoints: 42, examDate: "0099-12-31" }),
+    ).toEqual({ goalPoints: 42, examDate: "0099-12-31" });
+    expect(
+      parsePrepPreferences({ goalPoints: 42, examDate: "9999-12-31" }),
+    ).toEqual({ goalPoints: 42, examDate: "9999-12-31" });
   });
 });
 

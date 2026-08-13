@@ -45,12 +45,3 @@ func (r *queryResolver) PrepPreferences(ctx context.Context) (*model.PrepPrefere
 	}
 	return graphPrepPreferences(preferences), nil
 }
-
-func graphPrepPreferences(preferences prep.Preferences) *model.PrepPreferences {
-	return &model.PrepPreferences{
-		GoalPoints: preferences.GoalPoints,
-		ExamDate:   preferences.ExamDate,
-		Version:    preferences.Version,
-		UpdatedAt:  preferences.UpdatedAt,
-	}
-}
