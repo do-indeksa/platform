@@ -115,6 +115,27 @@ func (s *Service) GetRun(ctx context.Context, userID, runID uuid.UUID) (RunAggre
 	return aggregate, nil
 }
 
+func (s *Service) GetLatestSubmittedRun(
+	ctx context.Context,
+	userID uuid.UUID,
+	kind RunKind,
+) (Run, error) {
+	if !validRunKind(kind) {
+		return Run{}, invalidInput("kind")
+	}
+	run, err := s.queries.GetLatestSubmittedRun(ctx, GetLatestSubmittedRunParams{
+		UserID: userID,
+		Kind:   string(kind),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Run{}, ErrNotFound
+	}
+	if err != nil {
+		return Run{}, err
+	}
+	return run, nil
+}
+
 func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) ([]RunAggregate, error) {
 	if limit < 1 || limit > 100 {
 		return nil, invalidInput("limit")

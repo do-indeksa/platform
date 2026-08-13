@@ -104,6 +104,15 @@ from runs
 where id = $1 and user_id = $2
 for update;
 
+-- name: GetLatestSubmittedRun :one
+select *
+from runs
+where user_id = $1
+  and kind = $2
+  and status = 'submitted'
+order by submitted_at desc, id
+limit 1;
+
 -- name: RunHasAttemptAfter :one
 select exists (
     select 1

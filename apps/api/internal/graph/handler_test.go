@@ -12,6 +12,7 @@ import (
 func TestGraphQLRequiresAuthentication(t *testing.T) {
 	for _, query := range []string{
 		`query { runs { id } }`,
+		`query { latestSubmittedRun(kind: DIAGNOSTIC) { id } }`,
 		`query { completedSimulationRuns { id } }`,
 		`query { attempts { id } }`,
 	} {

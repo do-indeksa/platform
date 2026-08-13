@@ -92,6 +92,7 @@ type ComplexityRoot struct {
 	Query struct {
 		Attempts                func(childComplexity int, limit int32) int
 		CompletedSimulationRuns func(childComplexity int, limit int32) int
+		LatestSubmittedRun      func(childComplexity int, kind model.RunKind) int
 		Run                     func(childComplexity int, id string) int
 		Runs                    func(childComplexity int, limit int32) int
 	}
@@ -152,6 +153,12 @@ type ComplexityRoot struct {
 		SubmittedAt        func(childComplexity int) int
 		TaskIds            func(childComplexity int) int
 	}
+
+	SubmittedRunSummary struct {
+		ID          func(childComplexity int) int
+		Kind        func(childComplexity int) int
+		SubmittedAt func(childComplexity int) int
+	}
 }
 
 // endregion ***************************** api!.gotpl *****************************
@@ -168,6 +175,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
 	Runs(ctx context.Context, limit int32) ([]model.RunSummary, error)
+	LatestSubmittedRun(ctx context.Context, kind model.RunKind) (*model.SubmittedRunSummary, error)
 	CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error)
 	Attempts(ctx context.Context, limit int32) ([]model.Attempt, error)
 }
@@ -473,6 +481,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Query.CompletedSimulationRuns(childComplexity, args["limit"].(int32)), true
 
+	case "Query.latestSubmittedRun":
+		if e.ComplexityRoot.Query.LatestSubmittedRun == nil {
+			break
+		}
+
+		args, err := ec.field_Query_latestSubmittedRun_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.LatestSubmittedRun(childComplexity, args["kind"].(model.RunKind)), true
 	case "Query.run":
 		if e.ComplexityRoot.Query.Run == nil {
 			break
@@ -757,6 +776,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RunSummary.TaskIds(childComplexity), true
+
+	case "SubmittedRunSummary.id":
+		if e.ComplexityRoot.SubmittedRunSummary.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubmittedRunSummary.ID(childComplexity), true
+	case "SubmittedRunSummary.kind":
+		if e.ComplexityRoot.SubmittedRunSummary.Kind == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubmittedRunSummary.Kind(childComplexity), true
+	case "SubmittedRunSummary.submittedAt":
+		if e.ComplexityRoot.SubmittedRunSummary.SubmittedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubmittedRunSummary.SubmittedAt(childComplexity), true
 
 	}
 	return 0, false
@@ -1066,6 +1104,18 @@ func (ec *executionContext) childFields_RunSummary(ctx context.Context, field gr
 	return nil, fmt.Errorf("no field named %q was found under type RunSummary", field.Name)
 }
 
+func (ec *executionContext) childFields_SubmittedRunSummary(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_SubmittedRunSummary_id(ctx, field)
+	case "kind":
+		return ec.fieldContext_SubmittedRunSummary_kind(ctx, field)
+	case "submittedAt":
+		return ec.fieldContext_SubmittedRunSummary_submittedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SubmittedRunSummary", field.Name)
+}
+
 func (ec *executionContext) childFields___Directive(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "name":
@@ -1291,6 +1341,20 @@ func (ec *executionContext) field_Query_completedSimulationRuns_args(ctx context
 		return nil, err
 	}
 	args["limit"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_latestSubmittedRun_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "kind",
+		func(ctx context.Context, v any) (model.RunKind, error) {
+			return ec.unmarshalNRunKind2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunKind(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["kind"] = arg0
 	return args, nil
 }
 
@@ -2466,6 +2530,50 @@ func (ec *executionContext) fieldContext_Query_runs(ctx context.Context, field g
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_runs_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_latestSubmittedRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_latestSubmittedRun(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().LatestSubmittedRun(ctx, fc.Args["kind"].(model.RunKind))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.SubmittedRunSummary) graphql.Marshaler {
+			return ec.marshalOSubmittedRunSummary2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSubmittedRunSummary(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_latestSubmittedRun(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SubmittedRunSummary(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_latestSubmittedRun_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3648,6 +3756,75 @@ func (ec *executionContext) _RunSummary_maxPoints(ctx context.Context, field gra
 }
 func (ec *executionContext) fieldContext_RunSummary_maxPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _SubmittedRunSummary_id(ctx context.Context, field graphql.CollectedField, obj *model.SubmittedRunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubmittedRunSummary_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubmittedRunSummary_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubmittedRunSummary", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _SubmittedRunSummary_kind(ctx context.Context, field graphql.CollectedField, obj *model.SubmittedRunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubmittedRunSummary_kind(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Kind, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.RunKind) graphql.Marshaler {
+			return ec.marshalNRunKind2githubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRunKind(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubmittedRunSummary_kind(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubmittedRunSummary", field, false, false, errors.New("field of type RunKind does not have child fields"))
+}
+
+func (ec *executionContext) _SubmittedRunSummary_submittedAt(ctx context.Context, field graphql.CollectedField, obj *model.SubmittedRunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubmittedRunSummary_submittedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SubmittedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubmittedRunSummary_submittedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubmittedRunSummary", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -5593,6 +5770,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "latestSubmittedRun":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_latestSubmittedRun(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "completedSimulationRuns":
 			field := field
 
@@ -6057,6 +6256,54 @@ func (ec *executionContext) _RunSummary(ctx context.Context, sel ast.SelectionSe
 		case "maxPoints":
 			out.Values[i] = ec._RunSummary_maxPoints(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var submittedRunSummaryImplementors = []string{"SubmittedRunSummary"}
+
+func (ec *executionContext) _SubmittedRunSummary(ctx context.Context, sel ast.SelectionSet, obj *model.SubmittedRunSummary) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, submittedRunSummaryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SubmittedRunSummary")
+		case "id":
+			out.Values[i] = ec._SubmittedRunSummary_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "kind":
+			out.Values[i] = ec._SubmittedRunSummary_kind(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "submittedAt":
+			out.Values[i] = ec._SubmittedRunSummary_submittedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		default:
@@ -7162,6 +7409,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOSubmittedRunSummary2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐSubmittedRunSummary(ctx context.Context, sel ast.SelectionSet, v *model.SubmittedRunSummary) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SubmittedRunSummary(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {

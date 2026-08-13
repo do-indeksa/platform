@@ -183,6 +183,12 @@ type SubmitRunInput struct {
 	ActiveDurationMs *int64    `json:"activeDurationMs,omitempty"`
 }
 
+type SubmittedRunSummary struct {
+	ID          string    `json:"id"`
+	Kind        RunKind   `json:"kind"`
+	SubmittedAt time.Time `json:"submittedAt"`
+}
+
 type AttemptOutcome string
 
 const (

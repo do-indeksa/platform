@@ -166,6 +166,21 @@ func graphRunSummary(aggregate progress.RunAggregate) (model.RunSummary, error) 
 	return result, nil
 }
 
+func graphSubmittedRunSummary(run progress.Run) (model.SubmittedRunSummary, error) {
+	kind, err := graphRunKind(run.Kind)
+	if err != nil {
+		return model.SubmittedRunSummary{}, err
+	}
+	if progress.RunStatus(run.Status) != progress.RunStatusSubmitted || !run.SubmittedAt.Valid {
+		return model.SubmittedRunSummary{}, fmt.Errorf("run %s is not submitted", run.ID)
+	}
+	return model.SubmittedRunSummary{
+		ID:          run.ID.String(),
+		Kind:        kind,
+		SubmittedAt: run.SubmittedAt.Time,
+	}, nil
+}
+
 func graphCompletedSimulationRun(
 	aggregate progress.RunAggregate,
 ) (model.CompletedSimulationRun, error) {

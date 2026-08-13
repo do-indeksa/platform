@@ -158,6 +158,30 @@ func (r *queryResolver) Runs(ctx context.Context, limit int32) ([]model.RunSumma
 	return result, nil
 }
 
+// LatestSubmittedRun is the resolver for the latestSubmittedRun field.
+func (r *queryResolver) LatestSubmittedRun(ctx context.Context, kind model.RunKind) (*model.SubmittedRunSummary, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainKind, err := progressRunKind(kind)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	run, err := r.progress.GetLatestSubmittedRun(ctx, user.ID, domainKind)
+	if errors.Is(err, progress.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphSubmittedRunSummary(run)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return &result, nil
+}
+
 // CompletedSimulationRuns is the resolver for the completedSimulationRuns field.
 func (r *queryResolver) CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error) {
 	user, err := requestUser(ctx)

@@ -147,6 +147,97 @@ func TestRunDataIsScopedToUser(t *testing.T) {
 	}
 }
 
+func TestLatestSubmittedRunIsOwnerAndKindScopedBeyondFeedLimit(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	ownerID := seedProgressUser(t, "-owner")
+	otherID := seedProgressUser(t, "-other")
+	missingID := seedProgressUser(t, "-missing")
+	baselineStart := time.Now().Add(-6 * time.Hour).UTC().Truncate(time.Microsecond)
+
+	baseline := sampleRunInput(RunKindDiagnostic)
+	baseline.StartedAt = baselineStart
+	baseline.DeadlineAt = nil
+	if _, err := service.StartRun(ctx, ownerID, baseline); err != nil {
+		t.Fatal(err)
+	}
+	baselineSubmittedAt := baselineStart.Add(20 * time.Minute)
+	if _, err := service.SubmitRun(ctx, ownerID, SubmitRunInput{
+		ID: baseline.ID, SubmittedAt: baselineSubmittedAt,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	active := sampleRunInput(RunKindDiagnostic)
+	active.StartedAt = baselineStart.Add(4 * time.Hour)
+	active.DeadlineAt = nil
+	if _, err := service.StartRun(ctx, ownerID, active); err != nil {
+		t.Fatal(err)
+	}
+	abandoned := sampleRunInput(RunKindDiagnostic)
+	abandoned.StartedAt = baselineStart.Add(4*time.Hour + time.Minute)
+	abandoned.DeadlineAt = nil
+	if _, err := service.StartRun(ctx, ownerID, abandoned); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.AbandonRun(ctx, ownerID, AbandonRunInput{ID: abandoned.ID}); err != nil {
+		t.Fatal(err)
+	}
+
+	other := sampleRunInput(RunKindDiagnostic)
+	other.StartedAt = baselineStart.Add(5 * time.Hour)
+	other.DeadlineAt = nil
+	if _, err := service.StartRun(ctx, otherID, other); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, otherID, SubmitRunInput{
+		ID: other.ID, SubmittedAt: other.StartedAt.Add(20 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := testPool.Exec(ctx, `
+		insert into runs (
+			id, user_id, kind, status, blueprint_version, content_revision,
+			started_at, submitted_at, duration_ms
+		)
+		select gen_random_uuid(), $1, 'practice', 'submitted', 'practice-v1',
+		       'feed-window', $2::timestamptz + make_interval(mins => ordinal),
+		       $2::timestamptz + make_interval(mins => ordinal) + interval '30 seconds', 30000
+		from generate_series(1, 101) as sequence(ordinal)
+	`, ownerID, baselineStart.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
+	feed, err := service.ListRuns(ctx, ownerID, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(feed) != 100 {
+		t.Fatalf("feed length = %d, want 100", len(feed))
+	}
+	for _, run := range feed {
+		if run.Run.ID == baseline.ID {
+			t.Fatal("bounded feed unexpectedly retained the diagnostic baseline")
+		}
+	}
+
+	latest, err := service.GetLatestSubmittedRun(ctx, ownerID, RunKindDiagnostic)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if latest.ID != baseline.ID || !latest.SubmittedAt.Valid ||
+		!latest.SubmittedAt.Time.Equal(baselineSubmittedAt) {
+		t.Fatalf("unexpected latest diagnostic: %+v", latest)
+	}
+	if _, err := service.GetLatestSubmittedRun(ctx, missingID, RunKindDiagnostic); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("missing diagnostic: got %v", err)
+	}
+	if _, err := service.GetLatestSubmittedRun(ctx, ownerID, RunKind("quiz")); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("invalid kind: got %v", err)
+	}
+}
+
 func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(testPool)
