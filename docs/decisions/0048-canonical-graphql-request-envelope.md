@@ -1,4 +1,4 @@
-# 0047 - Canonical GraphQL request envelope
+# 0048 - Canonical GraphQL request envelope
 
 **Status:** accepted - 2026-08-14; extends
 [0044](0044-strict-graphql-request-framing.md) and
