@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PracticeGraphQLError,
+  abandonPracticeCloudRun,
   checkpointPracticeCloudRun,
   fetchLatestPracticeCloudRun,
   recordPracticeCloudAttempt,
@@ -65,7 +66,12 @@ describe("practice cloud client", () => {
         if (body.operationName === "RecordPracticeRunAttempt") {
           return response({ recordAttempt: { id: input.id } });
         }
-        return response({ submitRun: { id: runId, status: "SUBMITTED" } });
+        if (body.operationName === "SubmitPracticeRun") {
+          return response({ submitRun: { id: runId, status: "SUBMITTED" } });
+        }
+        return response({
+          abandonRun: { id: runId, status: "ABANDONED" },
+        });
       }),
     );
 
@@ -109,12 +115,14 @@ describe("practice cloud client", () => {
       90_000,
       () => true,
     );
+    await abandonPracticeCloudRun(runId, () => true);
 
     expect(calls.map((call) => call.operationName)).toEqual([
       "StartPracticeRun",
       "CheckpointPracticeRun",
       "RecordPracticeRunAttempt",
       "SubmitPracticeRun",
+      "AbandonPracticeRun",
     ]);
     expect(calls[0].variables.input).toMatchObject({
       id: runId,
@@ -184,6 +192,9 @@ describe("practice cloud client", () => {
         },
         () => false,
       ),
+    ).rejects.toMatchObject({ name: "AbortError" });
+    await expect(
+      abandonPracticeCloudRun(runId, () => false),
     ).rejects.toMatchObject({ name: "AbortError" });
 
     expect(fetch).not.toHaveBeenCalled();

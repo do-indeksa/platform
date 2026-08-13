@@ -97,6 +97,55 @@ describe("practice runtime sync", () => {
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
 
+  it("starts and abandons an empty run in causal order", async () => {
+    startOwned();
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(true);
+    const calls: string[] = [];
+    const transport = createTransport({
+      start: vi.fn(async () => {
+        calls.push("start");
+      }),
+      abandon: vi.fn(async () => {
+        calls.push("abandon");
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+
+    expect(calls).toEqual(["start", "abandon"]);
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
+  it("keeps an abandonment offline and resumes it after reload", async () => {
+    startOwned();
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(true);
+    let offline = true;
+    const transport = createTransport({
+      abandon: vi.fn(async () => {
+        if (offline) throw new Error("network unavailable");
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "offline" });
+    expect(currentRun()).toMatchObject({
+      phase: "abandoning",
+      startedRemotely: true,
+    });
+
+    reloadRuntime();
+    offline = false;
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+    expect(transport.start).toHaveBeenCalledTimes(1);
+    expect(transport.abandon).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps a durable flight offline and resumes it after reload", async () => {
     startOwned();
     appendAttempt(1, "incorrect", 60_000);
@@ -371,6 +420,7 @@ function createTransport(
     checkpoint: vi.fn(async (_assignment, input) => input.expectedVersion + 1),
     recordAttempt: vi.fn(async () => {}),
     submit: vi.fn(async () => {}),
+    abandon: vi.fn(async () => {}),
     fetch: vi.fn(async () => null),
     ...overrides,
   };
