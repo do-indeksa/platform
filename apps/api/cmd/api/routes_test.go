@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,6 +35,7 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 				api.Unimplemented{},
 				http.NotFoundHandler(),
 				func(context.Context) error { return nil },
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
 				tt.secure,
 			)
 			for _, endpoint := range []struct {
