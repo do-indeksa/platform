@@ -253,16 +253,6 @@ function HeaderLink({
       }`}
     >
       {label}
-      {active && (
-        <span
-          aria-hidden
-          className={`absolute bottom-0 h-0.5 bg-brand ${
-            item.key === "tasks" && locale === "ru"
-              ? "left-[7px] w-14 xl:left-[13px] xl:w-16"
-              : "-inset-x-[3px]"
-          }`}
-        />
-      )}
     </Link>
   );
 }

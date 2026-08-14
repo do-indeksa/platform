@@ -37,25 +37,25 @@ export function CabinetLatestResults({
     <section
       data-testid="cabinet-latest-results"
       aria-labelledby="cabinet-results-title"
-      className="flex h-[650px] flex-col rounded-[20px] border border-line bg-surface p-4 md:h-[548px] md:p-7 xl:h-[330px]"
+      className="flex h-[650px] flex-col items-start gap-[18px] overflow-hidden rounded-[20px] border border-line bg-surface p-6 md:h-[548px] md:p-7 xl:h-[330px]"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex h-[54px] w-full items-start justify-between md:h-8">
         <h2
           id="cabinet-results-title"
-          className="text-xl leading-7 font-bold md:text-2xl md:leading-8"
+          className="text-[22px] leading-[1.4] font-semibold"
         >
           {t("title")}
         </h2>
         <Link
           href="/history"
-          className="inline-flex items-center gap-2 text-xs font-medium text-brand hover:underline md:text-sm"
+          className="inline-flex w-[82px] items-start gap-2 text-[13px] leading-[1.4] font-medium text-brand-ink hover:underline md:w-[130px] md:justify-end"
         >
           {t("history")}
           <ArrowRight aria-hidden className="h-3.5 w-3.5" />
         </Link>
       </div>
 
-      <div className="mt-5 grid flex-1 gap-4 md:grid-rows-2 md:gap-5 xl:grid-cols-2 xl:grid-rows-1">
+      <div className="flex h-[538px] w-full flex-col gap-4 md:h-[452px] md:gap-5 xl:h-56 xl:flex-row">
         <ResultCard
           tone="mock"
           title={t("mock.title")}
@@ -69,11 +69,10 @@ export function CabinetLatestResults({
             mock?.score === null || !mock ? 0 : mock.score / exam.maxPoints
           }
           image="/cabinet/mock-checklist.png"
-          imageClass="w-[94px] md:w-[112px]"
         >
           <CabinetLinkButton
             href={mock ? "/history" : "/simulation"}
-            className="w-full md:w-[200px]"
+            className="w-[180px] md:w-[200px]"
           >
             {mock ? t("mock.analyze") : t("mock.start")}
           </CabinetLinkButton>
@@ -94,7 +93,6 @@ export function CabinetLatestResults({
           score={practiceScore.label}
           progress={practiceScore.progress}
           image="/cabinet/practice-trophy.png"
-          imageClass="w-[112px] md:w-[138px]"
         >
           <CabinetLinkButton
             href={
@@ -102,7 +100,7 @@ export function CabinetLatestResults({
                 ? taskPracticeHref(practiceTask, "/cabinet")
                 : "/tasks"
             }
-            className="w-full md:w-[200px]"
+            className="w-[180px] md:w-[200px]"
           >
             {practiceTask ? t("practice.repeat") : t("practice.start")}
           </CabinetLinkButton>
@@ -119,7 +117,6 @@ function ResultCard({
   score,
   progress,
   image,
-  imageClass,
   children,
 }: {
   tone: "mock" | "practice";
@@ -128,43 +125,44 @@ function ResultCard({
   score: string;
   progress: number;
   image: string;
-  imageClass: string;
   children: React.ReactNode;
 }) {
   return (
     <article
-      className={`relative flex min-h-0 flex-col overflow-hidden rounded-2xl p-4 md:p-6 ${
-        tone === "mock" ? "bg-subtle" : "bg-[#fff8e8]"
+      className={`flex h-[260px] w-full shrink-0 items-center justify-between overflow-hidden rounded-[18px] p-4 md:h-[216px] md:p-6 xl:h-56 xl:w-auto xl:flex-1 ${
+        tone === "mock" ? "bg-subtle" : "bg-warning-subtle"
       }`}
     >
-      <div className="relative z-10 flex h-full max-w-[72%] flex-col md:max-w-[70%] xl:max-w-[65%]">
-        <h3 className="text-base font-bold md:text-lg">{title}</h3>
-        <p className="mt-1 min-h-8 text-[11px] leading-4 text-muted md:text-xs">
-          {meta}
-        </p>
+      <div className="flex h-[220px] w-[180px] shrink-0 flex-col items-start gap-2 md:h-[172px] md:w-[350px]">
+        <h3 className="w-full text-[17px] leading-[1.4] font-semibold">
+          {title}
+        </h3>
+        <p className="w-full text-xs leading-[1.4] text-muted">{meta}</p>
         <p
-          className={`mt-1 text-[30px] leading-9 font-bold md:text-[34px] ${
-            tone === "mock" ? "text-[#4b22d5]" : "text-[#a96100]"
+          className={`w-full text-[32px] leading-[1.4] font-bold ${
+            tone === "mock" ? "text-brand-ink" : "text-warning"
           }`}
         >
           {score}
         </p>
-        <div className="mt-2 h-1 w-full max-w-[250px] overflow-hidden rounded-full bg-[#e7f8f3]">
+        <div className="h-1.5 w-40 shrink-0 overflow-hidden rounded-[3px] bg-progress-track md:w-[250px]">
           <div
-            className="h-full rounded-full bg-[#159a78]"
+            className="h-full rounded-[3px] bg-progress"
             style={{ width: `${Math.max(0, Math.min(100, progress * 100))}%` }}
           />
         </div>
-        <div className="mt-auto">{children}</div>
+        {children}
       </div>
-      <Image
-        src={image}
-        alt=""
-        width={1536}
-        height={1024}
-        sizes="140px"
-        className={`absolute right-3 bottom-12 h-auto object-contain md:right-6 md:bottom-10 ${imageClass}`}
-      />
+      <div className="flex h-[120px] w-[86px] shrink-0 items-center justify-center md:h-[170px] md:w-[180px]">
+        <Image
+          src={image}
+          alt=""
+          width={1536}
+          height={1024}
+          sizes="(max-width: 767px) 86px, 180px"
+          className="h-full w-full object-contain"
+        />
+      </div>
     </article>
   );
 }

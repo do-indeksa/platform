@@ -43,47 +43,47 @@ export function CabinetContinueCard({
     <section
       data-testid="continue-run"
       data-design-status={exact}
-      className="relative flex h-[642px] flex-col overflow-hidden rounded-[20px] bg-subtle p-6 md:h-[322px] md:flex-row md:p-8"
+      className="flex h-[642px] flex-col items-center gap-[18px] overflow-hidden rounded-[20px] bg-subtle p-6 md:h-[322px] md:flex-row md:justify-between md:gap-0 md:p-7 xl:p-8"
       aria-labelledby="cabinet-continue-title"
     >
-      <div className="relative z-10 flex min-w-0 flex-1 flex-col md:max-w-[520px] xl:max-w-[560px]">
-        <p className="text-xs font-semibold text-brand uppercase">
+      <div className="flex h-[394px] w-full min-w-0 flex-col items-start gap-3 overflow-hidden md:h-[242px] md:w-[520px] md:shrink-0 xl:w-[760px]">
+        <p className="w-full text-xs leading-[1.4] font-semibold text-brand-ink uppercase">
           {content.kicker}
         </p>
         <h2
           id="cabinet-continue-title"
-          className="mt-4 text-[30px] leading-10 font-bold md:text-[30px] md:leading-9"
+          className="max-w-[300px] text-[30px] leading-[1.4] font-bold md:max-w-none"
         >
           {content.title}
         </h2>
-        <p className="mt-3 text-sm leading-5 md:text-base">
+        <p className="w-full text-[15px] leading-[1.4]">
           {content.description}
         </p>
 
-        <div className="mt-4 flex max-w-[515px] items-center gap-4">
+        <div className="flex h-[22px] w-full items-center gap-[14px] md:h-5 md:w-[394px] xl:w-[534px]">
           <div
             role="progressbar"
             aria-label={t("progressAria")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={content.progress}
-            className="h-1 flex-1 overflow-hidden rounded-full bg-[#e7f8f3]"
+            className="h-1.5 w-[250px] shrink-0 overflow-hidden rounded-[3px] bg-progress-track md:w-[330px] xl:w-[470px]"
           >
             <div
-              className="h-full rounded-full bg-[#159a78]"
+              className="h-full rounded-[3px] bg-progress"
               style={{ width: `${content.progress}%` }}
             />
           </div>
-          <span className="w-10 text-right text-sm font-bold">
+          <span className="w-[46px] text-left text-sm leading-[1.4] font-semibold md:w-[50px]">
             {content.progress}%
           </span>
         </div>
 
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
+        <div className="flex h-[82px] w-full flex-col gap-2.5 md:h-[34px] md:w-[398px] md:flex-row">
           {content.meta.map(({ icon: Icon, label }) => (
             <div
               key={label}
-              className="flex min-h-9 items-center gap-2 rounded-[10px] bg-surface px-3 text-xs text-muted md:text-sm"
+              className="flex h-9 w-full items-center gap-2 rounded-[10px] bg-surface px-3 text-[13px] leading-[1.4] text-muted md:h-[34px] md:w-[194px]"
             >
               <Icon aria-hidden className="h-3.5 w-3.5 shrink-0" />
               <span>{label}</span>
@@ -91,25 +91,32 @@ export function CabinetContinueCard({
           ))}
         </div>
 
-        <div className="mt-3 grid gap-2 md:grid-cols-[180px_230px]">
-          <CabinetLinkButton href={content.primaryHref} variant="primary">
+        <div className="flex h-[108px] w-full flex-col gap-3 md:h-12 md:w-[422px] md:flex-row">
+          <CabinetLinkButton
+            href={content.primaryHref}
+            variant="primary"
+            className="w-full md:w-[180px]"
+          >
             {content.primaryLabel}
           </CabinetLinkButton>
-          <CabinetLinkButton href={content.secondaryHref}>
+          <CabinetLinkButton
+            href={content.secondaryHref}
+            className="w-full md:w-[230px]"
+          >
             {content.secondaryLabel}
           </CabinetLinkButton>
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 items-end justify-center pt-5 md:absolute md:inset-y-0 md:right-8 md:w-[360px] md:items-center md:pt-0 xl:right-14 xl:w-[380px]">
+      <div className="flex h-[190px] w-[260px] shrink-0 items-center justify-center md:h-[220px] xl:h-[258px] xl:w-[360px]">
         <Image
           src="/cabinet/preparation-book.png"
           alt=""
           width={1536}
           height={1024}
           priority
-          sizes="(max-width: 767px) 260px, 360px"
-          className="h-auto w-[260px] object-contain md:w-[330px] xl:w-[360px]"
+          sizes="(max-width: 767px) 260px, (max-width: 1279px) 260px, 360px"
+          className="h-full w-full object-contain"
         />
       </div>
     </section>

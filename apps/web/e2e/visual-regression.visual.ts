@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   completeSimulationRubricReview,
   diagnosticResultPath,
+  installCabinetVisualSession,
   prepareCabinetPopulated,
   prepareCabinetUnfinishedMock,
   prepareDiagnosticResult,
@@ -21,6 +22,7 @@ const surfaces: readonly VisualSurface[] = [
   {
     name: "cabinet-empty",
     path: "/cabinet",
+    beforeNavigate: installCabinetVisualSession,
     ready: async (page) => {
       await expect(
         page.getByRole("heading", {
@@ -37,6 +39,7 @@ const surfaces: readonly VisualSurface[] = [
   {
     name: "cabinet-populated",
     path: "/cabinet",
+    beforeNavigate: installCabinetVisualSession,
     prepare: prepareCabinetPopulated,
     ready: async (page) => {
       await expect(
@@ -52,6 +55,7 @@ const surfaces: readonly VisualSurface[] = [
   {
     name: "cabinet-unfinished",
     path: "/cabinet",
+    beforeNavigate: installCabinetVisualSession,
     prepare: prepareCabinetUnfinishedMock,
     ready: async (page) => {
       await expect(
@@ -171,6 +175,7 @@ for (const viewport of viewports) {
 
     for (const surface of surfaces) {
       test(surface.name, async ({ page }) => {
+        await surface.beforeNavigate?.(page);
         await page.goto(surface.path, { waitUntil: "networkidle" });
         await surface.prepare?.(page);
         await surface.ready(page);
@@ -231,6 +236,7 @@ for (const viewport of figmaViewports) {
 
     for (const state of figmaCabinetStates) {
       test(`cabinet-${state.name}`, async ({ page }) => {
+        await installCabinetVisualSession(page);
         await page.goto("/cabinet", { waitUntil: "networkidle" });
         await state.prepare?.(page);
         await state.ready(page);
@@ -250,6 +256,7 @@ for (const viewport of figmaViewports) {
 type VisualSurface = {
   name: string;
   path: string;
+  beforeNavigate?: (page: Page) => Promise<void>;
   prepare?: (page: Page) => Promise<void>;
   ready: (page: Page) => Promise<void>;
 };

@@ -9,6 +9,72 @@ import { simulationRunId, simulationTaskIds } from "./simulation-cloud-fixture";
 const FIXED_TIME = Date.parse("2026-08-11T10:00:00.000Z");
 const DIAGNOSTIC_STORAGE_KEY = "do-indeksa-diagnostic";
 const SIMULATION_STORAGE_KEY = "do-indeksa-simulation";
+const CABINET_USER_ID = "00000000-0000-4000-8000-000000000152";
+const CABINET_ATTEMPT_RUN_ID = "22222222-2222-4222-8222-222222222222";
+
+export async function installCabinetVisualSession(page: Page): Promise<void> {
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: CABINET_USER_ID,
+        email: "polina@example.test",
+        name: "Polina",
+      },
+    }),
+  );
+  await page.route("**/api/v1/attempts", (route) =>
+    route.fulfill({ status: 410 }),
+  );
+  await page.route("**/graphql", async (route) => {
+    const request = route.request().postDataJSON() as {
+      operationName?: string;
+      variables?: { input?: Record<string, unknown> };
+    };
+    const input = request.variables?.input;
+
+    switch (request.operationName) {
+      case "AttemptJournal":
+        await route.fulfill({ json: { data: { attempts: [] } } });
+        return;
+      case "CompletedSimulationArchive":
+        await route.fulfill({
+          json: { data: { completedSimulationRuns: [] } },
+        });
+        return;
+      case "SimulationRunIndex":
+      case "DiagnosticRunIndex":
+        await route.fulfill({ json: { data: { runs: [] } } });
+        return;
+      case "SimulationCloudRun":
+      case "DiagnosticCloudRun":
+        await route.fulfill({ json: { data: { run: null } } });
+        return;
+      case "StartRun":
+        await route.fulfill({
+          json: {
+            data: {
+              startRun: { id: input?.id, status: "ACTIVE" },
+            },
+          },
+        });
+        return;
+      case "CheckpointRun":
+        await route.fulfill({
+          json: {
+            data: {
+              checkpointRun: {
+                version: Number(input?.expectedVersion ?? 0) + 1,
+                currentOrdinal: input?.currentOrdinal,
+              },
+            },
+          },
+        });
+        return;
+      default:
+        await route.fulfill({ status: 500 });
+    }
+  });
+}
 
 export const diagnosticResultPath = `/diagnostic/result?run=${diagnosticRunId}&set=${diagnosticTaskIds.join("%2C")}`;
 export const simulationRunPath = `/simulation/new?run=${simulationRunId}&version=2026.1&set=${simulationTaskIds.join("%2C")}`;
@@ -16,39 +82,88 @@ export const simulationRunPath = `/simulation/new?run=${simulationRunId}&version
 let diagnosticFixturePromise: ReturnType<typeof cloudFixture> | undefined;
 
 export async function prepareCabinetPopulated(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    const attempts = ["eks-001", "eks-002", "eks-003"].map((taskId, index) => ({
-      taskId,
-      slot: 3,
-      correct: index !== 1,
-      source: "practice",
-      helpLevel: 0,
-      at: `2026-08-0${index + 1}T12:00:00.000Z`,
-    }));
-    localStorage.setItem(
-      "do-indeksa-attempts",
-      JSON.stringify({ version: 1, attempts }),
-    );
-    localStorage.setItem(
-      "do-indeksa-task-history",
-      JSON.stringify({
-        version: 2,
-        entries: [
-          {
-            id: "11111111-1111-4111-8111-111111111111",
-            taskId: "eks-003",
-            slot: 3,
-            source: "practice",
-            outcome: "correct",
-            answers: ["1"],
-            helpLevel: 0,
-            at: "2026-08-03T12:00:00.000Z",
-            ownerId: null,
+  await page.evaluate(
+    ({ ownerId, runId }) => {
+      const attemptSeeds = [
+        ["kb-001", 1, true],
+        ["kb-002", 1, true],
+        ["kb-003", 1, true],
+        ["kv-001", 2, true],
+        ["kv-002", 2, true],
+        ["kv-003", 2, true],
+        ["trig-001", 5, true],
+        ["trig-002", 5, true],
+        ["trig-003", 5, true],
+        ["plan-001", 7, true],
+        ["plan-002", 7, false],
+        ["plan-003", 7, false],
+        ["eks-001", 3, true],
+        ["eks-002", 3, false],
+        ["eks-001", 3, true],
+      ] as const;
+      const attempts = attemptSeeds.map(([taskId, slot, correct], index) => ({
+        taskId,
+        slot,
+        correct,
+        source: "practice",
+        helpLevel: 0,
+        at: `2026-05-${String(index + 1).padStart(2, "0")}T12:00:00.000Z`,
+        transport: "graphql",
+        runId,
+        ownerId,
+      }));
+      localStorage.setItem(
+        "do-indeksa-attempts",
+        JSON.stringify({ version: 2, attempts }),
+      );
+      localStorage.setItem(
+        "do-indeksa-task-history",
+        JSON.stringify({
+          version: 2,
+          entries: [
+            {
+              id: "11111111-1111-4111-8111-111111111111",
+              taskId: "kv-003",
+              slot: 2,
+              source: "practice",
+              outcome: "correct",
+              answers: ["1"],
+              helpLevel: 0,
+              at: "2026-05-16T12:00:00.000Z",
+              ownerId,
+            },
+          ],
+        }),
+      );
+      localStorage.setItem(
+        "do-indeksa-simulation",
+        JSON.stringify({
+          version: 4,
+          state: {
+            history: [
+              {
+                finishedAt: Date.parse("2026-05-18T12:00:00.000Z"),
+                score: 42,
+                taskIds: [
+                  "kb-001",
+                  "kv-001",
+                  "eks-001",
+                  "log-001",
+                  "trig-001",
+                  "vek-001",
+                  "plan-001",
+                  "ster-001",
+                  "fun-001",
+                  "komb-001",
+                ],
+              },
+            ],
           },
-        ],
-      }),
-    );
-  });
+        }),
+      );
+    },
+    { ownerId: CABINET_USER_ID, runId: CABINET_ATTEMPT_RUN_ID },
+  );
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.getByTestId("cabinet-dashboard")).toHaveAttribute(
     "data-state",
