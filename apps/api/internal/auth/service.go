@@ -189,12 +189,15 @@ func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, er
 	if time.Until(row.ExpiresAt) >= sessionTTL/2 {
 		return row.User, false, nil
 	}
-	err = s.queries.ExtendSession(ctx, ExtendSessionParams{
+	updated, err := s.queries.ExtendSession(ctx, ExtendSessionParams{
 		TokenHash: tokenHash,
 		ExpiresAt: time.Now().Add(sessionTTL),
 	})
 	if err != nil {
 		slog.Warn("session extension failed", "error", err)
+		return row.User, false, nil
+	}
+	if updated != 1 {
 		return row.User, false, nil
 	}
 	return row.User, true, nil
