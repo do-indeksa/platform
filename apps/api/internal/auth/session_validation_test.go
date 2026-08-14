@@ -15,8 +15,8 @@ func TestSessionExtensionDoesNotReviveExpiredRow(t *testing.T) {
 	session := seedSession(t, expiredAt)
 
 	updated, err := New(testPool).ExtendSession(t.Context(), ExtendSessionParams{
-		TokenHash: hashSecret(session.Value),
-		ExpiresAt: time.Now().Add(sessionTTL),
+		TokenHash:  hashSecret(session.Value),
+		TtlSeconds: sessionTTLSeconds,
 	})
 	if err != nil {
 		t.Fatal(err)

@@ -123,18 +123,15 @@ func TestExchangeRejectsStoredUnsafeReturnPathBeforeSessionIssue(t *testing.T) {
 	}
 	binding, bindingCookie := newTestOAuthBinding(t, testPreviewOrigin)
 	bindingHash, _ := decodeBindingHash(binding)
-	err = New(testPool).CreateAuthCode(context.Background(), CreateAuthCodeParams{
-		CodeHash:           hashHandoffCode(code),
-		UserID:             user.ID,
-		Origin:             ptr(testPreviewOrigin),
-		Redirect:           `/\evil.example`,
-		BrowserBindingID:   ptr(binding.ID),
-		BrowserBindingHash: bindingHash,
-		ExpiresAt:          time.Now().Add(codeTTL),
+	insertAuthCodeFixture(t, authCodeFixture{
+		codeHash:           hashHandoffCode(code),
+		userID:             user.ID,
+		origin:             ptr(testPreviewOrigin),
+		redirect:           `/\evil.example`,
+		browserBindingID:   ptr(binding.ID),
+		browserBindingHash: bindingHash,
+		expiresAt:          time.Now().Add(codeTTL),
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	res := do(
 		t,

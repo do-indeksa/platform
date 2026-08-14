@@ -274,14 +274,7 @@ func seedSession(t *testing.T, expiresAt time.Time) *http.Cookie {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = New(testPool).CreateSession(context.Background(), CreateSessionParams{
-		TokenHash: tokenHash,
-		UserID:    user.ID,
-		ExpiresAt: expiresAt,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	insertSessionFixture(t, tokenHash, user.ID, expiresAt)
 	return &http.Cookie{Name: localSessionCookieName, Value: token}
 }
 
@@ -424,12 +417,16 @@ func TestSessionSlides(t *testing.T) {
 	if refreshed.Value != session.Value || refreshed.MaxAge != int(sessionTTL.Seconds()) {
 		t.Fatalf("cookie not refreshed: %+v", refreshed)
 	}
-	row, err := New(testPool).GetSessionUser(context.Background(), hashSecret(session.Value))
+	_, err := New(testPool).GetSessionUser(context.Background(), GetSessionUserParams{
+		RefreshWindowSeconds: sessionRefreshWindowSeconds,
+		TokenHash:            hashSecret(session.Value),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if time.Until(row.ExpiresAt) < sessionTTL-time.Minute {
-		t.Fatalf("db expiry not extended: %v", row.ExpiresAt)
+	expiresAt := storedSessionExpiry(t, hashSecret(session.Value))
+	if time.Until(expiresAt) < sessionTTL-time.Minute {
+		t.Fatalf("db expiry not extended: %v", expiresAt)
 	}
 }
 
@@ -468,18 +465,15 @@ func TestExpiredHandoffCodeRejected(t *testing.T) {
 	}
 	binding, bindingCookie := newTestOAuthBinding(t, testPreviewOrigin)
 	bindingHash, _ := decodeBindingHash(binding)
-	err = New(testPool).CreateAuthCode(context.Background(), CreateAuthCodeParams{
-		CodeHash:           hashHandoffCode(code),
-		UserID:             user.ID,
-		Origin:             ptr(testPreviewOrigin),
-		Redirect:           "/prep",
-		BrowserBindingID:   ptr(binding.ID),
-		BrowserBindingHash: bindingHash,
-		ExpiresAt:          time.Now().Add(-time.Second),
+	insertAuthCodeFixture(t, authCodeFixture{
+		codeHash:           hashHandoffCode(code),
+		userID:             user.ID,
+		origin:             ptr(testPreviewOrigin),
+		redirect:           "/prep",
+		browserBindingID:   ptr(binding.ID),
+		browserBindingHash: bindingHash,
+		expiresAt:          time.Now().Add(-time.Second),
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	res := do(
 		t,

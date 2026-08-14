@@ -36,13 +36,7 @@ func seedCleanupRows(t *testing.T, sessionExpiries, authCodeExpiries []time.Time
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := queries.CreateSession(ctx, CreateSessionParams{
-			TokenHash: tokenHash,
-			UserID:    user.ID,
-			ExpiresAt: expiresAt,
-		}); err != nil {
-			t.Fatal(err)
-		}
+		insertSessionFixture(t, tokenHash, user.ID, expiresAt)
 		fixture.sessionHashes = append(fixture.sessionHashes, tokenHash)
 	}
 	for _, expiresAt := range authCodeExpiries {
@@ -50,14 +44,12 @@ func seedCleanupRows(t *testing.T, sessionExpiries, authCodeExpiries []time.Time
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := queries.CreateAuthCode(ctx, CreateAuthCodeParams{
-			CodeHash:  hashHandoffCode(code),
-			UserID:    user.ID,
-			Redirect:  "/",
-			ExpiresAt: expiresAt,
-		}); err != nil {
-			t.Fatal(err)
-		}
+		insertAuthCodeFixture(t, authCodeFixture{
+			codeHash:  hashHandoffCode(code),
+			userID:    user.ID,
+			redirect:  "/",
+			expiresAt: expiresAt,
+		})
 	}
 	return fixture
 }

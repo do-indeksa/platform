@@ -66,9 +66,9 @@ func (s *Service) IssueSession(ctx context.Context, userID uuid.UUID) (string, e
 		return "", err
 	}
 	err = s.queries.CreateSession(ctx, CreateSessionParams{
-		TokenHash: tokenHash,
-		UserID:    userID,
-		ExpiresAt: time.Now().Add(sessionTTL),
+		TokenHash:  tokenHash,
+		UserID:     userID,
+		TtlSeconds: sessionTTLSeconds,
 	})
 	if err != nil {
 		return "", err
@@ -106,7 +106,7 @@ func (s *Service) MintHandoffCode(
 		Redirect:           redirect,
 		BrowserBindingID:   &binding.ID,
 		BrowserBindingHash: bindingHash,
-		ExpiresAt:          time.Now().Add(codeTTL),
+		TtlSeconds:         codeTTLSeconds,
 	})
 	if err != nil {
 		return "", err
@@ -169,9 +169,9 @@ func (s *Service) exchangeHandoffCode(
 		return HandoffExchange{}, errInvalidReturnPath
 	}
 	if err := queries.CreateSession(ctx, CreateSessionParams{
-		TokenHash: tokenHash,
-		UserID:    row.UserID,
-		ExpiresAt: time.Now().Add(sessionTTL),
+		TokenHash:  tokenHash,
+		UserID:     row.UserID,
+		TtlSeconds: sessionTTLSeconds,
 	}); err != nil {
 		return HandoffExchange{}, err
 	}
@@ -190,16 +190,19 @@ func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, er
 	if !ok {
 		return User{}, false, pgx.ErrNoRows
 	}
-	row, err := s.queries.GetSessionUser(ctx, tokenHash)
+	row, err := s.queries.GetSessionUser(ctx, GetSessionUserParams{
+		TokenHash:            tokenHash,
+		RefreshWindowSeconds: sessionRefreshWindowSeconds,
+	})
 	if err != nil {
 		return User{}, false, err
 	}
-	if time.Until(row.ExpiresAt) >= sessionTTL/2 {
+	if !row.RefreshDue {
 		return row.User, false, nil
 	}
 	updated, err := s.queries.ExtendSession(ctx, ExtendSessionParams{
-		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(sessionTTL),
+		TokenHash:  tokenHash,
+		TtlSeconds: sessionTTLSeconds,
 	})
 	if err != nil {
 		slog.Warn("session extension failed", safelog.Error(err))
