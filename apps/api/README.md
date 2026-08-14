@@ -53,6 +53,14 @@ are reduced to a stable `502 oauth_provider_unavailable`; authorization codes,
 PKCE verifiers, access tokens, upstream URLs, headers, and bodies are never
 included in returned or logged errors.
 
+API access logs are JSON records built from a fixed allowlist: a server-generated
+request ID, normalized method, matched route template, status, response byte
+count, and duration. They never include the raw path, query, host, client
+address, headers, cookies, authorization values, or request and response bodies.
+HTTP and GraphQL panic logs retain a request ID and stack trace but omit the
+recovered value. Caller-provided request IDs are replaced and cannot inject log
+content.
+
 OAuth return paths are parsed as bounded absolute-path references rather than
 checked by string prefix. Scheme and authority forms, browser-significant
 backslashes, encoded path separators, controls, malformed escapes, and values
