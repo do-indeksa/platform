@@ -55,6 +55,36 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?connect_timeout=31",
 			wantError:   "DATABASE_URL connect_timeout must not exceed 30 seconds",
 		},
+		{
+			name:        "excessive pool maximum",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?pool_max_conns=51",
+			wantError:   "DATABASE_URL pool_max_conns must not exceed 50",
+		},
+		{
+			name:        "invalid pool maximum without parser details",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?pool_max_conns=invalid",
+			wantError:   "DATABASE_URL is invalid",
+		},
+		{
+			name:        "pool minimum above maximum",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?pool_max_conns=5&pool_min_conns=6",
+			wantError:   "DATABASE_URL pool_min_conns must be between 0 and pool_max_conns",
+		},
+		{
+			name:        "negative pool minimum",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?pool_min_conns=-1",
+			wantError:   "DATABASE_URL pool_min_conns must be between 0 and pool_max_conns",
+		},
+		{
+			name:        "idle pool minimum above maximum",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?pool_max_conns=5&pool_min_idle_conns=6",
+			wantError:   "DATABASE_URL pool_min_idle_conns must be between 0 and pool_max_conns",
+		},
+		{
+			name:        "negative idle pool minimum",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?pool_min_idle_conns=-1",
+			wantError:   "DATABASE_URL pool_min_idle_conns must be between 0 and pool_max_conns",
+		},
 	}
 
 	for _, tt := range tests {
@@ -70,6 +100,62 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 				if sensitive != "" && strings.Contains(err.Error(), sensitive) {
 					t.Errorf("configuration error disclosed %q", sensitive)
 				}
+			}
+		})
+	}
+}
+
+func TestDatabaseConfigBoundsConnectionPool(t *testing.T) {
+	tests := []struct {
+		name        string
+		databaseURL string
+		wantMax     int32
+		wantMin     int32
+		wantMinIdle int32
+	}{
+		{
+			name:        "deterministic application default",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?sslmode=require",
+			wantMax:     10,
+		},
+		{
+			name: "explicit URL pool",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa" +
+				"?sslmode=require&pool_max_conns=7&pool_min_conns=2&pool_min_idle_conns=3",
+			wantMax:     7,
+			wantMin:     2,
+			wantMinIdle: 3,
+		},
+		{
+			name: "explicit keyword pool",
+			databaseURL: "host=db.internal user=api password=password dbname=do_indeksa " +
+				"sslmode=require pool_max_conns=6 pool_min_conns=1 pool_min_idle_conns=2",
+			wantMax:     6,
+			wantMin:     1,
+			wantMinIdle: 2,
+		},
+		{
+			name:        "maximum explicit pool",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?pool_max_conns=50",
+			wantMax:     50,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("DATABASE_URL", tt.databaseURL)
+
+			cfg, err := databaseConfig()
+			if err != nil {
+				t.Fatalf("databaseConfig() error = %v", err)
+			}
+			if cfg.MaxConns != tt.wantMax || cfg.MinConns != tt.wantMin ||
+				cfg.MinIdleConns != tt.wantMinIdle {
+				t.Fatalf(
+					"pool = max %d, min %d, min idle %d; want %d, %d, %d",
+					cfg.MaxConns, cfg.MinConns, cfg.MinIdleConns,
+					tt.wantMax, tt.wantMin, tt.wantMinIdle,
+				)
 			}
 		})
 	}
