@@ -10,7 +10,7 @@ import {
   parseSimulationRunQuery,
   simulationRunHref,
 } from "@/lib/simulation-run";
-import { generateVariant, resolveVariantTaskIds } from "@/lib/variant";
+import { generateVariant, resolveExamVariantTaskIds } from "@/lib/variant";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +40,7 @@ export default async function NewSimulationPage({
     ? parseSimulationRunQuery(query, blueprint.taskCount)
     : null;
   const variant = run
-    ? await resolveVariantTaskIds(run.taskIds, run.blueprintVersion)
+    ? await resolveExamVariantTaskIds(run.taskIds, run.blueprintVersion)
     : null;
 
   if (!run || !variant) {

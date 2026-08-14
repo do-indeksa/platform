@@ -17,6 +17,20 @@ type GenerateVariantOptions = {
   random?: () => number;
 };
 
+export function isExamEligibleTask(
+  task: Pick<Task, "status" | "rubric">,
+  maxPoints: number,
+): boolean {
+  return (
+    task.status === "verified" &&
+    Number.isInteger(maxPoints) &&
+    maxPoints > 1 &&
+    task.rubric.length > 0 &&
+    task.rubric.reduce((sum, criterion) => sum + criterion.points, 0) ===
+      maxPoints - 1
+  );
+}
+
 export async function generateVariant({
   version,
   random = Math.random,
@@ -39,11 +53,15 @@ export async function generateVariant({
       )
     )
       .flat()
-      .filter((task) => !selectedIds.has(task.id));
+      .filter(
+        (task) =>
+          isExamEligibleTask(task, position.maxPoints) &&
+          !selectedIds.has(task.id),
+      );
 
     if (candidates.length === 0) {
       throw new Error(
-        `no unused published tasks for exam position ${position.number} (${position.topicSlugs.join(", ")})`,
+        `no unused exam-eligible tasks for exam position ${position.number} (${position.topicSlugs.join(", ")})`,
       );
     }
 
@@ -103,4 +121,21 @@ export async function resolveVariantTaskIds(
   }
 
   return { blueprint, tasks };
+}
+
+export async function resolveExamVariantTaskIds(
+  taskIds: readonly string[],
+  version?: string,
+): Promise<GeneratedVariant | null> {
+  const variant = await resolveVariantTaskIds(taskIds, version);
+  if (
+    !variant ||
+    variant.tasks.some(
+      ({ maxPoints, task }) => !isExamEligibleTask(task, maxPoints),
+    )
+  ) {
+    return null;
+  }
+
+  return variant;
 }

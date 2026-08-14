@@ -21,7 +21,7 @@ test("verified topics have a versioned review record", async () => {
   );
 });
 
-test("a topic review must cover every task in the topic", async () => {
+test("a topic review must cover every verified task in the topic", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "do-indeksa-review-"));
   const tasks = path.join(root, "tasks", "tema");
   const reviews = path.join(root, "reviews");
@@ -39,6 +39,35 @@ test("a topic review must cover every task in the topic", async () => {
     await assert.rejects(
       () => auditVerificationRecords(path.join(root, "tasks"), reviews),
       /review must cover every task in tema/,
+    );
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("review candidates do not invalidate an existing verified topic record", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "do-indeksa-review-"));
+  const tasks = path.join(root, "tasks", "tema");
+  const reviews = path.join(root, "reviews");
+  await fs.mkdir(tasks, { recursive: true });
+  await fs.mkdir(reviews);
+  try {
+    await Promise.all([
+      writeTask(path.join(tasks, "a.md"), "a", "verified"),
+      writeTask(path.join(tasks, "candidate.md"), "candidate", "review"),
+      fs.writeFile(
+        path.join(reviews, "complete.md"),
+        `---\nid: complete\nverifiedAt: '2026-08-11'\nmethods:\n  - source-selector-match\n  - independent-recalculation\n  - machine-check-roundtrip\n  - rendered-math-validation\ntopics:\n  - slug: tema\n    tasks: [a]\n---\n\nThis evidence covers the complete verified subset while the separate candidate remains honestly under review.\n`,
+      ),
+    ]);
+
+    assert.deepEqual(
+      await auditVerificationRecords(path.join(root, "tasks"), reviews),
+      {
+        reviewCount: 1,
+        verifiedTaskCount: 1,
+        verifiedTopicCount: 1,
+      },
     );
   } finally {
     await fs.rm(root, { recursive: true, force: true });

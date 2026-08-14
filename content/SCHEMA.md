@@ -87,10 +87,12 @@ exactly two hints and 1–6 machine-check parts, and it can emit only
 ## Verification records
 
 Changing a task to `verified` requires a Markdown record in `reviews/`. Its
-frontmatter names the verification date, methods, and complete task list for
-every promoted topic. CI rejects unrecorded verified tasks, duplicate records,
-and partial topic reviews. The record body contains concise independent
-calculation evidence; the corresponding pull request carries the review trail.
+frontmatter names the verification date, methods, and the complete `verified`
+task list for every promoted topic. Candidates that remain in `review` are not
+silently promoted merely to keep an existing topic record valid. CI rejects
+unrecorded verified tasks, duplicate records, and partial verified-topic
+reviews. The record body contains concise independent calculation evidence;
+the corresponding pull request carries the review trail.
 
 ## Immutable snapshots
 
