@@ -7,18 +7,26 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 )
 
-const defaultPort = "8080"
+const (
+	defaultPort                   = "8080"
+	defaultDatabaseConnectTimeout = 5 * time.Second
+	maxDatabaseConnectTimeout     = 30 * time.Second
+)
 
 var (
-	errDatabaseURLRequired = errors.New("DATABASE_URL is required")
-	errDatabaseURLInvalid  = errors.New("DATABASE_URL is invalid")
-	errPortInvalid         = errors.New("PORT must be a decimal number from 1 to 65535")
+	errDatabaseURLRequired           = errors.New("DATABASE_URL is required")
+	errDatabaseURLInvalid            = errors.New("DATABASE_URL is invalid")
+	errDatabaseConnectTimeoutInvalid = errors.New(
+		"DATABASE_URL connect_timeout must not exceed 30 seconds",
+	)
+	errPortInvalid = errors.New("PORT must be a decimal number from 1 to 65535")
 )
 
 type runtimeConfig struct {
@@ -90,6 +98,12 @@ func databaseConfig() (*pgxpool.Config, error) {
 	cfg, err := pgxpool.ParseConfig(raw)
 	if err != nil {
 		return nil, errDatabaseURLInvalid
+	}
+	if cfg.ConnConfig.ConnectTimeout <= 0 {
+		cfg.ConnConfig.ConnectTimeout = defaultDatabaseConnectTimeout
+	}
+	if cfg.ConnConfig.ConnectTimeout > maxDatabaseConnectTimeout {
+		return nil, errDatabaseConnectTimeoutInvalid
 	}
 	return cfg, nil
 }

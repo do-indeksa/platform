@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoadRuntimeConfigAcceptsValidEnvironment(t *testing.T) {
@@ -49,6 +50,11 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 			databaseURL: "postgresql://api:do-not-log@db.internal:invalid/do_indeksa",
 			wantError:   "DATABASE_URL is invalid",
 		},
+		{
+			name:        "excessive connection timeout",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?connect_timeout=31",
+			wantError:   "DATABASE_URL connect_timeout must not exceed 30 seconds",
+		},
 	}
 
 	for _, tt := range tests {
@@ -64,6 +70,49 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 				if sensitive != "" && strings.Contains(err.Error(), sensitive) {
 					t.Errorf("configuration error disclosed %q", sensitive)
 				}
+			}
+		})
+	}
+}
+
+func TestDatabaseConfigBoundsConnectionAttempts(t *testing.T) {
+	tests := []struct {
+		name        string
+		databaseURL string
+		wantTimeout time.Duration
+	}{
+		{
+			name:        "application default",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?sslmode=require",
+			wantTimeout: 5 * time.Second,
+		},
+		{
+			name:        "explicit positive timeout",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?sslmode=require&connect_timeout=9",
+			wantTimeout: 9 * time.Second,
+		},
+		{
+			name:        "maximum explicit timeout",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?sslmode=require&connect_timeout=30",
+			wantTimeout: 30 * time.Second,
+		},
+		{
+			name:        "explicit zero is still bounded",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?sslmode=require&connect_timeout=0",
+			wantTimeout: 5 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("DATABASE_URL", tt.databaseURL)
+
+			cfg, err := databaseConfig()
+			if err != nil {
+				t.Fatalf("databaseConfig() error = %v", err)
+			}
+			if got := cfg.ConnConfig.ConnectTimeout; got != tt.wantTimeout {
+				t.Fatalf("connect timeout = %v, want %v", got, tt.wantTimeout)
 			}
 		})
 	}

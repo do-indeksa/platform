@@ -56,17 +56,19 @@ func run() error {
 	}
 	defer pool.Close()
 
-	if err := db.Migrate(ctx, pool); err != nil {
+	authService := auth.NewService(pool, cfg.auth)
+	if err := initializeDatabase(
+		ctx,
+		databaseStartupTimeout,
+		func(ctx context.Context) error { return db.Migrate(ctx, pool) },
+		authService.CleanupExpired,
+	); err != nil {
 		return err
 	}
 
-	authService := auth.NewService(pool, cfg.auth)
 	progressService := progress.NewService(pool)
 	prepService := prep.NewService(pool)
 	trainingService := training.NewService(pool)
-	if err := authService.CleanupExpired(ctx); err != nil {
-		return err
-	}
 	go cleanupLoop(ctx, authService)
 
 	srv := apiServer{
