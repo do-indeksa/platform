@@ -44,6 +44,7 @@ apps/api/
 
 - Go: golangci-lint — govet, staticcheck, errcheck, revive; formatting via gofumpt
 - Web: ESLint (`next/core-web-vitals`) + Prettier
+- Repository: actionlint for workflows and gitleaks across complete Git history
 
 ## Testing policy
 
