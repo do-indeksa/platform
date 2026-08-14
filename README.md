@@ -54,6 +54,10 @@ Long term: a platform ready for the state matura (2028/29) — before the system
 - **tools/** — content pipeline (LaTeX → structured tasks)
 
 User data lives in Postgres; educational content lives in git.
+API access and operational logs use an allowlisted JSON schema. Operational
+errors are recorded as a stable classification and, for PostgreSQL server
+errors, an optional validated SQLSTATE; raw error text and connection metadata
+do not enter application logs.
 
 ## Run locally
 

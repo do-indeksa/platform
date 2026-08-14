@@ -117,7 +117,12 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
 9. Send synthetic canary values through callback query parameters, GraphQL
    input, route parameters, authorization and cookie headers, and an inbound
    request ID. Confirm none appears in API logs and each response carries a new
-   UUID request ID that correlates with its route-template access record.
+   UUID request ID that correlates with its route-template access record. In a
+   disposable environment, also inject unique canaries into database error
+   message and detail fields and connection user, database, and host values.
+   Operational records may contain only `error.kind` and, for PostgreSQL server
+   errors, a validated five-character uppercase alphanumeric `error.sqlstate`;
+   none of the canaries or raw error text may appear.
 
 ## Rollback
 
