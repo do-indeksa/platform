@@ -95,6 +95,7 @@ func TestAuthMigrationsRoundTrip(t *testing.T) {
 	applyMigrationsThrough(t, ctx, provider, 6)
 	assertAuthCodeCount(t, ctx, pool, 3)
 	assertAuthExpiryIndexMigrationRoundTrip(t, ctx, provider, pool, userID)
+	assertAuthCodeOwnerIndexMigrationRoundTrip(t, ctx, provider, pool, userID)
 }
 
 func assertAuthCodeCount(t *testing.T, ctx context.Context, pool *pgxpool.Pool, want int) {
