@@ -178,7 +178,10 @@ func hashHandoffCode(code string) []byte {
 }
 
 func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, error) {
-	tokenHash := hashSecret(token)
+	tokenHash, ok := sessionTokenHash(token)
+	if !ok {
+		return User{}, false, pgx.ErrNoRows
+	}
 	row, err := s.queries.GetSessionUser(ctx, tokenHash)
 	if err != nil {
 		return User{}, false, err
@@ -210,11 +213,19 @@ func (s *Service) RequestUser(r *http.Request) (User, error) {
 }
 
 func (s *Service) Logout(ctx context.Context, token string) error {
-	return s.queries.DeleteSession(ctx, hashSecret(token))
+	tokenHash, ok := sessionTokenHash(token)
+	if !ok {
+		return nil
+	}
+	return s.queries.DeleteSession(ctx, tokenHash)
 }
 
 func (s *Service) DeleteAccount(ctx context.Context, token string) (bool, error) {
-	deleted, err := s.queries.DeleteAccountBySession(ctx, hashSecret(token))
+	tokenHash, ok := sessionTokenHash(token)
+	if !ok {
+		return false, nil
+	}
+	deleted, err := s.queries.DeleteAccountBySession(ctx, tokenHash)
 	return deleted == 1, err
 }
 
