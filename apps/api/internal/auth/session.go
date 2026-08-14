@@ -30,6 +30,13 @@ func hashSecret(token string) []byte {
 	return sum[:]
 }
 
+func sessionTokenHash(token string) ([]byte, bool) {
+	if !validSecret(token) {
+		return nil, false
+	}
+	return hashSecret(token), true
+}
+
 func validSecret(value string) bool {
 	if len(value) != base64.RawURLEncoding.EncodedLen(32) {
 		return false
