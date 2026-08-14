@@ -1,0 +1,65 @@
+name: repository
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety:
+    runs-on: ubuntu-24.04
+    env:
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: apps/api/go.mod
+          cache-dependency-path: apps/api/go.sum
+      - name: Validate workflows
+        run: |
+          command -v shellcheck >/dev/null
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color=false
+      - name: Verify secret scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          canary_dir="$(mktemp -d)"
+          cleanup() {
+            find "${canary_dir}" -type f -delete
+            rmdir "${canary_dir}"
+          }
+          trap cleanup EXIT
+
+          canary_left='wA9mK2pLxN4vRtQzY6bC'
+          canary_right='8dEfGhJlM0oPq1rS'
+          canary="ghp_${canary_left}${canary_right}"
+          printf 'token = "%s"\n' "${canary}" > "${canary_dir}/secret.txt"
+          set +e
+          output="$(go run github.com/zricethezav/gitleaks/v8@v8.30.1 dir \
+            --redact --no-banner --verbose "${canary_dir}" 2>&1)"
+          status=$?
+          set -e
+
+          if [[ "${status}" -ne 1 ]] ||
+            ! grep --fixed-strings --quiet 'github-pat' <<< "${output}" ||
+            ! grep --fixed-strings --quiet 'REDACTED' <<< "${output}" ||
+            grep --fixed-strings --quiet "${canary}" <<< "${output}"; then
+            printf '%s\n' "${output}" >&2
+            echo "gitleaks failed its synthetic finding control" >&2
+            exit 1
+          fi
+      - name: Scan Git history
+        run: |
+          go run github.com/zricethezav/gitleaks/v8@v8.30.1 git \
+            --redact --no-banner --platform=github .
