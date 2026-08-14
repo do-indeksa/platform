@@ -27,8 +27,11 @@ both supported, and invalid bounds fail before pool creation with fixed errors
 that do not render the DSN.
 After startup, expired sessions and OAuth handoff codes are removed once per
 hour under one 30-second operation deadline. Migration 12 gives both
-`expires_at <= now()` predicates a dedicated B-tree index; scheduled runs stay
-serial and process cancellation stops them without an error log.
+`expires_at <= now()` predicates a dedicated B-tree index. Cleanup alternates
+1,000-row transactions between both tables and uses `FOR UPDATE SKIP LOCKED`,
+so replicas partition available rows instead of waiting on the same batch.
+Scheduled runs stay serial within one process, and process cancellation stops
+them without an error log.
 `PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
 65535. This fail-fast validation checks configuration shape, while migrations
 and `/readyz` continue to prove database availability.
