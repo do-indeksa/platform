@@ -111,6 +111,12 @@ are reduced to a stable `502 oauth_provider_unavailable`; authorization codes,
 PKCE verifiers, access tokens, upstream URLs, headers, and bodies are never
 included in returned or logged errors.
 
+Decoded Google profiles are validated before persistence. The stable `sub`
+identity must be printable ASCII within Google's 255-byte limit, email is a
+bounded address, and malformed required claims never reach PostgreSQL. Blank,
+controlled, or oversized display names fall back to email; avatar URLs outside
+the bounded HTTPS `*.googleusercontent.com` allowlist are omitted.
+
 API access logs are JSON records built from a fixed allowlist: a server-generated
 request ID, normalized method, matched route template, status, response byte
 count, and duration. They never include the raw path, query, host, client
