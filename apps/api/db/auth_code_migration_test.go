@@ -7,8 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -37,15 +35,8 @@ func TestAuthCodeBindingMigrationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	database := stdlib.OpenDBFromPool(pool)
-	t.Cleanup(func() { _ = database.Close() })
-	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		t.Fatal(err)
-	}
-	if err := goose.UpTo(database, "migrations", 5); err != nil {
-		t.Fatal(err)
-	}
+	provider := newTestMigrationProvider(t, pool)
+	applyMigrationsThrough(t, ctx, provider, 5)
 
 	userID := uuid.New()
 	if _, err := pool.Exec(ctx, `
@@ -62,9 +53,7 @@ func TestAuthCodeBindingMigrationRoundTrip(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if err := goose.UpTo(database, "migrations", 6); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 6)
 	assertAuthCodeCount(t, ctx, pool, 1)
 	if _, err := pool.Exec(ctx, `
 		insert into auth_codes (code_hash, user_id, redirect, expires_at)
@@ -97,13 +86,9 @@ func TestAuthCodeBindingMigrationRoundTrip(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if err := goose.DownTo(database, "migrations", 5); err != nil {
-		t.Fatal(err)
-	}
+	rollbackMigrationsTo(t, ctx, provider, 5)
 	assertAuthCodeCount(t, ctx, pool, 3)
-	if err := goose.UpTo(database, "migrations", 6); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 6)
 	assertAuthCodeCount(t, ctx, pool, 3)
 }
 

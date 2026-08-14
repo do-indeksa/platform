@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Migrate(testPool); err != nil {
+	if err := db.Migrate(ctx, testPool); err != nil {
 		log.Fatal(err)
 	}
 	authSvc = auth.NewService(testPool, auth.Config{CanonicalOrigin: "https://doindeksa.rs"})
