@@ -1,4 +1,4 @@
-# 0053 - Parse JSON request media types strictly
+# 0054 - Parse JSON request media types strictly
 
 **Status:** accepted - 2026-08-14.
 
