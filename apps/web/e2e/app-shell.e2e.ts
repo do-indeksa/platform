@@ -97,6 +97,27 @@ test("analytics bootstrap fails closed without runtime config", async ({
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
 });
 
+test("web responses enforce the browser security baseline", async ({
+  request,
+}) => {
+  for (const path of ["/en/tasks", "/healthz", "/analytics/bootstrap.js"]) {
+    const response = await request.get(path);
+    const headers = response.headers();
+
+    expect(headers["content-security-policy"], path).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(headers["permissions-policy"], path).toContain("camera=()");
+    expect(headers["referrer-policy"], path).toBe(
+      "strict-origin-when-cross-origin",
+    );
+    expect(headers["strict-transport-security"], path).toBe("max-age=31536000");
+    expect(headers["x-content-type-options"], path).toBe("nosniff");
+    expect(headers["x-frame-options"], path).toBe("DENY");
+    expect(headers["x-powered-by"], path).toBeUndefined();
+  }
+});
+
 for (const locale of locales) {
   for (const viewport of viewports) {
     test(`${locale.htmlLang} shell fits ${viewport.name}`, async ({ page }) => {
