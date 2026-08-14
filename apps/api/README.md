@@ -16,6 +16,10 @@ produce a fixed error without logging the DSN.
 `PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
 65535. This fail-fast validation checks configuration shape; migrations still
 prove startup database access before the server listens.
+The HTTP server accepts at most 128 KiB for the request line and request
+headers, matching the intended Cloudflare edge budget instead of Go's 1 MiB
+default. Oversized metadata is rejected before routing; GraphQL and legacy REST
+request-body limits remain separate.
 It applies embedded goose migrations before accepting traffic. OAuth redirects,
 callbacks, logout, and health use HTTP; product reads and writes use GraphQL.
 The bounded `completedSimulationRuns` projection reconstructs the latest 20
