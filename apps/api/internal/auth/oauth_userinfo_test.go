@@ -35,6 +35,12 @@ func TestOAuthUserinfoResponsesAreBoundedAndStrictlyFramed(t *testing.T) {
 			marker: "userinfo-json-secret",
 		},
 		{
+			name:   "invalid UTF-8 JSON",
+			status: http.StatusOK,
+			body:   "{\"sub\":\"invalid-utf8-profile\",\"email\":\"invalid-utf8@example.com\",\"name\":\"\xff\"}",
+			marker: "invalid-utf8-profile",
+		},
+		{
 			name:   "trailing JSON",
 			status: http.StatusOK,
 			body:   validProfile + ` "userinfo-trailing-secret"`,

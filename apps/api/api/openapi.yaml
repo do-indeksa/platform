@@ -300,11 +300,17 @@ components:
         email:
           type: string
           format: email
+          minLength: 3
+          maxLength: 320
         name:
           type: string
+          minLength: 1
+          maxLength: 256
         pictureUrl:
           type: string
           format: uri
+          minLength: 1
+          maxLength: 2048
     Error:
       type: object
       required:

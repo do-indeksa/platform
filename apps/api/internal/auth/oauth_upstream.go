@@ -2,7 +2,6 @@ package auth
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"time"
+	"unicode/utf8"
 
 	"golang.org/x/oauth2"
 )
@@ -75,7 +75,7 @@ func (s *Service) CompleteGoogleSignIn(ctx context.Context, code, verifier strin
 	return s.queries.UpsertUser(ctx, UpsertUserParams{
 		GoogleSub:  info.Sub,
 		Email:      info.Email,
-		Name:       cmp.Or(info.Name, info.Email),
+		Name:       info.Name,
 		PictureUrl: picture,
 	})
 }
@@ -104,7 +104,7 @@ func (s *Service) fetchUserinfo(ctx context.Context, token *oauth2.Token) (useri
 		return userinfo{}, providerError("userinfo status")
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxUserinfoBodyBytes+1))
-	if err != nil || len(body) > maxUserinfoBodyBytes {
+	if err != nil || len(body) > maxUserinfoBodyBytes || !utf8.Valid(body) {
 		return userinfo{}, providerError("userinfo body")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(body))
@@ -115,7 +115,8 @@ func (s *Service) fetchUserinfo(ctx context.Context, token *oauth2.Token) (useri
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
 		return userinfo{}, providerError("userinfo JSON framing")
 	}
-	if info.Sub == "" || info.Email == "" {
+	info, ok := normalizeUserinfo(info)
+	if !ok {
 		return userinfo{}, ErrInvalidUserinfo
 	}
 	return info, nil
