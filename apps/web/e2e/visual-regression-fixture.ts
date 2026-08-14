@@ -11,6 +11,19 @@ const DIAGNOSTIC_STORAGE_KEY = "do-indeksa-diagnostic";
 const SIMULATION_STORAGE_KEY = "do-indeksa-simulation";
 const CABINET_USER_ID = "00000000-0000-4000-8000-000000000152";
 const CABINET_ATTEMPT_RUN_ID = "22222222-2222-4222-8222-222222222222";
+const CABINET_SIMULATION_RUN_ID = "33333333-3333-4333-8333-333333333333";
+const CABINET_SIMULATION_TASKS = [
+  ["kb-001", "kompleksni-brojevi"],
+  ["kv-001", "kvadratna-jednacina"],
+  ["eks-001", "eksponencijalne-jednacine"],
+  ["log-001", "logaritmi"],
+  ["trig-001", "trigonometrija"],
+  ["vek-001", "vektori"],
+  ["plan-001", "planimetrija"],
+  ["ster-001", "stereometrija"],
+  ["fun-001", "funkcije"],
+  ["komb-001", "kombinatorika"],
+] as const;
 
 export async function installCabinetVisualSession(page: Page): Promise<void> {
   await page.route("**/api/v1/me", (route) =>
@@ -82,6 +95,16 @@ export const simulationRunPath = `/simulation/new?run=${simulationRunId}&version
 let diagnosticFixturePromise: ReturnType<typeof cloudFixture> | undefined;
 
 export async function prepareCabinetPopulated(page: Page): Promise<void> {
+  await page.route("**/graphql", async (route) => {
+    const request = route.request().postDataJSON() as {
+      operationName?: string;
+    };
+    if (request.operationName !== "CompletedSimulationArchive") {
+      await route.fallback();
+      return;
+    }
+    await route.fulfill({ json: cabinetSimulationArchiveResponse() });
+  });
   await page.evaluate(
     ({ ownerId, runId }) => {
       const attemptSeeds = [
@@ -135,32 +158,6 @@ export async function prepareCabinetPopulated(page: Page): Promise<void> {
           ],
         }),
       );
-      localStorage.setItem(
-        "do-indeksa-simulation",
-        JSON.stringify({
-          version: 4,
-          state: {
-            history: [
-              {
-                finishedAt: Date.parse("2026-05-18T12:00:00.000Z"),
-                score: 42,
-                taskIds: [
-                  "kb-001",
-                  "kv-001",
-                  "eks-001",
-                  "log-001",
-                  "trig-001",
-                  "vek-001",
-                  "plan-001",
-                  "ster-001",
-                  "fun-001",
-                  "komb-001",
-                ],
-              },
-            ],
-          },
-        }),
-      );
     },
     { ownerId: CABINET_USER_ID, runId: CABINET_ATTEMPT_RUN_ID },
   );
@@ -169,6 +166,36 @@ export async function prepareCabinetPopulated(page: Page): Promise<void> {
     "data-state",
     "populated",
   );
+  await expect(page.getByText("42 / 60", { exact: true })).toBeVisible();
+}
+
+function cabinetSimulationArchiveResponse() {
+  return {
+    data: {
+      completedSimulationRuns: [
+        {
+          id: CABINET_SIMULATION_RUN_ID,
+          blueprintVersion: "ftn-p1:2026.1",
+          contentRevision: `sha256:${"a".repeat(64)}`,
+          startedAt: "2026-05-18T11:00:00.000Z",
+          deadlineAt: "2026-05-18T15:00:00.000Z",
+          submittedAt: "2026-05-18T12:00:00.000Z",
+          activeDurationMs: 3_600_000,
+          items: CABINET_SIMULATION_TASKS.map(([taskId, topic], index) => ({
+            taskId,
+            examPosition: index + 1,
+            topic,
+            maxPoints: 6,
+            taskRevision: `sha256:${"b".repeat(64)}`,
+            answer: JSON.stringify([String(index + 1)]),
+            outcome: index < 7 ? "CORRECT" : "INCORRECT",
+            gradingKind: "AUTO",
+            earnedPoints: index < 7 ? 6 : 0,
+          })),
+        },
+      ],
+    },
+  };
 }
 
 export async function prepareCabinetUnfinishedMock(page: Page): Promise<void> {
