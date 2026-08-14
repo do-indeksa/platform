@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/oauth2"
 
+	"github.com/do-indeksa/platform/apps/api/internal/dbx"
 	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 )
 
@@ -148,7 +149,7 @@ func (s *Service) exchangeHandoffCode(
 	if err != nil {
 		return HandoffExchange{}, err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	defer func() { _ = dbx.Rollback(ctx, tx) }()
 
 	queries := s.queries.WithTx(tx)
 	row, err := queries.ConsumeAuthCode(ctx, params)
