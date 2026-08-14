@@ -5,12 +5,13 @@ import {
 } from "@/lib/diagnostic-check";
 import { readBoundedJson } from "@/lib/bounded-json";
 import { getTask } from "@/lib/content";
+import { isJsonMediaType } from "@/lib/json-media-type";
 
 const MAX_REQUEST_BYTES = 4_096;
 const NO_STORE_HEADERS = { "Cache-Control": "private, no-store" };
 
 export async function POST(request: Request) {
-  if (!request.headers.get("content-type")?.includes("application/json")) {
+  if (!isJsonMediaType(request.headers.get("content-type"))) {
     return json({ error: "json required" }, 415);
   }
   const body = await readBoundedJson(request, MAX_REQUEST_BYTES);
