@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/oapi-codegen/runtime/types"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
@@ -36,13 +35,8 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
-	cookie, err := h.service.requestSessionCookie(r)
-	if err != nil {
-		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
-		return
-	}
-	user, refreshed, err := h.service.SessionUser(r.Context(), cookie.Value)
-	if errors.Is(err, pgx.ErrNoRows) {
+	user, refreshedCookie, err := h.service.RequestUser(r)
+	if errors.Is(err, ErrNoSession) {
 		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
 		return
 	}
@@ -50,8 +44,8 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		h.serverError(w, err, "failed to load session")
 		return
 	}
-	if refreshed {
-		http.SetCookie(w, h.service.sessionCookie(cookie.Value, int(sessionTTL.Seconds())))
+	if refreshedCookie != nil {
+		http.SetCookie(w, refreshedCookie)
 	}
 	httpx.WriteJSON(w, http.StatusOK, api.User{
 		Id:         user.ID,

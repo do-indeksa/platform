@@ -143,7 +143,7 @@ func writeAttemptBodyTooLarge(w http.ResponseWriter) {
 }
 
 func (h *Handler) requestUser(w http.ResponseWriter, r *http.Request) (auth.User, bool) {
-	user, err := h.auth.RequestUser(r)
+	user, refreshedCookie, err := h.auth.RequestUser(r)
 	if errors.Is(err, auth.ErrNoSession) {
 		httpx.WriteError(w, http.StatusUnauthorized, "unauthorized", "no valid session")
 		return auth.User{}, false
@@ -151,6 +151,9 @@ func (h *Handler) requestUser(w http.ResponseWriter, r *http.Request) (auth.User
 	if err != nil {
 		h.serverError(w, err, "failed to load session")
 		return auth.User{}, false
+	}
+	if refreshedCookie != nil {
+		http.SetCookie(w, refreshedCookie)
 	}
 	return user, true
 }
