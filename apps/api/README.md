@@ -13,6 +13,12 @@ creating a pool, running migrations, or starting background work.
 `DATABASE_URL` must be non-empty, so an absent value cannot select a connection
 assembled entirely from ambient `PG*` variables. Malformed connection strings
 produce a fixed error without logging the DSN.
+Postgres connection attempts default to five seconds when `connect_timeout` is
+absent or zero. An explicit positive value up to 30 seconds is preserved; a
+larger value fails configuration with a fixed, credential-free error. Embedded
+migrations and initial expired-auth cleanup then share one signal-derived
+two-minute startup deadline. The HTTP listener opens only after both phases
+succeed.
 `PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
 65535. This fail-fast validation checks configuration shape, while migrations
 and `/readyz` continue to prove database availability.

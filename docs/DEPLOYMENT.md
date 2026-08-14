@@ -33,6 +33,10 @@ cluster: `GET /healthz` for dependency-free liveness and `GET /readyz` for a
 bounded Postgres readiness check. The API probe paths are not public Tunnel
 routes. The readiness probe sets `timeoutSeconds: 3` or greater so the
 application's two-second dependency deadline remains the first failure bound.
+The API does not open its listener until bounded database initialization
+finishes. A future Kubernetes `startupProbe` must therefore allow more than the
+application's two-minute initialization deadline before liveness can restart
+the container.
 
 The optional `www.doindeksa.rs` host redirects to the apex at the Cloudflare
 edge. OAuth callbacks, cookies, canonical URLs, redirects, CSP sources, and
@@ -77,6 +81,9 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
   reconciliation remain the sole production mutation path.
 - Pull requests validate only affected runtime images. Every push to `main`
   still builds and publishes both images from the same commit.
+- Keep the database `connect_timeout` at 30 seconds or less. The application
+  supplies five seconds when it is omitted and rejects a larger value before
+  opening a pool.
 
 ## Release gates
 

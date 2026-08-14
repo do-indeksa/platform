@@ -1,6 +1,7 @@
 # 0061 - Fail-fast API runtime configuration
 
-**Status:** accepted - 2026-08-14
+**Status:** accepted - 2026-08-14; connection-timeout defaults amended by
+[0064](0064-bounded-postgres-startup.md).
 
 ## Context
 
@@ -26,7 +27,7 @@ are intentionally not wrapped. Runtime wiring passes the parsed pool
 configuration to `pgxpool.NewWithConfig`, so there is no second parse or
 ambient-only fallback when the variable is empty. Pgx keeps its standard
 libpq-compatible behavior for fields omitted from a non-empty connection
-string.
+string, except for the bounded connection-timeout policy added by ADR 0064.
 
 `PORT` defaults to `8080`. An explicit value must contain only decimal digits
 and resolve to a port from 1 through 65535. The validated value is normalized
