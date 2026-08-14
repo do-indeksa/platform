@@ -115,22 +115,50 @@ func (q *Queries) DeleteAccountBySession(ctx context.Context, tokenHash []byte) 
 	return result.RowsAffected(), nil
 }
 
-const deleteExpiredAuthCodes = `-- name: DeleteExpiredAuthCodes :exec
-delete from auth_codes where expires_at <= now()
+const deleteExpiredAuthCodesBatch = `-- name: DeleteExpiredAuthCodesBatch :execrows
+with expired as (
+    select code_hash
+    from auth_codes
+    where expires_at <= now()
+    order by expires_at
+    limit $1
+    for update skip locked
+)
+delete from auth_codes
+using expired
+where auth_codes.code_hash = expired.code_hash
+    and auth_codes.expires_at <= now()
 `
 
-func (q *Queries) DeleteExpiredAuthCodes(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, deleteExpiredAuthCodes)
-	return err
+func (q *Queries) DeleteExpiredAuthCodesBatch(ctx context.Context, batchSize int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredAuthCodesBatch, batchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
-delete from sessions where expires_at <= now()
+const deleteExpiredSessionsBatch = `-- name: DeleteExpiredSessionsBatch :execrows
+with expired as (
+    select token_hash
+    from sessions
+    where expires_at <= now()
+    order by expires_at
+    limit $1
+    for update skip locked
+)
+delete from sessions
+using expired
+where sessions.token_hash = expired.token_hash
+    and sessions.expires_at <= now()
 `
 
-func (q *Queries) DeleteExpiredSessions(ctx context.Context) error {
-	_, err := q.db.Exec(ctx, deleteExpiredSessions)
-	return err
+func (q *Queries) DeleteExpiredSessionsBatch(ctx context.Context, batchSize int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredSessionsBatch, batchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const deleteSession = `-- name: DeleteSession :exec
