@@ -200,16 +200,22 @@ func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, er
 	return row.User, true, nil
 }
 
-func (s *Service) RequestUser(r *http.Request) (User, error) {
+func (s *Service) RequestUser(r *http.Request) (User, *http.Cookie, error) {
 	cookie, err := s.requestSessionCookie(r)
 	if err != nil {
-		return User{}, ErrNoSession
+		return User{}, nil, ErrNoSession
 	}
-	user, _, err := s.SessionUser(r.Context(), cookie.Value)
+	user, refreshed, err := s.SessionUser(r.Context(), cookie.Value)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return User{}, ErrNoSession
+		return User{}, nil, ErrNoSession
 	}
-	return user, err
+	if err != nil {
+		return User{}, nil, err
+	}
+	if !refreshed {
+		return user, nil, nil
+	}
+	return user, s.sessionCookie(cookie.Value, int(sessionTTL.Seconds())), nil
 }
 
 func (s *Service) Logout(ctx context.Context, token string) error {
