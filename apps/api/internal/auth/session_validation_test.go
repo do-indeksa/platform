@@ -5,9 +5,38 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 )
+
+func TestSessionExtensionDoesNotReviveExpiredRow(t *testing.T) {
+	expiredAt := time.Now().Add(-time.Hour)
+	session := seedSession(t, expiredAt)
+
+	updated, err := New(testPool).ExtendSession(t.Context(), ExtendSessionParams{
+		TokenHash: hashSecret(session.Value),
+		ExpiresAt: time.Now().Add(sessionTTL),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated != 0 {
+		t.Fatalf("updated %d expired sessions, want 0", updated)
+	}
+
+	var storedExpiry time.Time
+	if err := testPool.QueryRow(
+		t.Context(),
+		"select expires_at from sessions where token_hash = $1",
+		hashSecret(session.Value),
+	).Scan(&storedExpiry); err != nil {
+		t.Fatal(err)
+	}
+	if !storedExpiry.Before(time.Now()) {
+		t.Fatalf("expired session was revived until %v", storedExpiry)
+	}
+}
 
 func TestMalformedSessionTokensDoNotReachPersistence(t *testing.T) {
 	service := NewService(testPool, Config{})

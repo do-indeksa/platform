@@ -206,3 +206,48 @@ func TestRequestUserDoesNotRefreshCookieWhenSessionExtensionFails(t *testing.T) 
 		t.Fatalf("failed database extension produced cookie: %+v", refreshedCookie)
 	}
 }
+
+func TestRequestUserDoesNotRefreshCookieWhenSessionExtensionAffectsNoRows(t *testing.T) {
+	service := NewService(testPool, Config{})
+	session := seedSession(t, time.Now().Add(time.Hour))
+	ctx := t.Context()
+
+	if _, err := testPool.Exec(ctx, `
+		create function suppress_test_session_extension() returns trigger
+		language plpgsql as $$
+		begin
+			return null;
+		end
+		$$
+	`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = testPool.Exec(
+			context.Background(),
+			"drop trigger if exists suppress_test_session_extension on sessions",
+		)
+		_, _ = testPool.Exec(
+			context.Background(),
+			"drop function if exists suppress_test_session_extension()",
+		)
+	})
+	if _, err := testPool.Exec(ctx, `
+		create trigger suppress_test_session_extension
+		before update on sessions
+		for each row execute function suppress_test_session_extension()
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
+	request.AddCookie(session)
+	user, refreshedCookie, err := service.RequestUser(request)
+
+	if err != nil || user.ID == [16]byte{} {
+		t.Fatalf("request user: user=%+v err=%v", user, err)
+	}
+	if refreshedCookie != nil {
+		t.Fatalf("zero-row database extension produced cookie: %+v", refreshedCookie)
+	}
+}
