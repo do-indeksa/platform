@@ -51,6 +51,7 @@ apps/api/
 | ------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | Unit (table-driven) | Domain core: P1 scoring, variant generator, knowledge-map calc, score-calculator formula | Mandatory, ~80%+ — a wrong score destroys user trust      |
 | Integration         | API endpoints against real Postgres (testcontainers)                                     | Golden path per endpoint                                  |
+| Race detection      | Complete Go API suite, including database integration tests                              | Dedicated CI check, serial packages on every API change   |
 | Component           | Timer, solution reveal, answer submission (Vitest + Testing Library)                     | Critical interactions only                                |
 | Content validation  | Frontmatter, checks, LaTeX render, source hashes, provenance, verification records       | **Blocking CI check** — broken content breaks the product |
 | E2E (Playwright)    | Guest shell, practice, diagnostic, mock, plan, history, guide across responsive layouts  | Blocking critical-path regression suite                   |
