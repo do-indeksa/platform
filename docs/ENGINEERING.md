@@ -33,6 +33,7 @@ apps/api/
 - Propagate each request context through external I/O; the server execution budget must stay below its write timeout
 - Keep graceful shutdown longer than the request execution budget and deployment termination grace longer than both
 - Pass operational errors to `safelog.Error`; never give `slog` raw errors, rendered error text, database details, connection metadata, or request payloads
+- Treat preformatted standard-library and dependency log channels as untrusted; discard their messages instead of parsing or partially redacting them
 - No interfaces until a second implementation exists
 - Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
 - GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints

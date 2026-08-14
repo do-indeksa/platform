@@ -90,7 +90,11 @@ count, and duration. They never include the raw path, query, host, client
 address, headers, cookies, authorization values, or request and response bodies.
 HTTP and GraphQL panic logs retain a request ID and stack trace but omit the
 recovered value. Caller-provided request IDs are replaced and cannot inject log
-content.
+content. The Go HTTP server also uses an explicit error logger. Because
+`net/http` supplies that channel with an already rendered message, the adapter
+discards the message and emits only the fixed JSON event `http server error`
+with `error.kind=internal`; transport failures that happen before routing do not
+claim a request ID.
 
 OAuth return paths are parsed as bounded absolute-path references rather than
 checked by string prefix. Scheme and authority forms, browser-significant
