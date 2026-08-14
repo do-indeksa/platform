@@ -19,6 +19,10 @@ larger value fails configuration with a fixed, credential-free error. Embedded
 migrations and initial expired-auth cleanup then share one signal-derived
 two-minute startup deadline. The HTTP listener opens only after both phases
 succeed.
+After startup, expired sessions and OAuth handoff codes are removed once per
+hour under one 30-second operation deadline. Migration 12 gives both
+`expires_at <= now()` predicates a dedicated B-tree index; scheduled runs stay
+serial and process cancellation stops them without an error log.
 `PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
 65535. This fail-fast validation checks configuration shape, while migrations
 and `/readyz` continue to prove database availability.
