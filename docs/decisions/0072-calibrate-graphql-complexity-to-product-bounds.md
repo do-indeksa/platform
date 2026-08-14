@@ -11,10 +11,12 @@ The cost model was also inconsistent with server work. `Run.items` assumed ten
 elements although a general run may contain 100. Checkpoint drafts and summary
 task IDs had no list multiplier. Root run and history resolvers load bounded
 aggregates even when the client selects few response fields, but that mandatory
-database work contributed no weight. Raising the old ceiling without correcting
-these weights would admit cheap-looking aliases that repeat expensive reads.
+database work contributed no weight. Other database-backed query roots had no
+fixed I/O weight, and training-builder quantities had no list multiplier.
+Raising the old ceiling without correcting these weights would admit
+cheap-looking aliases that repeat expensive reads.
 
-**Decision.** The selected-operation ceiling is 32,000 weighted work units.
+**Decision.** The selected-operation ceiling is 33,500 weighted work units.
 Complexity uses the same exported domain constants as validation and
 persistence contracts:
 
@@ -24,18 +26,23 @@ persistence contracts:
   latest-attempt scan;
 - each completed simulation carries a 21-unit baseline for its run and ten
   item/attempt projections, while each journal attempt carries one unit;
+- each database-backed single-row query carries a 1,024-unit baseline, which
+  limits a minimal operation to at most 32 such root reads;
 - `Run.items`, checkpoint drafts, summary task IDs, completed-simulation items,
-  and recent attempts multiply child cost by their authoritative maxima.
+  recent attempts, and training-builder quantities multiply child cost by their
+  authoritative maxima.
 
 List arguments above their declared maximum are accounted at that maximum and
 then rejected by existing input validation. Values below one retain resolver
 validation instead of turning a malformed request into an arithmetic edge case.
 
 Integration tests execute the exact journal, practice-recovery, history, and
-archive documents used by the web client. A single bounded product operation
-must fit. Repeating a maximum practice recovery or history selection must exceed
-the ceiling and fail before session lookup or database-backed resolver work.
-Unit tests pin every multiplier and baseline to the corresponding domain bound.
+archive documents used by the web client, plus the maximum legal run projection.
+A single bounded product operation must fit. Repeating a maximum practice
+recovery or history selection, or selecting 33 one-row database roots, must
+exceed the ceiling and fail before session lookup or database-backed resolver
+work. Unit tests pin every multiplier and baseline to the corresponding domain
+bound.
 
 The 256-KiB envelope, 16-KiB document, 4,096-token parser, 1,000-entry query
 cache, POST-only transport, disabled introspection, one-command mutation rule,

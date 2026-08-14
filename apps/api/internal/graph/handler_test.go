@@ -132,7 +132,7 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 	}`
 	_, payload = graphRequest(t, "query {"+archiveQuery+"}", nil, session)
 	requireGraphSuccess(t, payload)
-	archiveAliases := make([]string, 15)
+	archiveAliases := make([]string, 16)
 	for i := range archiveAliases {
 		archiveAliases[i] = fmt.Sprintf("a%d: %s", i, archiveQuery)
 	}

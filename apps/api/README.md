@@ -60,12 +60,14 @@ lock uses a 30-second lease with a five-second heartbeat, waits for at most
 roughly one minute, and respects earlier caller cancellation. It does not rely
 on session-level advisory state. OAuth redirects, callbacks, logout, and health
 use HTTP; product reads and writes use GraphQL.
-GraphQL accepts selected operations up to 32,000 weighted work units. The cost
+GraphQL accepts selected operations up to 33,500 weighted work units. The cost
 model includes declared list maxima and mandatory resolver work: run items,
 checkpoint drafts, summary task IDs, recent attempts, and aggregate loading are
-not treated as single fields. One bounded first-party journal, recovery,
-history, or archive operation fits; repeated maximum root selections are
-rejected before session storage is accessed. This execution budget is
+not treated as single fields. Every database-backed query root has a fixed
+minimum weight, so one operation cannot hide hundreds of concurrent one-row
+reads behind cheap scalar selections. One bounded first-party journal,
+recovery, history, or archive operation fits; repeated maximum root selections
+are rejected before session storage is accessed. This execution budget is
 independent of the request-body, document-byte, parser-token, query-cache,
 request-timeout, and in-flight-request limits.
 The bounded `completedSimulationRuns` projection reconstructs the latest 20

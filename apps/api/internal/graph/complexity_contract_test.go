@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -75,6 +76,56 @@ const practiceRunProductQuery = `
 	}
 `
 
+const maximumRunProjectionQuery = `
+	query MaximumRunProjection($id: ID!) {
+		run(id: $id) {
+			id
+			kind
+			status
+			blueprintVersion
+			contentRevision
+			startedAt
+			deadlineAt
+			submittedAt
+			activeDurationMs
+			checkpoint {
+				version
+				currentOrdinal
+				activeDurationMs
+				updatedAt
+				drafts { runItemId answer }
+			}
+			items {
+				id
+				taskId
+				ordinal
+				examPosition
+				topic
+				answerPartCount
+				maxPoints
+				taskRevision
+				recentAttempts(limit: 20) {
+					id
+					runItemId
+					taskId
+					examPosition
+					mode
+					startedAt
+					submittedAt
+					activeDurationMs
+					answer
+					outcome
+					helpLevel
+					gradingKind
+					earnedPoints
+					maxPoints
+					taskRevision
+				}
+			}
+		}
+	}
+`
+
 const historyRunsSelection = `
 	runs(limit: 100) {
 		id
@@ -142,6 +193,11 @@ func TestGraphQLAcceptsBoundedProductOperations(t *testing.T) {
 			query:     practiceRunProductQuery,
 			variables: map[string]any{"id": "00000000-0000-0000-0000-000000000001"},
 		},
+		{
+			name:      "maximum run projection",
+			query:     maximumRunProjectionQuery,
+			variables: map[string]any{"id": "00000000-0000-0000-0000-000000000001"},
+		},
 		{name: "run history", query: historyRunsProductQuery},
 		{name: "completed simulation archive", query: completedSimulationArchiveProductQuery},
 	}
@@ -177,6 +233,20 @@ func TestGraphQLRejectsDuplicatedMaximumPracticeRecoveryBeforeSessionLookup(t *t
 	)
 }
 
+func TestGraphQLRejectsThirtyThreeSingleRowReadsBeforeSessionLookup(t *testing.T) {
+	session := seedGraphSession(t, "-thirty-three-root-reads")
+	aliases := make([]string, 33)
+	for index := range aliases {
+		aliases[index] = fmt.Sprintf("p%d: prepPreferences { version }", index)
+	}
+	requireComplexityRejectionBeforeSessionLookup(
+		t,
+		"query TooManyRootReads {"+strings.Join(aliases, "\n")+"}",
+		nil,
+		session,
+	)
+}
+
 func requireComplexityRejectionBeforeSessionLookup(
 	t *testing.T,
 	query string,
@@ -189,7 +259,7 @@ func requireComplexityRejectionBeforeSessionLookup(
 	response, payload := graphRequest(t, query, variables, session)
 
 	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
-		t.Fatalf("duplicated maximum operation was accepted: %+v", payload)
+		t.Fatalf("over-budget operation was accepted: %+v", payload)
 	}
 	if cookies := response.Cookies(); len(cookies) != 0 {
 		t.Fatalf("complexity rejection refreshed session cookie: %+v", cookies)

@@ -1,8 +1,12 @@
 package graph
 
-import "github.com/do-indeksa/platform/apps/api/internal/progress"
+import (
+	"github.com/do-indeksa/platform/apps/api/internal/graph/model"
+	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/training"
+)
 
-const maxGraphQLComplexity = 32_000
+const maxGraphQLComplexity = 33_500
 
 const (
 	runReadBaseComplexity = 1 + progress.MaxRunItems*(1+int(progress.MaxRecentRunItemAttempts)) +
@@ -10,6 +14,7 @@ const (
 	runSummaryReadBaseComplexity   = 1 + 2*progress.MaxRunItems
 	completedRunReadBaseComplexity = 1 + 2*progress.P1TaskCount
 	attemptReadBaseComplexity      = 1
+	singleRowReadBaseComplexity    = 1_024
 )
 
 func configureComplexity(config *Config) {
@@ -40,6 +45,15 @@ func configureComplexity(config *Config) {
 			completedRunReadBaseComplexity,
 		)
 	}
+	config.Complexity.Query.LatestSubmittedRun = func(childComplexity int, _ model.RunKind) int {
+		return singleRowReadBaseComplexity + childComplexity
+	}
+	config.Complexity.Query.PrepPreferences = func(childComplexity int) int {
+		return singleRowReadBaseComplexity + childComplexity
+	}
+	config.Complexity.Query.TrainingBuilderDraft = func(childComplexity int) int {
+		return singleRowReadBaseComplexity + childComplexity
+	}
 	config.Complexity.Run.Items = func(childComplexity int) int {
 		return progress.MaxRunItems * childComplexity
 	}
@@ -59,6 +73,9 @@ func configureComplexity(config *Config) {
 			progress.MaxRecentRunItemAttempts,
 			0,
 		)
+	}
+	config.Complexity.TrainingBuilderDraft.Quantities = func(childComplexity int) int {
+		return int(training.MaxBuilderTasks) * childComplexity
 	}
 }
 

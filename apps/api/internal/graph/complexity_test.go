@@ -3,7 +3,9 @@ package graph
 import (
 	"testing"
 
+	"github.com/do-indeksa/platform/apps/api/internal/graph/model"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
 
 func TestConfigureComplexityUsesProductBounds(t *testing.T) {
@@ -29,6 +31,23 @@ func TestConfigureComplexityUsesProductBounds(t *testing.T) {
 		config.Complexity.Query.CompletedSimulationRuns(1, progress.MaxCompletedSimulationRuns),
 		int(progress.MaxCompletedSimulationRuns)*(completedRunReadBaseComplexity+1),
 	)
+	if config.Complexity.Query.LatestSubmittedRun == nil {
+		t.Fatal("latest submitted run complexity is not configured")
+	}
+	assertComplexity(
+		t,
+		"latest submitted run",
+		config.Complexity.Query.LatestSubmittedRun(1, model.RunKindDiagnostic),
+		1_025,
+	)
+	if config.Complexity.Query.PrepPreferences == nil {
+		t.Fatal("prep preferences complexity is not configured")
+	}
+	assertComplexity(t, "prep preferences", config.Complexity.Query.PrepPreferences(1), 1_025)
+	if config.Complexity.Query.TrainingBuilderDraft == nil {
+		t.Fatal("training builder draft complexity is not configured")
+	}
+	assertComplexity(t, "training builder draft", config.Complexity.Query.TrainingBuilderDraft(1), 1_025)
 	assertComplexity(t, "run items", config.Complexity.Run.Items(1), progress.MaxRunItems)
 	assertComplexity(
 		t,
@@ -49,6 +68,23 @@ func TestConfigureComplexityUsesProductBounds(t *testing.T) {
 		config.Complexity.RunItem.RecentAttempts(1, progress.MaxRecentRunItemAttempts),
 		int(progress.MaxRecentRunItemAttempts),
 	)
+	if config.Complexity.TrainingBuilderDraft.Quantities == nil {
+		t.Fatal("training quantities complexity is not configured")
+	}
+	assertComplexity(
+		t,
+		"training quantities",
+		config.Complexity.TrainingBuilderDraft.Quantities(1),
+		int(training.MaxBuilderTasks),
+	)
+
+	const minimalSingleRowRead = 1_025
+	if 32*minimalSingleRowRead > maxGraphQLComplexity {
+		t.Fatalf("32 single-row reads exceed complexity budget %d", maxGraphQLComplexity)
+	}
+	if 33*minimalSingleRowRead <= maxGraphQLComplexity {
+		t.Fatalf("33 single-row reads fit complexity budget %d", maxGraphQLComplexity)
+	}
 }
 
 func TestBoundedListComplexityPreservesValidationAndClampsAccounting(t *testing.T) {
