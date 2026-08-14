@@ -2,17 +2,21 @@ package db
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
-func TestAuthCodeBindingMigrationRoundTrip(t *testing.T) {
+func TestAuthMigrationsRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	container, err := postgres.Run(ctx, "postgres:17-alpine",
 		postgres.WithDatabase("test"),
@@ -90,6 +94,7 @@ func TestAuthCodeBindingMigrationRoundTrip(t *testing.T) {
 	assertAuthCodeCount(t, ctx, pool, 3)
 	applyMigrationsThrough(t, ctx, provider, 6)
 	assertAuthCodeCount(t, ctx, pool, 3)
+	assertAuthExpiryIndexMigrationRoundTrip(t, ctx, provider, pool, userID)
 }
 
 func assertAuthCodeCount(t *testing.T, ctx context.Context, pool *pgxpool.Pool, want int) {
@@ -100,5 +105,71 @@ func assertAuthCodeCount(t *testing.T, ctx context.Context, pool *pgxpool.Pool, 
 	}
 	if count != want {
 		t.Fatalf("auth code count = %d, want %d", count, want)
+	}
+}
+
+func assertAuthExpiryIndexMigrationRoundTrip(
+	t *testing.T,
+	ctx context.Context,
+	provider *goose.Provider,
+	pool *pgxpool.Pool,
+	userID uuid.UUID,
+) {
+	t.Helper()
+	applyMigrationsThrough(t, ctx, provider, 11)
+	if _, err := pool.Exec(ctx, `
+		insert into sessions (token_hash, user_id, expires_at)
+		values (decode(repeat('ff', 32), 'hex'), $1, now() - interval '1 minute')`,
+		userID,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	applyMigrationsThrough(t, ctx, provider, 12)
+	assertAuthExpiryIndexes(t, ctx, pool, true)
+	rollbackMigrationsTo(t, ctx, provider, 11)
+	assertAuthExpiryIndexes(t, ctx, pool, false)
+	assertAuthCodeCount(t, ctx, pool, 3)
+	var sessions int
+	if err := pool.QueryRow(ctx, "select count(*) from sessions").Scan(&sessions); err != nil {
+		t.Fatal(err)
+	}
+	if sessions != 1 {
+		t.Fatalf("session count after index rollback = %d, want 1", sessions)
+	}
+
+	applyMigrationsThrough(t, ctx, provider, 12)
+	assertAuthExpiryIndexes(t, ctx, pool, true)
+}
+
+func assertAuthExpiryIndexes(t *testing.T, ctx context.Context, pool *pgxpool.Pool, want bool) {
+	t.Helper()
+	for _, index := range []struct {
+		name     string
+		fragment string
+	}{
+		{name: "sessions_expires_at_idx", fragment: "ON public.sessions USING btree (expires_at)"},
+		{name: "auth_codes_expires_at_idx", fragment: "ON public.auth_codes USING btree (expires_at)"},
+	} {
+		var definition string
+		err := pool.QueryRow(ctx, `
+			select indexdef
+			from pg_indexes
+			where schemaname = current_schema() and indexname = $1`,
+			index.name,
+		).Scan(&definition)
+		if !want {
+			if !errors.Is(err, pgx.ErrNoRows) {
+				t.Errorf("index %s lookup error = %v, want no rows", index.name, err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("index %s lookup: %v", index.name, err)
+			continue
+		}
+		if !strings.Contains(definition, index.fragment) {
+			t.Errorf("index %s definition = %q, want fragment %q", index.name, definition, index.fragment)
+		}
 	}
 }
