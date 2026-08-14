@@ -14,8 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/do-indeksa/platform/apps/api/db"
@@ -78,24 +76,16 @@ func run() error {
 		progressHandler: progress.NewHandler(authService, progressService),
 	}
 
-	r := chi.NewRouter()
-	r.Use(
-		middleware.RequestID,
-		middleware.Logger,
-		middleware.Recoverer,
-		middleware.NoCache,
-		auth.UnsafeRequestOriginMiddleware(authService),
-	)
-	r.Get("/healthz", handleHealth)
-	r.With(auth.RequestUserMiddleware(authService)).Handle(
-		"/graphql",
+	r := newRouter(
+		authService,
+		srv,
 		graph.NewHandler(graph.NewResolver(
 			progressService,
 			prepService,
 			trainingService,
 		)),
+		strings.HasPrefix(authCfg.CanonicalOrigin, "https://"),
 	)
-	registerHTTPRoutes(r, srv)
 
 	server := &http.Server{
 		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "8080"),
