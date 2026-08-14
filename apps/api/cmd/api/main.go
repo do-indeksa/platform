@@ -69,7 +69,13 @@ func run() error {
 	progressService := progress.NewService(pool)
 	prepService := prep.NewService(pool)
 	trainingService := training.NewService(pool)
-	go cleanupLoop(ctx, authService)
+	go cleanupLoop(
+		ctx,
+		authCleanupInterval,
+		authCleanupTimeout,
+		authService.CleanupExpired,
+		slog.Default(),
+	)
 
 	srv := apiServer{
 		authHandler:     auth.NewHandler(authService),
@@ -108,19 +114,4 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return server.Shutdown(shutdownCtx)
-}
-
-func cleanupLoop(ctx context.Context, service *auth.Service) {
-	ticker := time.NewTicker(time.Hour)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			if err := service.CleanupExpired(ctx); err != nil {
-				slog.Error("cleanup expired auth rows", "error", err)
-			}
-		}
-	}
 }
