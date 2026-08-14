@@ -68,6 +68,10 @@ cookie, preventing cross-site logout responses from deleting it.
 The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.
+Every router response carries a deny-by-default API CSP, MIME-sniffing,
+anti-framing, no-referrer, permissions, and same-origin resource policies.
+Validated HTTPS deployments also emit one-year HSTS; explicit loopback HTTP
+development omits it.
 
 Authenticated `DELETE /v1/me` (and its canonical `/api/v1/me` alias) removes
 the user selected by the current unexpired session in one SQL statement. The
