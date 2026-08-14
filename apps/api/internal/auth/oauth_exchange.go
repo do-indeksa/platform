@@ -11,6 +11,7 @@ import (
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 )
 
 const maxAuthorizationCodeBytes = 4096
@@ -113,7 +114,7 @@ func (h *Handler) writeGoogleError(w http.ResponseWriter, err error) bool {
 	case errors.Is(err, ErrInvalidUserinfo):
 		httpx.WriteError(w, http.StatusBadRequest, "userinfo_failed", "google profile is incomplete")
 	case errors.Is(err, ErrProviderUnavailable):
-		slog.Warn("sign-in provider unavailable", "error", err)
+		slog.Warn("sign-in provider unavailable", safelog.Error(err))
 		httpx.WriteError(
 			w,
 			http.StatusBadGateway,

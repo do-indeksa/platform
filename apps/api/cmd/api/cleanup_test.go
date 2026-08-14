@@ -55,10 +55,16 @@ func TestCleanupLoopBoundsScheduledWork(t *testing.T) {
 	if remaining <= 0 || remaining > timeout {
 		t.Fatalf("cleanup deadline remaining = %v, want within (0, %v]", remaining, timeout)
 	}
-	for _, fragment := range []string{"cleanup expired auth rows", "context deadline exceeded"} {
+	for _, fragment := range []string{
+		"cleanup expired auth rows",
+		`"error":{"kind":"deadline_exceeded"}`,
+	} {
 		if !strings.Contains(writer.String(), fragment) {
 			t.Errorf("cleanup log %q does not contain %q", writer.String(), fragment)
 		}
+	}
+	if strings.Contains(writer.String(), "context deadline exceeded") {
+		t.Fatalf("cleanup log contains raw error text: %s", writer.String())
 	}
 }
 

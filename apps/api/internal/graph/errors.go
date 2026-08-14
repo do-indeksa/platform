@@ -13,6 +13,7 @@ import (
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 	"github.com/do-indeksa/platform/apps/api/internal/prep"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
 
@@ -40,7 +41,11 @@ func presentError(ctx context.Context, err error) error {
 		errors.Is(err, training.ErrNotFound):
 		return codedError("NOT_FOUND", "record not found")
 	default:
-		slog.Error("graphql operation failed", "request_id", middleware.GetReqID(ctx), "error", err)
+		slog.Error(
+			"graphql operation failed",
+			"request_id", middleware.GetReqID(ctx),
+			safelog.Error(err),
+		)
 		return codedError("INTERNAL", "internal server error")
 	}
 }

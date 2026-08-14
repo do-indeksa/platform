@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 )
 
 const (
@@ -41,7 +43,7 @@ func cleanupLoop(
 			if ctx.Err() != nil {
 				return
 			}
-			logger.Error("cleanup expired auth rows", "error", err)
+			logger.Error("cleanup expired auth rows", safelog.Error(err))
 		}
 	}
 }

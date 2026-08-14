@@ -18,6 +18,7 @@ import (
 	"github.com/do-indeksa/platform/apps/api/internal/graph"
 	"github.com/do-indeksa/platform/apps/api/internal/prep"
 	"github.com/do-indeksa/platform/apps/api/internal/progress"
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 	"github.com/do-indeksa/platform/apps/api/internal/training"
 )
 
@@ -35,7 +36,7 @@ var _ api.ServerInterface = apiServer{}
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	if err := run(); err != nil {
-		slog.Error("api exited", "error", err)
+		slog.Error("api exited", safelog.Error(err))
 		os.Exit(1)
 	}
 }
