@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -147,7 +148,7 @@ func TestRequestUserUsesConfiguredSessionCookieName(t *testing.T) {
 
 	request := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
 	request.AddCookie(localCookie)
-	if _, err := service.RequestUser(request); !errors.Is(err, ErrNoSession) {
+	if _, _, err := service.RequestUser(request); !errors.Is(err, ErrNoSession) {
 		t.Fatalf("legacy cookie authenticated HTTPS request: %v", err)
 	}
 
@@ -155,8 +156,53 @@ func TestRequestUserUsesConfiguredSessionCookieName(t *testing.T) {
 	secureCookie.Name = SessionCookieName
 	request = httptest.NewRequest(http.MethodGet, "/v1/me", nil)
 	request.AddCookie(&secureCookie)
-	user, err := service.RequestUser(request)
+	user, _, err := service.RequestUser(request)
 	if err != nil || user.ID == [16]byte{} {
 		t.Fatalf("host-prefixed cookie failed authentication: user=%+v err=%v", user, err)
+	}
+}
+
+func TestRequestUserDoesNotRefreshCookieWhenSessionExtensionFails(t *testing.T) {
+	service := NewService(testPool, Config{})
+	session := seedSession(t, time.Now().Add(time.Hour))
+	ctx := t.Context()
+
+	if _, err := testPool.Exec(ctx, `
+		create function fail_test_session_extension() returns trigger
+		language plpgsql as $$
+		begin
+			raise exception 'test session extension failure';
+		end
+		$$
+	`); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = testPool.Exec(
+			context.Background(),
+			"drop trigger if exists fail_test_session_extension on sessions",
+		)
+		_, _ = testPool.Exec(
+			context.Background(),
+			"drop function if exists fail_test_session_extension()",
+		)
+	})
+	if _, err := testPool.Exec(ctx, `
+		create trigger fail_test_session_extension
+		before update on sessions
+		for each row execute function fail_test_session_extension()
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	request := httptest.NewRequest(http.MethodGet, "/v1/me", nil)
+	request.AddCookie(session)
+	user, refreshedCookie, err := service.RequestUser(request)
+
+	if err != nil || user.ID == [16]byte{} {
+		t.Fatalf("request user: user=%+v err=%v", user, err)
+	}
+	if refreshedCookie != nil {
+		t.Fatalf("failed database extension produced cookie: %+v", refreshedCookie)
 	}
 }
