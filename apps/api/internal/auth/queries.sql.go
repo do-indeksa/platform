@@ -142,8 +142,10 @@ func (q *Queries) DeleteSession(ctx context.Context, tokenHash []byte) error {
 	return err
 }
 
-const extendSession = `-- name: ExtendSession :exec
-update sessions set expires_at = $2 where token_hash = $1
+const extendSession = `-- name: ExtendSession :execrows
+update sessions
+set expires_at = $2
+where token_hash = $1 and expires_at > now()
 `
 
 type ExtendSessionParams struct {
@@ -151,9 +153,12 @@ type ExtendSessionParams struct {
 	ExpiresAt time.Time
 }
 
-func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) error {
-	_, err := q.db.Exec(ctx, extendSession, arg.TokenHash, arg.ExpiresAt)
-	return err
+func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, extendSession, arg.TokenHash, arg.ExpiresAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getSessionUser = `-- name: GetSessionUser :one
