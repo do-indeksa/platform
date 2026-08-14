@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestGraphQLRequiresAuthentication(t *testing.T) {
@@ -23,6 +24,7 @@ func TestGraphQLRequiresAuthentication(t *testing.T) {
 
 func TestGraphQLRejectsCrossOriginSessionMutation(t *testing.T) {
 	session := seedGraphSession(t, "")
+	setGraphSessionExpiry(t, session, time.Now().Add(24*time.Hour))
 	body := strings.NewReader(`{"query":"mutation($input: AbandonRunInput!) { abandonRun(input: $input) { id } }","variables":{"input":{"id":"00000000-0000-0000-0000-000000000000"}}}`)
 	request := httptest.NewRequest(http.MethodPost, "/graphql", body)
 	request.Header.Set("Content-Type", "application/json")
@@ -35,6 +37,9 @@ func TestGraphQLRejectsCrossOriginSessionMutation(t *testing.T) {
 
 	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
 		t.Fatalf("cross-origin mutation returned %d: %s", response.Code, response.Body.String())
+	}
+	if cookies := response.Result().Cookies(); len(cookies) != 0 {
+		t.Fatalf("cross-origin rejection refreshed session cookie: %+v", cookies)
 	}
 }
 
