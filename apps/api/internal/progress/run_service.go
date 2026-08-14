@@ -137,7 +137,7 @@ func (s *Service) GetLatestSubmittedRun(
 }
 
 func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) ([]RunAggregate, error) {
-	if limit < 1 || limit > 100 {
+	if limit < 1 || limit > MaxRunSummaries {
 		return nil, invalidInput("limit")
 	}
 	runs, err := s.queries.ListRuns(ctx, ListRunsParams{UserID: userID, Limit: limit})

@@ -10,7 +10,6 @@ import (
 const (
 	clientClockSkew         = 5 * time.Minute
 	p1SimulationDuration    = 4 * time.Hour
-	p1TaskCount             = 10
 	p1SimulationTotalPoints = int16(60)
 	maxPracticeTaskCount    = 30
 	maxAnswerPartCount      = int16(6)
@@ -58,11 +57,11 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			return StartRunInput{}, invalidInput("deadlineAt")
 		}
 		input.DeadlineAt = &expectedDeadline
-		if len(input.Items) != p1TaskCount {
+		if len(input.Items) != P1TaskCount {
 			return StartRunInput{}, invalidInput("items")
 		}
 	}
-	if len(input.Items) == 0 || len(input.Items) > maxRunItems {
+	if len(input.Items) == 0 || len(input.Items) > MaxRunItems {
 		return StartRunInput{}, invalidInput("items")
 	}
 	snapshottedItems := 0
@@ -79,7 +78,7 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 	strictDiagnostic := input.Kind == RunKindDiagnostic && snapshottedItems > 0
 	strictPractice := input.Kind == RunKindPractice && snapshottedItems > 0
 	if strictDiagnostic {
-		if len(input.Items) != p1TaskCount {
+		if len(input.Items) != P1TaskCount {
 			return StartRunInput{}, invalidInput("items")
 		}
 		if !p1BlueprintPattern.MatchString(input.BlueprintVersion) {

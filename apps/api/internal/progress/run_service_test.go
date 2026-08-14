@@ -332,7 +332,7 @@ func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(runs) != 1 || runs[0].Run.ID != archived.ID || len(runs[0].Items) != p1TaskCount ||
+	if len(runs) != 1 || runs[0].Run.ID != archived.ID || len(runs[0].Items) != P1TaskCount ||
 		len(runs[0].Attempts) != 1 || runs[0].Attempts[0].Answer == nil ||
 		*runs[0].Attempts[0].Answer != latestAnswer {
 		t.Fatalf("unexpected completed simulation archive: %+v", runs)
@@ -641,7 +641,7 @@ func sampleRunInput(kind RunKind) StartRunInput {
 	}
 	input.BlueprintVersion = "ftn-p1:2026.1"
 	input.ContentRevision = "sha256:" + strings.Repeat("a", 64)
-	input.Items = make([]NewRunItem, p1TaskCount)
+	input.Items = make([]NewRunItem, P1TaskCount)
 	for index := range input.Items {
 		points := int16(6)
 		input.Items[index] = NewRunItem{
