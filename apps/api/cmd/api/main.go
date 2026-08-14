@@ -1,11 +1,8 @@
 package main
 
 import (
-	"cmp"
 	"context"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -43,15 +40,15 @@ func main() {
 }
 
 func run() error {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	authCfg, err := authConfig()
+	cfg, err := loadRuntimeConfig()
 	if err != nil {
 		return err
 	}
 
-	pool, err := pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	pool, err := pgxpool.NewWithConfig(ctx, cfg.database)
 	if err != nil {
 		return err
 	}
@@ -61,7 +58,7 @@ func run() error {
 		return err
 	}
 
-	authService := auth.NewService(pool, authCfg)
+	authService := auth.NewService(pool, cfg.auth)
 	progressService := progress.NewService(pool)
 	trainingService := training.NewService(pool)
 	if err := authService.CleanupExpired(ctx); err != nil {
@@ -81,11 +78,11 @@ func run() error {
 			progressService,
 			trainingService,
 		)),
-		strings.HasPrefix(authCfg.CanonicalOrigin, "https://"),
+		strings.HasPrefix(cfg.auth.CanonicalOrigin, "https://"),
 	)
 
 	server := &http.Server{
-		Addr:              ":" + cmp.Or(os.Getenv("PORT"), "8080"),
+		Addr:              cfg.listenAddress,
 		Handler:           r,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
@@ -110,38 +107,6 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return server.Shutdown(shutdownCtx)
-}
-
-func authConfig() (auth.Config, error) {
-	secret, err := hex.DecodeString(os.Getenv("AUTH_SECRET"))
-	if err != nil || len(secret) != 32 {
-		return auth.Config{}, errors.New("AUTH_SECRET must be 64 hex characters")
-	}
-	cfg := auth.Config{
-		ClientID:            os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret:        os.Getenv("GOOGLE_CLIENT_SECRET"),
-		Secret:              secret,
-		CanonicalOrigin:     os.Getenv("CANONICAL_WEB_ORIGIN"),
-		PreviewOriginSuffix: os.Getenv("PREVIEW_ORIGIN_SUFFIX"),
-	}
-	if rawOrigins := os.Getenv("EXTRA_WEB_ORIGINS"); rawOrigins != "" {
-		for origin := range strings.SplitSeq(rawOrigins, ",") {
-			cfg.ExtraOrigins = append(cfg.ExtraOrigins, origin)
-		}
-	}
-	for name, value := range map[string]string{
-		"GOOGLE_CLIENT_ID":     cfg.ClientID,
-		"GOOGLE_CLIENT_SECRET": cfg.ClientSecret,
-		"CANONICAL_WEB_ORIGIN": cfg.CanonicalOrigin,
-	} {
-		if value == "" {
-			return auth.Config{}, fmt.Errorf("%s is required", name)
-		}
-	}
-	if err := auth.ValidateConfig(cfg); err != nil {
-		return auth.Config{}, err
-	}
-	return cfg, nil
 }
 
 func cleanupLoop(ctx context.Context, service *auth.Service) {
