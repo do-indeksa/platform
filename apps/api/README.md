@@ -32,6 +32,14 @@ serial and process cancellation stops them without an error log.
 `PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
 65535. This fail-fast validation checks configuration shape, while migrations
 and `/readyz` continue to prove database availability.
+`MAX_IN_FLIGHT_REQUESTS` defaults to 64 per process and accepts an explicit
+decimal value from 1 through 256. The limit covers GraphQL, OAuth, account, and
+legacy product routes after the shared request ID, access log, recovery,
+security-header, and origin middleware. Excess work is not queued: it receives
+a fixed `503 server_busy` JSON response with `Retry-After: 1` before entering an
+application handler. `/healthz` and `/readyz` remain outside the limiter so the
+platform can still observe a saturated process. This admission bound is not a
+per-client rate limit, retry policy, or global limit across replicas.
 The HTTP server accepts at most 128 KiB for the complete request line and
 headers, matching the intended Cloudflare header budget instead of Go's 1 MiB
 default. Within that aggregate budget, the raw request target is independently
