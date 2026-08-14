@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/do-indeksa/platform/apps/api/internal/auth"
 )
 
 func TestGraphQLRejectsTransportAndProtocolInputBeforeSessionLookup(t *testing.T) {
@@ -94,5 +96,23 @@ func TestGraphQLResolvesSessionOnceForMultipleRootFields(t *testing.T) {
 	}
 	if after := graphTestPool.Stat().AcquireCount(); after != before+1 {
 		t.Fatalf("pool acquire count = %d, want %d", after, before+1)
+	}
+}
+
+func TestGraphQLRejectsMalformedSessionBeforeDatabaseLookup(t *testing.T) {
+	session := &http.Cookie{
+		Name:  auth.SessionCookieName,
+		Value: "invalid-session-token",
+	}
+	before := graphTestPool.Stat().AcquireCount()
+
+	response, payload := graphRequest(t, `query { prepPreferences { version } }`, nil, session)
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
+	}
+	requireGraphCode(t, payload, "UNAUTHENTICATED")
+	if after := graphTestPool.Stat().AcquireCount(); after != before {
+		t.Fatalf("pool acquire count changed from %d to %d", before, after)
 	}
 }
