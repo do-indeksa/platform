@@ -40,27 +40,48 @@ func TestRequestContextUserWithoutMiddleware(t *testing.T) {
 
 func TestRequestUserMiddlewareResolvesSessionOncePerRequest(t *testing.T) {
 	service := NewService(testPool, Config{})
+	unknownToken, _, err := newSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
-		name    string
-		cookie  *http.Cookie
-		wantErr error
+		name         string
+		cookie       *http.Cookie
+		wantErr      error
+		wantAcquires int64
 	}{
 		{
-			name:   "authenticated",
-			cookie: seedSession(t, time.Now().Add(sessionTTL)),
+			name:         "authenticated",
+			cookie:       seedSession(t, time.Now().Add(sessionTTL)),
+			wantAcquires: 1,
 		},
 		{
-			name: "invalid session",
+			name: "malformed session",
 			cookie: &http.Cookie{
 				Name: localSessionCookieName, Value: "invalid-session-token",
 			},
-			wantErr: ErrNoSession,
+			wantErr:      ErrNoSession,
+			wantAcquires: 0,
+		},
+		{
+			name: "well-formed unknown session",
+			cookie: &http.Cookie{
+				Name: localSessionCookieName, Value: unknownToken,
+			},
+			wantErr:      ErrNoSession,
+			wantAcquires: 1,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assertRequestIdentityResolvesOnce(t, service, tt.cookie, tt.wantErr)
+			assertRequestIdentityResolvesOnce(
+				t,
+				service,
+				tt.cookie,
+				tt.wantErr,
+				tt.wantAcquires,
+			)
 		})
 	}
 }
@@ -70,6 +91,7 @@ func assertRequestIdentityResolvesOnce(
 	service *Service,
 	cookie *http.Cookie,
 	wantErr error,
+	wantAcquires int64,
 ) {
 	t.Helper()
 	request := httptest.NewRequest(http.MethodPost, "/graphql", nil)
@@ -114,8 +136,8 @@ func assertRequestIdentityResolvesOnce(
 			t.Fatalf("failed identity returned user %+v", user)
 		}
 	}
-	if after := testPool.Stat().AcquireCount(); after != before+1 {
-		t.Fatalf("pool acquire count = %d, want %d", after, before+1)
+	if after := testPool.Stat().AcquireCount(); after != before+wantAcquires {
+		t.Fatalf("pool acquire count = %d, want %d", after, before+wantAcquires)
 	}
 }
 
