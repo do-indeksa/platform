@@ -16,6 +16,10 @@ produce a fixed error without logging the DSN.
 `PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
 65535. This fail-fast validation checks configuration shape, while migrations
 and `/readyz` continue to prove database availability.
+The HTTP server accepts at most 128 KiB for the request line and request
+headers, matching the intended Cloudflare edge budget instead of Go's 1 MiB
+default. Oversized metadata is rejected before routing; GraphQL and legacy REST
+request-body limits remain separate.
 It applies embedded goose migrations before accepting traffic. Startup uses an
 instance-scoped goose Provider and a renewable PostgreSQL table lease so
 multiple API replicas cannot apply the same pending version concurrently. The
