@@ -394,6 +394,137 @@
       "calculatorCta": "Izračunaj bodove za upis"
     }
   },
+  "cabinet": {
+    "metadataTitle": "Moj kabinet",
+    "metadataDescription": "Lični pregled pripreme, napretka i poslednjih rezultata za prijemni ispit FTN P1 iz matematike.",
+    "title": "Moj kabinet",
+    "subtitle": {
+      "started": "Tvoja priprema za upis",
+      "empty": "Započni pripremu za upis"
+    },
+    "subject": {
+      "aria": "Aktivni prijemni ispit",
+      "label": "Priprema za",
+      "value": "P1 · Matematika"
+    },
+    "positionNames": {
+      "1": "Kompleksni brojevi",
+      "2": "Kvadratne jednačine",
+      "3": "Jednačine",
+      "4": "Logaritmi",
+      "5": "Trigonometrija",
+      "6": "Vektori",
+      "7": "Analitička geometrija",
+      "8": "Prostorna geometrija",
+      "9": "Funkcije",
+      "10": "Kombinatorika"
+    },
+    "continue": {
+      "progressAria": "Napredak trenutne aktivnosti",
+      "start": {
+        "kicker": "Započni pripremu",
+        "title": "Priprema još nije započeta",
+        "description": "Reši prvi P1 zadatak ili proveri početni nivo.",
+        "minutes": "Oko 5 min za prvi zadatak",
+        "format": "{tasks} zadataka · {minutes} min",
+        "primary": "Počni prvi zadatak",
+        "secondary": "Pokreni dijagnostiku"
+      },
+      "practice": {
+        "kicker": "Nastavi pripremu",
+        "title": "Pozicija {position} · {topic}",
+        "description": "Uradio/la si {completed} od {total} zadataka",
+        "minutes": "Oko {minutes} min",
+        "difficulty": {
+          "foundation": "Osnovna težina",
+          "exam": "Srednja težina",
+          "advanced": "Napredna težina"
+        },
+        "primary": "Nastavi",
+        "secondary": "Izaberi drugu poziciju"
+      },
+      "mock": {
+        "kicker": "Nastavi probni ispit",
+        "title": "Nedovršen probni ispit",
+        "description": "Odgovoreno je na {answered} od {total} zadataka",
+        "remaining": "Preostalo oko {minutes} min",
+        "subject": "P1 · Matematika",
+        "primary": "Nastavi ispit",
+        "secondary": "Probni ispiti"
+      },
+      "diagnostic": {
+        "kicker": "Nastavi proveru nivoa",
+        "title": "Nedovršena provera nivoa",
+        "description": "Sledeći je zadatak {current} od {total}",
+        "minutes": "Do 25 min ukupno",
+        "meta": "Po jedna pozicija P1",
+        "primary": "Nastavi proveru",
+        "secondary": "Pregledaj dijagnostiku"
+      },
+      "conflict": {
+        "kicker": "Uskladi napredak",
+        "mockTitle": "Probni ispit ima dve verzije",
+        "diagnosticTitle": "Provera nivoa ima dve verzije",
+        "description": "Izaberi napredak sa uređaja ili naloga pre nastavka.",
+        "minutes": "Oko 1 min",
+        "meta": "Napredak je sačuvan",
+        "primary": "Pregledaj verzije",
+        "secondary": "Otvori istoriju"
+      }
+    },
+    "positions": {
+      "title": "Moja priprema",
+      "intro": "Napredak po pozicijama (1–10)",
+      "how": "Kako funkcioniše?",
+      "openPosition": "Otvori poziciju {position}: {topic}",
+      "status": {
+        "untested": "Nije provereno",
+        "starting": "U toku",
+        "needsWork": "Ponoviti",
+        "progressing": "U toku",
+        "confident": "Sigurno"
+      },
+      "legend": {
+        "confident": "Sigurno",
+        "review": "Ponoviti",
+        "learn": "Nije provereno"
+      },
+      "openPlan": "Otvori plan pripreme"
+    },
+    "results": {
+      "title": "Poslednji rezultati",
+      "history": "Cela istorija",
+      "mock": {
+        "title": "Poslednji probni ispit",
+        "meta": "P1 · {date}",
+        "empty": "Još nema završenog probnog ispita",
+        "analyze": "Analiziraj greške",
+        "start": "Pokreni probni ispit"
+      },
+      "practice": {
+        "title": "Poslednje vežbanje",
+        "meta": "Pozicija {position} · {topic} · {date}",
+        "taskFallback": "P1 zadatak",
+        "empty": "Još nema završenog vežbanja",
+        "repeat": "Ponovi zadatak",
+        "start": "Počni vežbanje"
+      }
+    },
+    "programs": {
+      "title": "Programi za P1",
+      "intro": "P1 obuhvata {count} programa na FTN-u",
+      "all": "Svi programi",
+      "card": {
+        "eyebrow": "FTN Novi Sad",
+        "meta": "Prijemni: P1 · Matematika"
+      },
+      "cta": {
+        "title": "Nisi siguran/na koji program da izabereš?",
+        "description": "Uporedi smerove i uslove upisa u vodiču za FTN.",
+        "button": "Pogledaj programe"
+      }
+    }
+  },
   "tasks": {
     "title": "Zadaci",
     "description": "Baza zadataka za prijemni FTN P1, po temama sa rešenjima.",

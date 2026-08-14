@@ -58,9 +58,9 @@ AI-оценивание остается вне критического пут�
 - исправлены P1/P3-P8, 4 часа, лимит 60 и versioned blueprints;
 - готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
   история, simplified plan, daily task/streak и FTN-каталог;
-- публичный `/` буквально воспроизводит canonical Figma landing на
-  desktop/tablet/mobile; прежний functional overview изолирован на явно
-  provisional `/cabinet`;
+- публичный `/` и `/cabinet` воспроизводят canonical Figma states на
+  desktop/tablet/mobile; кабинет сохраняет реальные attempts, resume и P1
+  program data в исходной композиции;
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
@@ -83,7 +83,7 @@ AI-оценивание остается вне критического пут�
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
-pixel-perfect пересборка кабинета и остальных самостоятельных композиций по Figma, visual
+pixel-perfect пересборка остальных самостоятельных композиций по Figma, visual
 coverage для error states и long Serbian copy, а также production rollout.
 Analytics сознательно fail-closed до безопасного image.
 
@@ -368,10 +368,9 @@ attempt частью run. В любом варианте завершенная 
   идемпотентные mutations запуска и попытки.
 - Integration: start/resume/finish diagnostic and simulation.
 - Browser: основные сценарии на 360x800, 768x1024 и 1440x900.
-- Visual: 21 канонический Linux screenshot для первого viewport overview, task,
-  empty plan, empty history, diagnostic result, rubric review и simulation
-  result на 360x800, 768x1024 и 1440x900; следующим слоем покрывать ошибки и
-  long Serbian copy.
+- Visual: 53 канонических Linux screenshot; кабинет покрыт empty, populated и
+  unfinished states на общих 360/768/1440 viewport и точных Figma-размерах
+  390/1024/1440. Следующим слоем покрывать ошибки и long Serbian copy.
 - Content: schema, math fixtures, сумма rubric points, ссылки и статус review.
 
 ## 7. Порядок релизов
@@ -405,7 +404,7 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 
 Работа продолжается теми же небольшими независимыми PR:
 
-1. После готового public landing пересобрать `/cabinet`, Solution и остальные
+1. После готовых public landing и `/cabinet` пересобрать Solution и остальные
    существующие routes по точным Figma nodes небольшими UI PR; принимать новые
    visual baselines только после overlay-review.
 2. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
