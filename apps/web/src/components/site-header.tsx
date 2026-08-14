@@ -34,9 +34,7 @@ export function SiteHeader() {
             aria-hidden="true"
             data-design-status="provisional"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle text-[14px] leading-normal font-medium text-ink"
-          >
-            ◔
-          </span>
+          />
           <div className="md:hidden">
             <LanguageSwitcher compact />
           </div>

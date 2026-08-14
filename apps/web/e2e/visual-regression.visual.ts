@@ -2,6 +2,9 @@ import { expect, test, type Page } from "@playwright/test";
 import {
   completeSimulationRubricReview,
   diagnosticResultPath,
+  installCabinetVisualSession,
+  prepareCabinetPopulated,
+  prepareCabinetUnfinishedMock,
   prepareDiagnosticResult,
   prepareSimulationRubricReview,
   simulationRunPath,
@@ -17,19 +20,49 @@ const viewports = [
 
 const surfaces: readonly VisualSurface[] = [
   {
-    name: "overview",
+    name: "cabinet-empty",
     path: "/cabinet",
+    beforeNavigate: installCabinetVisualSession,
     ready: async (page) => {
       await expect(
         page.getByRole("heading", {
-          name: "Priprema za P1 iz matematike",
+          name: "Priprema još nije započeta",
           exact: true,
         }),
       ).toBeVisible();
+      await expect(page.getByTestId("cabinet-dashboard")).toHaveAttribute(
+        "data-state",
+        "empty",
+      );
+    },
+  },
+  {
+    name: "cabinet-populated",
+    path: "/cabinet",
+    beforeNavigate: installCabinetVisualSession,
+    prepare: prepareCabinetPopulated,
+    ready: async (page) => {
       await expect(
-        page
-          .getByTestId("daily-task")
-          .getByRole("link", { name: "Reši zadatak", exact: true }),
+        page.getByRole("heading", {
+          name: "Pozicija 3 · Jednačine",
+          exact: true,
+        }),
+      ).toBeVisible();
+      await expect(page.getByTestId("cabinet-position-map")).toBeVisible();
+      await expect(page.getByTestId("cabinet-latest-results")).toBeVisible();
+    },
+  },
+  {
+    name: "cabinet-unfinished",
+    path: "/cabinet",
+    beforeNavigate: installCabinetVisualSession,
+    prepare: prepareCabinetUnfinishedMock,
+    ready: async (page) => {
+      await expect(
+        page.getByRole("heading", {
+          name: "Nedovršen probni ispit",
+          exact: true,
+        }),
       ).toBeVisible();
     },
   },
@@ -142,6 +175,7 @@ for (const viewport of viewports) {
 
     for (const surface of surfaces) {
       test(surface.name, async ({ page }) => {
+        await surface.beforeNavigate?.(page);
         await page.goto(surface.path, { waitUntil: "networkidle" });
         await surface.prepare?.(page);
         await surface.ready(page);
@@ -158,9 +192,71 @@ for (const viewport of viewports) {
   });
 }
 
+const figmaViewports = [
+  { name: "mobile-390", width: 390, height: 844 },
+  { name: "tablet-1024", width: 1024, height: 900 },
+  { name: "desktop-1440", width: 1440, height: 900 },
+] as const;
+
+const figmaCabinetStates = [
+  {
+    name: "empty",
+    prepare: undefined,
+    ready: async (page: Page) => {
+      await expect(page.getByTestId("cabinet-dashboard")).toHaveAttribute(
+        "data-state",
+        "empty",
+      );
+    },
+  },
+  {
+    name: "populated",
+    prepare: prepareCabinetPopulated,
+    ready: async (page: Page) => {
+      await expect(page.getByTestId("cabinet-position-map")).toBeVisible();
+    },
+  },
+  {
+    name: "unfinished",
+    prepare: prepareCabinetUnfinishedMock,
+    ready: async (page: Page) => {
+      await expect(
+        page.getByRole("heading", {
+          name: "Nedovršen probni ispit",
+          exact: true,
+        }),
+      ).toBeVisible();
+    },
+  },
+] as const;
+
+for (const viewport of figmaViewports) {
+  test.describe(`figma-${viewport.name}`, () => {
+    test.use({ viewport });
+
+    for (const state of figmaCabinetStates) {
+      test(`cabinet-${state.name}`, async ({ page }) => {
+        await installCabinetVisualSession(page);
+        await page.goto("/cabinet", { waitUntil: "networkidle" });
+        await state.prepare?.(page);
+        await state.ready(page);
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          window.scrollTo(0, 0);
+        });
+        await expect(page).toHaveScreenshot(
+          `cabinet-${state.name}-${viewport.name}.png`,
+          { fullPage: true },
+        );
+      });
+    }
+  });
+}
+
 type VisualSurface = {
   name: string;
   path: string;
+  beforeNavigate?: (page: Page) => Promise<void>;
   prepare?: (page: Page) => Promise<void>;
   ready: (page: Page) => Promise<void>;
 };

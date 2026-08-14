@@ -149,7 +149,15 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
   });
 
   await page.goto("/en/cabinet");
-  await expect(page.getByTestId("continue-run")).toHaveCount(0);
+  const continuation = page.getByTestId("continue-run");
+  await expect(
+    continuation.getByRole("heading", {
+      name: "Preparation has not started yet",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("private active answer")).toHaveCount(0);
+  await expect(page.getByText("private diagnostic answer")).toHaveCount(0);
 
   releaseIdentity();
   await expect
@@ -185,6 +193,12 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
       },
       diagnostic: { runId: null, runOwnerId: null, answers: [] },
     });
+  await expect(
+    continuation.getByRole("heading", {
+      name: "Preparation has not started yet",
+      exact: true,
+    }),
+  ).toBeVisible();
 
   await page.goto("/en/history?tab=variants");
   await expect(

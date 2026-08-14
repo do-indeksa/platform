@@ -9,10 +9,16 @@
   --di-color-bg-surface: #ffffff;
   --di-color-bg-subtle: #f5f0ff;
   --di-color-bg-subtle-hover: #ebe4ff;
+  --di-color-bg-progress: #effbf8;
   --di-color-bg-emphasis: #12263f;
   --di-color-border-default: #e7e8ed;
   --di-color-action-primary: #6535f2;
   --di-color-action-primary-hover: #5426d9;
+  --di-color-status-progress: #148a7a;
+  --di-color-status-success-bg: #edfaf3;
+  --di-color-status-success-text: #198754;
+  --di-color-status-warning-bg: #fff9e9;
+  --di-color-status-warning-text: #a86605;
 }
 
 @theme inline {
@@ -22,6 +28,7 @@
   --color-surface: var(--di-color-bg-surface);
   --color-subtle: var(--di-color-bg-subtle);
   --color-subtle-hover: var(--di-color-bg-subtle-hover);
+  --color-progress-track: var(--di-color-bg-progress);
   --color-emphasis: var(--di-color-bg-emphasis);
   --color-ink: var(--di-color-text-primary);
   --color-muted: var(--di-color-text-secondary);
@@ -30,6 +37,11 @@
   --color-brand-ink: var(--di-color-text-brand);
   --color-on-brand: var(--di-color-text-on-brand);
   --color-line: var(--di-color-border-default);
+  --color-progress: var(--di-color-status-progress);
+  --color-success-subtle: var(--di-color-status-success-bg);
+  --color-success: var(--di-color-status-success-text);
+  --color-warning-subtle: var(--di-color-status-warning-bg);
+  --color-warning: var(--di-color-status-warning-text);
 }
 
 html {
