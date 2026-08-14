@@ -84,6 +84,10 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
 - Keep the database `connect_timeout` at 30 seconds or less. The application
   supplies five seconds when it is omitted and rejects a larger value before
   opening a pool.
+- Give the future API pod a `terminationGracePeriodSeconds` value greater than
+  the application's 30-second graceful-shutdown budget. Use at least 35 seconds
+  so Kubernetes does not send `SIGKILL` at the same instant the application
+  exhausts its own drain deadline.
 
 ## Release gates
 

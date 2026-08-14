@@ -30,6 +30,8 @@ apps/api/
 - Postgres via pgx; migrations via goose
 - Bound every Postgres connection attempt and all pre-listen database startup work
 - Give scheduled database maintenance an operation deadline and matching query indexes
+- Propagate each request context through external I/O; the server execution budget must stay below its write timeout
+- Keep graceful shutdown longer than the request execution budget and deployment termination grace longer than both
 - No interfaces until a second implementation exists
 - Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
 - GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints
