@@ -21,6 +21,8 @@ const (
 	maxDatabaseConnectTimeout     = 30 * time.Second
 	defaultDatabasePoolMaxConns   = int32(10)
 	maxDatabasePoolMaxConns       = int32(50)
+	defaultMaxInFlightRequests    = 64
+	maximumInFlightRequests       = 256
 )
 
 var (
@@ -38,13 +40,17 @@ var (
 	errDatabasePoolMinIdleConnsInvalid = errors.New(
 		"DATABASE_URL pool_min_idle_conns must be between 0 and pool_max_conns",
 	)
-	errPortInvalid = errors.New("PORT must be a decimal number from 1 to 65535")
+	errPortInvalid                = errors.New("PORT must be a decimal number from 1 to 65535")
+	errMaxInFlightRequestsInvalid = errors.New(
+		"MAX_IN_FLIGHT_REQUESTS must be a decimal number from 1 to 256",
+	)
 )
 
 type runtimeConfig struct {
-	auth          auth.Config
-	database      *pgxpool.Config
-	listenAddress string
+	auth                auth.Config
+	database            *pgxpool.Config
+	listenAddress       string
+	maxInFlightRequests int
 }
 
 func loadRuntimeConfig() (runtimeConfig, error) {
@@ -60,10 +66,15 @@ func loadRuntimeConfig() (runtimeConfig, error) {
 	if err != nil {
 		return runtimeConfig{}, err
 	}
+	requestLimit, err := inFlightRequestLimit()
+	if err != nil {
+		return runtimeConfig{}, err
+	}
 	return runtimeConfig{
-		auth:          authCfg,
-		database:      databaseCfg,
-		listenAddress: address,
+		auth:                authCfg,
+		database:            databaseCfg,
+		listenAddress:       address,
+		maxInFlightRequests: requestLimit,
 	}, nil
 }
 
@@ -154,4 +165,21 @@ func listenAddress() (string, error) {
 		return "", errPortInvalid
 	}
 	return ":" + strconv.FormatUint(port, 10), nil
+}
+
+func inFlightRequestLimit() (int, error) {
+	raw := os.Getenv("MAX_IN_FLIGHT_REQUESTS")
+	if raw == "" {
+		return defaultMaxInFlightRequests, nil
+	}
+	for _, character := range raw {
+		if character < '0' || character > '9' {
+			return 0, errMaxInFlightRequestsInvalid
+		}
+	}
+	value, err := strconv.ParseUint(raw, 10, 16)
+	if err != nil || value == 0 || value > maximumInFlightRequests {
+		return 0, errMaxInFlightRequestsInvalid
+	}
+	return int(value), nil
 }

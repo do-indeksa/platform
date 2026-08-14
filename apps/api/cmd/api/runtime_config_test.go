@@ -8,20 +8,25 @@ import (
 
 func TestLoadRuntimeConfigAcceptsValidEnvironment(t *testing.T) {
 	tests := []struct {
-		name        string
-		port        string
-		wantAddress string
+		name            string
+		port            string
+		maxInFlight     string
+		wantAddress     string
+		wantMaxInFlight int
 	}{
-		{name: "default port", wantAddress: ":8080"},
-		{name: "explicit port", port: "8443", wantAddress: ":8443"},
-		{name: "lowest port", port: "1", wantAddress: ":1"},
-		{name: "highest port", port: "65535", wantAddress: ":65535"},
+		{name: "defaults", wantAddress: ":8080", wantMaxInFlight: 64},
+		{name: "explicit port", port: "8443", wantAddress: ":8443", wantMaxInFlight: 64},
+		{name: "lowest port", port: "1", wantAddress: ":1", wantMaxInFlight: 64},
+		{name: "highest port", port: "65535", wantAddress: ":65535", wantMaxInFlight: 64},
+		{name: "lowest concurrency", maxInFlight: "1", wantAddress: ":8080", wantMaxInFlight: 1},
+		{name: "highest concurrency", maxInFlight: "256", wantAddress: ":8080", wantMaxInFlight: 256},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setValidRuntimeEnvironment(t)
 			t.Setenv("PORT", tt.port)
+			t.Setenv("MAX_IN_FLIGHT_REQUESTS", tt.maxInFlight)
 
 			cfg, err := loadRuntimeConfig()
 			if err != nil {
@@ -29,6 +34,13 @@ func TestLoadRuntimeConfigAcceptsValidEnvironment(t *testing.T) {
 			}
 			if cfg.listenAddress != tt.wantAddress {
 				t.Errorf("listen address = %q, want %q", cfg.listenAddress, tt.wantAddress)
+			}
+			if cfg.maxInFlightRequests != tt.wantMaxInFlight {
+				t.Errorf(
+					"max in-flight requests = %d, want %d",
+					cfg.maxInFlightRequests,
+					tt.wantMaxInFlight,
+				)
 			}
 			if cfg.database == nil || cfg.database.ConnConfig.Host != "db.internal" {
 				t.Fatalf("database config was not parsed: %#v", cfg.database)
@@ -222,6 +234,34 @@ func TestLoadRuntimeConfigRejectsInvalidPorts(t *testing.T) {
 	}
 }
 
+func TestLoadRuntimeConfigRejectsInvalidMaxInFlightRequests(t *testing.T) {
+	for _, value := range []string{
+		"0",
+		"-1",
+		"+64",
+		" 64",
+		"64 ",
+		"257",
+		"1.5",
+		"requests",
+		"999999999999999999999999999999999999999",
+	} {
+		t.Run(value, func(t *testing.T) {
+			setValidRuntimeEnvironment(t)
+			t.Setenv("MAX_IN_FLIGHT_REQUESTS", value)
+
+			_, err := loadRuntimeConfig()
+			const want = "MAX_IN_FLIGHT_REQUESTS must be a decimal number from 1 to 256"
+			if err == nil || err.Error() != want {
+				t.Fatalf("loadRuntimeConfig() error = %v, want %q", err, want)
+			}
+			if strings.Contains(err.Error(), value) {
+				t.Errorf("configuration error disclosed invalid concurrency value %q", value)
+			}
+		})
+	}
+}
+
 func TestLoadRuntimeConfigReportsRequiredValuesInOrder(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -283,4 +323,5 @@ func setValidRuntimeEnvironment(t *testing.T) {
 	t.Setenv("CANONICAL_WEB_ORIGIN", "https://doindeksa.rs")
 	t.Setenv("EXTRA_WEB_ORIGINS", "")
 	t.Setenv("PREVIEW_ORIGIN_SUFFIX", "")
+	t.Setenv("MAX_IN_FLIGHT_REQUESTS", "")
 }

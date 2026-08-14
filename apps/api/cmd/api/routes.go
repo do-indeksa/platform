@@ -17,6 +17,7 @@ func newRouter(
 	srv api.ServerInterface,
 	graphHandler http.Handler,
 	readyCheck readinessCheck,
+	maxInFlightRequests int,
 	logger *slog.Logger,
 	secureTransport bool,
 ) http.Handler {
@@ -31,8 +32,11 @@ func newRouter(
 	)
 	r.Get("/healthz", handleHealth)
 	r.Get("/readyz", handleReadiness(readyCheck, readinessTimeout))
-	r.With(auth.RequestUserMiddleware(authService)).Handle("/graphql", graphHandler)
-	registerHTTPRoutes(r, srv)
+	r.Group(func(application chi.Router) {
+		application.Use(httpx.LimitInFlight(maxInFlightRequests))
+		application.With(auth.RequestUserMiddleware(authService)).Handle("/graphql", graphHandler)
+		registerHTTPRoutes(application, srv)
+	})
 	return r
 }
 

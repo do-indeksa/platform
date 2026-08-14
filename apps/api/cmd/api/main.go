@@ -91,6 +91,7 @@ func run() error {
 			trainingService,
 		)),
 		pool.Ping,
+		cfg.maxInFlightRequests,
 		slog.Default(),
 		strings.HasPrefix(cfg.auth.CanonicalOrigin, "https://"),
 	)
