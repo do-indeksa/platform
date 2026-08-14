@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +18,7 @@ import (
 
 func TestNewHTTPServerConfiguresRuntimeBounds(t *testing.T) {
 	handler := http.NewServeMux()
-	server := newHTTPServer(":9876", handler)
+	server := newHTTPServer(":9876", handler, slog.Default())
 
 	if server.Addr != ":9876" {
 		t.Errorf("address = %q, want :9876", server.Addr)
@@ -49,6 +52,42 @@ func TestNewHTTPServerConfiguresRuntimeBounds(t *testing.T) {
 	if gracefulShutdownTimeout <= requestExecutionTimeout {
 		t.Errorf("graceful shutdown timeout %v must exceed request execution timeout %v",
 			gracefulShutdownTimeout, requestExecutionTimeout)
+	}
+}
+
+func TestHTTPServerErrorLogDoesNotRenderMessage(t *testing.T) {
+	var output bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&output, nil))
+	server := newHTTPServer(":9876", http.NewServeMux(), logger)
+	if server.ErrorLog == nil {
+		t.Fatal("http server ErrorLog is nil")
+	}
+
+	server.ErrorLog.Print("http-server-error-secret")
+
+	logs := output.String()
+	if strings.Contains(logs, "http-server-error-secret") {
+		t.Fatalf("http server logs contain the preformatted message: %s", logs)
+	}
+	var record map[string]any
+	if err := json.Unmarshal(output.Bytes(), &record); err != nil {
+		t.Fatalf("decode http server log %q: %v", logs, err)
+	}
+	errorFields, ok := record["error"].(map[string]any)
+	if !ok || len(errorFields) != 1 || errorFields["kind"] != "internal" {
+		t.Errorf("http server log has unsafe error fields: %v", record["error"])
+	}
+	if record["level"] != "ERROR" || record["msg"] != "http server error" {
+		t.Errorf("http server log has unexpected event identity: %v", record)
+	}
+	for _, field := range []string{"time", "level", "msg", "error"} {
+		if _, ok := record[field]; !ok {
+			t.Errorf("http server log %q does not contain %q", logs, field)
+		}
+		delete(record, field)
+	}
+	if len(record) != 0 {
+		t.Errorf("http server log contains unexpected fields: %v", record)
 	}
 }
 
@@ -208,7 +247,7 @@ func startTestHTTPServer(t *testing.T, handler http.Handler) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := newHTTPServer(listener.Addr().String(), handler)
+	server := newHTTPServer(listener.Addr().String(), handler, slog.Default())
 	serveErrors := make(chan error, 1)
 	go func() {
 		serveErrors <- server.Serve(listener)
