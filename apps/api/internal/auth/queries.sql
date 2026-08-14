@@ -15,8 +15,10 @@ from sessions
 join users on users.id = sessions.user_id
 where sessions.token_hash = $1 and sessions.expires_at > now();
 
--- name: ExtendSession :exec
-update sessions set expires_at = $2 where token_hash = $1;
+-- name: ExtendSession :execrows
+update sessions
+set expires_at = $2
+where token_hash = $1 and expires_at > now();
 
 -- name: DeleteSession :exec
 delete from sessions where token_hash = $1;
