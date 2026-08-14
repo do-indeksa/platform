@@ -8,6 +8,14 @@ go test ./...
 ```
 
 The service requires Postgres plus the variables documented in `.env.example`.
+It parses the complete runtime configuration before registering signals,
+creating a pool, running migrations, or starting background work.
+`DATABASE_URL` must be non-empty, so an absent value cannot select a connection
+assembled entirely from ambient `PG*` variables. Malformed connection strings
+produce a fixed error without logging the DSN.
+`PORT` defaults to `8080` and otherwise accepts only decimal values from 1 to
+65535. This fail-fast validation checks configuration shape, while migrations
+and `/readyz` continue to prove database availability.
 It applies embedded goose migrations before accepting traffic. Startup uses an
 instance-scoped goose Provider and a renewable PostgreSQL table lease so
 multiple API replicas cannot apply the same pending version concurrently. The
