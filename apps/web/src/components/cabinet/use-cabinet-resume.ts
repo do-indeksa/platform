@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { diagnosticRunHref } from "@/lib/diagnostic-run";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
+import { projectPracticeCloudCatalog } from "@/lib/practice-cloud-catalog";
+import { practiceRuntimeResumeHref } from "@/lib/practice-runtime-resume";
 import type { ProgressCloudCatalog } from "@/lib/progress-cloud-types";
 import { simulationRunHref } from "@/lib/simulation-run";
 import {
@@ -12,6 +14,8 @@ import {
 } from "@/lib/simulation-store";
 import { useDiagnosticCloudBootstrap } from "@/lib/use-diagnostic-cloud";
 import { useHydrated } from "@/lib/use-hydrated";
+import { usePracticeRuntimeCloudBootstrap } from "@/lib/use-practice-runtime-cloud";
+import { usePracticeRuntimeResume } from "@/lib/use-practice-runtime-resume";
 import { useSimulationCloudBootstrap } from "@/lib/use-simulation-cloud";
 
 export type CabinetResume =
@@ -31,6 +35,15 @@ export type CabinetResume =
       answered: number;
     }
   | {
+      kind: "practice";
+      href: string;
+      currentTaskId: string;
+      currentPosition: number;
+      current: number;
+      total: number;
+      completed: number;
+    }
+  | {
       kind: "diagnosticConflict" | "simulationConflict";
       href: "/diagnostic" | "/simulation";
     };
@@ -39,8 +52,14 @@ export function useCabinetResume(catalog: ProgressCloudCatalog): {
   ready: boolean;
   resume: CabinetResume | null;
 } {
+  const practiceCatalog = useMemo(
+    () => projectPracticeCloudCatalog(catalog),
+    [catalog],
+  );
   const diagnosticCloud = useDiagnosticCloudBootstrap(catalog);
   const simulationCloud = useSimulationCloudBootstrap(catalog);
+  const practiceCloud = usePracticeRuntimeCloudBootstrap(practiceCatalog);
+  const practiceSelection = usePracticeRuntimeResume(practiceCatalog);
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const simulationOwnerKnown = useSimulationOwnerKnown();
@@ -70,8 +89,10 @@ export function useCabinetResume(catalog: ProgressCloudCatalog): {
     hydrated &&
     diagnosticOwnerKnown &&
     simulationOwnerKnown &&
+    practiceSelection.ready &&
     !isCloudPending(diagnosticCloud.status) &&
-    !isCloudPending(simulationCloud.status);
+    !isCloudPending(simulationCloud.status) &&
+    !isCloudPending(practiceCloud.status);
   if (!ready) return { ready: false, resume: null };
 
   if (diagnosticCloud.status === "conflict") {
@@ -146,6 +167,26 @@ export function useCabinetResume(catalog: ProgressCloudCatalog): {
         total: remote.tasks.length,
         answered: answeredCount(remote.answers),
         remainingMinutes: minutesRemaining(remote.endsAt, now),
+      },
+    };
+  }
+
+  if (practiceSelection.resume !== null) {
+    const practice = practiceSelection.resume;
+    const currentPosition = practiceCatalog.examPositionByTaskId.get(
+      practice.currentTask.id,
+    );
+    if (currentPosition === undefined) return { ready: true, resume: null };
+    return {
+      ready: true,
+      resume: {
+        kind: "practice",
+        href: practiceRuntimeResumeHref(practice, "/cabinet"),
+        currentTaskId: practice.currentTask.id,
+        currentPosition,
+        current: practice.current,
+        total: practice.total,
+        completed: practice.completed,
       },
     };
   }

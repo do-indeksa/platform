@@ -151,7 +151,9 @@ export function CabinetDashboard({
                   activePosition={
                     resume?.kind === "diagnostic"
                       ? resume.current
-                      : (practice?.position.number ?? null)
+                      : resume?.kind === "practice"
+                        ? resume.currentPosition
+                        : (practice?.position.number ?? null)
                   }
                   pending={false}
                 />

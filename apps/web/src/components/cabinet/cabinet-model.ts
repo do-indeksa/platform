@@ -43,6 +43,16 @@ export type CabinetPractice = {
   difficulty: "foundation" | "exam" | "advanced";
 };
 
+export type CabinetPracticeResumeSummary = {
+  task: CabinetTask;
+  currentPosition: number;
+  completed: number;
+  total: number;
+  progress: number;
+  minutes: number;
+  difficulty: CabinetPractice["difficulty"];
+};
+
 export function selectCabinetPractice(
   positions: readonly CabinetPositionProgress[],
   attempts: readonly MappedAttempt[],
@@ -84,6 +94,42 @@ export function selectCabinetPractice(
     progress: Math.round((Math.min(completed, target) / target) * 100),
     minutes: Math.max(1, taskIds.length || target) * CABINET_TASK_MINUTES,
     difficulty: difficultyBand(selectedTasks),
+  };
+}
+
+export function summarizeCabinetPracticeResume(
+  resume: {
+    currentTaskId: string;
+    currentPosition: number;
+    completed: number;
+    total: number;
+  },
+  tasks: readonly CabinetTask[],
+): CabinetPracticeResumeSummary | null {
+  const task = tasks.find(({ id }) => id === resume.currentTaskId);
+  if (
+    task === undefined ||
+    !Number.isSafeInteger(resume.currentPosition) ||
+    !Number.isSafeInteger(resume.completed) ||
+    !Number.isSafeInteger(resume.total) ||
+    resume.currentPosition < 1 ||
+    resume.currentPosition > 10 ||
+    resume.completed < 0 ||
+    resume.total < 1 ||
+    resume.completed > resume.total
+  ) {
+    return null;
+  }
+
+  return {
+    task,
+    currentPosition: resume.currentPosition,
+    completed: resume.completed,
+    total: resume.total,
+    progress: Math.round((resume.completed / resume.total) * 100),
+    minutes:
+      Math.max(1, resume.total - resume.completed) * CABINET_TASK_MINUTES,
+    difficulty: difficultyBand([task]),
   };
 }
 
