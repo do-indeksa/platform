@@ -2,6 +2,8 @@ import type { TaskReference } from "@/lib/content";
 import {
   PREP_CONFIDENCE_ATTEMPTS,
   PREP_DIAGNOSTIC_MINUTES,
+  PREP_MAX_TASK_COUNT,
+  PREP_MIN_TASK_COUNT,
   PREP_TASK_MINUTES,
   type PrepAction,
   type PrepPositionDefinition,
@@ -46,15 +48,13 @@ export function buildCoreAction(
       attempts,
       practiceTaskCount,
     );
-    if (taskIds.length > 0) {
+    if (taskIds.length >= PREP_MIN_TASK_COUNT) {
       const { reason, reasonCount } = positionReason(priority, dayStartMs);
-      return action({
+      return taskAction({
         id: `practice-${priority.number}`,
         kind: "practice",
         position: priority.number,
         taskIds,
-        count: taskIds.length,
-        minutes: taskIds.length * PREP_TASK_MINUTES,
         reason,
         reasonCount,
       });
@@ -69,12 +69,10 @@ export function buildCoreAction(
     new Set(),
     practiceTaskCount,
   );
-  return action({
+  return taskAction({
     id: `check-${taskIds.join("-") || "bank"}`,
     kind: "check",
     taskIds,
-    count: taskIds.length || practiceTaskCount,
-    minutes: (taskIds.length || practiceTaskCount) * PREP_TASK_MINUTES,
     reason: "maintain",
   });
 }
@@ -99,17 +97,16 @@ export function buildSupplementaryAction(
           practiceTaskCount,
         ).filter((taskId) => !excludedTaskIds.has(taskId)),
       }))
-      .find(({ taskIds }) => taskIds.length > 0);
-    return action({
-      id: `practice-${candidate?.position.number ?? 1}`,
-      kind: "practice",
-      position: candidate?.position.number ?? 1,
-      taskIds: candidate?.taskIds ?? [],
-      count: candidate?.taskIds.length || practiceTaskCount,
-      minutes:
-        (candidate?.taskIds.length || practiceTaskCount) * PREP_TASK_MINUTES,
-      reason: "untested",
-    });
+      .find(({ taskIds }) => taskIds.length >= PREP_MIN_TASK_COUNT);
+    if (candidate) {
+      return taskAction({
+        id: `practice-${candidate.position.number}`,
+        kind: "practice",
+        position: candidate.position.number,
+        taskIds: candidate.taskIds,
+        reason: "untested",
+      });
+    }
   }
 
   const latestByTask = new Map<string, MappedAttempt>();
@@ -123,18 +120,27 @@ export function buildSupplementaryAction(
         !excludedTaskIds.has(attempt.taskId),
     )
     .toSorted((a, b) => Date.parse(b.at) - Date.parse(a.at))
-    .slice(0, 2)
+    .slice(0, Math.min(2, practiceTaskCount))
     .map((attempt) => attempt.taskId);
   if (errorTaskIds.length > 0) {
-    return action({
-      id: `review-${errorTaskIds.join("-")}`,
-      kind: "review",
-      taskIds: errorTaskIds,
-      count: errorTaskIds.length,
-      minutes: errorTaskIds.length * PREP_TASK_MINUTES,
-      reason: "recentErrors",
-      reasonCount: errorTaskIds.length,
-    });
+    const supportingTaskIds = selectCheckTasks(
+      progress,
+      positions,
+      taskReferences,
+      attempts,
+      new Set([...excludedTaskIds, ...errorTaskIds]),
+      practiceTaskCount - errorTaskIds.length,
+    );
+    const taskIds = [...errorTaskIds, ...supportingTaskIds];
+    if (taskIds.length >= PREP_MIN_TASK_COUNT) {
+      return taskAction({
+        id: `review-${taskIds.join("-")}`,
+        kind: "review",
+        taskIds,
+        reason: "recentErrors",
+        reasonCount: errorTaskIds.length,
+      });
+    }
   }
 
   const taskIds = selectCheckTasks(
@@ -145,12 +151,10 @@ export function buildSupplementaryAction(
     excludedTaskIds,
     practiceTaskCount,
   );
-  return action({
+  return taskAction({
     id: `check-${taskIds.join("-") || "bank"}`,
     kind: "check",
     taskIds,
-    count: taskIds.length || practiceTaskCount,
-    minutes: (taskIds.length || practiceTaskCount) * PREP_TASK_MINUTES,
     reason: "maintain",
   });
 }
@@ -218,6 +222,31 @@ function action(
     taskIds: [],
     reasonCount: 0,
     ...value,
+  };
+}
+
+function taskAction(
+  value: Omit<
+    PrepAction,
+    "completed" | "count" | "minutes" | "position" | "reasonCount"
+  > &
+    Partial<Pick<PrepAction, "completed" | "position" | "reasonCount">>,
+): PrepAction {
+  const uniqueTaskIds = new Set(value.taskIds);
+  if (
+    value.taskIds.length < PREP_MIN_TASK_COUNT ||
+    value.taskIds.length > PREP_MAX_TASK_COUNT ||
+    uniqueTaskIds.size !== value.taskIds.length
+  ) {
+    throw new Error("prep task action requires 3-5 unique assignments");
+  }
+  return {
+    ...value,
+    completed: value.completed ?? false,
+    position: value.position ?? null,
+    reasonCount: value.reasonCount ?? 0,
+    count: value.taskIds.length,
+    minutes: value.taskIds.length * PREP_TASK_MINUTES,
   };
 }
 

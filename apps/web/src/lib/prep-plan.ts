@@ -9,7 +9,8 @@ import {
 } from "./prep-actions";
 import {
   PREP_DEFAULT_TASK_COUNT,
-  PREP_LIGHT_TASK_COUNT,
+  PREP_MAX_TASK_COUNT,
+  PREP_MIN_TASK_COUNT,
   type PrepPlan,
   type PrepPositionDefinition,
   type PrepTopicSlot,
@@ -138,7 +139,10 @@ export function buildPrepPlan({
 
 function normalizeTaskCount(value: number): number {
   if (!Number.isFinite(value)) return PREP_DEFAULT_TASK_COUNT;
-  return Math.min(PREP_DEFAULT_TASK_COUNT, Math.max(1, Math.trunc(value)));
+  return Math.min(
+    PREP_MAX_TASK_COUNT,
+    Math.max(PREP_MIN_TASK_COUNT, Math.trunc(value)),
+  );
 }
 
 export function prepPracticeTaskCount({
@@ -150,14 +154,10 @@ export function prepPracticeTaskCount({
   maxPoints: number;
   daysUntilExam: number | null;
 }): number {
-  if (
-    goalPoints === null ||
-    daysUntilExam === null ||
-    maxPoints <= 0 ||
-    goalPoints / maxPoints >= 0.75 ||
-    daysUntilExam <= 45
-  ) {
+  if (goalPoints === null || daysUntilExam === null || maxPoints <= 0) {
     return PREP_DEFAULT_TASK_COUNT;
   }
-  return PREP_LIGHT_TASK_COUNT;
+  return goalPoints / maxPoints >= 0.75 || daysUntilExam <= 45
+    ? PREP_MAX_TASK_COUNT
+    : PREP_MIN_TASK_COUNT;
 }
