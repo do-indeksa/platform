@@ -274,7 +274,21 @@ test("a completed guest run is claimed and submitted exactly once after sign-in"
   await page.getByRole("button", { name: /Start 5-task practice/ }).click();
   const guest = await readRuntime(page);
   firstTask = guest.assignment.tasks[0];
+  const nextTaskId = guest.assignment.tasks[1]?.id;
+  expect(nextTaskId).toBeTruthy();
   await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/tasks/.+/${nextTaskId}\\?`));
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-draft-state",
+    "ready",
+  );
+  // Flush the restored workspace effects that used to create a blank draft.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  );
   await page.getByRole("link", { name: "Back to practice" }).click();
   await expect
     .poll(async () => (await readRuntime(page)).phase)

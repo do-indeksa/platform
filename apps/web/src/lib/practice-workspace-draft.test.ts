@@ -1,12 +1,33 @@
 import { describe, expect, it } from "vitest";
 import type { PracticeWorkspaceSnapshot } from "./practice-workspace-runtime";
-import { taskDraftFromPracticeWorkspace } from "./practice-workspace-draft";
+import {
+  practiceWorkspaceDraftMatches,
+  taskDraftFromPracticeWorkspace,
+} from "./practice-workspace-draft";
 
 const startedAt = Date.parse("2026-08-12T10:00:00.000Z");
 
 describe("practice workspace draft restoration", () => {
   it("starts a new run without inheriting legacy session state", () => {
     expect(taskDraftFromPracticeWorkspace(snapshot(), 2)).toBeNull();
+  });
+
+  it("does not turn an untouched task into an empty durable draft", () => {
+    expect(practiceWorkspaceDraftMatches(null, ["", ""], 0)).toBe(true);
+    expect(practiceWorkspaceDraftMatches(null, ["entered", ""], 0)).toBe(false);
+    expect(practiceWorkspaceDraftMatches(null, ["", ""], 1)).toBe(false);
+  });
+
+  it("recognizes unchanged restored draft content", () => {
+    const draft = taskDraftFromPracticeWorkspace(
+      snapshot({
+        draft: { nextAttempt: 1, answers: ["entered"], helpLevel: 1 },
+      }),
+      2,
+    );
+    expect(draft).not.toBeNull();
+    expect(practiceWorkspaceDraftMatches(draft, ["entered"], 1)).toBe(true);
+    expect(practiceWorkspaceDraftMatches(draft, ["changed"], 1)).toBe(false);
   });
 
   it("restores an answer entered before the first check", () => {
