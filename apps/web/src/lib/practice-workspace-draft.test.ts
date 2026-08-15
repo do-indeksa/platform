@@ -101,6 +101,7 @@ function snapshot(
     latestSubmittedAt: startedAt,
     currentIndex: 0,
     activeDurationMs: 0,
+    taskStatuses: {},
     attempts: [],
     draft: null,
     ...overrides,

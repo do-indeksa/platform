@@ -9,6 +9,7 @@ import {
 import {
   appendPracticeWorkspaceAttempt,
   changePracticeWorkspaceDraft,
+  finishPracticeWorkspace,
   inspectPracticeWorkspace,
   readPracticeWorkspace,
   visitPracticeWorkspace,
@@ -61,6 +62,7 @@ describe("practice workspace runtime", () => {
       startedAt,
       currentIndex: 0,
       activeDurationMs: 0,
+      taskStatuses: { "kb-001": "pending", "log-001": "pending" },
       attempts: [],
       draft: null,
     });
@@ -99,6 +101,75 @@ describe("practice workspace runtime", () => {
     expect(readPracticeWorkspace(context())?.latestSubmittedAt).toBe(
       startedAt + 10_000,
     );
+    expect(readPracticeWorkspace(context())?.taskStatuses).toEqual({
+      "kb-001": "retry",
+      "log-001": "pending",
+    });
+  });
+
+  it("submits an owned run with attempts", () => {
+    expect(
+      appendPracticeWorkspaceAttempt(context(), {
+        startedAt,
+        submittedAt: startedAt + 10_000,
+        activeDurationMs: 10_000,
+        answers: ["1", "2"],
+        outcome: "correct",
+        helpLevel: 0,
+        runActiveDurationMs: 10_000,
+      }),
+    ).not.toBeNull();
+
+    expect(
+      finishPracticeWorkspace(context(), {
+        submittedAt: startedAt + 12_000,
+        activeDurationMs: 12_000,
+      }),
+    ).toBe("submitting");
+    expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
+      phase: "submitting",
+      submission: {
+        submittedAt: startedAt + 12_000,
+        activeDurationMs: 12_000,
+      },
+    });
+  });
+
+  it("abandons an owned run without attempts", () => {
+    expect(
+      finishPracticeWorkspace(context(), {
+        submittedAt: startedAt + 12_000,
+        activeDurationMs: 12_000,
+      }),
+    ).toBe("abandoning");
+    expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
+      phase: "abandoning",
+      submission: null,
+    });
+  });
+
+  it("removes a guest run locally", () => {
+    syncPracticeRuntimeOwner(null);
+    const guestRunId = crypto.randomUUID();
+    expect(
+      usePracticeRuntime.getState().start({
+        assignment: { ...assignment, runId: guestRunId },
+        startedAt,
+      }),
+    ).toBe(true);
+    const guestContext = {
+      ...context(),
+      runId: guestRunId,
+      ownerId: null,
+    };
+
+    expect(
+      finishPracticeWorkspace(guestContext, {
+        submittedAt: startedAt + 12_000,
+        activeDurationMs: 12_000,
+      }),
+    ).toBe("removed");
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
 
   it("distinguishes an absent run from an invalid binding", () => {
@@ -166,6 +237,12 @@ describe("practice workspace runtime", () => {
         activeDurationMs: 10_000,
       }),
     ).toBe(false);
+    expect(
+      finishPracticeWorkspace(invalid, {
+        submittedAt: startedAt + 10_000,
+        activeDurationMs: 10_000,
+      }),
+    ).toBeNull();
     expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
       currentIndex: 0,
       activeDurationMs: 0,

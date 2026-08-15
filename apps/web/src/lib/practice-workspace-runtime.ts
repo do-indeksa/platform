@@ -2,6 +2,7 @@
 
 import type { LearningRunOwnerId } from "./learning-run-owner";
 import type { PracticeCloudAttempt } from "./practice-cloud-types";
+import { hasAttempts } from "./practice-runtime-model";
 import { usePracticeRuntime } from "./practice-runtime-store";
 import type {
   PersistedPracticeRun,
@@ -26,11 +27,15 @@ export type PracticeWorkspaceContext = {
   sequence: readonly PracticeWorkspaceTask[];
 };
 
+export type PracticeWorkspaceTaskStatus =
+  "solved" | "retry" | "skipped" | "pending";
+
 export type PracticeWorkspaceSnapshot = {
   startedAt: number;
   latestSubmittedAt: number;
   currentIndex: number;
   activeDurationMs: number;
+  taskStatuses: Record<string, PracticeWorkspaceTaskStatus>;
   attempts: PracticeCloudAttempt[];
   draft: PracticeRuntimeDraft | null;
 };
@@ -107,6 +112,30 @@ export function appendPracticeWorkspaceAttempt(
   });
 }
 
+export function finishPracticeWorkspace(
+  context: PracticeWorkspaceContext,
+  input: { submittedAt: number; activeDurationMs: number },
+): "submitting" | "abandoning" | "removed" | null {
+  const binding = inspectBinding(context);
+  if (binding.status !== "bound") return null;
+
+  const store = usePracticeRuntime.getState();
+  if (binding.run.runOwnerId === null) {
+    store.remove(context.runId);
+    return "removed";
+  }
+  if (!hasAttempts(binding.run)) {
+    return store.beginAbandonment(context.runId) ? "abandoning" : null;
+  }
+  return store.beginSubmission(
+    context.runId,
+    input.submittedAt,
+    input.activeDurationMs,
+  )
+    ? "submitting"
+    : null;
+}
+
 function inspectBinding(
   context: PracticeWorkspaceContext,
 ): PracticeWorkspaceBinding {
@@ -141,16 +170,21 @@ function snapshot(
   run: PersistedPracticeRun,
   item: PracticeRuntimeItem,
 ): PracticeWorkspaceSnapshot {
+  const attempts = run.items.flatMap((candidate) => candidate.attempts);
   return {
     startedAt: run.startedAt,
-    latestSubmittedAt: run.items
-      .flatMap((candidate) => candidate.attempts)
-      .reduce(
-        (latest, attempt) => Math.max(latest, attempt.submittedAt),
-        run.startedAt,
-      ),
+    latestSubmittedAt: attempts.reduce(
+      (latest, attempt) => Math.max(latest, attempt.submittedAt),
+      run.startedAt,
+    ),
     currentIndex: run.currentIndex,
     activeDurationMs: run.activeDurationMs,
+    taskStatuses: Object.fromEntries(
+      run.items.map((candidate) => [
+        candidate.taskId,
+        taskStatus(candidate.attempts.at(-1)),
+      ]),
+    ),
     attempts: item.attempts.map((attempt) => ({
       ...attempt,
       answers: [...attempt.answers],
@@ -160,6 +194,15 @@ function snapshot(
         ? null
         : { ...item.draft, answers: [...item.draft.answers] },
   };
+}
+
+function taskStatus(
+  attempt: PracticeCloudAttempt | undefined,
+): PracticeWorkspaceTaskStatus {
+  if (attempt?.outcome === "correct") return "solved";
+  if (attempt?.outcome === "incorrect") return "retry";
+  if (attempt?.outcome === "skipped") return "skipped";
+  return "pending";
 }
 
 function sameTask(
