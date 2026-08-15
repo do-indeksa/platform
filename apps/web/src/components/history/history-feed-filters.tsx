@@ -39,7 +39,7 @@ export function HistoryFeedFilterControls({
     <section
       aria-label={t("label")}
       data-testid="history-filters"
-      className="grid h-[82px] grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-1.5 md:flex md:h-[42px] md:gap-2.5"
+      className="grid h-[84px] grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-1.5 gap-y-2 md:flex md:h-[42px] md:gap-2.5"
     >
       <FilterSelect
         label={t("subjectLabel")}

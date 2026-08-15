@@ -38,6 +38,13 @@ const DEFAULT_FILTERS: HistoryFeedFilters = {
   difficulty: "all",
 };
 
+const historyTabWidths: Record<HistoryTab, string> = {
+  all: "w-11 md:w-[60px]",
+  tasks: "w-[68px] md:w-[90px]",
+  trainings: "w-[82px] md:w-[110px]",
+  mocks: "w-[125px] md:w-[150px]",
+};
+
 export type { HistoryTab } from "@/lib/history-feed";
 
 export function HistoryView({
@@ -171,14 +178,14 @@ export function HistoryView({
         <nav
           aria-label={t("tabsLabel")}
           data-testid="history-tabs"
-          className="mt-2 flex h-10 items-start gap-1 overflow-x-auto md:mt-3.5 md:h-[42px] md:gap-2"
+          className="mt-3.5 flex h-[38px] items-start gap-[3px] overflow-hidden md:h-[42px] md:gap-2"
         >
           {historyTabs.map((tab) => (
             <Link
               key={tab}
               href={historyHref(tab, filters)}
               aria-current={tab === initialTab ? "page" : undefined}
-              className={`flex h-10 shrink-0 items-center justify-center rounded-[9px] px-2.5 text-xs leading-4 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand md:px-[18px] ${
+              className={`flex h-9 shrink-0 items-center justify-center rounded-[9px] text-xs leading-4 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand md:h-10 ${historyTabWidths[tab]} ${
                 tab === initialTab
                   ? "bg-subtle text-brand-ink"
                   : "border border-line bg-surface text-ink hover:border-brand"
@@ -212,10 +219,7 @@ export function HistoryView({
           </p>
         )}
 
-        <section
-          aria-label={t(`tabs.${initialTab}`)}
-          className="mt-[22px] md:mt-3.5"
-        >
+        <section aria-label={t(`tabs.${initialTab}`)} className="mt-3.5">
           {visible.length === 0 ? (
             <HistoryFeedEmpty
               filtered={filtered && feed.length > 0}

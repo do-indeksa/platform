@@ -77,7 +77,28 @@ async function assertHistoryGeometry(
   expect(content?.width).toBeCloseTo(viewport.contentWidth, 0);
   expect(tabs?.x).toBeCloseTo(viewport.contentX, 0);
   expect(filters?.x).toBeCloseTo(viewport.contentX, 0);
-  expect(filters?.height).toBe(viewport.name === "mobile" ? 82 : 42);
+  expect(tabs?.height).toBe(viewport.name === "mobile" ? 38 : 42);
+  expect(filters?.height).toBe(viewport.name === "mobile" ? 84 : 42);
+
+  const tabSizes = await page
+    .getByTestId("history-tabs")
+    .getByRole("link")
+    .evaluateAll((links) =>
+      links.map((link) => ({
+        width: link.getBoundingClientRect().width,
+        height: link.getBoundingClientRect().height,
+        fits: link.scrollWidth <= link.clientWidth,
+      })),
+    );
+  expect(tabSizes).toEqual(
+    (viewport.name === "mobile" ? [44, 68, 82, 125] : [60, 90, 110, 150]).map(
+      (width) => ({
+        width,
+        height: viewport.name === "mobile" ? 36 : 40,
+        fits: true,
+      }),
+    ),
+  );
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
