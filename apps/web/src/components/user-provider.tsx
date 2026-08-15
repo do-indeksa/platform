@@ -14,6 +14,8 @@ import { fetchCurrentUser } from "@/lib/auth-bootstrap";
 import { clearLocalAttempts, syncAttempts } from "@/lib/attempts-store";
 import { prepareHistoryRuns, syncHistoryRuns } from "@/lib/history-run-store";
 import { syncDiagnosticOwner } from "@/lib/diagnostic-store";
+import { syncPracticeRuntimeOwner } from "@/lib/practice-runtime-store";
+import { syncPracticeRuntimeRuns } from "@/lib/practice-runtime-sync";
 import { clearProgressSync, syncProgress } from "@/lib/progress-sync";
 import {
   prepareSimulationArchive,
@@ -70,7 +72,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     if (auth.status !== "ready") return;
     const user = auth.user;
     let current = true;
-    void (async () => {
+    const practiceController = new AbortController();
+    const sync = async () => {
       try {
         await syncAttempts(user?.id ?? null);
       } catch {}
@@ -81,9 +84,21 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       if (current) await syncHistoryRuns(user?.id ?? null);
       if (!current) return;
       if (current) await syncSimulationArchive(user?.id ?? null);
-    })();
+    };
+    const resumePractice = () => {
+      if (current && user !== null) {
+        void syncPracticeRuntimeRuns(user.id, {
+          signal: practiceController.signal,
+        });
+      }
+    };
+    void sync();
+    resumePractice();
+    window.addEventListener("online", resumePractice);
     return () => {
       current = false;
+      practiceController.abort();
+      window.removeEventListener("online", resumePractice);
     };
   }, [auth]);
 
@@ -131,6 +146,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 function prepareLocalOwner(userId: string | null): void {
   syncDiagnosticOwner(userId);
+  syncPracticeRuntimeOwner(userId);
   syncSimulationOwner(userId);
   prepareSimulationArchive(userId);
   prepareHistoryRuns(userId);
