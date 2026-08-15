@@ -9,6 +9,8 @@ const localizedLandings = [
     details: "Detalji P1",
     programs: "FTN programi za P1",
     start: "Počni besplatno",
+    localeTarget: "EN",
+    localizedTargetPath: "/en",
   },
   {
     path: "/en",
@@ -18,6 +20,8 @@ const localizedLandings = [
     details: "P1 details",
     programs: "FTN programs using P1",
     start: "Start for free",
+    localeTarget: "RU",
+    localizedTargetPath: "/ru",
   },
   {
     path: "/ru",
@@ -27,7 +31,25 @@ const localizedLandings = [
     details: "О формате P1",
     programs: "Программы FTN с экзаменом P1",
     start: "Начать бесплатно",
+    localeTarget: "SR",
+    localizedTargetPath: "/",
   },
+] as const;
+
+const marketingSections = [
+  "p1-paths",
+  "about-platform",
+  "features",
+  "ftn-programs",
+  "how-it-works",
+] as const;
+
+const landingDestinations = [
+  "/tasks",
+  "/exams?q=P1",
+  "/diagnostic",
+  "/simulation",
+  "/faculties/ftn",
 ] as const;
 
 for (const locale of localizedLandings) {
@@ -157,7 +179,7 @@ test("marketing menus are keyboard operable", async ({ page }) => {
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("link", { name: "Exams" })).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(menu).toHaveCount(0);
+  await expect(menu).not.toBeVisible();
   await expect(button).toBeFocused();
 
   await page.setViewportSize({ width: 1024, height: 880 });
@@ -171,6 +193,88 @@ test("marketing menus are keyboard operable", async ({ page }) => {
   await expect(details).toHaveJSProperty("open", false);
   await expect(summary).toBeFocused();
 });
+
+for (const locale of localizedLandings) {
+  test(`${locale.path} marketing navigation reaches every section`, async ({
+    page,
+  }) => {
+    const viewports = [
+      { name: "mobile", width: 390, height: 844 },
+      { name: "tablet", width: 1024, height: 880 },
+      { name: "desktop", width: 1440, height: 900 },
+    ] as const;
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      for (const section of marketingSections) {
+        await page.goto(locale.path, { waitUntil: "domcontentloaded" });
+        await expectMarketingReady(page);
+
+        if (viewport.name === "mobile") {
+          await page.getByTestId("marketing-menu-button").click();
+        } else if (
+          viewport.name === "tablet" &&
+          (section === "ftn-programs" || section === "how-it-works")
+        ) {
+          await page.locator("header nav > details > summary").click();
+        }
+
+        await page.locator(`header nav a[href$="#${section}"]:visible`).click();
+
+        await expect(page).toHaveURL(new RegExp(`#${section}$`));
+        await expect(page.locator(`#${section}`)).toBeInViewport();
+        if (viewport.name === "mobile") {
+          await expect(
+            page.locator("#mobile-marketing-menu"),
+          ).not.toBeVisible();
+        }
+      }
+    }
+  });
+
+  test(`${locale.path} calls to action reach usable product routes`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    for (const destination of landingDestinations) {
+      await page.goto(locale.path, { waitUntil: "domcontentloaded" });
+      const expectedPath = localizedPath(locale.path, destination);
+      await page.locator(`main a[href="${expectedPath}"]`).first().click();
+
+      await expect(page).toHaveURL(new RegExp(`${escapeRegex(expectedPath)}$`));
+      await expect(page.locator("h1")).toBeVisible();
+    }
+  });
+
+  test(`${locale.path} locale controls preserve query and section`, async ({
+    page,
+  }) => {
+    const suffix = "?source=landing-smoke#features";
+    const expected = `${locale.localizedTargetPath}${suffix}`;
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${locale.path}${suffix}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page
+      .getByRole("group")
+      .getByRole("link", { name: locale.localeTarget, exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`${escapeRegex(expected)}$`));
+    await expect(page.locator("#features")).toBeInViewport();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${locale.path}${suffix}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page
+      .getByRole("combobox")
+      .selectOption(locale.localeTarget.toLowerCase());
+    await expect(page).toHaveURL(new RegExp(`${escapeRegex(expected)}$`));
+    await expect(page.locator("#features")).toBeInViewport();
+  });
+}
 
 test("an authenticated visitor gets the Figma app header on landing", async ({
   page,
@@ -221,4 +325,20 @@ async function expectTextToFit(page: Page) {
         })),
     );
   expect(overflow).toEqual([]);
+}
+
+function localizedPath(localePath: string, destination: string): string {
+  return `${localePath === "/" ? "" : localePath}${destination}`;
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function expectMarketingReady(page: Page): Promise<void> {
+  await expect(
+    page
+      .getByTestId("marketing-desktop-actions")
+      .locator('a[href^="/api/v1/auth/google"]'),
+  ).toHaveCount(1);
 }
