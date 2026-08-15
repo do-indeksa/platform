@@ -87,6 +87,53 @@ func TestSnapshottedPracticePreservesOrderedRetries(t *testing.T) {
 	}
 }
 
+func TestSnapshottedPracticeRequiresUnambiguousGlobalAttemptOrder(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := startPracticeRun(t, service, userID, 2)
+	firstSubmittedAt := run.StartedAt.Add(time.Minute).Truncate(time.Millisecond)
+	first := practiceAttempt(
+		run, 0, 1, run.StartedAt, firstSubmittedAt,
+		AttemptOutcomeIncorrect, 0,
+	)
+	if _, err := service.RecordAttempt(ctx, userID, first); err != nil {
+		t.Fatal(err)
+	}
+
+	ambiguous := practiceAttempt(
+		run, 1, 1, first.SubmittedAt, first.SubmittedAt,
+		AttemptOutcomeIncorrect, 0,
+	)
+	if _, err := service.RecordAttempt(ctx, userID, ambiguous); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("equal submission time: %v", err)
+	}
+	ambiguous = practiceAttempt(
+		run, 1, 1, first.SubmittedAt, first.SubmittedAt.Add(time.Microsecond),
+		AttemptOutcomeIncorrect, 0,
+	)
+	if _, err := service.RecordAttempt(ctx, userID, ambiguous); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("same browser millisecond: %v", err)
+	}
+	ordered := practiceAttempt(
+		run, 1, 1, first.SubmittedAt, first.SubmittedAt.Add(time.Millisecond),
+		AttemptOutcomeIncorrect, 0,
+	)
+	if _, err := service.RecordAttempt(ctx, userID, ordered); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update attempts
+		set started_at = $1, submitted_at = $1, created_at = $1
+		where public_id = $2 and user_id = $3
+	`, first.SubmittedAt, ordered.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.GetRun(ctx, userID, run.ID); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("ambiguous stored order: %v", err)
+	}
+}
+
 func TestSnapshottedPracticeBoundsAttemptsPerItem(t *testing.T) {
 	ctx := context.Background()
 	service := NewService(testPool)

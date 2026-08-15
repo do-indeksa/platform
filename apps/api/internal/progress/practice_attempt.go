@@ -81,7 +81,9 @@ func validateSnapshottedPracticeAttempt(
 	}
 	attemptNumber := len(itemAttempts) + 1
 	if input.ID != practiceAttemptID(item.ID, attemptNumber) ||
-		input.StartedAt.Before(state.lastSubmittedAt) {
+		input.StartedAt.Before(state.lastSubmittedAt) ||
+		(len(state.attemptByID) > 0 &&
+			input.SubmittedAt.UnixMilli() <= state.lastSubmittedAt.UnixMilli()) {
 		return nil, invalidInput("attempt")
 	}
 	if len(itemAttempts) > 0 && input.HelpLevel < itemAttempts[len(itemAttempts)-1].HelpLevel {
@@ -143,6 +145,7 @@ func validStoredPracticeAttempt(
 	run Run,
 	attemptNumber int,
 	previousSubmittedAt time.Time,
+	hasPreviousAttempt bool,
 	previousItem *Attempt,
 ) bool {
 	if attemptNumber < 1 || attemptNumber > maxPracticeAttemptsPerItem ||
@@ -157,6 +160,8 @@ func validStoredPracticeAttempt(
 		attempt.StartedAt.Time.UnixMilli() <= 0 || attempt.SubmittedAt.Time.UnixMilli() <= 0 ||
 		attempt.StartedAt.Time.Before(run.StartedAt) ||
 		attempt.StartedAt.Time.Before(previousSubmittedAt) ||
+		(hasPreviousAttempt &&
+			attempt.SubmittedAt.Time.UnixMilli() <= previousSubmittedAt.UnixMilli()) ||
 		attempt.SubmittedAt.Time.Before(attempt.StartedAt.Time) ||
 		!validActiveDuration(attempt.ActiveDurationMs, attempt.SubmittedAt.Time.Sub(attempt.StartedAt.Time)) ||
 		(run.SubmittedAt.Valid && attempt.SubmittedAt.Time.After(run.SubmittedAt.Time)) {

@@ -22,8 +22,11 @@ repeat because a focused set can contain several tasks from one position.
 
 Each item has at most 20 deterministic UUIDv5 AUTO attempts. Attempts are
 append-only and globally causal, carry exact-length bounded JSON answer arrays,
-and never decrease the highest help level already used for that item. Incorrect
-answers permit another attempt. Correct and skipped answers are terminal.
+and never decrease the highest help level already used for that item. After the
+first attempt, submission timestamps strictly increase at browser millisecond
+precision so every client can reconstruct the global order without a
+database-only identifier. Incorrect answers permit another attempt. Correct and
+skipped answers are terminal.
 
 The mutable checkpoint uses the existing optimistic version. Each draft is a
 versioned payload containing its exact answer array, help level, and next

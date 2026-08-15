@@ -42,6 +42,16 @@ func loadRun(ctx context.Context, queries *Queries, userID, runID uuid.UUID) (Ru
 	if err != nil {
 		return RunAggregate{}, err
 	}
+	switch RunKind(run.Kind) {
+	case RunKindDiagnostic:
+		if _, _, err := loadSnapshottedDiagnosticState(ctx, queries, userID, run, items); err != nil {
+			return RunAggregate{}, err
+		}
+	case RunKindPractice:
+		if _, _, err := loadSnapshottedPracticeState(ctx, queries, userID, run, items); err != nil {
+			return RunAggregate{}, err
+		}
+	}
 	return RunAggregate{Run: run, Items: items, Attempts: attempts, Checkpoint: checkpoint}, nil
 }
 

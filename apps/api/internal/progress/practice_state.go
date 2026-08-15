@@ -93,7 +93,7 @@ func loadSnapshottedPracticeState(
 			previousItem = itemAttempts[len(itemAttempts)-1]
 		}
 		if !validStoredPracticeAttempt(
-			attempt, item, run, len(itemAttempts)+1, state.lastSubmittedAt, previousItem,
+			attempt, item, run, len(itemAttempts)+1, state.lastSubmittedAt, index > 0, previousItem,
 		) {
 			return nil, true, invalidInput("attempts")
 		}
