@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestCookieMutationOriginMiddleware(t *testing.T) {
+func TestUnsafeRequestOriginMiddleware(t *testing.T) {
 	t.Parallel()
 	service := &Service{cfg: Config{
 		CanonicalOrigin:     "https://doindeksa.rs",
@@ -33,12 +33,25 @@ func TestCookieMutationOriginMiddleware(t *testing.T) {
 			wantNext:   true,
 		},
 		{
-			name:       "unauthenticated mutation reaches endpoint authentication",
+			name:       "same-origin anonymous mutation reaches endpoint authentication",
+			method:     http.MethodPost,
+			host:       "doindeksa.rs",
+			headers:    map[string]string{"Origin": "https://doindeksa.rs"},
+			wantStatus: http.StatusNoContent,
+			wantNext:   true,
+		},
+		{
+			name:       "cross-origin anonymous mutation is rejected",
 			method:     http.MethodPost,
 			host:       "doindeksa.rs",
 			headers:    map[string]string{"Origin": "https://evil.example"},
-			wantStatus: http.StatusNoContent,
-			wantNext:   true,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "anonymous mutation without source is rejected",
+			method:     http.MethodPost,
+			host:       "doindeksa.rs",
+			wantStatus: http.StatusForbidden,
 		},
 		{
 			name:   "canonical origin",
@@ -142,7 +155,7 @@ func TestCookieMutationOriginMiddleware(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nextCalled := false
-			handler := CookieMutationOriginMiddleware(service)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			handler := UnsafeRequestOriginMiddleware(service)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				nextCalled = true
 				w.WriteHeader(http.StatusNoContent)
 			}))
@@ -168,14 +181,15 @@ func TestCookieMutationOriginMiddleware(t *testing.T) {
 	}
 }
 
-func TestCookieMutationOriginMiddlewareIgnoresLegacyCookieOnHTTPS(t *testing.T) {
+func TestUnsafeRequestOriginMiddlewareIgnoresLegacyCookieOnHTTPS(t *testing.T) {
 	service := &Service{cfg: Config{CanonicalOrigin: "https://doindeksa.rs"}}
 	nextCalled := false
-	handler := CookieMutationOriginMiddleware(service)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	handler := UnsafeRequestOriginMiddleware(service)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		nextCalled = true
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	request := httptest.NewRequest(http.MethodPost, "https://doindeksa.rs/resource", nil)
+	request.Header.Set("Origin", "https://doindeksa.rs")
 	request.AddCookie(&http.Cookie{Name: localSessionCookieName, Value: "injected"})
 	response := httptest.NewRecorder()
 

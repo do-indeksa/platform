@@ -10,13 +10,13 @@ import (
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
 )
 
-// CookieMutationOriginMiddleware keeps host-only session cookies on the
-// same-origin API surface that issued them. Requests without a session cookie
-// retain their existing authentication and OAuth behavior.
-func CookieMutationOriginMiddleware(service *Service) func(http.Handler) http.Handler {
+// UnsafeRequestOriginMiddleware keeps every state-changing browser request on
+// the configured same-origin API surface. Safe OAuth and read flows are not
+// affected.
+func UnsafeRequestOriginMiddleware(service *Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if safeMethod(r.Method) || !hasSessionCookie(service, r) {
+			if safeMethod(r.Method) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -42,11 +42,6 @@ func CookieMutationOriginMiddleware(service *Service) func(http.Handler) http.Ha
 
 func safeMethod(method string) bool {
 	return method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
-}
-
-func hasSessionCookie(service *Service, r *http.Request) bool {
-	_, err := service.requestSessionCookie(r)
-	return err == nil
 }
 
 func sourceOrigin(r *http.Request) (string, bool) {
@@ -160,6 +155,6 @@ func writeOriginError(w http.ResponseWriter) {
 		w,
 		http.StatusForbidden,
 		"cross_site_request",
-		"session mutation requires a same-origin browser request",
+		"unsafe request requires a same-origin browser request",
 	)
 }

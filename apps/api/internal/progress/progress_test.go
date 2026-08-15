@@ -75,7 +75,7 @@ func newTestApp(t *testing.T) http.Handler {
 		Handler:     NewHandler(authSvc, NewService(testPool)),
 	}
 	router := chi.NewRouter()
-	router.Use(auth.CookieMutationOriginMiddleware(authSvc))
+	router.Use(auth.UnsafeRequestOriginMiddleware(authSvc))
 	return api.HandlerFromMux(server, router)
 }
 
@@ -121,7 +121,7 @@ func do(t *testing.T, app http.Handler, method, target string, body any, cookies
 	for _, cookie := range cookies {
 		req.AddCookie(cookie)
 	}
-	if len(cookies) > 0 && method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions {
+	if method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions {
 		req.Header.Set("Origin", "https://doindeksa.rs")
 	}
 	app.ServeHTTP(rec, req)
@@ -151,6 +151,22 @@ func TestRecordAttemptsRejectsCrossOriginSession(t *testing.T) {
 
 	if response.Code != http.StatusForbidden || !strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
 		t.Fatalf("cross-origin attempt returned %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestRecordAttemptsRejectsCrossOriginRequestWithoutSession(t *testing.T) {
+	app := newTestApp(t)
+	request := httptest.NewRequest(http.MethodPost, "/v1/attempts", strings.NewReader(`[]`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", "https://evil.example")
+	request.Header.Set("Sec-Fetch-Site", "cross-site")
+	response := httptest.NewRecorder()
+
+	app.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden ||
+		!strings.Contains(response.Body.String(), `"code":"cross_site_request"`) {
+		t.Fatalf("anonymous cross-origin attempt returned %d: %s", response.Code, response.Body.String())
 	}
 }
 
