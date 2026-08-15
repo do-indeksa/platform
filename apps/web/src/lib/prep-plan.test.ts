@@ -69,19 +69,26 @@ describe("prep plan", () => {
         maxPoints: 60,
         daysUntilExam: 90,
       }),
-    ).toBe(2);
+    ).toBe(3);
     expect(
       prepPracticeTaskCount({
         goalPoints: 48,
         maxPoints: 60,
         daysUntilExam: 90,
       }),
-    ).toBe(3);
+    ).toBe(5);
     expect(
       prepPracticeTaskCount({
         goalPoints: 30,
         maxPoints: 60,
         daysUntilExam: 30,
+      }),
+    ).toBe(5);
+    expect(
+      prepPracticeTaskCount({
+        goalPoints: 30,
+        maxPoints: 60,
+        daysUntilExam: -1,
       }),
     ).toBe(3);
   });
@@ -153,21 +160,81 @@ describe("prep plan", () => {
     });
   });
 
-  it("bounds an invalid practice volume before selecting tasks", () => {
-    const result = buildPrepPlan({
-      attempts: [
+  it.each([Number.NaN, -10, 1, 99])(
+    "bounds practice volume %s before selecting tasks",
+    (practiceTaskCount) => {
+      const result = buildPrepPlan({
+        attempts: [
+          attempt("complex-1", { source: "diagnostic", correct: false }),
+        ],
+        positions,
+        topicSlots,
+        taskReferences,
+        dayStartMs,
+        dayEndMs,
+        settingsComplete: false,
+        practiceTaskCount,
+      });
+
+      expectBoundedTaskAction(result.nextAction ?? undefined, taskReferences);
+    },
+  );
+
+  it.each([1, 2])(
+    "pads a %i-error review into one bounded immutable task session",
+    (errorCount) => {
+      const reviewErrors = ["quadratic-1", "exponential-1"].slice(
+        0,
+        errorCount,
+      );
+      const result = plan([
         attempt("complex-1", { source: "diagnostic", correct: false }),
-      ],
+        ...reviewErrors.map((taskId) =>
+          attempt(taskId, { source: "diagnostic", correct: false }),
+        ),
+        attempt("logarithms-1", { source: "diagnostic" }),
+      ]);
+      const review = result.todayActions.find(
+        (action) => action.kind === "review",
+      );
+
+      expect(review).toMatchObject({
+        reason: "recentErrors",
+        reasonCount: errorCount,
+      });
+      expect(review?.taskIds.slice(0, errorCount)).toEqual(reviewErrors);
+      expectBoundedTaskAction(review, taskReferences);
+      expect(
+        review?.taskIds.every(
+          (taskId) => !result.todayActions[0].taskIds.includes(taskId),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  it("keeps every task recommendation inside the shared session bounds", () => {
+    const result = buildPrepPlan({
+      attempts: positions.flatMap((position) =>
+        [1, 2, 3].map((index) =>
+          attempt(`${position.topicSlugs[0]}-${index}`, {
+            source: "diagnostic",
+          }),
+        ),
+      ),
       positions,
       topicSlots,
       taskReferences,
       dayStartMs,
       dayEndMs,
-      settingsComplete: false,
+      settingsComplete: true,
       practiceTaskCount: 99,
     });
 
-    expect(result.nextAction?.taskIds).toHaveLength(3);
+    for (const action of result.todayActions) {
+      if (["practice", "review", "check"].includes(action.kind)) {
+        expectBoundedTaskAction(action, taskReferences);
+      }
+    }
   });
 
   it("keeps the morning plan stable and marks returned actions complete", () => {
@@ -295,3 +362,24 @@ describe("prep plan", () => {
     });
   });
 });
+
+function expectBoundedTaskAction(
+  action: ReturnType<typeof plan>["todayActions"][number] | undefined,
+  catalog: readonly TaskReference[],
+): void {
+  expect(action).toBeDefined();
+  if (!action) return;
+
+  expect(action.taskIds.length).toBeGreaterThanOrEqual(3);
+  expect(action.taskIds.length).toBeLessThanOrEqual(5);
+  expect(new Set(action.taskIds).size).toBe(action.taskIds.length);
+  expect(action.count).toBe(action.taskIds.length);
+  expect(action.minutes).toBe(action.taskIds.length * 5);
+  expect(action.minutes).toBeGreaterThanOrEqual(15);
+  expect(action.minutes).toBeLessThanOrEqual(25);
+  expect(
+    action.taskIds.every((taskId) =>
+      catalog.some((candidate) => candidate.id === taskId),
+    ),
+  ).toBe(true);
+}

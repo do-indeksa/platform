@@ -233,6 +233,73 @@ test("the plan follows current P1 positions and keeps completed work visible", a
   ).toBe(true);
 });
 
+test("a low-intensity plan opens one stable 15-minute task assignment", async ({
+  page,
+}) => {
+  const baselineAt = new Date(Date.now() - 2 * DAY_MS).toISOString();
+  const examDate = new Date(Date.now() + 90 * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
+  const baseline = [
+    entry("kb-001", 1, true, baselineAt),
+    entry("kv-001", 2, true, baselineAt),
+    entry("eks-001", 4, false, baselineAt),
+    entry("log-001", 3, true, baselineAt),
+    entry("trig-001", 5, true, baselineAt),
+    entry("vek-001", 6, true, baselineAt),
+    entry("plan-001", 7, true, baselineAt),
+    entry("ster-001", 8, true, baselineAt),
+    entry("fun-001", 9, true, baselineAt),
+    entry("komb-001", 10, true, baselineAt),
+  ];
+  await page.addInitScript(
+    ({ attempts, date }) => {
+      localStorage.setItem(
+        "do-indeksa-attempts",
+        JSON.stringify({ version: 1, attempts }),
+      );
+      localStorage.setItem(
+        "do-indeksa-prep-settings-v2:guest",
+        JSON.stringify({
+          state: { goalPoints: 30, examDate: date },
+          version: 1,
+        }),
+      );
+    },
+    { attempts: baseline, date: examDate },
+  );
+  await page.goto("/en/prep");
+
+  const nextAction = page.getByTestId("next-action");
+  await expect(nextAction).toContainText("Solve 3 tasks from position 3");
+  await page.getByRole("tab", { name: "This week" }).click();
+  await expect(page.getByTestId("prep-action-practice")).toContainText(
+    "about 15 min",
+  );
+  const firstHref = await nextAction.getAttribute("href");
+  if (firstHref === null) throw new Error("next action link is missing");
+  const firstAssignment = new URL(
+    firstHref,
+    "http://localhost:3100",
+  ).searchParams
+    .get("set")
+    ?.split(",");
+  expect(firstAssignment).toHaveLength(3);
+  expect(new Set(firstAssignment).size).toBe(3);
+
+  await nextAction.click();
+  await expect(page.getByText("1 of 3 tasks", { exact: true })).toBeVisible();
+  expect(new URL(page.url()).searchParams.get("set")?.split(",")).toEqual(
+    firstAssignment,
+  );
+
+  await page.goto("/en/prep");
+  await expect(page.getByTestId("next-action")).toHaveAttribute(
+    "href",
+    firstHref,
+  );
+});
+
 type AttemptSeed = {
   taskId: string;
   slot: number;

@@ -61,6 +61,21 @@ export function selectCheckTasks(
     if (task) selected.push(task);
     if (selected.length === count) break;
   }
+  if (selected.length === count) return selected;
+
+  for (const position of orderedPositions) {
+    for (const taskId of selectPositionTasks(
+      position.number,
+      positions,
+      taskReferences,
+      attempts,
+      count,
+    )) {
+      if (excludedTaskIds.has(taskId) || selected.includes(taskId)) continue;
+      selected.push(taskId);
+      if (selected.length === count) return selected;
+    }
+  }
   return selected;
 }
 
