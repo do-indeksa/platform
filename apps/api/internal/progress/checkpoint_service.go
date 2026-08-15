@@ -54,6 +54,11 @@ func (s *Service) CheckpointRun(
 	if err := validateCheckpointItems(input, items); err != nil {
 		return RunCheckpointAggregate{}, err
 	}
+	if err := validateSnapshottedDiagnosticCheckpoint(
+		ctx, queries, userID, run, items, input,
+	); err != nil {
+		return RunCheckpointAggregate{}, err
+	}
 
 	existing, err := queries.GetRunCheckpointForUpdate(ctx, GetRunCheckpointForUpdateParams{
 		RunID: input.ID, UserID: userID,

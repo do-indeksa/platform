@@ -19,6 +19,13 @@ Draft answers are relationally scoped to the run items, updates use an expected
 server version, and submit or explicit abandon removes the mutable checkpoint
 transactionally. Completed attempts remain append-only.
 
+Diagnostics with a complete `answerPartCount` item snapshot use the restorable
+contract: ten deterministic FTN P1 items, a causal prefix of one AUTO attempt
+per completed item, and at most one exact-shape draft for the next item. An
+attempt atomically consumes its current draft and advances the checkpoint
+ordinal without changing the client's CAS version. Rows without the snapshot
+retain the legacy contract; partial snapshots fail closed.
+
 OAuth origins are parsed and compared as structured scheme/host/port values.
 `CANONICAL_WEB_ORIGIN` and every comma-separated `EXTRA_WEB_ORIGINS` entry must
 use canonical lowercase form without credentials, a path, query, fragment,
