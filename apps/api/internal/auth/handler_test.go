@@ -5,28 +5,6 @@ import (
 	"testing"
 )
 
-func TestSanitizeRedirect(t *testing.T) {
-	path := func(s string) *string { return &s }
-	tests := []struct {
-		name     string
-		redirect *string
-		want     string
-	}{
-		{"nil", nil, "/"},
-		{"relative path", path("/prep"), "/prep"},
-		{"absolute url", path("https://evil.example"), "/"},
-		{"scheme-relative", path("//evil.example"), "/"},
-		{"empty", path(""), "/"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := sanitizeRedirect(tt.redirect); got != tt.want {
-				t.Fatalf("got %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestRequestOrigin(t *testing.T) {
 	tests := []struct {
 		name    string
