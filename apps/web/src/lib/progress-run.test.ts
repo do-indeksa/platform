@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   parseCompletedProgressRun,
   progressAttemptId,
+  progressPracticeAttemptId,
   progressRubricAttemptId,
   progressRunItemId,
   type CompletedProgressRun,
@@ -103,7 +104,24 @@ describe("completed progress runs", () => {
     expect(progressRunItemId(runId, "kb-001")).toBe(itemId);
     expect(progressRunItemId(runId, "kv-001")).not.toBe(itemId);
     expect(progressAttemptId(itemId)).toBe(progressAttemptId(itemId));
+    expect(progressPracticeAttemptId(itemId, 1)).toBe(
+      progressAttemptId(itemId),
+    );
+    expect(progressPracticeAttemptId(itemId, 2)).not.toBe(
+      progressAttemptId(itemId),
+    );
     expect(progressRubricAttemptId(itemId)).not.toBe(progressAttemptId(itemId));
+  });
+
+  it("bounds deterministic practice retry identifiers", () => {
+    const itemId = progressRunItemId(runId, "kb-001");
+
+    expect(progressPracticeAttemptId(itemId, 20)).toBe(
+      progressPracticeAttemptId(itemId, 20),
+    );
+    expect(() => progressPracticeAttemptId(itemId, 0)).toThrow(TypeError);
+    expect(() => progressPracticeAttemptId(itemId, 21)).toThrow(TypeError);
+    expect(() => progressPracticeAttemptId(itemId, 1.5)).toThrow(TypeError);
   });
 
   it("accepts a bounded self-assessed partial attempt on its own ID", () => {
