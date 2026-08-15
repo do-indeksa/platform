@@ -110,6 +110,11 @@ type RunSummary {
   maxPoints: Int
 }
 
+type LatestSubmittedDiagnosticRun {
+  id: ID!
+  submittedAt: Time!
+}
+
 type CompletedSimulationRunItem {
   taskId: ID!
   examPosition: Int!
@@ -203,6 +208,8 @@ input AbandonRunInput {
 type Query {
   run(id: ID!): Run
   runs(limit: Int! = 20): [RunSummary!]!
+  """Returns the owner's most recently submitted diagnostic, if one exists."""
+  latestSubmittedDiagnosticRun: LatestSubmittedDiagnosticRun
   """Returns the latest submitted simulation runs, up to a limit of 20."""
   completedSimulationRuns(limit: Int! = 20): [CompletedSimulationRun!]!
   """Returns the most recent attempts in chronological order, up to a limit of 1000."""

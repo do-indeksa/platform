@@ -166,6 +166,22 @@ func graphRunSummary(aggregate progress.RunAggregate) (model.RunSummary, error) 
 	return result, nil
 }
 
+func graphLatestSubmittedDiagnosticRun(
+	run progress.Run,
+) (*model.LatestSubmittedDiagnosticRun, error) {
+	if progress.RunKind(run.Kind) != progress.RunKindDiagnostic ||
+		progress.RunStatus(run.Status) != progress.RunStatusSubmitted {
+		return nil, fmt.Errorf("run %s is not a submitted diagnostic", run.ID)
+	}
+	if !run.SubmittedAt.Valid {
+		return nil, fmt.Errorf("submitted diagnostic %s has no submission time", run.ID)
+	}
+	return &model.LatestSubmittedDiagnosticRun{
+		ID:          run.ID.String(),
+		SubmittedAt: run.SubmittedAt.Time,
+	}, nil
+}
+
 func graphCompletedSimulationRun(
 	aggregate progress.RunAggregate,
 ) (model.CompletedSimulationRun, error) {
