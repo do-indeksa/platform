@@ -2,18 +2,38 @@
 
 import { Menu, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MobileMenuNavigation } from "@/components/app-navigation";
 import { HeaderUser } from "@/components/header-user";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const t = useTranslations("nav");
 
+  useEffect(() => {
+    if (!open) return;
+    containerRef.current?.querySelector<HTMLAnchorElement>("nav a")?.focus();
+  }, [open]);
+
   return (
-    <div className="md:hidden">
+    <div
+      ref={containerRef}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        setOpen(false);
+        buttonRef.current?.focus();
+      }}
+      className="md:hidden"
+    >
       <button
+        ref={buttonRef}
         type="button"
         data-testid="mobile-menu-button"
         aria-label={t("menu")}

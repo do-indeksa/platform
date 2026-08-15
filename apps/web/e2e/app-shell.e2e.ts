@@ -1,5 +1,35 @@
-import { expect, test, type Locator } from "./test";
+import { expect, test, type Locator, type Page } from "./test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
+
+const desktopDestinations = [
+  { label: "My preparation", path: "/en/cabinet" },
+  { label: "Tasks", path: "/en/tasks" },
+  { label: "Training", path: "/en/training/new" },
+  { label: "Study plan", path: "/en/prep" },
+  { label: "History", path: "/en/history" },
+  { label: "Faculties", path: "/en/faculties/ftn" },
+  { label: "Exams", path: "/en/exams" },
+] as const;
+
+const tabletOverflowDestinations = [
+  { label: "Study plan", path: "/en/prep" },
+  { label: "History", path: "/en/history" },
+  { label: "Faculties", path: "/en/faculties/ftn" },
+  { label: "Entrance exams", path: "/en/exams" },
+  { label: "Calculator", path: "/en/calculator" },
+] as const;
+
+const mobileDestinations = [
+  { label: "Overview", path: "/en/cabinet" },
+  { label: "Tasks", path: "/en/tasks" },
+  { label: "Training", path: "/en/training/new" },
+  { label: "Study plan", path: "/en/prep" },
+  { label: "Mock exam", path: "/en/simulation" },
+  { label: "History", path: "/en/history" },
+  { label: "Entrance exams", path: "/en/exams" },
+  { label: "Faculties", path: "/en/faculties/ftn" },
+  { label: "Calculator", path: "/en/calculator" },
+] as const;
 
 const locales = [
   {
@@ -27,6 +57,7 @@ const viewports = [
   { name: "mobile-390", width: 390, height: 844 },
   { name: "tablet-768", width: 768, height: 1024 },
   { name: "tablet-1024", width: 1024, height: 880 },
+  { name: "desktop-1280", width: 1280, height: 900 },
   { name: "desktop-1440", width: 1440, height: 900 },
 ] as const;
 
@@ -120,23 +151,132 @@ test("cabinet is a primary destination on desktop and mobile", async ({
 test("tablet overflow navigation exposes secondary routes and closes", async ({
   page,
 }) => {
+  await installShellFixture(page);
   await page.setViewportSize({ width: 1024, height: 880 });
-  await page.goto("/calculator");
 
-  const more = page.getByTitle("Još");
-  const menu = more.locator("..");
-  await more.click();
-  await expect(page.getByRole("link", { name: "Kalkulator" })).toHaveAttribute(
-    "aria-current",
-    "page",
+  for (const destination of tabletOverflowDestinations) {
+    await page.goto("/en/tasks");
+    const more = page.getByTitle("More");
+    const menu = more.locator("..");
+    await more.click();
+    await menu
+      .getByRole("link", { name: destination.label, exact: true })
+      .click();
+
+    await expect(page).toHaveURL(new RegExp(`${destination.path}$`));
+    await expect(menu).not.toHaveAttribute("open", "");
+  }
+});
+
+test("desktop navigation exposes only actionable destinations", async ({
+  page,
+}) => {
+  await installShellFixture(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  for (const destination of desktopDestinations) {
+    await page.goto("/en/tasks");
+    const navigation = page.getByTestId("desktop-navigation");
+    await expect(navigation).toHaveAttribute("aria-label", "Main navigation");
+    await expect(navigation.locator('[aria-disabled="true"]')).toHaveCount(0);
+    await navigation
+      .getByRole("link", { name: destination.label, exact: true })
+      .click();
+
+    await expect(page).toHaveURL(new RegExp(`${destination.path}$`));
+    await expect(page.getByTestId("site-header")).toHaveAttribute(
+      "data-placement",
+      "application",
+    );
+    await expect(
+      page
+        .getByTestId("desktop-navigation")
+        .getByRole("link", { name: destination.label, exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+  }
+});
+
+test("application menus dismiss with Escape and restore trigger focus", async ({
+  page,
+}) => {
+  await installShellFixture(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/en/tasks");
+
+  const mobileButton = page.getByTestId("mobile-menu-button");
+  await mobileButton.focus();
+  await mobileButton.press("Enter");
+  const mobileMenu = page.locator("#mobile-app-menu");
+  await expect(mobileMenu).toBeVisible();
+  await expect(
+    mobileMenu.getByRole("link", { name: "Overview", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(mobileMenu).not.toBeVisible();
+  await expect(mobileButton).toBeFocused();
+
+  await page.setViewportSize({ width: 1024, height: 880 });
+  await page.goto("/en/tasks");
+  const more = page.getByTitle("More");
+  const overflowMenu = more.locator("..");
+  await more.focus();
+  await more.press("Enter");
+  await expect(overflowMenu).toHaveJSProperty("open", true);
+  await more.press("Escape");
+  await expect(overflowMenu).toHaveJSProperty("open", false);
+  await expect(more).toBeFocused();
+});
+
+test("profile menu dismisses with Escape and restores trigger focus", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "00000000-0000-4000-8000-000000000152",
+        email: "student@example.test",
+        name: "Student",
+      },
+    }),
   );
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/en/tasks");
 
-  await page.goto("/tasks");
-  await more.click();
-  await page.getByRole("link", { name: "Kalkulator" }).click();
+  const profileMenu = page
+    .getByTestId("site-header")
+    .locator("details")
+    .filter({ hasText: "Student" });
+  const trigger = profileMenu.locator("summary");
+  await trigger.focus();
+  await trigger.press("Enter");
+  await expect(profileMenu).toHaveJSProperty("open", true);
+  await trigger.press("Escape");
+  await expect(profileMenu).toHaveJSProperty("open", false);
+  await expect(trigger).toBeFocused();
+});
 
-  await expect(page).toHaveURL(/\/calculator$/);
-  await expect(menu).not.toHaveAttribute("open", "");
+test("mobile navigation reaches every exposed application destination", async ({
+  page,
+}) => {
+  await installShellFixture(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const destination of mobileDestinations) {
+    await page.goto("/en/tasks");
+    await page.getByTestId("mobile-menu-button").click();
+    const menu = page.locator("#mobile-app-menu");
+    await menu
+      .getByRole("link", { name: destination.label, exact: true })
+      .click();
+
+    await expect(page).toHaveURL(new RegExp(`${destination.path}$`));
+    await expect(menu).not.toBeVisible();
+  }
 });
 
 test("authentication redirect keeps the visible locale", async ({ page }) => {
@@ -311,4 +451,15 @@ async function expectMinimumHitArea(locator: Locator) {
   expect(box).not.toBeNull();
   expect(box?.width).toBeGreaterThanOrEqual(44);
   expect(box?.height).toBeGreaterThanOrEqual(44);
+}
+
+async function installShellFixture(page: Page) {
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({ status: 401, body: "" }),
+  );
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
+  );
 }

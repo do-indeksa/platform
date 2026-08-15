@@ -91,7 +91,19 @@ export function HeaderUser({
   }
 
   return (
-    <details className={`group relative ${headerWidth}`}>
+    <details
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          event.currentTarget.removeAttribute("open");
+        }
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.currentTarget.removeAttribute("open");
+        event.currentTarget.querySelector("summary")?.focus();
+      }}
+      className={`group relative ${headerWidth}`}
+    >
       <summary
         className={`flex h-11 cursor-pointer list-none items-center gap-3 text-[13px] font-medium whitespace-nowrap text-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden ${headerWidth}`}
       >
