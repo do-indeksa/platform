@@ -516,6 +516,36 @@ func (q *Queries) GetAttempt(ctx context.Context, arg GetAttemptParams) (Attempt
 	return i, err
 }
 
+const getLatestSubmittedDiagnosticRun = `-- name: GetLatestSubmittedDiagnosticRun :one
+select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+from runs
+where user_id = $1
+  and kind = 'diagnostic'
+  and status = 'submitted'
+order by submitted_at desc, id desc
+limit 1
+`
+
+func (q *Queries) GetLatestSubmittedDiagnosticRun(ctx context.Context, userID uuid.UUID) (Run, error) {
+	row := q.db.QueryRow(ctx, getLatestSubmittedDiagnosticRun, userID)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getRun = `-- name: GetRun :one
 select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
 from runs

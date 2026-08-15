@@ -81,6 +81,11 @@ type ComplexityRoot struct {
 		Topic           func(childComplexity int) int
 	}
 
+	LatestSubmittedDiagnosticRun struct {
+		ID          func(childComplexity int) int
+		SubmittedAt func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AbandonRun    func(childComplexity int, input model.AbandonRunInput) int
 		CheckpointRun func(childComplexity int, input model.CheckpointRunInput) int
@@ -90,10 +95,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Attempts                func(childComplexity int, limit int32) int
-		CompletedSimulationRuns func(childComplexity int, limit int32) int
-		Run                     func(childComplexity int, id string) int
-		Runs                    func(childComplexity int, limit int32) int
+		Attempts                     func(childComplexity int, limit int32) int
+		CompletedSimulationRuns      func(childComplexity int, limit int32) int
+		LatestSubmittedDiagnosticRun func(childComplexity int) int
+		Run                          func(childComplexity int, id string) int
+		Runs                         func(childComplexity int, limit int32) int
 	}
 
 	Run struct {
@@ -168,6 +174,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Run(ctx context.Context, id string) (*model.Run, error)
 	Runs(ctx context.Context, limit int32) ([]model.RunSummary, error)
+	LatestSubmittedDiagnosticRun(ctx context.Context) (*model.LatestSubmittedDiagnosticRun, error)
 	CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error)
 	Attempts(ctx context.Context, limit int32) ([]model.Attempt, error)
 }
@@ -394,6 +401,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.CompletedSimulationRunItem.Topic(childComplexity), true
 
+	case "LatestSubmittedDiagnosticRun.id":
+		if e.ComplexityRoot.LatestSubmittedDiagnosticRun.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LatestSubmittedDiagnosticRun.ID(childComplexity), true
+	case "LatestSubmittedDiagnosticRun.submittedAt":
+		if e.ComplexityRoot.LatestSubmittedDiagnosticRun.SubmittedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LatestSubmittedDiagnosticRun.SubmittedAt(childComplexity), true
+
 	case "Mutation.abandonRun":
 		if e.ComplexityRoot.Mutation.AbandonRun == nil {
 			break
@@ -473,6 +493,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Query.CompletedSimulationRuns(childComplexity, args["limit"].(int32)), true
 
+	case "Query.latestSubmittedDiagnosticRun":
+		if e.ComplexityRoot.Query.LatestSubmittedDiagnosticRun == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.LatestSubmittedDiagnosticRun(childComplexity), true
 	case "Query.run":
 		if e.ComplexityRoot.Query.Run == nil {
 			break
@@ -950,6 +976,16 @@ func (ec *executionContext) childFields_CompletedSimulationRunItem(ctx context.C
 		return ec.fieldContext_CompletedSimulationRunItem_earnedPoints(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type CompletedSimulationRunItem", field.Name)
+}
+
+func (ec *executionContext) childFields_LatestSubmittedDiagnosticRun(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_LatestSubmittedDiagnosticRun_id(ctx, field)
+	case "submittedAt":
+		return ec.fieldContext_LatestSubmittedDiagnosticRun_submittedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LatestSubmittedDiagnosticRun", field.Name)
 }
 
 func (ec *executionContext) childFields_Run(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -2164,6 +2200,52 @@ func (ec *executionContext) fieldContext_CompletedSimulationRunItem_earnedPoints
 	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
+func (ec *executionContext) _LatestSubmittedDiagnosticRun_id(ctx context.Context, field graphql.CollectedField, obj *model.LatestSubmittedDiagnosticRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LatestSubmittedDiagnosticRun_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LatestSubmittedDiagnosticRun_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LatestSubmittedDiagnosticRun", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _LatestSubmittedDiagnosticRun_submittedAt(ctx context.Context, field graphql.CollectedField, obj *model.LatestSubmittedDiagnosticRun) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LatestSubmittedDiagnosticRun_submittedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SubmittedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LatestSubmittedDiagnosticRun_submittedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LatestSubmittedDiagnosticRun", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
 func (ec *executionContext) _Mutation_startRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2468,6 +2550,38 @@ func (ec *executionContext) fieldContext_Query_runs(ctx context.Context, field g
 	if fc.Args, err = ec.field_Query_runs_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_latestSubmittedDiagnosticRun(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_latestSubmittedDiagnosticRun(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().LatestSubmittedDiagnosticRun(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.LatestSubmittedDiagnosticRun) graphql.Marshaler {
+			return ec.marshalOLatestSubmittedDiagnosticRun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLatestSubmittedDiagnosticRun(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_latestSubmittedDiagnosticRun(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LatestSubmittedDiagnosticRun(ctx, field)
+		},
 	}
 	return fc, nil
 }
@@ -5453,6 +5567,49 @@ func (ec *executionContext) _CompletedSimulationRunItem(ctx context.Context, sel
 	return out
 }
 
+var latestSubmittedDiagnosticRunImplementors = []string{"LatestSubmittedDiagnosticRun"}
+
+func (ec *executionContext) _LatestSubmittedDiagnosticRun(ctx context.Context, sel ast.SelectionSet, obj *model.LatestSubmittedDiagnosticRun) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, latestSubmittedDiagnosticRunImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LatestSubmittedDiagnosticRun")
+		case "id":
+			out.Values[i] = ec._LatestSubmittedDiagnosticRun_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "submittedAt":
+			out.Values[i] = ec._LatestSubmittedDiagnosticRun_submittedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -5582,6 +5739,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}()
 				res = ec._Query_runs(ctx, field)
 				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "latestSubmittedDiagnosticRun":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_latestSubmittedDiagnosticRun(ctx, field)
+				if res == graphql.RequiredNull {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
 				return res
@@ -7122,6 +7301,13 @@ func (ec *executionContext) marshalOInt642ᚖint64(ctx context.Context, sel ast.
 	_ = ctx
 	res := graphql.MarshalInt64(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOLatestSubmittedDiagnosticRun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐLatestSubmittedDiagnosticRun(ctx context.Context, sel ast.SelectionSet, v *model.LatestSubmittedDiagnosticRun) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._LatestSubmittedDiagnosticRun(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalORun2ᚖgithubᚗcomᚋdoᚑindeksaᚋplatformᚋappsᚋapiᚋinternalᚋgraphᚋmodelᚐRun(ctx context.Context, sel ast.SelectionSet, v *model.Run) graphql.Marshaler {

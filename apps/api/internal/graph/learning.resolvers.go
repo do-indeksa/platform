@@ -158,6 +158,26 @@ func (r *queryResolver) Runs(ctx context.Context, limit int32) ([]model.RunSumma
 	return result, nil
 }
 
+// LatestSubmittedDiagnosticRun is the resolver for the latestSubmittedDiagnosticRun field.
+func (r *queryResolver) LatestSubmittedDiagnosticRun(ctx context.Context) (*model.LatestSubmittedDiagnosticRun, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	run, err := r.progress.LatestSubmittedDiagnosticRun(ctx, user.ID)
+	if errors.Is(err, progress.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphLatestSubmittedDiagnosticRun(run)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return result, nil
+}
+
 // CompletedSimulationRuns is the resolver for the completedSimulationRuns field.
 func (r *queryResolver) CompletedSimulationRuns(ctx context.Context, limit int32) ([]model.CompletedSimulationRun, error) {
 	user, err := requestUser(ctx)

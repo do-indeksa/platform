@@ -136,6 +136,15 @@ where user_id = $1
 order by started_at desc, id
 limit $2;
 
+-- name: GetLatestSubmittedDiagnosticRun :one
+select *
+from runs
+where user_id = $1
+  and kind = 'diagnostic'
+  and status = 'submitted'
+order by submitted_at desc, id desc
+limit 1;
+
 -- name: ListCompletedSimulationRuns :many
 select runs.*
 from runs

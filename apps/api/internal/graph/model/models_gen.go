@@ -66,6 +66,11 @@ type CompletedSimulationRunItem struct {
 	EarnedPoints    *int32          `json:"earnedPoints,omitempty"`
 }
 
+type LatestSubmittedDiagnosticRun struct {
+	ID          string    `json:"id"`
+	SubmittedAt time.Time `json:"submittedAt"`
+}
+
 type Mutation struct {
 }
 

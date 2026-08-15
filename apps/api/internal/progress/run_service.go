@@ -126,6 +126,17 @@ func (s *Service) ListRuns(ctx context.Context, userID uuid.UUID, limit int32) (
 	return loadRunAggregates(ctx, s.queries, userID, runs)
 }
 
+func (s *Service) LatestSubmittedDiagnosticRun(
+	ctx context.Context,
+	userID uuid.UUID,
+) (Run, error) {
+	run, err := s.queries.GetLatestSubmittedDiagnosticRun(ctx, userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Run{}, ErrNotFound
+	}
+	return run, err
+}
+
 func (s *Service) ListCompletedSimulationRuns(
 	ctx context.Context,
 	userID uuid.UUID,
