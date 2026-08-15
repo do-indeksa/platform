@@ -51,7 +51,7 @@ export function CabinetContinueCard({
     >
       <div
         data-testid="continue-run-content"
-        className="flex min-h-[394px] w-full min-w-0 shrink-0 flex-col items-start gap-3 overflow-hidden md:h-[242px] md:min-h-0 md:w-[520px] xl:w-[760px]"
+        className="flex min-h-[394px] w-full min-w-0 shrink-0 flex-col items-start gap-3 md:h-[242px] md:min-h-0 md:w-[520px] xl:w-[760px]"
       >
         <p className="w-full text-xs leading-[1.4] font-semibold text-brand-ink uppercase">
           {content.kicker}

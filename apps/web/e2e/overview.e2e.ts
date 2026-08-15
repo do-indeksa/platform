@@ -666,4 +666,46 @@ async function expectContinuationActionsFullyVisible(
       cardBox.y + cardBox.height,
     );
   }
+
+  for (let index = 0; index < 2; index += 1) {
+    const action = actions.nth(index);
+    await action.focus();
+    await expect(action).toBeFocused();
+    expect(await action.evaluate(hasClippedFocusOutline)).toBe(false);
+  }
+}
+
+function hasClippedFocusOutline(element: HTMLElement): boolean {
+  const clipsOverflow = (overflow: string) => overflow !== "visible";
+  const style = getComputedStyle(element);
+  const extent =
+    (Number.parseFloat(style.outlineWidth) || 0) +
+    (Number.parseFloat(style.outlineOffset) || 0);
+  if (style.outlineStyle === "none" || extent <= 0) return true;
+  const action = element.getBoundingClientRect();
+
+  for (
+    let parent = element.parentElement;
+    parent;
+    parent = parent.parentElement
+  ) {
+    const parentStyle = getComputedStyle(parent);
+    const parentBox = parent.getBoundingClientRect();
+    if (
+      clipsOverflow(parentStyle.overflowX) &&
+      (action.left - extent < parentBox.left ||
+        action.right + extent > parentBox.right)
+    ) {
+      return true;
+    }
+    if (
+      clipsOverflow(parentStyle.overflowY) &&
+      (action.top - extent < parentBox.top ||
+        action.bottom + extent > parentBox.bottom)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
