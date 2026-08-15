@@ -112,12 +112,7 @@ describe("training practice assignment", () => {
     ],
     ["task slot", runId, "2026.1", [{ ...catalog[0], slot: 11 }]],
     ["task topic", runId, "2026.1", [{ ...catalog[0], topic: "../topic" }]],
-    [
-      "answer shape",
-      runId,
-      "2026.1",
-      [{ ...catalog[0], answerPartCount: 0 }],
-    ],
+    ["answer shape", runId, "2026.1", [{ ...catalog[0], answerPartCount: 0 }]],
   ])("fails closed for malformed %s", async (_name, id, version, tasks) => {
     await expect(
       createTrainingPracticeAssignment(id, version, [tasks[0].id], tasks),
