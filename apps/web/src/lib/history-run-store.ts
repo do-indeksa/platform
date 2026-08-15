@@ -4,10 +4,12 @@ import { useSyncExternalStore } from "react";
 import { validate as isUuid } from "uuid";
 import { fetchHistoryRuns } from "./history-run-client";
 import type { HistoryRunSummary } from "./history-run-summary";
+import type { LatestSubmittedDiagnosticRun } from "./history-run-sync";
 
 export type HistoryRunSnapshot = {
   status: "guest" | "synced" | "degraded";
   entries: readonly HistoryRunSummary[];
+  latestSubmittedDiagnosticRun: LatestSubmittedDiagnosticRun | null;
 };
 
 export type HistoryRunSyncOptions = {
@@ -19,6 +21,7 @@ let authKnown = false;
 let activeOwnerId: string | null | undefined;
 let authGeneration = 0;
 let serverEntries: HistoryRunSummary[] | null = null;
+let latestSubmittedDiagnosticRun: LatestSubmittedDiagnosticRun | null = null;
 let serverUnavailable = false;
 let refreshSequence = 0;
 let snapshot: HistoryRunSnapshot | null = null;
@@ -27,13 +30,18 @@ const listeners = new Set<() => void>();
 export function historyRunView(): HistoryRunSnapshot | null {
   if (!authKnown) return null;
   if (activeOwnerId === null || activeOwnerId === undefined) {
-    snapshot ??= { status: "guest", entries: [] };
+    snapshot ??= {
+      status: "guest",
+      entries: [],
+      latestSubmittedDiagnosticRun: null,
+    };
     return snapshot;
   }
   if (serverEntries === null && !serverUnavailable) return null;
   snapshot ??= {
     status: serverUnavailable ? "degraded" : "synced",
     entries: serverEntries ?? [],
+    latestSubmittedDiagnosticRun,
   };
   return snapshot;
 }
@@ -58,9 +66,10 @@ export async function syncHistoryRuns(
   const sequence = ++refreshSequence;
 
   try {
-    const entries = await fetchHistoryRuns(options.signal);
+    const synced = await fetchHistoryRuns(options.signal);
     if (!isCurrentRefresh(userId, generation, sequence, options)) return false;
-    serverEntries = entries;
+    serverEntries = synced.entries;
+    latestSubmittedDiagnosticRun = synced.latestSubmittedDiagnosticRun;
     serverUnavailable = false;
   } catch {
     if (!isCurrentRefresh(userId, generation, sequence, options)) return false;
@@ -81,6 +90,7 @@ function activateOwner(userId: string | null): void {
   const ownerId = userId === null || isUuid(userId) ? userId : null;
   activeOwnerId = ownerId;
   serverEntries = null;
+  latestSubmittedDiagnosticRun = null;
   serverUnavailable = false;
   emit();
 }

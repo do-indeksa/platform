@@ -212,7 +212,14 @@ test("a completed guest run is claimed and submitted exactly once after sign-in"
       if (operation === "HistoryRuns" && submitted) {
         historyReadsAfterSubmit += 1;
       }
-      await route.fulfill({ json: { data: { runs: [] } } });
+      await route.fulfill({
+        json: {
+          data:
+            operation === "HistoryRuns"
+              ? { runs: [], latestSubmittedDiagnosticRun: null }
+              : { runs: [] },
+        },
+      });
       return;
     }
     const input = call.variables?.input ?? {};

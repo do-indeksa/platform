@@ -96,7 +96,14 @@ async function fulfillGraphQL(
     return;
   }
   if (operationName === "HistoryRuns") {
-    await route.fulfill({ json: { data: { runs: empty ? [] : runs } } });
+    await route.fulfill({
+      json: {
+        data: {
+          runs: empty ? [] : runs,
+          latestSubmittedDiagnosticRun: null,
+        },
+      },
+    });
     return;
   }
   if (operationName === "CompletedSimulationArchive") {

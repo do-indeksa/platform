@@ -141,6 +141,71 @@ test("an empty mobile plan has a concrete start and persists honest settings", a
   });
 });
 
+test("a fresh signed-in device continues after an all-skipped cloud diagnostic", async ({
+  page,
+}) => {
+  const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
+  const submittedAt = new Date().toISOString();
+  await page.route("**/api/v1/me", (route) =>
+    route.fulfill({
+      json: {
+        id: "39ec4650-762d-437f-9917-c31ab167cb99",
+        email: "portfolio@example.test",
+        name: "Portfolio User",
+      },
+    }),
+  );
+  await page.route("**/api/v1/attempts", (route) =>
+    route.fulfill({ status: 410 }),
+  );
+  await page.route("**/graphql", async (route) => {
+    const call = route.request().postDataJSON() as { operationName: string };
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({ json: { data: { attempts: [] } } });
+      return;
+    }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({
+        json: {
+          data: {
+            runs: [],
+            latestSubmittedDiagnosticRun: { id: runId, submittedAt },
+          },
+        },
+      });
+      return;
+    }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
+      });
+      return;
+    }
+    if (call.operationName === "PracticeRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    await route.fulfill({ status: 503, body: "" });
+  });
+
+  await page.goto("/en/prep");
+
+  await expect(page.getByTestId("prep-plan")).toHaveAttribute(
+    "data-state",
+    "ready",
+  );
+  await expect(page.getByTestId("next-action")).toContainText(
+    "Solve 3 tasks from position 1",
+  );
+  await expect(page.getByTestId("next-action")).not.toContainText(
+    "Take the short diagnostic",
+  );
+  await page.getByRole("tab", { name: "This week" }).click();
+  await expect(page.getByTestId("prep-action-diagnostic")).toContainText(
+    "Done",
+  );
+});
+
 test("an expired exam date is treated as incomplete", async ({ page }) => {
   const expiredDate = new Date(Date.now() - DAY_MS).toISOString().slice(0, 10);
   await page.addInitScript(

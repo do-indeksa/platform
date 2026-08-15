@@ -1,8 +1,8 @@
+import { HISTORY_RUN_LIMIT } from "./history-run-summary";
 import {
-  HISTORY_RUN_LIMIT,
-  parseHistoryRunResponse,
-  type HistoryRunSummary,
-} from "./history-run-summary";
+  parseHistoryRunSyncResponse,
+  type HistoryRunSync,
+} from "./history-run-sync";
 
 const HISTORY_RUNS = `
   query HistoryRuns($limit: Int!) {
@@ -22,12 +22,13 @@ const HISTORY_RUNS = `
       earnedPoints
       maxPoints
     }
+    latestSubmittedDiagnosticRun { id submittedAt }
   }
 `;
 
 export async function fetchHistoryRuns(
   signal?: AbortSignal,
-): Promise<HistoryRunSummary[]> {
+): Promise<HistoryRunSync> {
   const response = await fetch("/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -42,12 +43,12 @@ export async function fetchHistoryRuns(
   if (!response.ok) {
     throw new Error(`history runs failed with status ${response.status}`);
   }
-  const parsed = parseHistoryRunResponse(
+  const parsed = parseHistoryRunSyncResponse(
     (await response.json()) as unknown,
     HISTORY_RUN_LIMIT,
   );
   if (parsed === null) {
-    throw new Error("history runs returned an invalid response");
+    throw new Error("history run sync returned an invalid response");
   }
   return parsed;
 }

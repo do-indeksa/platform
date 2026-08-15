@@ -20,7 +20,11 @@ describe("history run store", () => {
     store.prepareHistoryRuns(null);
     await store.syncHistoryRuns(null);
 
-    expect(store.historyRunView()).toEqual({ status: "guest", entries: [] });
+    expect(store.historyRunView()).toEqual({
+      status: "guest",
+      entries: [],
+      latestSubmittedDiagnosticRun: null,
+    });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -42,7 +46,7 @@ describe("history run store", () => {
             resolveFirst = resolve;
           }),
       )
-      .mockResolvedValueOnce(response([run(runB)]));
+      .mockResolvedValueOnce(response([run(runB)], marker(runB)));
 
     const store = await import("./history-run-store");
     store.prepareHistoryRuns(userA);
@@ -50,19 +54,20 @@ describe("history run store", () => {
     store.prepareHistoryRuns(userB);
     const second = store.syncHistoryRuns(userB);
     await second;
-    resolveFirst?.(response([run(runA)]));
+    resolveFirst?.(response([run(runA)], marker(runA)));
     await first;
 
     expect(store.historyRunView()).toMatchObject({
       status: "synced",
       entries: [{ id: runB }],
+      latestSubmittedDiagnosticRun: { id: runB },
     });
   });
 
   it("preserves visible entries during refresh and transient degradation", async () => {
     let resolveRefresh: ((value: Response) => void) | undefined;
     vi.mocked(fetch)
-      .mockResolvedValueOnce(response([run(runA)]))
+      .mockResolvedValueOnce(response([run(runA)], marker(runA)))
       .mockImplementationOnce(
         () =>
           new Promise<Response>((resolve) => {
@@ -79,12 +84,14 @@ describe("history run store", () => {
     expect(store.historyRunView()).toMatchObject({
       status: "synced",
       entries: [{ id: runA }],
+      latestSubmittedDiagnosticRun: { id: runA },
     });
     resolveRefresh?.(new Response(null, { status: 503 }));
     await refresh;
     expect(store.historyRunView()).toMatchObject({
       status: "degraded",
       entries: [{ id: runA }],
+      latestSubmittedDiagnosticRun: { id: runA },
     });
   });
 
@@ -97,19 +104,20 @@ describe("history run store", () => {
             resolveFirst = resolve;
           }),
       )
-      .mockResolvedValueOnce(response([run(runB)]));
+      .mockResolvedValueOnce(response([run(runB)], marker(runB)));
 
     const store = await import("./history-run-store");
     store.prepareHistoryRuns(userA);
     const first = store.syncHistoryRuns(userA);
     const second = store.syncHistoryRuns(userA);
     await second;
-    resolveFirst?.(response([run(runA)]));
+    resolveFirst?.(response([run(runA)], marker(runA)));
     await first;
 
     expect(store.historyRunView()).toMatchObject({
       status: "synced",
       entries: [{ id: runB }],
+      latestSubmittedDiagnosticRun: { id: runB },
     });
   });
 
@@ -151,7 +159,7 @@ describe("history run store", () => {
             resolveOldA = resolve;
           }),
       )
-      .mockResolvedValueOnce(response([run(runB)]));
+      .mockResolvedValueOnce(response([run(runB)], marker(runB)));
 
     const store = await import("./history-run-store");
     store.prepareHistoryRuns(userA);
@@ -159,12 +167,13 @@ describe("history run store", () => {
     store.prepareHistoryRuns(userB);
     store.prepareHistoryRuns(userA);
     await store.syncHistoryRuns(userA);
-    resolveOldA?.(response([run(runA)]));
+    resolveOldA?.(response([run(runA)], marker(runA)));
     await oldA;
 
     expect(store.historyRunView()).toMatchObject({
       status: "synced",
       entries: [{ id: runB }],
+      latestSubmittedDiagnosticRun: { id: runB },
     });
   });
 
@@ -178,6 +187,7 @@ describe("history run store", () => {
     expect(store.historyRunView()).toEqual({
       status: "degraded",
       entries: [],
+      latestSubmittedDiagnosticRun: null,
     });
   });
 });
@@ -201,6 +211,13 @@ function run(id: string) {
   };
 }
 
-function response(runs: unknown[]): Response {
-  return Response.json({ data: { runs } });
+function marker(id: string) {
+  return { id, submittedAt: "2026-08-10T10:20:00.000Z" };
+}
+
+function response(
+  runs: unknown[],
+  latestSubmittedDiagnosticRun: unknown = null,
+): Response {
+  return Response.json({ data: { runs, latestSubmittedDiagnosticRun } });
 }
