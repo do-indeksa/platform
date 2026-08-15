@@ -29,6 +29,15 @@ func hashSecret(token string) []byte {
 	return sum[:]
 }
 
+func validSecret(value string) bool {
+	if len(value) != base64.RawURLEncoding.EncodedLen(32) {
+		return false
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(value)
+	return err == nil && len(raw) == 32 &&
+		base64.RawURLEncoding.EncodeToString(raw) == value
+}
+
 func (s *Service) sessionCookie(token string, maxAge int) *http.Cookie {
 	return &http.Cookie{
 		Name:     SessionCookieName,

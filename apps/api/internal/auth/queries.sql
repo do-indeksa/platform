@@ -28,10 +28,22 @@ delete from sessions where expires_at <= now();
 delete from auth_codes where expires_at <= now();
 
 -- name: CreateAuthCode :exec
-insert into auth_codes (code_hash, user_id, redirect, expires_at)
-values ($1, $2, $3, $4);
+insert into auth_codes (
+    code_hash,
+    user_id,
+    origin,
+    redirect,
+    browser_binding_id,
+    browser_binding_hash,
+    expires_at
+)
+values ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: ConsumeAuthCode :one
 delete from auth_codes
-where code_hash = $1 and expires_at > now()
+where code_hash = $1
+    and origin = $2
+    and browser_binding_id = $3
+    and browser_binding_hash = $4
+    and expires_at > now()
 returning user_id, redirect;

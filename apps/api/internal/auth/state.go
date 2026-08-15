@@ -1,26 +1,60 @@
 package auth
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"time"
 )
 
 var errInvalidState = errors.New("invalid state")
 
+const (
+	maxOAuthTokenLength = 4096
+	stateKeyPurpose     = "do-indeksa/oauth-state/browser-bound/v1"
+	oauthClockSkew      = 30 * time.Second
+)
+
 type state struct {
-	Origin    string `json:"origin"`
-	Redirect  string `json:"redirect"`
-	Verifier  string `json:"verifier"`
-	ExpiresAt int64  `json:"exp"`
+	Origin          string        `json:"origin"`
+	Redirect        string        `json:"redirect"`
+	Verifier        string        `json:"verifier"`
+	CallbackBinding oauthBinding  `json:"callback_binding"`
+	HandoffBinding  *oauthBinding `json:"handoff_binding,omitempty"`
+	ExpiresAt       int64         `json:"exp"`
 }
 
 func sealState(key []byte, st state) (string, error) {
-	plaintext, err := json.Marshal(st)
+	return sealOAuthToken(deriveOAuthKey(key, stateKeyPurpose), st)
+}
+
+func openState(key []byte, token string, now time.Time) (state, error) {
+	var st state
+	if err := openOAuthToken(deriveOAuthKey(key, stateKeyPurpose), token, &st); err != nil {
+		return state{}, err
+	}
+	if now.Add(-oauthClockSkew).Unix() >= st.ExpiresAt ||
+		st.ExpiresAt > now.Add(stateTTL+oauthClockSkew).Unix() {
+		return state{}, errInvalidState
+	}
+	return st, nil
+}
+
+func deriveOAuthKey(secret []byte, purpose string) []byte {
+	mac := hmac.New(sha256.New, secret)
+	_, _ = mac.Write([]byte(purpose))
+	return mac.Sum(nil)
+}
+
+func sealOAuthToken(key []byte, payload any) (string, error) {
+	plaintext, err := json.Marshal(payload)
 	if err != nil {
 		return "", err
 	}
@@ -33,33 +67,41 @@ func sealState(key []byte, st state) (string, error) {
 		return "", err
 	}
 	sealed := gcm.Seal(nonce, nonce, plaintext, nil)
-	return base64.RawURLEncoding.EncodeToString(sealed), nil
+	token := base64.RawURLEncoding.EncodeToString(sealed)
+	if len(token) > maxOAuthTokenLength {
+		return "", errInvalidState
+	}
+	return token, nil
 }
 
-func openState(key []byte, token string, now time.Time) (state, error) {
+func openOAuthToken(key []byte, token string, payload any) error {
+	if token == "" || len(token) > maxOAuthTokenLength {
+		return errInvalidState
+	}
 	sealed, err := base64.RawURLEncoding.DecodeString(token)
-	if err != nil {
-		return state{}, errInvalidState
+	if err != nil || base64.RawURLEncoding.EncodeToString(sealed) != token {
+		return errInvalidState
 	}
 	gcm, err := newGCM(key)
 	if err != nil {
-		return state{}, err
+		return err
 	}
 	if len(sealed) < gcm.NonceSize() {
-		return state{}, errInvalidState
+		return errInvalidState
 	}
 	plaintext, err := gcm.Open(nil, sealed[:gcm.NonceSize()], sealed[gcm.NonceSize():], nil)
 	if err != nil {
-		return state{}, errInvalidState
+		return errInvalidState
 	}
-	var st state
-	if err := json.Unmarshal(plaintext, &st); err != nil {
-		return state{}, errInvalidState
+	decoder := json.NewDecoder(bytes.NewReader(plaintext))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(payload); err != nil {
+		return errInvalidState
 	}
-	if now.Unix() > st.ExpiresAt {
-		return state{}, errInvalidState
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errInvalidState
 	}
-	return st, nil
+	return nil
 }
 
 func newGCM(key []byte) (cipher.AEAD, error) {

@@ -22,8 +22,9 @@ func TestRegisterHTTPRoutes(t *testing.T) {
 	}{
 		{http.MethodGet, "/attempts"},
 		{http.MethodPost, "/attempts"},
-		{http.MethodGet, "/auth/exchange?code=test"},
+		{http.MethodGet, "/auth/exchange?code=test&binding=AAAAAAAAAAAAAAAAAAAAAA"},
 		{http.MethodGet, "/auth/google"},
+		{http.MethodGet, "/auth/google/bootstrap?request=test"},
 		{http.MethodGet, "/auth/google/callback?state=test"},
 		{http.MethodPost, "/auth/logout"},
 		{http.MethodGet, "/me"},

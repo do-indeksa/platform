@@ -120,13 +120,19 @@ type RecordAttemptsJSONBody = []NewAttempt
 
 // ExchangeAuthCodeParams defines parameters for ExchangeAuthCode.
 type ExchangeAuthCodeParams struct {
-	Code string `form:"code" json:"code"`
+	Code    string `form:"code" json:"code"`
+	Binding string `form:"binding" json:"binding"`
 }
 
 // StartGoogleAuthParams defines parameters for StartGoogleAuth.
 type StartGoogleAuthParams struct {
 	// Redirect Relative path to return to after sign-in
 	Redirect *string `form:"redirect,omitempty" json:"redirect,omitempty"`
+}
+
+// BootstrapGoogleAuthParams defines parameters for BootstrapGoogleAuth.
+type BootstrapGoogleAuthParams struct {
+	Request string `form:"request" json:"request"`
 }
 
 // GoogleAuthCallbackParams defines parameters for GoogleAuthCallback.
@@ -152,9 +158,12 @@ type ServerInterface interface {
 	// Trade a one-time code for a session cookie on the current origin
 	// (GET /v1/auth/exchange)
 	ExchangeAuthCode(w http.ResponseWriter, r *http.Request, params ExchangeAuthCodeParams)
-	// Redirect to Google authorization
+	// Start browser-bound Google authorization
 	// (GET /v1/auth/google)
 	StartGoogleAuth(w http.ResponseWriter, r *http.Request, params StartGoogleAuthParams)
+	// Bind a non-canonical sign-in to its initiating browser
+	// (GET /v1/auth/google/bootstrap)
+	BootstrapGoogleAuth(w http.ResponseWriter, r *http.Request, params BootstrapGoogleAuthParams)
 	// OAuth callback registered with Google
 	// (GET /v1/auth/google/callback)
 	GoogleAuthCallback(w http.ResponseWriter, r *http.Request, params GoogleAuthCallbackParams)
@@ -188,9 +197,15 @@ func (_ Unimplemented) ExchangeAuthCode(w http.ResponseWriter, r *http.Request, 
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-// Redirect to Google authorization
+// Start browser-bound Google authorization
 // (GET /v1/auth/google)
 func (_ Unimplemented) StartGoogleAuth(w http.ResponseWriter, r *http.Request, params StartGoogleAuthParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Bind a non-canonical sign-in to its initiating browser
+// (GET /v1/auth/google/bootstrap)
+func (_ Unimplemented) BootstrapGoogleAuth(w http.ResponseWriter, r *http.Request, params BootstrapGoogleAuthParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -271,6 +286,19 @@ func (siw *ServerInterfaceWrapper) ExchangeAuthCode(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// ------------- Required query parameter "binding" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "binding", r.URL.Query(), &params.Binding, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "binding"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "binding", Err: err})
+		}
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.ExchangeAuthCode(w, r, params)
 	}))
@@ -306,6 +334,39 @@ func (siw *ServerInterfaceWrapper) StartGoogleAuth(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.StartGoogleAuth(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// BootstrapGoogleAuth operation middleware
+func (siw *ServerInterfaceWrapper) BootstrapGoogleAuth(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params BootstrapGoogleAuthParams
+
+	// ------------- Required query parameter "request" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "request", r.URL.Query(), &params.Request, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "request"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "request", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.BootstrapGoogleAuth(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -526,6 +587,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/auth/google", wrapper.StartGoogleAuth)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/auth/google/bootstrap", wrapper.BootstrapGoogleAuth)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/auth/google/callback", wrapper.GoogleAuthCallback)

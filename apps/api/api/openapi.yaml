@@ -6,7 +6,7 @@ paths:
   /v1/auth/google:
     get:
       operationId: startGoogleAuth
-      summary: Redirect to Google authorization
+      summary: Start browser-bound Google authorization
       parameters:
         - name: redirect
           in: query
@@ -16,9 +16,35 @@ paths:
             default: /
       responses:
         "302":
-          description: Redirect to Google with signed state and PKCE challenge
+          description: Redirect to Google or the canonical preview bootstrap
           headers:
             Location:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/Internal"
+  /v1/auth/google/bootstrap:
+    get:
+      operationId: bootstrapGoogleAuth
+      summary: Bind a non-canonical sign-in to its initiating browser
+      parameters:
+        - name: request
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 4096
+      responses:
+        "302":
+          description: Redirect to the next browser-binding step or Google
+          headers:
+            Location:
+              schema:
+                type: string
+            Set-Cookie:
               schema:
                 type: string
         "400":
@@ -34,11 +60,14 @@ paths:
           in: query
           schema:
             type: string
+            maxLength: 4096
         - name: state
           in: query
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 4096
         - name: error
           in: query
           description: OAuth error from Google, e.g. access_denied on cancel
@@ -75,6 +104,14 @@ paths:
           required: true
           schema:
             type: string
+            minLength: 1
+            maxLength: 128
+        - name: binding
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^[A-Za-z0-9_-]{22}$"
       responses:
         "302":
           description: Session cookie set, browser sent to the stored redirect path
