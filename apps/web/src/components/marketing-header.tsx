@@ -17,11 +17,11 @@ export function MarketingHeader() {
   const t = useTranslations("landing.header");
   const overflowMenu = useRef<HTMLDetailsElement>(null);
   const items: MarketingLink[] = [
-    { href: "/#p1-paths", label: t("exams") },
-    { href: "/#about-platform", label: t("about") },
-    { href: "/#features", label: t("features") },
-    { href: "/#ftn-programs", label: t("faculties") },
-    { href: "/#how-it-works", label: t("aboutUs") },
+    { href: "#p1-paths", label: t("exams") },
+    { href: "#about-platform", label: t("about") },
+    { href: "#features", label: t("features") },
+    { href: "#ftn-programs", label: t("faculties") },
+    { href: "#how-it-works", label: t("aboutUs") },
   ];
 
   return (
@@ -84,20 +84,23 @@ export function MarketingHeader() {
             </summary>
             <div className="absolute top-12 right-0 z-50 min-w-48 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
               {items.slice(3).map((item) => (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
                   onClick={() => overflowMenu.current?.removeAttribute("open")}
                   className="flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-ink hover:bg-page focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-brand"
                 >
                   {item.label}
-                </Link>
+                </a>
               ))}
             </div>
           </details>
         </nav>
 
-        <div className="hidden shrink-0 items-center justify-center gap-3 md:flex">
+        <div
+          data-testid="marketing-desktop-actions"
+          className="hidden shrink-0 items-center justify-center gap-3 md:flex"
+        >
           <LanguageSwitcher />
           <HeaderUser placement="marketing" />
         </div>
@@ -119,12 +122,12 @@ function MarketingNavLink({
   width: string;
 }) {
   return (
-    <Link
+    <a
       href={item.href}
       data-fit-text
       className={`shrink-0 font-normal hover:text-brand-ink focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${width}`}
     >
       {item.label}
-    </Link>
+    </a>
   );
 }
