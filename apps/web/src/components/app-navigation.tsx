@@ -254,6 +254,13 @@ function HeaderLink({
       }`}
     >
       {label}
+      {active && item.key === "tasks" && (
+        <span
+          aria-hidden
+          data-testid="task-navigation-indicator"
+          className="absolute bottom-0 left-[7px] z-10 h-0.5 w-14 bg-brand xl:left-[13px] xl:w-16"
+        />
+      )}
     </Link>
   );
 }
