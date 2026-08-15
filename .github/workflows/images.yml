@@ -43,6 +43,15 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Resolve deterministic image metadata
+        id: image-metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          created="$(git show --no-patch --format=%cI "${GITHUB_SHA}")"
+          test -n "${created}"
+          echo "created=${created}" >> "${GITHUB_OUTPUT}"
+
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Build test image
@@ -55,6 +64,7 @@ jobs:
           push: false
           tags: ${{ env.LOCAL_IMAGE }}
           labels: |
+            org.opencontainers.image.created=${{ steps.image-metadata.outputs.created }}
             org.opencontainers.image.source=https://github.com/do-indeksa/platform
             org.opencontainers.image.revision=${{ github.sha }}
           provenance: false
@@ -63,6 +73,17 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
           build-args: |
             API_URL=http://do-indeksa-api:8080
+
+      - name: Verify image metadata
+        shell: bash
+        env:
+          EXPECTED_CREATED: ${{ steps.image-metadata.outputs.created }}
+        run: |
+          set -euo pipefail
+          actual_created="$(docker image inspect "${LOCAL_IMAGE}" --format '{{ index .Config.Labels "org.opencontainers.image.created" }}')"
+          actual_revision="$(docker image inspect "${LOCAL_IMAGE}" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
+          test "${actual_created}" = "${EXPECTED_CREATED}"
+          test "${actual_revision}" = "${GITHUB_SHA}"
 
       - name: Verify non-root runtime
         shell: bash
