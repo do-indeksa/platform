@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  completePrepPreferences,
   loadPrepPreferences,
   parsePrepPreferences,
   prepSettingsStorageKey,
@@ -29,6 +30,12 @@ describe("parsePrepPreferences", () => {
       goalPoints: null,
       examDate: null,
     });
+    expect(
+      completePrepPreferences({ goalPoints: 61, examDate: "2027-06-28" }),
+    ).toBeNull();
+    expect(
+      completePrepPreferences({ goalPoints: 42, examDate: "1999-12-31" }),
+    ).toBeNull();
   });
 });
 

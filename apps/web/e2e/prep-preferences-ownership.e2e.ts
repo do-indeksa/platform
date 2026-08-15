@@ -60,7 +60,9 @@ test("Study Plan preferences stay in their owner scope", async ({ page }) => {
     version: 1,
     state: { goalPoints: 35, examDate: "2026-11-12" },
   });
+  await expect.poll(() => auth.prepOperationCount()).toBeGreaterThanOrEqual(4);
 
+  const prepCallsBeforeGuest = auth.prepOperationCount();
   auth.useGuest();
   await page.reload();
   await expectReadyWithGoal(page, "Not set");
@@ -69,6 +71,7 @@ test("Study Plan preferences stay in their owner scope", async ({ page }) => {
     version: 1,
     state: { goalPoints: 50, examDate: "2026-12-13" },
   });
+  expect(auth.prepOperationCount()).toBe(prepCallsBeforeGuest);
 
   auth.useUser(USER_A);
   await page.reload();
@@ -87,6 +90,7 @@ test("Study Plan preferences stay in their owner scope", async ({ page }) => {
 async function installMutableAuth(page: Page) {
   let owner: string | null = USER_A;
   let nextGate: Promise<void> | null = null;
+  const prepOperations: string[] = [];
 
   await page.route("**/api/v1/me", async (route) => {
     const gate = nextGate;
@@ -107,9 +111,16 @@ async function installMutableAuth(page: Page) {
   await page.route("**/api/v1/attempts", (route) =>
     route.fulfill({ status: 410 }),
   );
-  await page.route("**/graphql", (route) =>
-    route.fulfill({ status: 503, body: "" }),
-  );
+  await page.route("**/graphql", async (route) => {
+    const body = route.request().postDataJSON() as { operationName?: string };
+    if (
+      body.operationName === "PrepPreferences" ||
+      body.operationName === "SavePrepPreferences"
+    ) {
+      prepOperations.push(body.operationName);
+    }
+    await route.fulfill({ status: 503, body: "" });
+  });
 
   return {
     blockNext(nextOwner: string) {
@@ -125,6 +136,9 @@ async function installMutableAuth(page: Page) {
     },
     useUser(nextOwner: string) {
       owner = nextOwner;
+    },
+    prepOperationCount() {
+      return prepOperations.length;
     },
   };
 }
