@@ -214,10 +214,24 @@ describe("practice cloud parser", () => {
   });
 
   it("selects only active practice summaries and rejects malformed pages", () => {
+    const newest = "6ff78318-3436-4b4e-99b8-77ef34366ad3";
+    const tiedFirst = "1ff78318-3436-4b4e-99b8-77ef34366ad3";
     expect(
       parseActivePracticeRunIds(
         [
           { id: runId, kind: "PRACTICE", status: "ACTIVE", startedAt },
+          {
+            id: newest,
+            kind: "PRACTICE",
+            status: "ACTIVE",
+            startedAt: "2026-08-12T11:00:00.000Z",
+          },
+          {
+            id: tiedFirst,
+            kind: "PRACTICE",
+            status: "ACTIVE",
+            startedAt,
+          },
           {
             id: crypto.randomUUID(),
             kind: "DIAGNOSTIC",
@@ -233,7 +247,7 @@ describe("practice cloud parser", () => {
         ],
         100,
       ),
-    ).toEqual([runId]);
+    ).toEqual([newest, tiedFirst, runId]);
     expect(
       parseActivePracticeRunIds(
         [{ id: "bad", kind: "PRACTICE", status: "ACTIVE", startedAt }],

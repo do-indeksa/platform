@@ -17,7 +17,7 @@ export function parseActivePracticeRunIds(
   limit: number,
 ): string[] | null {
   if (!Array.isArray(value) || value.length > limit) return null;
-  const result: string[] = [];
+  const active: { id: string; startedAt: number }[] = [];
   const seen = new Set<string>();
   for (const candidate of value) {
     if (
@@ -32,10 +32,18 @@ export function parseActivePracticeRunIds(
     }
     seen.add(candidate.id);
     if (candidate.kind === "PRACTICE" && candidate.status === "ACTIVE") {
-      result.push(candidate.id);
+      active.push({
+        id: candidate.id,
+        startedAt: Date.parse(candidate.startedAt as string),
+      });
     }
   }
-  return result;
+  return active
+    .toSorted(
+      (left, right) =>
+        right.startedAt - left.startedAt || left.id.localeCompare(right.id),
+    )
+    .map(({ id }) => id);
 }
 
 export function resolvePracticeCloudAssignment(
