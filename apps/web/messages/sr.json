@@ -25,6 +25,11 @@
     "signIn": "Prijavi se",
     "signOut": "Odjavi se"
   },
+  "authBootstrap": {
+    "title": "Ne možemo da proverimo sesiju",
+    "description": "Sačuvani rad je ostao na ovom uređaju. Proveri vezu i pokušaj ponovo.",
+    "retry": "Pokušaj ponovo"
+  },
   "landing": {
     "metadataTitle": "FTN P1 priprema",
     "metadataDescription": "Besplatno vežbaj matematiku za FTN P1: 10 zadataka, 4 sata, do 60 bodova, dijagnostika i jasan plan pripreme.",
@@ -175,6 +180,7 @@
   "prep": {
     "title": "Plan pripreme",
     "description": "Lični plan pripreme za FTN P1 sa jednim konkretnim sledećim korakom.",
+    "subtitle": "{count} pozicija · Matematika (P1)",
     "kicker": "P1 · Matematika",
     "intro": "Jedan jasan korak na osnovu tvojih odgovora, grešaka i aktuelne strukture ispita.",
     "loading": "Sastavljamo tvoj plan...",
@@ -244,7 +250,104 @@
       "needsWork": "Treba ponoviti",
       "progressing": "Napreduje",
       "confident": "Sigurno"
-    }
+    },
+    "summaryLabel": "Sažetak plana pripreme",
+    "summaryProgressTitle": "Spremnost u platformi",
+    "summaryCoverage": "Provereno {covered} od {total} pozicija",
+    "summaryExamTitle": "Do ispita",
+    "summaryDateUnset": "Nije postavljeno",
+    "summaryDatePassed": "Datum je prošao",
+    "summaryDays": "{days, plural, =0 {Danas} one {# dan} few {# dana} other {# dana}}",
+    "summaryDatePrompt": "Postavi datum ispita",
+    "summaryGoalTitle": "Cilj",
+    "summaryGoalUnset": "Nije postavljen",
+    "summaryGoalValue": "{goal}/{max} bodova",
+    "summaryGoalContext": "Cilj za P1 vežbanje",
+    "editPlan": "Izmeni plan",
+    "viewsLabel": "Prikaz plana",
+    "view": {
+      "positions": "Po pozicijama",
+      "week": "Ove nedelje",
+      "topics": "Po oblastima"
+    },
+    "methodLink": "Kako radi plan?",
+    "topicsViewLabel": "Napredak po oblastima",
+    "tablePosition": "Pozicija",
+    "tableTopic": "Oblast",
+    "tableProgress": "Napredak",
+    "tableStatus": "Status",
+    "tableEvidence": "Nedavni odgovori",
+    "positionSignalNone": "Nema podataka",
+    "positionSignalErrors": "{count, plural, one {# greška} few {# greške} other {# grešaka}}",
+    "positionSignalHints": "{count, plural, one {# uz pomoć} few {# uz pomoć} other {# uz pomoć}}",
+    "positionSignalAnswers": "{count, plural, one {# odgovor} few {# odgovora} other {# odgovora}}",
+    "factsLabel": "Aktuelni detalji plana",
+    "factTodayTitle": "Današnji obim",
+    "factTodayValue": "{completed}/{total} gotovo · oko {minutes} min",
+    "factPlanDateTitle": "Plan važi do"
+  },
+  "trainingBuilder": {
+    "metadataTitle": "Napravi P1 vežbanje",
+    "metadataDescription": "Sastavi ciljano vežbanje matematike za FTN P1 iz aktuelnih pozicija ispita.",
+    "back": "Nazad na zadatke",
+    "title": "Napravi vežbanje",
+    "description": "Sastavi svoj skup iz potrebnih P1 pozicija",
+    "saveDraft": "Sačuvaj lokalni nacrt",
+    "subjectStep": "Izaberi ispit",
+    "p1": "Matematika (P1)",
+    "onlyP1": "Aktuelni format · {version}",
+    "positionsStep": "Izaberi pozicije i broj zadataka",
+    "presets": {
+      "all": "Sve pozicije",
+      "new": "Novi zadaci",
+      "mistakes": "Skorije greške"
+    },
+    "reset": "Poništi",
+    "selectPosition": "Izaberi poziciju {position}",
+    "positionDescription": "Objavljeni zadaci za poziciju {position}",
+    "quantity": "Broj zadataka za poziciju {position}",
+    "decrease": "Ukloni jedan zadatak sa pozicije {position}",
+    "increase": "Dodaj jedan zadatak sa pozicije {position}",
+    "showMore": "Prikaži pozicije 9–10",
+    "showLess": "Prikaži manje",
+    "summaryTitle": "Tvoj skup za vežbanje",
+    "subject": "Ispit",
+    "composition": "Sastav skupa",
+    "emptyComposition": "Izaberi bar jednu poziciju",
+    "taskCount": "{count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+    "removePosition": "Ukloni poziciju {position}",
+    "total": "Ukupno zadataka",
+    "settingsTitle": "Podešavanja vežbanja",
+    "difficultyLabel": "Redosled težine",
+    "difficultyInfo": "Određuje koju težinu biramo prvu kada pozicija ima više objavljenih zadataka.",
+    "difficulty": {
+      "foundation": "Osnovna",
+      "balanced": "Srednja",
+      "advanced": "Napredna"
+    },
+    "onlyNew": {
+      "title": "Samo novi zadaci",
+      "description": "Izostavi već pokušane zadatke"
+    },
+    "shuffle": {
+      "title": "Pomešaj pozicije",
+      "description": "Pomešaj redosled izabranih zadataka"
+    },
+    "mistakes": {
+      "title": "Prednost greškama",
+      "description": "Prvo ponovi skorije greške"
+    },
+    "attemptsLoading": "Učitavamo istoriju pokušaja. Nacrt možeš da menjaš.",
+    "attemptsDegraded": "Sinhronizacija naloga nije dostupna. Koriste se pokušaji sa ovog uređaja.",
+    "preparing": "Pripremamo istoriju...",
+    "noMatching": "Nema odgovarajućih objavljenih zadataka",
+    "start": "Počni vežbanje",
+    "startLabel": "Počni vežbanje sa {count} zadataka",
+    "saveLocal": "Sačuvaj na ovom uređaju",
+    "saved": "Sačuvano na ovom uređaju",
+    "restored": "Lokalni nacrt je vraćen",
+    "saveFailed": "Lokalno čuvanje nije uspelo",
+    "selectedCount": "Zatraženo zadataka: {count}"
   },
   "diagnostic": {
     "title": "Proveri svoj početni nivo",
@@ -398,9 +501,11 @@
     "metadataTitle": "Moj kabinet",
     "metadataDescription": "Lični pregled pripreme, napretka i poslednjih rezultata za prijemni ispit FTN P1 iz matematike.",
     "title": "Moj kabinet",
+    "loading": "Učitavamo napredak i sledeći korak.",
     "subtitle": {
       "started": "Tvoja priprema za upis",
-      "empty": "Započni pripremu za upis"
+      "empty": "Započni pripremu za upis",
+      "loading": "Učitavamo tvoju pripremu"
     },
     "subject": {
       "aria": "Aktivni prijemni ispit",
@@ -536,6 +641,55 @@
     "taskContext": "Oblast · {topic}",
     "taskProgress": "Zadatak {current} od {total}",
     "exitPractice": "← Izađi iz zadatka",
+    "backToPractice": "← Nazad na vežbanje",
+    "workspaceTitle": "Vežbanje · Pozicija {position} · {topic}",
+    "calculator": "Kalkulator",
+    "hideStatement": "Sakrij uslov",
+    "showStatement": "Prikaži uslov",
+    "workspaceProgress": "{current} od {total} zadataka",
+    "workspaceProgressLabel": "Napredak kroz vežbanje",
+    "elapsedTimeLabel": "Proteklo vreme",
+    "taskRailTitle": "Zadaci",
+    "taskRailItemLabel": "Zadatak {number}: {status}",
+    "taskDuration": "{minutes} min {seconds} sek",
+    "taskStatus": {
+      "active": "U toku",
+      "solved": "Rešeno",
+      "retry": "Za novi pokušaj",
+      "skipped": "Preskočeno",
+      "pending": "Nije rešeno"
+    },
+    "workspaceTopics": {
+      "kompleksni-brojevi": "Kompleksni brojevi",
+      "kvadratna-jednacina": "Kvadratne jednačine",
+      "logaritmi": "Logaritmi",
+      "eksponencijalne": "Eksponencijalne jednačine",
+      "trigonometrija": "Trigonometrija",
+      "vektori-analitika": "Vektori i geometrija",
+      "planimetrija": "Planimetrija",
+      "stereometrija": "Stereometrija",
+      "analiza-funkcije": "Analiza funkcije",
+      "kombinatorika": "Kombinatorika"
+    },
+    "finishPractice": "Završi vežbanje",
+    "taskOrdinal": "Zadatak {ordinal}",
+    "conditionVisible": "Uslov je prikazan",
+    "conditionHidden": "Uslov je skriven",
+    "conditionHiddenBody": "Uslov je sakriven. Prikaži ga kada želiš da nastaviš.",
+    "helpTitle": "Pomoć",
+    "helpItemTitle": "Pomoć {level}",
+    "available": "Dostupno",
+    "locked": "Zaključano",
+    "helpAfterAttempt": "Dostupna posle pokušaja",
+    "helpAfterPrevious": "Otključava se posle prethodne pomoći",
+    "solutionAvailable": "Rešenje je dostupno",
+    "solutionHidden": "Rešenje je skriveno",
+    "solutionAfterAttempt": "Biće dostupno posle pokušaja.",
+    "taskNavigationLabel": "Kretanje kroz zadatke",
+    "previousTask": "Prethodni zadatak",
+    "previousTaskShort": "Nazad",
+    "skipTask": "Preskoči",
+    "nextTaskShort": "Dalje",
     "answerLabel": "Tvoj odgovor",
     "checkCta": "Proveri",
     "checkingCta": "Proveravam...",
@@ -577,14 +731,29 @@
     "planimetrija": "Planimetrija",
     "stereometrija": "Stereometrija",
     "analiza-funkcije": "Analiza funkcije i integral",
-    "kombinatorika": "Kombinatorika"
+    "kombinatorika": "Kombinatorika",
+    "description": {
+      "kompleksni-brojevi": "Algebarski i trigonometrijski oblik, modul i argument",
+      "kvadratna-jednacina": "Koreni, parametri i Vijetove formule",
+      "logaritmi": "Jednačine, nejednačine i uslovi definisanosti",
+      "eksponencijalne": "Jednačine, nejednačine i eksponencijalne funkcije",
+      "trigonometrija": "Identiteti, jednačine i znak funkcije",
+      "vektori-analitika": "Vektori, koordinate i analitička geometrija",
+      "planimetrija": "Trouglovi, četvorouglovi i kružnice",
+      "stereometrija": "Poliedri, obrtna tela, površina i zapremina",
+      "analiza-funkcije": "Izvodi, granične vrednosti i integrali",
+      "kombinatorika": "Prebrojavanje, permutacije i kombinacije"
+    }
   },
   "taskBank": {
-    "favorites": "Omiljeno",
-    "mySets": "Moji skupovi",
-    "subjects": "Predmeti",
-    "allSubjects": "Svi predmeti",
+    "shortcuts": "Brzi prelazi",
+    "historyShortcut": "Istorija",
+    "studyPlanShortcut": "Plan",
     "mathematics": "Matematika",
+    "progressTabs": "Filtriraj zadatke po napretku",
+    "allTasksTab": "Svi zadaci",
+    "newTasksTab": "Novi",
+    "reviewTasksTab": "Greške",
     "searchLabel": "Pretraži zadatke",
     "searchPlaceholder": "Pretraži zadatke",
     "filters": "Filteri",
@@ -599,9 +768,10 @@
     "topicsControl": "Oblasti",
     "difficultyControl": "Težina",
     "difficultyControlShort": "Težina",
-    "taskTypeControl": "Tip zadatka",
-    "taskTypeControlShort": "Tip",
-    "sourceControl": "Izvor",
+    "positionControl": "Pozicija",
+    "positionControlShort": "Poz.",
+    "progressControl": "Napredak",
+    "progressControlShort": "Napredak",
     "difficulty": {
       "foundation": "Osnovni · 1–2",
       "exam": "Ispitni nivo · 3",
@@ -625,10 +795,8 @@
     "clearSelection": "Poništi izbor",
     "startPractice": "Vežbaj izabrane zadatke",
     "selectionCount": "Izabrano: {count}",
-    "addToSet": "Dodaj u skup",
     "solveSelected": "Reši",
     "selectTask": "Izaberi zadatak {id}",
-    "favoriteTask": "Dodaj zadatak u omiljene",
     "difficultyShort": {
       "easy": "Lako",
       "medium": "Srednje",
@@ -643,6 +811,76 @@
   "history": {
     "title": "Istorija",
     "description": "Završeni zadaci i probni ispiti tokom pripreme za FTN P1.",
+    "feed": {
+      "title": "Istorija",
+      "loading": "Učitavamo istoriju...",
+      "tabsLabel": "Prikazi istorije",
+      "tabs": {
+        "all": "Sve",
+        "tasks": "Zadaci",
+        "trainings": "Vežbe",
+        "mocks": "Probni ispiti"
+      },
+      "degraded": "Sinhronizacija naloga još nije ažurna. Ispravna aktivnost sačuvana na ovom uređaju ostaje vidljiva.",
+      "filters": {
+        "label": "Filteri istorije",
+        "subjectLabel": "Prijemni ispit",
+        "allSubjects": "Svi ispiti",
+        "p1": "Matematika FTN P1",
+        "periodLabel": "Period",
+        "period": {
+          "all": "Sve vreme",
+          "7d": "Poslednjih 7 dana",
+          "30d": "Poslednjih 30 dana",
+          "90d": "Poslednjih 90 dana"
+        },
+        "difficultyLabel": "Težina",
+        "difficulty": {
+          "all": "Sve težine",
+          "easy": "Lako · 1-2",
+          "medium": "Srednje · 3-4",
+          "hard": "Teško · 5"
+        }
+      },
+      "actions": {
+        "label": "Radnje istorije",
+        "reset": "Poništi filtere",
+        "trend": "Napredak bodova",
+        "retry": "Ponovi poslednje greške",
+        "sync": {
+          "guest": "Sačuvano na ovom uređaju",
+          "synced": "Sinhronizovano sa nalogom",
+          "degraded": "Sinhronizacija zahteva pažnju"
+        }
+      },
+      "showMore": "Prikaži još",
+      "openTask": "Otvori pokušaj zadatka {id}",
+      "taskTitle": "Zadatak #{id}",
+      "withHelp": "Uz pomoć",
+      "outcome": {
+        "correct": "Tačno",
+        "incorrect": "Netačno",
+        "partial": "Delimično",
+        "skipped": "Preskočeno",
+        "ungraded": "Na pregledu"
+      },
+      "trainingTitle": "Vežba zadataka",
+      "diagnosticTitle": "P1 dijagnostika",
+      "trainingSubtitle": "FTN P1 · {count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+      "mockTitle": "Probni ispit P1",
+      "mockSubtitle": "FTN P1 · {count, plural, one {# zadatak} few {# zadatka} other {# zadataka}}",
+      "openMock": "Otvori rezultat probnog ispita",
+      "pendingScore": "Na pregledu",
+      "score": "{score} / {max}",
+      "empty": {
+        "title": "Istorija je prazna",
+        "description": "Ovde će se pojaviti završeni zadaci, vežbe, dijagnostike i rezultati P1 probnih ispita.",
+        "filteredTitle": "Nema odgovarajuće aktivnosti",
+        "filteredDescription": "Promeni prikaz ili poništi filtere da se vratiš na kompletnu istoriju.",
+        "reset": "Poništi filtere",
+        "tasks": "Pređi na zadatke"
+      }
+    },
     "kicker": "P1 · Tvoj rad",
     "intro": "Vrati se na prethodne odgovore, pogledaj greške u kontekstu i pretvori ih u kratku vežbu.",
     "syncNotice": {

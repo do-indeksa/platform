@@ -25,6 +25,11 @@
     "signIn": "Войти",
     "signOut": "Выйти"
   },
+  "authBootstrap": {
+    "title": "Не удалось проверить сессию",
+    "description": "Сохранённая работа осталась на этом устройстве. Проверьте соединение и попробуйте снова.",
+    "retry": "Попробовать снова"
+  },
   "landing": {
     "metadataTitle": "Подготовка к FTN P1",
     "metadataDescription": "Бесплатная подготовка к математике FTN P1: 10 задач, 4 часа, до 60 баллов, диагностика и понятный план.",
@@ -175,6 +180,7 @@
   "prep": {
     "title": "План подготовки",
     "description": "Персональный план подготовки к вступительному экзамену P1 с конкретным следующим действием.",
+    "subtitle": "{count} позиций · Математика (P1)",
     "kicker": "P1 · Математика",
     "intro": "Один понятный шаг на основе ваших ответов, ошибок и текущей структуры экзамена.",
     "loading": "Собираем ваш план...",
@@ -244,7 +250,104 @@
       "needsWork": "Нужно повторить",
       "progressing": "Есть прогресс",
       "confident": "Уверенно"
-    }
+    },
+    "summaryLabel": "Сводка плана подготовки",
+    "summaryProgressTitle": "Готовность в тренажёре",
+    "summaryCoverage": "Проверено {covered} из {total} позиций",
+    "summaryExamTitle": "До экзамена",
+    "summaryDateUnset": "Не задано",
+    "summaryDatePassed": "Дата прошла",
+    "summaryDays": "{days, plural, =0 {Сегодня} one {# день} few {# дня} many {# дней} other {# дня}}",
+    "summaryDatePrompt": "Укажите дату экзамена",
+    "summaryGoalTitle": "Цель",
+    "summaryGoalUnset": "Не задана",
+    "summaryGoalValue": "{goal}/{max} баллов",
+    "summaryGoalContext": "Цель практики P1",
+    "editPlan": "Редактировать план",
+    "viewsLabel": "Вид плана",
+    "view": {
+      "positions": "По позициям",
+      "week": "На неделю",
+      "topics": "По темам"
+    },
+    "methodLink": "Как работает план?",
+    "topicsViewLabel": "Прогресс по темам",
+    "tablePosition": "Позиция",
+    "tableTopic": "Тема",
+    "tableProgress": "Прогресс",
+    "tableStatus": "Статус",
+    "tableEvidence": "Недавние ответы",
+    "positionSignalNone": "Нет данных",
+    "positionSignalErrors": "{count, plural, one {# ошибка} few {# ошибки} many {# ошибок} other {# ошибки}}",
+    "positionSignalHints": "{count, plural, one {# с подсказкой} few {# с подсказкой} many {# с подсказкой} other {# с подсказкой}}",
+    "positionSignalAnswers": "{count, plural, one {# ответ} few {# ответа} many {# ответов} other {# ответа}}",
+    "factsLabel": "Актуальные детали плана",
+    "factTodayTitle": "План на сегодня",
+    "factTodayValue": "{completed}/{total} готово · около {minutes} мин",
+    "factPlanDateTitle": "План составлен до"
+  },
+  "trainingBuilder": {
+    "metadataTitle": "Создать тренировку P1",
+    "metadataDescription": "Соберите тренировку по математике FTN P1 из актуальных позиций экзамена.",
+    "back": "К заданиям",
+    "title": "Создать тренировку",
+    "description": "Соберите свой вариант из нужных позиций P1",
+    "saveDraft": "Сохранить локальный черновик",
+    "subjectStep": "Выберите экзамен",
+    "p1": "Математика (P1)",
+    "onlyP1": "Актуальный формат · {version}",
+    "positionsStep": "Выберите позиции и количество задач",
+    "presets": {
+      "all": "Все позиции",
+      "new": "Новые задачи",
+      "mistakes": "Недавние ошибки"
+    },
+    "reset": "Сбросить",
+    "selectPosition": "Выбрать позицию {position}",
+    "positionDescription": "Опубликованные задачи позиции {position}",
+    "quantity": "Количество задач позиции {position}",
+    "decrease": "Убрать одну задачу позиции {position}",
+    "increase": "Добавить одну задачу позиции {position}",
+    "showMore": "Показать позиции 9–10",
+    "showLess": "Показать меньше",
+    "summaryTitle": "Ваш вариант тренировки",
+    "subject": "Экзамен",
+    "composition": "Состав варианта",
+    "emptyComposition": "Выберите хотя бы одну позицию",
+    "taskCount": "{count, plural, one {# задача} few {# задачи} many {# задач} other {# задачи}}",
+    "removePosition": "Убрать позицию {position}",
+    "total": "Итого задач",
+    "settingsTitle": "Настройки тренировки",
+    "difficultyLabel": "Порядок сложности",
+    "difficultyInfo": "Определяет, задачи какой сложности выбирать первыми, если в позиции доступно несколько задач.",
+    "difficulty": {
+      "foundation": "Базовая",
+      "balanced": "Средняя",
+      "advanced": "Сложная"
+    },
+    "onlyNew": {
+      "title": "Только новые задачи",
+      "description": "Исключить уже решённые задачи"
+    },
+    "shuffle": {
+      "title": "С перемешиванием",
+      "description": "Смешать порядок выбранных задач"
+    },
+    "mistakes": {
+      "title": "Приоритет ошибок",
+      "description": "Сначала недавние ошибки"
+    },
+    "attemptsLoading": "Загружаем историю попыток. Черновик можно редактировать.",
+    "attemptsDegraded": "Синхронизация аккаунта недоступна. Используются попытки с этого устройства.",
+    "preparing": "Подготавливаем историю...",
+    "noMatching": "Нет подходящих опубликованных задач",
+    "start": "Начать тренировку",
+    "startLabel": "Начать тренировку из {count} задач",
+    "saveLocal": "Сохранить на этом устройстве",
+    "saved": "Сохранено на этом устройстве",
+    "restored": "Локальный черновик восстановлен",
+    "saveFailed": "Не удалось сохранить локально",
+    "selectedCount": "Запрошено задач: {count}"
   },
   "diagnostic": {
     "title": "Проверьте свой стартовый уровень",
@@ -398,9 +501,11 @@
     "metadataTitle": "Мой кабинет",
     "metadataDescription": "Прогресс подготовки и последние результаты для вступительного экзамена FTN P1 по математике.",
     "title": "Мой кабинет",
+    "loading": "Загружаем прогресс и следующее действие.",
     "subtitle": {
       "started": "Ваша подготовка к поступлению",
-      "empty": "Начните подготовку к поступлению"
+      "empty": "Начните подготовку к поступлению",
+      "loading": "Загружаем вашу подготовку"
     },
     "subject": {
       "aria": "Активный вступительный экзамен",
@@ -536,6 +641,55 @@
     "taskContext": "Тема · {topic}",
     "taskProgress": "Задание {current} из {total}",
     "exitPractice": "← Выйти из задания",
+    "backToPractice": "← Назад к практике",
+    "workspaceTitle": "Практика · Позиция {position} · {topic}",
+    "calculator": "Калькулятор",
+    "hideStatement": "Скрыть условие",
+    "showStatement": "Показать условие",
+    "workspaceProgress": "{current} из {total} заданий",
+    "workspaceProgressLabel": "Прогресс практики",
+    "elapsedTimeLabel": "Прошедшее время",
+    "taskRailTitle": "Задания",
+    "taskRailItemLabel": "Задание {number}: {status}",
+    "taskDuration": "{minutes} мин {seconds} сек",
+    "taskStatus": {
+      "active": "В процессе",
+      "solved": "Решено",
+      "retry": "Повторить",
+      "skipped": "Пропущено",
+      "pending": "Не решено"
+    },
+    "workspaceTopics": {
+      "kompleksni-brojevi": "Комплексные числа",
+      "kvadratna-jednacina": "Квадратные уравнения",
+      "logaritmi": "Логарифмы",
+      "eksponencijalne": "Показательные уравнения",
+      "trigonometrija": "Тригонометрия",
+      "vektori-analitika": "Векторы и геометрия",
+      "planimetrija": "Планиметрия",
+      "stereometrija": "Стереометрия",
+      "analiza-funkcije": "Исследование функции",
+      "kombinatorika": "Комбинаторика"
+    },
+    "finishPractice": "Завершить практику",
+    "taskOrdinal": "Задание {ordinal}",
+    "conditionVisible": "Условие показано",
+    "conditionHidden": "Условие скрыто",
+    "conditionHiddenBody": "Условие скрыто. Покажите его, когда будете готовы продолжить.",
+    "helpTitle": "Помощь",
+    "helpItemTitle": "Помощь {level}",
+    "available": "Доступно",
+    "locked": "Заблокировано",
+    "helpAfterAttempt": "Доступно после попытки",
+    "helpAfterPrevious": "Откроется после предыдущей подсказки",
+    "solutionAvailable": "Решение доступно",
+    "solutionHidden": "Решение скрыто",
+    "solutionAfterAttempt": "Будет доступно после попытки.",
+    "taskNavigationLabel": "Навигация по заданиям",
+    "previousTask": "Предыдущее задание",
+    "previousTaskShort": "Назад",
+    "skipTask": "Пропустить",
+    "nextTaskShort": "Далее",
     "answerLabel": "Ваш ответ",
     "checkCta": "Проверить",
     "checkingCta": "Проверяем...",
@@ -577,14 +731,29 @@
     "planimetrija": "Планиметрия",
     "stereometrija": "Стереометрия",
     "analiza-funkcije": "Исследование функций и интегралы",
-    "kombinatorika": "Комбинаторика"
+    "kombinatorika": "Комбинаторика",
+    "description": {
+      "kompleksni-brojevi": "Алгебраическая и тригонометрическая формы, модуль и аргумент",
+      "kvadratna-jednacina": "Корни, параметры и формулы Виета",
+      "logaritmi": "Уравнения, неравенства и область определения",
+      "eksponencijalne": "Уравнения, неравенства и показательные функции",
+      "trigonometrija": "Тождества, уравнения и знаки функций",
+      "vektori-analitika": "Векторы, координаты и аналитическая геометрия",
+      "planimetrija": "Треугольники, четырёхугольники и окружности",
+      "stereometrija": "Многогранники, тела вращения, площади и объёмы",
+      "analiza-funkcije": "Производные, пределы и интегралы",
+      "kombinatorika": "Подсчёт, перестановки и сочетания"
+    }
   },
   "taskBank": {
-    "favorites": "Избранное",
-    "mySets": "Мои наборы",
-    "subjects": "Предметы",
-    "allSubjects": "Все предметы",
+    "shortcuts": "Быстрые переходы",
+    "historyShortcut": "История",
+    "studyPlanShortcut": "План",
     "mathematics": "Математика",
+    "progressTabs": "Фильтр заданий по прогрессу",
+    "allTasksTab": "Все задания",
+    "newTasksTab": "Новые",
+    "reviewTasksTab": "Ошибки",
     "searchLabel": "Поиск заданий",
     "searchPlaceholder": "Поиск по заданиям",
     "filters": "Фильтры",
@@ -599,9 +768,10 @@
     "topicsControl": "Темы",
     "difficultyControl": "Сложность",
     "difficultyControlShort": "Сложн.",
-    "taskTypeControl": "Тип задания",
-    "taskTypeControlShort": "Тип",
-    "sourceControl": "Источник",
+    "positionControl": "Позиция",
+    "positionControlShort": "Поз.",
+    "progressControl": "Прогресс",
+    "progressControlShort": "Прогресс",
     "difficulty": {
       "foundation": "Базовые · 1–2",
       "exam": "Экзаменационные · 3",
@@ -625,10 +795,8 @@
     "clearSelection": "Очистить выбор",
     "startPractice": "Решать выбранные задания",
     "selectionCount": "Выбрано: {count}",
-    "addToSet": "Добавить в набор",
     "solveSelected": "Решить",
     "selectTask": "Выбрать задание {id}",
-    "favoriteTask": "Добавить задание в избранное",
     "difficultyShort": {
       "easy": "Лёгкая",
       "medium": "Средняя",
@@ -643,6 +811,76 @@
   "history": {
     "title": "История",
     "description": "Завершённые задания и пробные экзамены для подготовки к FTN P1.",
+    "feed": {
+      "title": "История",
+      "loading": "Загружаем историю...",
+      "tabsLabel": "Разделы истории",
+      "tabs": {
+        "all": "Все",
+        "tasks": "Задания",
+        "trainings": "Тренировки",
+        "mocks": "Пробные экзамены"
+      },
+      "degraded": "Синхронизация аккаунта пока не актуальна. Корректные данные с этого устройства остаются видимыми.",
+      "filters": {
+        "label": "Фильтры истории",
+        "subjectLabel": "Вступительный экзамен",
+        "allSubjects": "Все экзамены",
+        "p1": "Математика FTN P1",
+        "periodLabel": "Период",
+        "period": {
+          "all": "За всё время",
+          "7d": "Последние 7 дней",
+          "30d": "Последние 30 дней",
+          "90d": "Последние 90 дней"
+        },
+        "difficultyLabel": "Сложность",
+        "difficulty": {
+          "all": "Любая сложность",
+          "easy": "Лёгкая · 1-2",
+          "medium": "Средняя · 3-4",
+          "hard": "Сложная · 5"
+        }
+      },
+      "actions": {
+        "label": "Действия с историей",
+        "reset": "Сбросить фильтры",
+        "trend": "Динамика баллов",
+        "retry": "Повторить последние ошибки",
+        "sync": {
+          "guest": "Сохранено на этом устройстве",
+          "synced": "Синхронизировано с аккаунтом",
+          "degraded": "Синхронизация требует внимания"
+        }
+      },
+      "showMore": "Показать ещё",
+      "openTask": "Открыть попытку задания {id}",
+      "taskTitle": "Решение задачи #{id}",
+      "withHelp": "С подсказкой",
+      "outcome": {
+        "correct": "Правильно",
+        "incorrect": "Неправильно",
+        "partial": "Частично",
+        "skipped": "Пропущено",
+        "ungraded": "На проверке"
+      },
+      "trainingTitle": "Тренировка по заданиям",
+      "diagnosticTitle": "Диагностика P1",
+      "trainingSubtitle": "FTN P1 · {count, plural, one {# задание} few {# задания} many {# заданий} other {# задания}}",
+      "mockTitle": "Пробный экзамен P1",
+      "mockSubtitle": "FTN P1 · {count, plural, one {# задание} few {# задания} many {# заданий} other {# задания}}",
+      "openMock": "Открыть результат пробного экзамена",
+      "pendingScore": "На проверке",
+      "score": "{score} / {max}",
+      "empty": {
+        "title": "История пуста",
+        "description": "Здесь появятся решённые задания, тренировки, диагностики и результаты пробных экзаменов P1.",
+        "filteredTitle": "Подходящих записей нет",
+        "filteredDescription": "Измените раздел или сбросьте фильтры, чтобы вернуться ко всей истории.",
+        "reset": "Сбросить фильтры",
+        "tasks": "Перейти к заданиям"
+      }
+    },
     "kicker": "P1 · Ваша работа",
     "intro": "Возвращайтесь к ответам, разбирайте ошибки в контексте и собирайте из них короткую тренировку.",
     "syncNotice": {

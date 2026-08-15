@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 
 const variants = [
   { name: "mobile", width: 390, height: 844 },
@@ -12,13 +12,17 @@ for (const variant of variants) {
 
     test("canonical filtered task bank", async ({ page }) => {
       await installTaskBankFixture(page);
-      await page.goto("/ru/tasks?position=1&difficulty=foundation", {
+      await page.goto("/ru/tasks?position=1&position=2", {
         waitUntil: "networkidle",
       });
       await expect(
         page.getByRole("heading", { name: "Задания", exact: true }),
       ).toBeVisible();
       await waitForFonts(page);
+      await expectNoHorizontalOverflow(page);
+      if (variant.name !== "mobile") {
+        await expectProfileNameToFit(page);
+      }
 
       await expect(page).toHaveScreenshot(`task-bank-ru-${variant.name}.png`);
     });
@@ -75,4 +79,32 @@ async function waitForFonts(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true);
+}
+
+async function expectProfileNameToFit(page: Page) {
+  const profileName = page
+    .getByTestId("site-header")
+    .locator("summary")
+    .getByText("Полина", { exact: true })
+    .last();
+  await expect(profileName).toBeVisible();
+  await expect
+    .poll(() =>
+      profileName.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    )
+    .toBe(true);
 }

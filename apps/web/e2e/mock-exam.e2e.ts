@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { parsePersistedSimulationState } from "../src/lib/simulation-persistence";
 import { archivedSimulationTaskRevisions } from "./simulation-revision-fixture";
 
@@ -297,6 +297,10 @@ test("an authenticated mock exam persists one idempotent GraphQL lifecycle", asy
       return;
     }
     if (call.operationName === "SimulationRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    if (call.operationName === "HistoryRuns") {
       await route.fulfill({ json: { data: { runs: [] } } });
       return;
     }

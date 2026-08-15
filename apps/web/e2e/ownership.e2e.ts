@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const USER_A = "a0209703-275b-4c6e-b815-25025b923ae8";
 const USER_B = "71c4bd20-7512-446a-bc6a-d95a7cb7d665";
@@ -140,22 +140,29 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
   });
   await page.route("**/graphql", async (route) => {
     const call = route.request().postDataJSON() as { operationName?: string };
-    await route.fulfill({
-      json:
-        call.operationName === "AttemptJournal"
-          ? { data: { attempts: [] } }
-          : { data: { completedSimulationRuns: [] } },
-    });
+    if (call.operationName === "AttemptJournal") {
+      await route.fulfill({ json: { data: { attempts: [] } } });
+      return;
+    }
+    if (call.operationName === "HistoryRuns") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    if (call.operationName === "CompletedSimulationArchive") {
+      await route.fulfill({
+        json: { data: { completedSimulationRuns: [] } },
+      });
+      return;
+    }
+    await route.fulfill({ status: 400 });
   });
 
   await page.goto("/en/cabinet");
+  const dashboard = page.getByTestId("cabinet-dashboard");
   const continuation = page.getByTestId("continue-run");
-  await expect(
-    continuation.getByRole("heading", {
-      name: "Preparation has not started yet",
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(dashboard).toHaveAttribute("data-state", "loading");
+  await expect(page.getByTestId("cabinet-loading")).toBeVisible();
+  await expect(continuation).toHaveCount(0);
   await expect(page.getByText("private active answer")).toHaveCount(0);
   await expect(page.getByText("private diagnostic answer")).toHaveCount(0);
 
@@ -193,6 +200,7 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
       },
       diagnostic: { runId: null, runOwnerId: null, answers: [] },
     });
+  await expect(dashboard).toHaveAttribute("data-state", "empty");
   await expect(
     continuation.getByRole("heading", {
       name: "Preparation has not started yet",
@@ -202,7 +210,7 @@ test("foreign learning runtimes stay hidden and clear before account B renders",
 
   await page.goto("/en/history?tab=variants");
   await expect(
-    page.getByRole("heading", { name: "No completed mock exams yet" }),
+    page.getByRole("heading", { name: "History is empty" }),
   ).toBeVisible();
   await expect(page.getByText("private archived answer")).toHaveCount(0);
 });

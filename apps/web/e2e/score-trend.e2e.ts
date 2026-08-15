@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const TASK_IDS = Array.from({ length: 10 }, (_, index) => `task-${index + 1}`);
 
@@ -68,6 +68,9 @@ test("mock history shows an honest responsive score trend", async ({
 
   await page.goto("/en/history?tab=variants");
 
+  await page.getByRole("button", { name: "History actions" }).click();
+  await page.getByRole("button", { name: "Score progress" }).click();
+
   const trend = page.getByTestId("variant-score-trend");
   await expect(
     trend.getByRole("heading", { name: "Score progress" }),
@@ -81,7 +84,10 @@ test("mock history shows an honest responsive score trend", async ({
   await expect(trend.locator("ol li")).toHaveCount(3);
   await expect(trend.locator("ol")).toContainText("18 of 60 points");
   await expect(
-    page.locator("p:visible").filter({ hasText: /^54 \/ 60$/ }),
+    page
+      .getByRole("link", { name: "Open mock exam result" })
+      .first()
+      .getByText("54 / 60", { exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -98,10 +104,14 @@ test("mock history shows an honest responsive score trend", async ({
   ).toBe(true);
 
   await page.goto("/history?tab=variants");
+  await page.getByRole("button", { name: "Radnje istorije" }).click();
+  await page.getByRole("button", { name: "Napredak bodova" }).click();
   await expect(
     page.getByRole("heading", { name: "Napredak bodova" }),
   ).toBeVisible();
   await page.goto("/ru/history?tab=variants");
+  await page.getByRole("button", { name: "Действия с историей" }).click();
+  await page.getByRole("button", { name: "Динамика баллов" }).click();
   await expect(
     page.getByRole("heading", { name: "Динамика баллов" }),
   ).toBeVisible();

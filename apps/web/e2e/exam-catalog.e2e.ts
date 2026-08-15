@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test("catalog exposes the official FTN exam model and P1 preparation", async ({
   page,

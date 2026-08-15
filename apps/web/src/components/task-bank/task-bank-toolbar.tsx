@@ -1,71 +1,37 @@
 "use client";
 
-import { ChevronDown, RectangleHorizontal, Search, Star } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { ProgressFilter } from "@/lib/task-bank";
+import { TaskBankHeading } from "./task-bank-heading";
 
 type TaskBankToolbarProps = {
   query: string;
+  progress: ProgressFilter;
   activeFilterCount: number;
   onQueryChange: (query: string) => void;
+  onProgressChange: (progress: ProgressFilter) => void;
   onOpenFilters: () => void;
   onReset: () => void;
 };
 
 export function TaskBankToolbar({
   query,
+  progress,
   activeFilterCount,
   onQueryChange,
+  onProgressChange,
   onOpenFilters,
   onReset,
 }: TaskBankToolbarProps) {
   const t = useTranslations("taskBank");
-  const tasksT = useTranslations("tasks");
 
   return (
     <div className="contents">
-      <div className="flex h-[34px] items-center justify-between md:h-[42px]">
-        <h1 className="text-[22px] leading-[30px] font-semibold text-ink md:text-[32px] md:leading-10 md:font-bold">
-          {tasksT("title")}
-        </h1>
-        <div
-          data-design-status="provisional"
-          className="flex w-[46px] items-center justify-between text-muted md:w-[220px] md:text-sm md:leading-5"
-        >
-          <span className="flex h-[34px] w-4 items-center justify-center gap-2 md:h-5 md:w-[97px] md:justify-start">
-            <Star aria-hidden size={16} strokeWidth={1.5} />
-            <span className="hidden md:inline">{t("favorites")}</span>
-          </span>
-          <span className="flex h-[34px] w-4 items-center justify-center gap-2 md:h-5 md:w-[105px] md:justify-start">
-            <RectangleHorizontal aria-hidden size={14} strokeWidth={1.4} />
-            <span className="hidden md:inline">{t("mySets")}</span>
-          </span>
-        </div>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label={t("subjects")}
-        className="flex items-start gap-1 md:gap-2"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected="true"
-          className="h-[30px] w-[103px] rounded-[9px] bg-subtle text-xs leading-4 font-medium text-brand-ink md:h-[34px] md:w-[124px] md:text-sm md:leading-5 md:font-normal"
-        >
-          {t("allSubjects")}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected="false"
-          aria-disabled="true"
-          data-design-status="provisional"
-          className="h-[30px] w-[91px] rounded-[9px] text-xs leading-4 font-medium text-ink md:h-[34px] md:w-[110px] md:text-sm md:leading-5 md:font-normal"
-        >
-          {t("mathematics")}
-        </button>
-      </div>
+      <TaskBankHeading
+        progress={progress}
+        onProgressChange={onProgressChange}
+      />
 
       <div className="flex flex-col gap-2.5 md:flex-row md:gap-3 md:pr-3">
         <label className="relative min-w-0 flex-1">
@@ -122,15 +88,16 @@ export function TaskBankToolbar({
         <FilterControl
           mobileWidth="w-[78px]"
           desktopWidth="md:w-[142px]"
-          label={t("taskTypeControl")}
-          mobileLabel={t("taskTypeControlShort")}
-          provisional
+          label={t("positionControl")}
+          mobileLabel={t("positionControlShort")}
+          onClick={onOpenFilters}
         />
         <FilterControl
           mobileWidth="w-[98px]"
           desktopWidth="md:w-[122px]"
-          label={t("sourceControl")}
-          provisional
+          label={t("progressControl")}
+          mobileLabel={t("progressControlShort")}
+          onClick={onOpenFilters}
         />
       </div>
     </div>
@@ -143,21 +110,17 @@ function FilterControl({
   label,
   mobileLabel,
   onClick,
-  provisional = false,
 }: {
   mobileWidth: string;
   desktopWidth: string;
   label: string;
   mobileLabel?: string;
   onClick?: () => void;
-  provisional?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-disabled={provisional || undefined}
-      data-design-status={provisional ? "provisional" : undefined}
       className={`flex h-[34px] shrink-0 items-center justify-center rounded-[9px] border border-line bg-surface px-2.5 text-xs leading-4 font-medium text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand md:h-[42px] ${mobileWidth} ${desktopWidth}`}
     >
       <span

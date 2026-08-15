@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import {
   completeSimulationRubricReview,
   diagnosticResultPath,
@@ -71,7 +71,10 @@ const surfaces: readonly VisualSurface[] = [
     path: "/tasks/kompleksni-brojevi/kb-001",
     ready: async (page) => {
       await expect(
-        page.getByRole("heading", { name: "Zadatak kb-001", exact: true }),
+        page.getByRole("heading", {
+          name: "Vežbanje · Pozicija 1 · Kompleksni brojevi",
+          exact: true,
+        }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", { name: "Proveri", exact: true }),
@@ -85,13 +88,8 @@ const surfaces: readonly VisualSurface[] = [
       await expect(
         page.getByRole("heading", { name: "Plan pripreme", exact: true }),
       ).toBeVisible();
-      await expect(page.getByTestId("next-action")).toBeVisible();
-      await expect(
-        page.getByRole("heading", {
-          name: "Sinhronizuj završene odgovore",
-          exact: true,
-        }),
-      ).toBeVisible();
+      await expect(page.getByTestId("prep-plan-summary")).toBeVisible();
+      await expect(page.getByTestId("prep-position-10")).toBeVisible();
     },
   },
   {
@@ -103,7 +101,7 @@ const surfaces: readonly VisualSurface[] = [
       ).toBeVisible();
       await expect(
         page.getByRole("heading", {
-          name: "Još nema pokušaja zadataka",
+          name: "Istorija je prazna",
           exact: true,
         }),
       ).toBeVisible();

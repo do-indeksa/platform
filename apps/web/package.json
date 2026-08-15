@@ -12,6 +12,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:origin": "playwright test --config=playwright.origin.config.ts",
     "test:visual": "playwright test --config=playwright.visual.config.ts",
     "test:visual:update": "bash scripts/update-visual-snapshots.sh",
     "generate:api": "openapi-typescript ../api/api/openapi.yaml -o src/lib/api/schema.d.ts"

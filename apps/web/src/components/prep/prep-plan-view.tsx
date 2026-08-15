@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { CalendarDays, LoaderCircle, Target } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@/components/user-provider";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
@@ -16,13 +14,16 @@ import {
   type PrepPositionDefinition,
   type PrepTopicSlot,
 } from "@/lib/prep-plan";
-import { usePrepSettings } from "@/lib/prep-settings";
 import { taskPracticeHref } from "@/lib/task-bank";
 import { useHydrated } from "@/lib/use-hydrated";
-import { NextActionCard, TodayPlan } from "./prep-action-list";
+import { PrepPlanFacts } from "./prep-plan-facts";
+import { PrepPlanLoading } from "./prep-plan-loading";
+import { PrepPlanSummary } from "./prep-plan-summary";
+import { PrepPlanTabs, type PrepPlanViewMode } from "./prep-plan-tabs";
 import { PrepPositionList } from "./prep-position-list";
-import { GuestOffer, ReadinessCard } from "./prep-readiness-card";
 import { PrepSettingsDialog } from "./prep-settings-dialog";
+import { PrepWeekView } from "./prep-week-view";
+import { usePrepPreferences } from "./use-prep-preferences";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -38,18 +39,31 @@ export function PrepPlanView({
   maxPoints: number;
 }) {
   const t = useTranslations("prep");
-  const locale = useLocale();
-  const pathname = usePathname();
+  const locale = useLocale() as AppLocale;
+  const { user, loading: ownerLoading } = useUser();
+  const ownerId = ownerLoading ? undefined : (user?.id ?? null);
   const attempts = useAttempts();
   const hydrated = useHydrated();
-  const { user, loading: userLoading } = useUser();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const diagnosticPhase = useDiagnostic((state) => state.phase);
   const diagnosticStartedAt = useDiagnostic((state) => state.startedAt);
-  const goalPoints = usePrepSettings((state) => state.goalPoints);
-  const examDate = usePrepSettings((state) => state.examDate);
-  const setPreferences = usePrepSettings((state) => state.setPreferences);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const {
+    preferences: { goalPoints, examDate },
+    ready: preferencesReady,
+    hydrationId: preferencesHydrationId,
+    setPreferences,
+  } = usePrepPreferences(ownerId);
+  const [settingsDialog, setSettingsDialog] = useState({
+    hydrationId: null as number | null,
+    open: false,
+  });
+  const settingsOpen =
+    preferencesReady &&
+    preferencesHydrationId === settingsDialog.hydrationId &&
+    settingsDialog.open;
+  const setSettingsOpen = (open: boolean) =>
+    setSettingsDialog({ hydrationId: preferencesHydrationId, open });
+  const [viewMode, setViewMode] = useState<PrepPlanViewMode>("positions");
 
   const day = useCurrentDay();
   const daysUntilExam = examDate
@@ -66,8 +80,13 @@ export function PrepPlanView({
     diagnosticStartedAt >= day.startMs &&
     diagnosticStartedAt < day.endMs;
 
-  if (!hydrated || attempts === null || !diagnosticOwnerKnown) {
-    return <PrepLoading />;
+  if (
+    !hydrated ||
+    attempts === null ||
+    !diagnosticOwnerKnown ||
+    !preferencesReady
+  ) {
+    return <PrepPlanLoading positions={positions} />;
   }
 
   const plan = buildPrepPlan({
@@ -88,7 +107,7 @@ export function PrepPlanView({
   });
   const taskById = new Map(taskReferences.map((task) => [task.id, task]));
   const formattedExamDate = examDate
-    ? new Intl.DateTimeFormat(htmlLanguage(locale as AppLocale), {
+    ? new Intl.DateTimeFormat(htmlLanguage(locale), {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -101,65 +120,75 @@ export function PrepPlanView({
       .find((task) => task !== undefined);
     return taskPracticeHref(firstTask, "/prep", action.taskIds);
   };
+  const nextActionHref = plan.nextAction ? hrefFor(plan.nextAction) : "/tasks";
+  const visiblePositions =
+    viewMode === "topics"
+      ? plan.positions.toSorted((left, right) =>
+          left.name.localeCompare(right.name, htmlLanguage(locale)),
+        )
+      : plan.positions;
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-9 sm:px-8 sm:py-14">
-      <header className="max-w-3xl">
-        <p className="text-sm font-semibold text-brand-ink">{t("kicker")}</p>
-        <h1 className="mt-3 text-4xl font-bold leading-tight sm:text-5xl">
-          {t("title")}
-        </h1>
-        <p className="mt-4 max-w-2xl text-lg leading-8 text-muted">
-          {t("intro")}
-        </p>
-        <div className="mt-6 flex flex-wrap gap-2.5">
-          <PreferenceChip icon={Target} onClick={() => setSettingsOpen(true)}>
-            {goalPoints === null
-              ? t("goalUnset")
-              : t("goalChip", { goal: goalPoints, max: maxPoints })}
-          </PreferenceChip>
-          <PreferenceChip
-            icon={CalendarDays}
-            onClick={() => setSettingsOpen(true)}
-          >
-            {examDate === null
-              ? t("dateUnset")
-              : daysUntilExam !== null && daysUntilExam < 0
-                ? t("datePassed", { date: formattedExamDate ?? examDate })
-                : t("dateChip", {
-                    date: formattedExamDate ?? examDate,
-                    days: daysUntilExam ?? 0,
-                  })}
-          </PreferenceChip>
-        </div>
-      </header>
+    <main
+      data-testid="prep-plan"
+      data-state="ready"
+      aria-busy="false"
+      className="mx-auto w-full max-w-[1304px] px-4 pt-4 pb-6 lg:px-8 lg:pt-[26px] lg:pb-12"
+    >
+      <div className="flex min-w-0 flex-col gap-3.5 lg:gap-4">
+        <header className="min-w-0">
+          <h1 className="text-[22px] leading-[30px] font-semibold text-ink lg:text-[32px] lg:leading-10 lg:font-bold">
+            {t("title")}
+          </h1>
+          <p className="mt-1 text-sm leading-5 text-muted">
+            {t("subtitle", { count: positions.length })}
+          </p>
+        </header>
 
-      <div className="mt-9 grid items-start gap-8 lg:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.75fr)] lg:gap-10">
-        <div className="min-w-0">
-          <NextActionCard
-            action={plan.nextAction}
-            href={plan.nextAction ? hrefFor(plan.nextAction) : "/tasks"}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
-          <TodayPlan
-            actions={plan.todayActions}
-            nextActionId={plan.nextAction?.id ?? null}
-            hrefFor={hrefFor}
-            onOpenSettings={() => setSettingsOpen(true)}
-          />
+        <PrepPlanSummary
+          readiness={plan.readiness}
+          covered={plan.coveredPositions}
+          total={positions.length}
+          goalPoints={goalPoints}
+          maxPoints={maxPoints}
+          daysUntilExam={daysUntilExam}
+          formattedExamDate={formattedExamDate}
+          onEdit={() => setSettingsOpen(true)}
+        />
+
+        <PrepPlanTabs
+          value={viewMode}
+          total={positions.length}
+          onChange={setViewMode}
+        />
+
+        <div
+          id="prep-plan-panel"
+          role="tabpanel"
+          aria-labelledby={`prep-plan-tab-${viewMode}`}
+        >
+          {viewMode === "week" ? (
+            <PrepWeekView
+              actions={plan.todayActions}
+              nextAction={plan.nextAction}
+              nextActionHref={nextActionHref}
+              hrefFor={hrefFor}
+              onOpenSettings={() => setSettingsOpen(true)}
+            />
+          ) : (
+            <PrepPositionList positions={visiblePositions} mode={viewMode} />
+          )}
         </div>
 
-        <aside className="space-y-7">
-          <ReadinessCard
-            readiness={plan.readiness}
-            covered={plan.coveredPositions}
-            total={positions.length}
-          />
-          {!userLoading && user === null && <GuestOffer pathname={pathname} />}
-        </aside>
+        <PrepPlanFacts
+          nextAction={plan.nextAction}
+          nextActionHref={nextActionHref}
+          actions={plan.todayActions}
+          formattedExamDate={formattedExamDate}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
       </div>
 
-      <PrepPositionList positions={plan.positions} />
       <PrepSettingsDialog
         open={settingsOpen}
         preferences={{ goalPoints, examDate }}
@@ -171,39 +200,6 @@ export function PrepPlanView({
           setSettingsOpen(false);
         }}
       />
-    </main>
-  );
-}
-
-function PreferenceChip({
-  icon: Icon,
-  onClick,
-  children,
-}: {
-  icon: typeof Target;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:border-brand hover:text-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-    >
-      <Icon aria-hidden className="h-4 w-4 text-brand" />
-      {children}
-    </button>
-  );
-}
-
-function PrepLoading() {
-  const t = useTranslations("prep");
-  return (
-    <main className="mx-auto flex min-h-[32rem] w-full max-w-6xl items-center justify-center px-5 sm:px-8">
-      <p className="flex items-center gap-3 text-muted">
-        <LoaderCircle aria-hidden className="h-5 w-5 animate-spin" />
-        {t("loading")}
-      </p>
     </main>
   );
 }

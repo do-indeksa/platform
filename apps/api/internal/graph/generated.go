@@ -134,15 +134,21 @@ type ComplexityRoot struct {
 	}
 
 	RunSummary struct {
-		ActiveDurationMs func(childComplexity int) int
-		BlueprintVersion func(childComplexity int) int
-		ContentRevision  func(childComplexity int) int
-		DeadlineAt       func(childComplexity int) int
-		ID               func(childComplexity int) int
-		Kind             func(childComplexity int) int
-		StartedAt        func(childComplexity int) int
-		Status           func(childComplexity int) int
-		SubmittedAt      func(childComplexity int) int
+		ActiveDurationMs   func(childComplexity int) int
+		BlueprintVersion   func(childComplexity int) int
+		CompletedItemCount func(childComplexity int) int
+		ContentRevision    func(childComplexity int) int
+		CorrectItemCount   func(childComplexity int) int
+		DeadlineAt         func(childComplexity int) int
+		EarnedPoints       func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		ItemCount          func(childComplexity int) int
+		Kind               func(childComplexity int) int
+		MaxPoints          func(childComplexity int) int
+		StartedAt          func(childComplexity int) int
+		Status             func(childComplexity int) int
+		SubmittedAt        func(childComplexity int) int
+		TaskIds            func(childComplexity int) int
 	}
 }
 
@@ -659,30 +665,60 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RunSummary.BlueprintVersion(childComplexity), true
+	case "RunSummary.completedItemCount":
+		if e.ComplexityRoot.RunSummary.CompletedItemCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunSummary.CompletedItemCount(childComplexity), true
 	case "RunSummary.contentRevision":
 		if e.ComplexityRoot.RunSummary.ContentRevision == nil {
 			break
 		}
 
 		return e.ComplexityRoot.RunSummary.ContentRevision(childComplexity), true
+	case "RunSummary.correctItemCount":
+		if e.ComplexityRoot.RunSummary.CorrectItemCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunSummary.CorrectItemCount(childComplexity), true
 	case "RunSummary.deadlineAt":
 		if e.ComplexityRoot.RunSummary.DeadlineAt == nil {
 			break
 		}
 
 		return e.ComplexityRoot.RunSummary.DeadlineAt(childComplexity), true
+	case "RunSummary.earnedPoints":
+		if e.ComplexityRoot.RunSummary.EarnedPoints == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunSummary.EarnedPoints(childComplexity), true
 	case "RunSummary.id":
 		if e.ComplexityRoot.RunSummary.ID == nil {
 			break
 		}
 
 		return e.ComplexityRoot.RunSummary.ID(childComplexity), true
+	case "RunSummary.itemCount":
+		if e.ComplexityRoot.RunSummary.ItemCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunSummary.ItemCount(childComplexity), true
 	case "RunSummary.kind":
 		if e.ComplexityRoot.RunSummary.Kind == nil {
 			break
 		}
 
 		return e.ComplexityRoot.RunSummary.Kind(childComplexity), true
+	case "RunSummary.maxPoints":
+		if e.ComplexityRoot.RunSummary.MaxPoints == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunSummary.MaxPoints(childComplexity), true
 	case "RunSummary.startedAt":
 		if e.ComplexityRoot.RunSummary.StartedAt == nil {
 			break
@@ -701,6 +737,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.RunSummary.SubmittedAt(childComplexity), true
+	case "RunSummary.taskIds":
+		if e.ComplexityRoot.RunSummary.TaskIds == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunSummary.TaskIds(childComplexity), true
 
 	}
 	return 0, false
@@ -990,6 +1032,18 @@ func (ec *executionContext) childFields_RunSummary(ctx context.Context, field gr
 		return ec.fieldContext_RunSummary_submittedAt(ctx, field)
 	case "activeDurationMs":
 		return ec.fieldContext_RunSummary_activeDurationMs(ctx, field)
+	case "taskIds":
+		return ec.fieldContext_RunSummary_taskIds(ctx, field)
+	case "itemCount":
+		return ec.fieldContext_RunSummary_itemCount(ctx, field)
+	case "completedItemCount":
+		return ec.fieldContext_RunSummary_completedItemCount(ctx, field)
+	case "correctItemCount":
+		return ec.fieldContext_RunSummary_correctItemCount(ctx, field)
+	case "earnedPoints":
+		return ec.fieldContext_RunSummary_earnedPoints(ctx, field)
+	case "maxPoints":
+		return ec.fieldContext_RunSummary_maxPoints(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type RunSummary", field.Name)
 }
@@ -3394,6 +3448,144 @@ func (ec *executionContext) fieldContext_RunSummary_activeDurationMs(_ context.C
 	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int64 does not have child fields"))
 }
 
+func (ec *executionContext) _RunSummary_taskIds(ctx context.Context, field graphql.CollectedField, obj *model.RunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunSummary_taskIds(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TaskIds, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalNID2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunSummary_taskIds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _RunSummary_itemCount(ctx context.Context, field graphql.CollectedField, obj *model.RunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunSummary_itemCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ItemCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunSummary_itemCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RunSummary_completedItemCount(ctx context.Context, field graphql.CollectedField, obj *model.RunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunSummary_completedItemCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CompletedItemCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunSummary_completedItemCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RunSummary_correctItemCount(ctx context.Context, field graphql.CollectedField, obj *model.RunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunSummary_correctItemCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CorrectItemCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RunSummary_correctItemCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RunSummary_earnedPoints(ctx context.Context, field graphql.CollectedField, obj *model.RunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunSummary_earnedPoints(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.EarnedPoints, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RunSummary_earnedPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RunSummary_maxPoints(ctx context.Context, field graphql.CollectedField, obj *model.RunSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunSummary_maxPoints(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxPoints, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RunSummary_maxPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunSummary", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5756,6 +5948,36 @@ func (ec *executionContext) _RunSummary(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "taskIds":
+			out.Values[i] = ec._RunSummary_taskIds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "itemCount":
+			out.Values[i] = ec._RunSummary_itemCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "completedItemCount":
+			out.Values[i] = ec._RunSummary_completedItemCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "correctItemCount":
+			out.Values[i] = ec._RunSummary_correctItemCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "earnedPoints":
+			out.Values[i] = ec._RunSummary_earnedPoints(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "maxPoints":
+			out.Values[i] = ec._RunSummary_maxPoints(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6309,6 +6531,35 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v any) (int32, error) {

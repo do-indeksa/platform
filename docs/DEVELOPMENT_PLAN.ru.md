@@ -1,6 +1,6 @@
 # Do indeksa: план разработки MVP
 
-Срез плана: 11 августа 2026 года. Основа решений -
+Срез плана: 12 августа 2026 года. Основа решений -
 `docs/PROJECT_INDEX.ru.md`.
 
 ## 1. Цель MVP
@@ -57,13 +57,23 @@ AI-оценивание остается вне критического пут�
 
 - исправлены P1/P3-P8, 4 часа, лимит 60 и versioned blueprints;
 - готовы трехъязычный responsive shell, банк, task-flow, диагностика, пробник,
-  история, simplified plan, daily task/streak и FTN-каталог;
+  история, Figma Study Plan, daily task/streak и FTN-каталог;
 - публичный `/` и `/cabinet` воспроизводят canonical Figma states на
   desktop/tablet/mobile; кабинет сохраняет реальные attempts, resume и P1
   program data в исходной композиции;
+- `/training/new` воспроизводит Figma Training Builder на desktop/mobile,
+  использует актуальные позиции blueprint, owner-visible attempts и запускает
+  реальную bounded practice sequence; local-only draft изолирован по UUID/guest
+  owner и скрыт до завершения auth hydration;
 - Go-монолит содержит gqlgen run/attempt lifecycle, versioned checkpoint,
   explicit abandon и HTTP OAuth;
 - browser runtime диагностики и пробника изолирован по guest/account owner;
+- Task Workspace draft, rail status и clock изолированы по UUID/guest owner;
+  legacy unowned session state игнорируется, controls ждут owner hydration;
+- Training Builder draft изолирован по UUID/guest owner; legacy unowned draft
+  не присваивается новому владельцу, controls ждут owner hydration;
+- Study Plan goal/date изолированы по UUID/guest owner; план остаётся в
+  нейтральном loading state до owner hydration, legacy preferences игнорируются;
 - активная диагностика синхронизирует append-only attempts и versioned draft,
   восстанавливается на другом устройстве и требует явного решения CAS-конфликта;
 - пробник синхронизирует frozen assignment и versioned drafts, сохраняет
@@ -78,13 +88,21 @@ AI-оценивание остается вне критического пут�
   не передавая ответ, аккаунт или параметры текущей тренировки;
 - 30 авторских задач имеют hash-pinned provenance, все 30 задач в 10 полных темах
   прошли versioned mathematical review; архив содержит 31 immutable revision;
-- blocking CI включает 510 web unit-тестов, 29 тестов content pipeline,
-  80 функциональных Playwright-сценариев, 38 Linux visual-regression эталонов,
+- blocking CI включает 561 web unit-тест, 30 тестов content pipeline,
+  115 функциональных Playwright-сценариев, 92 Linux visual-regression эталона,
   container smoke, dependency audit и Trivy.
 
 Остаются расширение verified-банка, пилотная калибровка рекомендаций,
-pixel-perfect пересборка остальных самостоятельных композиций по Figma, visual
-coverage для error states и long Serbian copy, а также production rollout.
+утвержденные Figma nodes для пока provisional результатов диагностики и пробника,
+visual coverage для остальных error states без Figma и production rollout.
+Кабинет при loading/cloud conflict, история при degraded sync и workspace с
+самой длинной verified-сербской задачей покрыты на 360/768/1440 px. Loading
+Study Plan сохраняет canonical slots на 390/1024/1440 px без неподтвержденных
+пользовательских фактов; loading, conflict и degraded без отдельных Figma nodes
+явно маркированы как provisional.
+Временная ошибка `/v1/me` не переводит устройство в guest-mode и не очищает
+owner-scoped диагностику или пробник: recovery-экран остается provisional,
+скрывает private state до подтверждения пользователя и предлагает явный retry.
 Analytics сознательно fail-closed до безопасного image.
 
 ## 3. Критический путь
@@ -187,6 +205,8 @@ Analytics сознательно fail-closed до безопасного image.
 
 Работы:
 
+- поддерживать отдельный Figma Training Builder с ручным выбором позиций,
+  количеством, difficulty order, новыми задачами и повтором ошибок;
 - сформировать набор на 15-25 минут из 3-5 задач;
 - приоритизировать слабые и непроверенные области;
 - добавить повтор ошибок и постепенное повышение сложности;
@@ -368,9 +388,14 @@ attempt частью run. В любом варианте завершенная 
   идемпотентные mutations запуска и попытки.
 - Integration: start/resume/finish diagnostic and simulation.
 - Browser: основные сценарии на 360x800, 768x1024 и 1440x900.
-- Visual: 53 канонических Linux screenshot; кабинет покрыт empty, populated и
+- Ownership: подтвержденный `401` включает guest-mode, а временная ошибка auth
+  bootstrap сохраняет owner-scoped runtime скрытым до успешного retry; смена
+  A -> B -> guest в одной вкладке изолирует task draft, rail status и clock.
+- Visual: 92 канонических Linux screenshot; кабинет покрыт empty, populated и
   unfinished states на общих 360/768/1440 viewport и точных Figma-размерах
-  390/1024/1440. Следующим слоем покрывать ошибки и long Serbian copy.
+  390/1024/1440. Отдельный resilience-набор покрывает cabinet loading/cloud
+  conflict, degraded history и реальную длинную сербскую задачу на 360/768/1440;
+  provisional Study Plan loading покрыт на 390/1024/1440.
 - Content: schema, math fixtures, сумма rubric points, ссылки и статус review.
 
 ## 7. Порядок релизов
@@ -410,8 +435,10 @@ R0-R1 можно целиться закончить за 1-2 недели ин�
 2. Расширять verified-банк за пределы текущих 30 задач и обновлять независимый
    review-record при каждом изменении полной темы.
 3. Откалибровать диагностику, mastery и prep-plan на pilot-наблюдениях.
-4. Расширить visual-regression coverage на ошибки и long Serbian copy на
-   360/768/1440 px; для экранов без Figma явно сохранять provisional status.
+4. Расширять visual-regression coverage на остальные ошибки; для экранов без
+   Figma явно сохранять provisional status. Cabinet loading/cloud conflict,
+   degraded history и long Serbian copy уже покрыты на 360/768/1440 px, а
+   Study Plan loading - на 390/1024/1440 px.
 5. После выпуска Google OAuth credentials и отдельного подтверждения завершить
    private Kubernetes rollout через Cloudflare Tunnel; доказать auth, GraphQL,
    Neon migration, backup и rollback без публикации origin.

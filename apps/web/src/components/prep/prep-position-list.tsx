@@ -2,28 +2,67 @@
 
 import { ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { PROGRESS_STATUS_STYLES } from "@/components/progress-status";
 import { Link } from "@/i18n/navigation";
-import type { PrepPositionProgress } from "@/lib/prep-plan";
+import type { PrepPositionProgress, PrepPositionStatus } from "@/lib/prep-plan";
+import type { PrepPlanViewMode } from "./prep-plan-tabs";
+
+const styles: Record<
+  PrepPositionStatus,
+  { badge: string; bar: string; number: string }
+> = {
+  untested: {
+    badge: "border border-line bg-page text-muted",
+    bar: "bg-line",
+    number: "bg-subtle text-brand-ink",
+  },
+  starting: {
+    badge: "bg-subtle text-brand-ink",
+    bar: "bg-brand",
+    number: "bg-subtle text-brand-ink",
+  },
+  needsWork: {
+    badge: "bg-amber-50 text-amber-800",
+    bar: "bg-amber-400",
+    number: "bg-amber-50 text-amber-800",
+  },
+  progressing: {
+    badge: "bg-amber-50 text-amber-800",
+    bar: "bg-amber-400",
+    number: "bg-amber-50 text-amber-800",
+  },
+  confident: {
+    badge: "bg-emerald-50 text-emerald-700",
+    bar: "bg-emerald-500",
+    number: "bg-emerald-50 text-emerald-700",
+  },
+};
 
 export function PrepPositionList({
   positions,
+  mode = "positions",
 }: {
   positions: PrepPositionProgress[];
+  mode?: Extract<PrepPlanViewMode, "positions" | "topics">;
 }) {
   const t = useTranslations("prep");
 
   return (
-    <section className="mt-12" aria-labelledby="position-progress-title">
-      <div className="max-w-2xl">
-        <h2 id="position-progress-title" className="text-2xl font-bold">
-          {t("positionProgressTitle")}
-        </h2>
-        <p className="mt-2 leading-7 text-muted">
-          {t("positionProgressIntro")}
-        </p>
+    <section
+      data-testid="prep-position-list"
+      aria-label={
+        mode === "topics" ? t("topicsViewLabel") : t("positionProgressTitle")
+      }
+      data-design-status={mode === "topics" ? "provisional" : undefined}
+    >
+      <div className="hidden h-[34px] grid-cols-[36px_minmax(280px,1fr)_130px_69px_28px_5px] items-center gap-4 bg-subtle px-[18px] text-xs leading-4 font-medium text-muted lg:grid">
+        <span className="col-span-2">
+          {mode === "topics" ? t("tableTopic") : t("tablePosition")}
+        </span>
+        <span>{t("tableProgress")}</span>
+        <span>{t("tableStatus")}</span>
+        <span className="text-right">{t("tableEvidence")}</span>
       </div>
-      <ol className="mt-6 grid border-t border-line lg:grid-cols-2 lg:gap-x-10">
+      <ol className="flex flex-col lg:mt-4">
         {positions.map((position) => (
           <PositionRow key={position.number} position={position} />
         ))}
@@ -34,65 +73,104 @@ export function PrepPositionList({
 
 function PositionRow({ position }: { position: PrepPositionProgress }) {
   const t = useTranslations("prep");
-  const styles = PROGRESS_STATUS_STYLES[position.status];
+  const statusStyles = styles[position.status];
   const query = new URLSearchParams();
   for (const topic of position.topicSlugs) query.append("topic", topic);
   const href = `/tasks?${query}`;
+  const evidence = positionEvidence(t, position);
 
   return (
-    <li className="border-b border-line py-4">
+    <li
+      data-testid={`prep-position-${position.number}`}
+      className="h-[124px] overflow-hidden rounded-xl border border-line bg-surface lg:h-[66px] lg:rounded-none"
+    >
       <Link
         href={href}
-        className="group grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+        className="group flex h-[122px] w-full min-w-0 flex-col gap-0.5 px-[11px] py-[9px] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand lg:grid lg:h-16 lg:grid-cols-[36px_minmax(280px,1fr)_130px_69px_28px_5px] lg:items-center lg:gap-4 lg:px-[17px] lg:py-0"
       >
-        <span
-          className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-semibold ${styles.number}`}
-        >
-          {position.number}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold leading-5 group-hover:text-brand-ink">
-            {position.name}
-          </span>
-          <span className="mt-0.5 block text-xs leading-5 text-muted">
-            {position.total === 0
-              ? t("positionNoEvidence")
-              : t("positionEvidence", {
-                  correct: position.correct,
-                  total: position.total,
-                })}
-          </span>
-        </span>
-        <ChevronRight
-          aria-hidden
-          className="h-4 w-4 text-muted transition-transform group-hover:translate-x-0.5"
-        />
-        <span className="col-start-2 col-end-4 flex min-w-0 items-center gap-3">
+        <span className="flex h-[60px] min-w-0 shrink-0 items-start gap-2.5 overflow-hidden lg:contents">
           <span
-            role="progressbar"
-            aria-label={t("positionProgressAria", {
-              position: position.number,
-            })}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={position.readiness}
-            className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-100"
+            data-plan-cell="number"
+            className={`mt-[9px] flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] text-sm leading-5 font-semibold lg:mt-0 ${statusStyles.number}`}
           >
-            <span
-              className={`block h-full rounded-full ${styles.bar}`}
-              style={{ width: `${position.readiness}%` }}
-            />
-          </span>
-          <span className="w-9 text-right text-xs font-semibold tabular-nums text-muted">
-            {position.readiness}%
+            {position.number}
           </span>
           <span
-            className={`hidden rounded-md px-2 py-1 text-xs font-medium sm:inline ${styles.badge}`}
+            data-plan-cell="copy"
+            className="mt-0.5 h-[58px] min-w-0 flex-1 overflow-hidden lg:mt-0 lg:block lg:h-auto"
+          >
+            <span className="line-clamp-2 block text-sm leading-5 font-semibold text-ink group-hover:text-brand-ink lg:line-clamp-1">
+              {position.name}
+            </span>
+            <span className="mt-0.5 block h-4 overflow-hidden text-xs leading-4 font-medium text-ellipsis whitespace-nowrap text-muted">
+              {position.description ?? t("positionNoEvidence")}
+            </span>
+          </span>
+          <ChevronRight
+            data-plan-cell="arrow"
+            aria-hidden
+            className="mt-[15px] h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 lg:order-[6] lg:mt-0"
+            strokeWidth={1.8}
+          />
+        </span>
+
+        <span
+          data-plan-cell="bottom"
+          className="flex h-10 min-w-0 items-center gap-2.5 lg:contents"
+        >
+          <span className="flex h-[38px] w-[116px] shrink-0 flex-col gap-1 lg:order-[3] lg:w-[130px]">
+            <span className="text-xs leading-4 font-medium tabular-nums text-ink">
+              {position.correct}/{position.total}
+            </span>
+            <span
+              role="progressbar"
+              aria-label={t("positionProgressAria", {
+                position: position.number,
+              })}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={position.readiness}
+              className="h-[5px] w-full overflow-hidden rounded-[3px] bg-line"
+            >
+              <span
+                className={`block h-full rounded-[3px] ${statusStyles.bar}`}
+                style={{ width: `${position.readiness}%` }}
+              />
+            </span>
+          </span>
+          <span
+            className={`shrink-0 rounded-[7px] px-[9px] py-[5px] text-xs leading-4 font-medium whitespace-nowrap lg:order-[4] ${statusStyles.badge}`}
           >
             {t(`positionStatus.${position.status}`)}
+          </span>
+          <span
+            title={evidence}
+            aria-label={evidence}
+            className="ml-auto min-w-0 text-right text-xs leading-4 font-medium whitespace-nowrap text-muted lg:order-[5] lg:ml-0 lg:w-auto"
+          >
+            <span className="lg:hidden">{evidence}</span>
+            <span aria-hidden className="hidden lg:inline">
+              {position.total > 0 ? `${position.total}×` : "—"}
+            </span>
           </span>
         </span>
       </Link>
     </li>
   );
+}
+
+type PrepTranslation = ReturnType<typeof useTranslations<"prep">>;
+
+function positionEvidence(
+  t: PrepTranslation,
+  position: PrepPositionProgress,
+): string {
+  if (position.total === 0) return t("positionSignalNone");
+  if (position.errors > 0) {
+    return t("positionSignalErrors", { count: position.errors });
+  }
+  if (position.assistedCorrect > 0) {
+    return t("positionSignalHints", { count: position.assistedCorrect });
+  }
+  return t("positionSignalAnswers", { count: position.total });
 }

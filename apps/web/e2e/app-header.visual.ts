@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const variants = [
   { name: "mobile", width: 390, height: 844 },
@@ -36,13 +36,35 @@ for (const locale of locales) {
         await page.goto(locale.path, { waitUntil: "networkidle" });
         const header = page.getByTestId("site-header");
         await expect(header).toBeVisible();
+        const indicator = header.getByTestId("app-header-indicator");
+        await expect(indicator).toHaveAttribute(
+          "src",
+          "/app-header/indicator.svg",
+        );
+        await expect
+          .poll(() =>
+            indicator.evaluate(
+              (element) =>
+                element instanceof HTMLImageElement &&
+                element.complete &&
+                element.naturalWidth === 36 &&
+                element.naturalHeight === 36,
+            ),
+          )
+          .toBe(true);
         if (variant.name !== "mobile") {
-          await expect(
-            header
-              .locator("summary")
-              .getByText(locale.profileName, { exact: true })
-              .last(),
-          ).toBeVisible();
+          const profileName = header
+            .locator("summary")
+            .getByText(locale.profileName, { exact: true })
+            .last();
+          await expect(profileName).toBeVisible();
+          await expect
+            .poll(() =>
+              profileName.evaluate(
+                (element) => element.scrollWidth <= element.clientWidth,
+              ),
+            )
+            .toBe(true);
         }
         await page.evaluate(async () => {
           await document.fonts.ready;

@@ -87,21 +87,24 @@ mobile-навигацию, поэтому она не входит в целев
 Если нужного screen/state в Figma нет, разрешен provisional skeleton из
 существующих Figma components и tokens. Он должен иметь отдельную issue, не
 выдаваться за финальный дизайн и не становиться утвержденным Figma baseline.
+Глобальный auth-bootstrap recovery относится к таким состояниям: он использует
+tokens и стандартную primary action, скрывает owner-scoped содержимое и не
+считается новым Figma baseline до появления отдельного node.
 
 ## 4. Карта экранов
 
-| Поверхность            | Текущее состояние                                                                                                | PDF                                                                           | Figma desktop / mobile                      | Целевой контракт                                                                                                     |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Public landing         | `/` воспроизводит SR guest frames и их responsive geometry; EN/RU локализованы в той же композиции               | В результат дизайнера marketing landing не входил; W-01 описывает P1 overview | SR `175:390` / `176:1706` / `177:2854`      | Поддерживать literal Figma-match; менять только подтвержденные факты, copy и реальные данные без перекомпоновки      |
-| P1 overview / cabinet  | `/cabinet` воспроизводит SR populated, empty и unfinished states; loading/degraded/conflict остаются provisional | W-01/W-02, S-01                                                               | См. точную матрицу ниже                     | Поддерживать Figma-композицию; реальные attempts/runs и программы P1 занимают исходные slots                         |
-| Task bank              | `/tasks` функционален, но визуально и композиционно не совпадает                                                 | W-03, S-02                                                                    | RU default `195:141` / `195:1090`           | Пересобрать по этим nodes; отсутствующую функциональность довести или временно реализовать честным provisional state |
-| Task workspace         | Standalone task, diagnostic и simulation имеют собственные shells, не совпадающие с Figma Solution               | W-04/W-05/W-07/W-09, S-03/S-04/S-06/S-08                                      | Solution SR `155:477` / `155:757`           | Standalone/practice workspace повторяет nodes; exam-only ограничения меняют поведение, а не произвольно композицию   |
-| Training builder       | Быстрый builder находится на overview; selected tasks стартуют из банка                                          | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                      | Реализовать отдельный экран по nodes, заменив предметы на позиции/темы P1 в существующих slots                       |
-| Study plan             | `/prep` функционален, но имеет самостоятельную композицию                                                        | W-10, S-09                                                                    | RU `214:4` / `214:450`                      | Пересобрать по nodes; фактический next action, readiness и progress занимают соответствующие Figma widgets           |
-| History                | `/history` функционален, но имеет самостоятельную композицию                                                     | W-11, S-10                                                                    | RU all history `223:8` / `223:1160`         | Пересобрать populated/empty/filter states по nodes и подставить реальные attempt/run types                           |
-| Diagnostic result      | Реализован отдельный честный стартовый результат                                                                 | W-09, S-08                                                                    | Отдельного production-ready экрана нет      | Считать provisional skeleton до появления утвержденного Figma node; доменная модель остается рабочей                 |
-| Mock result / rubric   | Реализованы 0-60, self-rubric и weak-position action                                                             | W-08, S-07                                                                    | Отдельного production-ready rubric flow нет | Считать provisional skeleton до появления утвержденного Figma node; Figma mock scores не использовать                |
-| Exam catalog / faculty | Реализован актуальный FTN P1/P3-P8 catalog                                                                       | W-12/W-13, S-11/S-12                                                          | Landing содержит демонстрационные cards     | Использовать точные landing card patterns; отдельные отсутствующие screens остаются provisional                      |
+| Поверхность            | Текущее состояние                                                                                                | PDF                                                                           | Figma desktop / mobile                        | Целевой контракт                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Public landing         | `/` воспроизводит SR guest frames и их responsive geometry; EN/RU локализованы в той же композиции               | В результат дизайнера marketing landing не входил; W-01 описывает P1 overview | SR `175:390` / `176:1706` / `177:2854`        | Поддерживать literal Figma-match; менять только подтвержденные факты, copy и реальные данные без перекомпоновки |
+| P1 overview / cabinet  | `/cabinet` воспроизводит SR populated, empty и unfinished states; loading/degraded/conflict остаются provisional | W-01/W-02, S-01                                                               | См. точную матрицу ниже                       | Поддерживать Figma-композицию; реальные attempts/runs и программы P1 занимают исходные slots                    |
+| Task bank              | `/tasks` воспроизводит RU default, search, selection и empty states на desktop/tablet/mobile                     | W-03, S-02                                                                    | RU default `195:141` / `195:1090`             | Поддерживать literal Figma-match; реальные P1 filters, counts и selection занимают исходные slots               |
+| Task workspace         | `/tasks/[topic]/[id]` повторяет Figma Solution с реальной P1 sequence, checker и journal                         | W-04/W-05/W-07/W-09, S-03/S-04/S-06/S-08                                      | Solution SR `155:477` / `155:618` / `155:757` | Поддерживать literal Figma-match; feedback/hint/solution остаются provisional variants тех же components        |
+| Training builder       | `/training/new` повторяет desktop/mobile nodes; SR/EN/RU используют реальные позиции P1                          | W-06, S-03/S-05                                                               | RU `219:4` / `219:424`                        | Поддерживать Figma-композицию, bounded sequence и честный local-only draft до появления server model            |
+| Study plan             | `/prep` воспроизводит RU desktop/mobile nodes с реальными P1 progress и next action                              | W-10, S-09                                                                    | RU `214:4` / `214:450`                        | Поддерживать literal Figma-match; вкладки без отдельных content nodes остаются functional provisional states    |
+| History                | `/history` воспроизводит Figma feed, tabs, filters, rows и empty state на desktop/tablet/mobile                  | W-11, S-10                                                                    | RU all history `223:8` / `223:1160`           | Поддерживать literal Figma-match и owner-scoped attempt/run/mock данные без Physics/P2 и баллов выше 60         |
+| Diagnostic result      | Реализован отдельный честный стартовый результат                                                                 | W-09, S-08                                                                    | Отдельного production-ready экрана нет        | Считать provisional skeleton до появления утвержденного Figma node; доменная модель остается рабочей            |
+| Mock result / rubric   | Реализованы 0-60, self-rubric и weak-position action                                                             | W-08, S-07                                                                    | Отдельного production-ready rubric flow нет   | Считать provisional skeleton до появления утвержденного Figma node; Figma mock scores не использовать           |
+| Exam catalog / faculty | Реализован актуальный FTN P1/P3-P8 catalog                                                                       | W-12/W-13, S-11/S-12                                                          | Landing содержит демонстрационные cards       | Использовать точные landing card patterns; отдельные отсутствующие screens остаются provisional                 |
 
 ## 5. Правила реализации по поверхностям
 
@@ -148,6 +151,23 @@ navigation, условие/ответ и help. Она воспроизводит
 перестановок. Подсказки разблокируются по текущим правилам; в simulation помощь
 и мгновенная правильность отсутствуют до сдачи.
 
+Canonical responsive frames: SR `155:477` / `155:618` / `155:757`, EN
+`155:70` / `155:211` / `155:350`, RU `150:2` / `152:30` / `152:584`. В Figma
+утвержден только locked pre-attempt state. Invalid, incorrect, hint, correct,
+solution и checker-error состояния являются tracked provisional variants в той
+же сетке, пока дизайнер не добавит отдельные nodes.
+
+### Training builder
+
+Отдельный `/training/new` воспроизводит desktop `219:4` (`1440x1100`) и mobile
+`219:424` (`390x2380`). Physics/P2 заменен текущей версией единственного
+поддерживаемого P1, а общешкольные типы задач - десятью позициями актуального
+blueprint в тех же slots. Количество ограничено опубликованным банком и десятью
+уникальными задачами; difficulty, новые задачи, перемешивание и приоритет ошибок
+влияют на реальную последовательность. Черновик хранится только на устройстве,
+версионируется и валидируется как недоверенный ввод. Cross-device catalog не
+имитируется до появления отдельной authenticated server model.
+
 ### Plan
 
 Композиция Figma Study Plan переносится целиком. Объяснимый next action,
@@ -155,12 +175,33 @@ position rows и summary заполняются реальными observations 
 practice action в предусмотренных design slots. Readiness не называется
 вероятностью поступления или официальным баллом.
 
+Canonical regression frames: desktop `214:4` размером `1440x1220` и mobile
+`214:450` размером `390x1988`. На desktop summary, строка позиции и footer имеют
+высоту `116`, `66` и `86` px; на mobile - `252`, `124` и `210` px. Отдельного
+tablet node у Study Plan нет, поэтому `1024x1220` проверяется как responsive
+interpolation между утвержденными композициями, а не выдается за Figma baseline.
+
+Отдельного loading node также нет. Поэтому bootstrap-состояние явно остается
+provisional: оно сохраняет canonical summary, tabs, position rows и facts slots,
+но не показывает readiness, coverage, цель, дату, статусы, evidence или CTA до
+завершения owner hydration. Контракт проверяется на `390x1988`, `1024x1220` и
+`1440x1220`; переход к loaded-плану происходит без перезагрузки страницы.
+
+Вкладка позиций является canonical состоянием экрана. Недельный deterministic
+plan и сортировка по темам остаются функциональными provisional tab panels,
+пока дизайнер не утвердит для них отдельные content nodes. Демонстрационные
+`8+ баллов`, расчетные часы и даты заменяются сохраненной целью P1 на шкале
+`0-60`, наблюдаемыми попытками, пользовательской датой и конкретным следующим
+действием без изменения предусмотренных Figma slots.
+
 ### History
 
 Figma unified feed, filters, rows и responsive states являются точной целью.
 Данные различают standalone answer, practice run, diagnostic и полный mock.
 Task/mock detail сохраняет revision и grading provenance. Для отсутствующих в
 Figma degraded/error states используются provisional варианты тех же components.
+Linux visual regression фиксирует all/tasks/trainings/mocks/empty на размерах
+Figma для desktop, tablet и mobile; `tab=variants` остается совместимым alias.
 
 ## 6. Зафиксированные решения владельца
 

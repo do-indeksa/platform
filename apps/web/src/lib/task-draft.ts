@@ -1,5 +1,21 @@
+import {
+  taskSessionStorageScope,
+  type TaskSessionOwnerId,
+} from "./task-session-owner";
+
 export const MAX_ANSWER_LENGTH = 200;
 export const MAX_TASK_ANSWER_PARTS = 6;
+export const TASK_DRAFT_STORAGE_PREFIX = "do-indeksa-task-draft-v2:";
+const MAX_TASK_ACTIVE_DURATION_MS = 12 * 60 * 60 * 1_000;
+
+export function taskDraftStorageKey(
+  ownerId: TaskSessionOwnerId,
+  taskId: string,
+  practiceId: string | null,
+): string {
+  const practiceScope = practiceId ? `practice:${practiceId}` : "standalone";
+  return `${TASK_DRAFT_STORAGE_PREFIX}${taskSessionStorageScope(ownerId)}:${practiceScope}:task:${taskId}`;
+}
 
 export type TaskCheckView =
   "form" | "incorrect" | "hint" | "solution" | "correct";
@@ -12,6 +28,7 @@ export type TaskDraft = {
   solved: boolean;
   burned: boolean;
   dirty: boolean;
+  activeDurationMs?: number;
 };
 
 const VIEWS = new Set<TaskCheckView>([
@@ -58,7 +75,11 @@ export function parseTaskDraft(
       (value.hintsShown as number) > Math.min(maxHints, 2) ||
       typeof value.solved !== "boolean" ||
       typeof value.burned !== "boolean" ||
-      typeof value.dirty !== "boolean"
+      typeof value.dirty !== "boolean" ||
+      (value.activeDurationMs !== undefined &&
+        (!Number.isInteger(value.activeDurationMs) ||
+          (value.activeDurationMs as number) < 0 ||
+          (value.activeDurationMs as number) > MAX_TASK_ACTIVE_DURATION_MS))
     ) {
       return null;
     }

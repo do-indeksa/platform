@@ -1,6 +1,6 @@
 # Do indeksa: индекс проекта и продуктовая правда
 
-Срез состояния: 11 августа 2026 года.
+Срез состояния: 12 августа 2026 года.
 
 Этот документ связывает продуктовые документы, исследования FTN, дизайн и
 фактическую реализацию. Он не заменяет первоисточники. Его задача - дать одну
@@ -169,28 +169,33 @@ EN и SR, гостевые и авторизованные состояния.
 
 ## 5. Что уже реализовано
 
-| Возможность              | Состояние              | Комментарий                                                               |
-| ------------------------ | ---------------------- | ------------------------------------------------------------------------- |
-| Публичный landing        | готов по Figma         | literal SR desktop/tablet/mobile, локализация EN/RU и реальные данные P1  |
-| Кабинет                  | готов по Figma         | empty/populated/unfinished на 390/1024/1440, реальные P1 progress и runs  |
-| Google OAuth и сессия    | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен |
-| Банк задач               | готов для preview      | поиск, фильтры, выбор набора, 30 задач в 10 областях                      |
-| Решение отдельной задачи | готов для preview      | exact checker, подсказки, решение, resume, история и task-report          |
-| Журнал попыток           | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim   |
-| Карта знаний             | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки           |
-| Диагностика              | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла  |
-| Пробный экзамен          | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор    |
-| История                  | готова для preview     | sync, фильтры, immutable task/mock detail и честный score trend полных P1 |
-| Персональный план        | упрощенный MVP         | deterministic checklist, настройки даты/темпа, resume                     |
-| Конструктор тренировки   | упрощенный MVP         | bounded balanced set и выбранные вручную задачи                           |
-| Справочник факультетов   | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор      |
-| Локализация и app shell  | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                     |
-| Контентный pipeline      | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions          |
-| Production deploy        | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed            |
+| Возможность               | Состояние              | Комментарий                                                                |
+| ------------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| Публичный landing         | готов по Figma         | literal SR desktop/tablet/mobile, локализация EN/RU и реальные данные P1   |
+| Кабинет                   | готов по Figma         | empty/populated/unfinished на 390/1024/1440, реальные P1 progress и runs   |
+| Google OAuth и сессия     | код готов              | PKCE, sealed state, secure cookie, preview exchange; production key нужен  |
+| Банк задач                | готов по Figma         | RU desktop/tablet/mobile, поиск, P1-фильтры, selection и empty state       |
+| Решение отдельной задачи  | готово по Figma        | Solution responsive workspace, exact checker, resume, journal и report     |
+| Журнал попыток            | готов для preview      | rich local-first GraphQL sync, idempotent UUID и безопасный guest claim    |
+| Карта знаний              | рабочая эвристика      | локальная оценка по недавним попыткам, требует pilot-калибровки            |
+| Диагностика               | готова для preview     | resumable набор из 10 позиций, результат без обещания официального балла   |
+| Пробный экзамен           | готов для preview      | 4 часа, cloud resume, AUTO + rubric self-check, partial score и разбор     |
+| История                   | готова по Figma        | unified owner-scoped feed, immutable details, P1 filters и score trend     |
+| Персональный план         | готов по Figma         | real P1 plan; UUID/guest goal и exam date ждут owner hydration             |
+| Конструктор тренировки    | готов по Figma         | bounded set; local draft изолирован по UUID/guest и ждёт owner hydration   |
+| Справочник факультетов    | актуальный FTN-каталог | 29 программ, официальные группы P1/P3-P8, поиск и cutoff-калькулятор       |
+| Локализация и app shell   | готовы                 | `sr-Latn`/`en`/`ru`, responsive desktop/tablet/mobile                      |
+| Auth bootstrap            | fail-closed            | только `401` включает guest-mode; временный сбой сохраняет private runtime |
+| Task session ownership    | fail-closed            | draft, rail и clock изолированы по UUID/guest и скрыты до owner hydration  |
+| Training draft ownership  | fail-closed            | UUID/guest scopes; unowned legacy draft не мигрирует автоматически         |
+| Prep preference ownership | fail-closed            | goal/date изолированы по UUID/guest; legacy key не назначается владельцу   |
+| Контентный pipeline       | готов                  | 30 provenance-ссылок, 30 verified-задач и 31 immutable revisions           |
+| Production deploy         | ожидает OAuth и Tunnel | `doindeksa.rs`, private origin; analytics остается fail-closed             |
 
 Текущие маршруты web:
 
-`/`, `/cabinet`, `/prep`, `/tasks`, `/tasks/[topic]`, `/tasks/[topic]/[id]`,
+`/`, `/cabinet`, `/prep`, `/training/new`, `/tasks`, `/tasks/[topic]`,
+`/tasks/[topic]/[id]`,
 `/diagnostic`, `/diagnostic/new`, `/diagnostic/result`, `/simulation`,
 `/simulation/new`, `/simulation/result`, `/history`, `/exams`,
 `/exams/[examId]`, `/faculties/ftn`, `/calculator` во всех трех locale.
@@ -198,8 +203,20 @@ EN и SR, гостевые и авторизованные состояния.
 HTTP API сохраняет `/v1/auth/*`, `/v1/me` и совместимый `/v1/attempts` только
 для дренирования старых локальных записей. Новые попытки, история, диагностика
 и пробный экзамен используют product API на `/graphql`: `Run`, `RunItem`,
-расширенный `Attempt`, start/record/checkpoint/submit/abandon lifecycle, recent
-history и bounded-проекцию `completedSimulationRuns` без N+1.
+расширенный `Attempt`, start/record/checkpoint/submit/abandon lifecycle,
+bounded run summaries, recent history и `completedSimulationRuns` без N+1.
+Ответ `/v1/me` является security boundary локального ownership: только явный
+`401 Unauthorized` подтверждает гостя; network/`5xx`/malformed `200` не меняют
+owner и показывают provisional retry-state без раскрытия сохраненной работы.
+Task Workspace продолжает эту границу: `sessionStorage` draft, rail status и
+practice clock используют отдельный UUID/guest scope, а legacy unowned `v1`
+данные не присваиваются аккаунту.
+Training Builder применяет ту же границу к вручную сохранённому `localStorage`
+draft: до подтверждения UUID/guest используется только нейтральный default и
+mutating controls отключены; unowned legacy key не читается и не мигрирует.
+Study Plan применяет эту границу к goal/exam date: до hydration текущего
+UUID/guest рендерится существующий neutral loading state, а legacy unowned
+preferences не читаются и не мигрируют.
 
 ## 6. Разбор PDF и Figma
 

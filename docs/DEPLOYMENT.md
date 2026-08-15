@@ -78,6 +78,8 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
    cannot reach the application.
 4. Verify `/`, static assets, `/graphql`, `/api/v1/me`, OAuth login/callback,
    logout, cookie attributes, redirects, CSP, and all three locales at the edge.
+   Same-origin cookie mutations must succeed; cross-origin GraphQL, attempt, and
+   logout requests must return `403` without changing persisted state.
 5. Run migrations against the production Neon branch, then smoke-test user and
    attempt persistence without logging credentials or session values.
 6. Verify current backup health and perform a disposable restore proof before

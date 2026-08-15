@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
 
 const runId = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
@@ -115,11 +115,10 @@ test("mobile diagnostic keeps skipped positions separate and starts focused prac
 
   await page.getByRole("link", { name: "Start short practice" }).click();
   await expect(page).toHaveURL(/\/en\/tasks\/kvadratna-jednacina\/kv-002\?/);
-  await expect(page.getByText("Task 1 of 3", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Exit task" })).toHaveAttribute(
-    "href",
-    "/en/prep",
-  );
+  await expect(page.getByText("1 of 3 tasks", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Back to practice/ }),
+  ).toHaveAttribute("href", "/en/prep");
 });
 
 test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", async ({
@@ -175,6 +174,10 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       return;
     }
     if (call.operationName === "DiagnosticRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
+    if (call.operationName === "HistoryRuns") {
       await route.fulfill({ json: { data: { runs: [] } } });
       return;
     }

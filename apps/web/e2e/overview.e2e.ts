@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import {
   cloudFixture,
   installCloudRoutes,
@@ -10,6 +10,7 @@ import {
   simulationCloudFixture,
   simulationRunId,
 } from "./simulation-cloud-fixture";
+import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
 
 const localizedCabinets = [
   {
@@ -40,6 +41,67 @@ const localizedCabinets = [
     programs: "Программы с экзаменом P1",
   },
 ] as const;
+
+const localizedLoadingStates = [
+  {
+    path: "/cabinet",
+    status: "Učitavamo napredak i sledeći korak.",
+    empty: "Priprema još nije započeta",
+  },
+  {
+    path: "/en/cabinet",
+    status: "Loading progress and your next action.",
+    empty: "Preparation has not started yet",
+  },
+  {
+    path: "/ru/cabinet",
+    status: "Загружаем прогресс и следующее действие.",
+    empty: "Подготовка ещё не начата",
+  },
+] as const;
+
+for (const locale of localizedLoadingStates) {
+  test(`${locale.path} keeps unknown progress neutral until bootstrap completes`, async ({
+    page,
+  }) => {
+    const releaseAuth = await installAuthBootstrapGate(page);
+    await page.goto(locale.path, { waitUntil: "domcontentloaded" });
+
+    const dashboard = page.getByTestId("cabinet-dashboard");
+    await expect(dashboard).toHaveAttribute("data-state", "loading");
+    await expect(dashboard).toHaveAttribute("aria-busy", "true");
+    await expect(dashboard).toHaveAttribute(
+      "data-design-status",
+      "provisional",
+    );
+    await expect(page.getByTestId("cabinet-loading")).toBeVisible();
+    await expect(page.getByRole("status")).toHaveText(locale.status);
+    await expect(
+      page.getByRole("heading", { name: locale.empty, exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByTestId("continue-run")).toHaveCount(0);
+    await expect(page.getByTestId("cabinet-position-map")).toHaveCount(0);
+    await expect(page.getByTestId("cabinet-latest-results")).toHaveCount(0);
+
+    const navigationCount = await page.evaluate(
+      () => performance.getEntriesByType("navigation").length,
+    );
+    releaseAuth();
+
+    await expect(dashboard).toHaveAttribute("data-state", "empty");
+    await expect(dashboard).toHaveAttribute("aria-busy", "false");
+    await expect(dashboard).not.toHaveAttribute("data-design-status", /.*/);
+    await expect(page.getByTestId("cabinet-loading")).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: locale.empty, exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => performance.getEntriesByType("navigation").length,
+      ),
+    ).toBe(navigationCount);
+  });
+}
 
 for (const locale of localizedCabinets) {
   test(`${locale.path} renders the Figma empty state with a real P1 entry point`, async ({

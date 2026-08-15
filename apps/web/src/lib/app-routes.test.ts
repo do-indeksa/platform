@@ -12,6 +12,7 @@ describe("app routes", () => {
     expect(isNavigationItemActive("/tasks", "/tasks")).toBe(true);
     expect(isNavigationItemActive("/tasks/algebra", "/tasks")).toBe(true);
     expect(isNavigationItemActive("/prep", "/tasks")).toBe(false);
+    expect(isNavigationItemActive("/training/new", "/training/new")).toBe(true);
     expect(isNavigationItemActive("/taskset", "/tasks")).toBe(false);
     expect(isNavigationItemActive("/exams/ftn-p3", "/exams")).toBe(true);
     expect(isNavigationItemActive("/faculties/ftn", "/faculties/ftn")).toBe(
@@ -20,7 +21,7 @@ describe("app routes", () => {
   });
 
   it("uses an immersive shell for focused task and timed-run routes", () => {
-    expect(isImmersivePath("/tasks/algebra/task-1")).toBe(true);
+    expect(isImmersivePath("/tasks/algebra/task-1")).toBe(false);
     expect(isImmersivePath("/simulation/new")).toBe(true);
     expect(isImmersivePath("/diagnostic/new")).toBe(true);
     expect(isImmersivePath("/tasks/algebra")).toBe(false);

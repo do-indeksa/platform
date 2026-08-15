@@ -17,8 +17,8 @@ export function HeaderUser({
   const { user, loading, signingOut, signOut } = useUser();
   const inMenu = placement === "menu";
   const inMarketing = placement === "marketing";
-  const headerWidth = locale === "ru" ? "w-24" : "w-[85px]";
-  const nameWidth = locale === "ru" ? "w-12" : "w-[37px]";
+  const headerWidth = locale === "ru" ? "w-[97px]" : "w-[86px]";
+  const nameWidth = locale === "ru" ? "w-[49px]" : "w-[38px]";
 
   if (loading && !inMenu) {
     if (inMarketing) {

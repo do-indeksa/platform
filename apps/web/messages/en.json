@@ -25,6 +25,11 @@
     "signIn": "Sign in",
     "signOut": "Sign out"
   },
+  "authBootstrap": {
+    "title": "We couldn't verify your session",
+    "description": "Your saved work is still on this device. Check your connection and try again.",
+    "retry": "Try again"
+  },
   "landing": {
     "metadataTitle": "Prepare for FTN P1",
     "metadataDescription": "Practice FTN P1 mathematics for free: 10 tasks, 4 hours, up to 60 points, a level check and a clear preparation plan.",
@@ -175,6 +180,7 @@
   "prep": {
     "title": "Preparation plan",
     "description": "A personal FTN P1 preparation plan with one concrete next action.",
+    "subtitle": "{count} positions · Mathematics (P1)",
     "kicker": "P1 · Mathematics",
     "intro": "One clear step based on your answers, mistakes and the current exam structure.",
     "loading": "Building your plan...",
@@ -244,7 +250,104 @@
       "needsWork": "Needs work",
       "progressing": "Developing",
       "confident": "Confident"
-    }
+    },
+    "summaryLabel": "Preparation plan summary",
+    "summaryProgressTitle": "Practice readiness",
+    "summaryCoverage": "Checked {covered} of {total} positions",
+    "summaryExamTitle": "Until the exam",
+    "summaryDateUnset": "Not set",
+    "summaryDatePassed": "Date has passed",
+    "summaryDays": "{days, plural, =0 {Today} one {# day} other {# days}}",
+    "summaryDatePrompt": "Set exam date",
+    "summaryGoalTitle": "Goal",
+    "summaryGoalUnset": "Not set",
+    "summaryGoalValue": "{goal}/{max} points",
+    "summaryGoalContext": "P1 practice target",
+    "editPlan": "Edit plan",
+    "viewsLabel": "Plan view",
+    "view": {
+      "positions": "By position",
+      "week": "This week",
+      "topics": "By topic"
+    },
+    "methodLink": "How does the plan work?",
+    "topicsViewLabel": "Progress by topic",
+    "tablePosition": "Position",
+    "tableTopic": "Topic",
+    "tableProgress": "Progress",
+    "tableStatus": "Status",
+    "tableEvidence": "Recent answers",
+    "positionSignalNone": "No data",
+    "positionSignalErrors": "{count, plural, one {# mistake} other {# mistakes}}",
+    "positionSignalHints": "{count, plural, one {# assisted} other {# assisted}}",
+    "positionSignalAnswers": "{count, plural, one {# answer} other {# answers}}",
+    "factsLabel": "Current plan details",
+    "factTodayTitle": "Today's workload",
+    "factTodayValue": "{completed}/{total} done · about {minutes} min",
+    "factPlanDateTitle": "Plan runs until"
+  },
+  "trainingBuilder": {
+    "metadataTitle": "Create a P1 practice set",
+    "metadataDescription": "Build a focused FTN P1 mathematics practice set from current exam positions.",
+    "back": "Back to tasks",
+    "title": "Create a practice set",
+    "description": "Build your set from the P1 positions you need",
+    "saveDraft": "Save local draft",
+    "subjectStep": "Choose the exam",
+    "p1": "Mathematics (P1)",
+    "onlyP1": "Current format · {version}",
+    "positionsStep": "Choose positions and task counts",
+    "presets": {
+      "all": "All positions",
+      "new": "New tasks",
+      "mistakes": "Recent mistakes"
+    },
+    "reset": "Reset",
+    "selectPosition": "Select position {position}",
+    "positionDescription": "Published tasks for exam position {position}",
+    "quantity": "Task count for position {position}",
+    "decrease": "Remove one task from position {position}",
+    "increase": "Add one task from position {position}",
+    "showMore": "Show positions 9–10",
+    "showLess": "Show fewer",
+    "summaryTitle": "Your practice set",
+    "subject": "Exam",
+    "composition": "Set composition",
+    "emptyComposition": "Choose at least one position",
+    "taskCount": "{count, plural, one {# task} other {# tasks}}",
+    "removePosition": "Remove position {position}",
+    "total": "Total tasks",
+    "settingsTitle": "Practice settings",
+    "difficultyLabel": "Task order",
+    "difficultyInfo": "Changes which difficulty is selected first when a position has several published tasks.",
+    "difficulty": {
+      "foundation": "Foundation",
+      "balanced": "Balanced",
+      "advanced": "Advanced"
+    },
+    "onlyNew": {
+      "title": "Only new tasks",
+      "description": "Exclude tasks already attempted"
+    },
+    "shuffle": {
+      "title": "Shuffle positions",
+      "description": "Mix the selected task order"
+    },
+    "mistakes": {
+      "title": "Prioritize mistakes",
+      "description": "Place recent mistakes first"
+    },
+    "attemptsLoading": "Loading your attempt history. Your draft remains editable.",
+    "attemptsDegraded": "Account sync is unavailable. This device's attempts are still used.",
+    "preparing": "Preparing your history...",
+    "noMatching": "No matching published tasks",
+    "start": "Start practice",
+    "startLabel": "Start {count}-task practice",
+    "saveLocal": "Save on this device",
+    "saved": "Saved on this device",
+    "restored": "Local draft restored",
+    "saveFailed": "Could not save locally",
+    "selectedCount": "Requested tasks: {count}"
   },
   "diagnostic": {
     "title": "Check your starting level",
@@ -398,9 +501,11 @@
     "metadataTitle": "My cabinet",
     "metadataDescription": "Your preparation progress and latest results for the FTN P1 mathematics entrance exam.",
     "title": "My cabinet",
+    "loading": "Loading progress and your next action.",
     "subtitle": {
       "started": "Your admission preparation",
-      "empty": "Start preparing for admission"
+      "empty": "Start preparing for admission",
+      "loading": "Loading your preparation"
     },
     "subject": {
       "aria": "Active entrance exam",
@@ -536,6 +641,55 @@
     "taskContext": "Topic · {topic}",
     "taskProgress": "Task {current} of {total}",
     "exitPractice": "← Exit task",
+    "backToPractice": "← Back to practice",
+    "workspaceTitle": "Practice · Position {position} · {topic}",
+    "calculator": "Calculator",
+    "hideStatement": "Hide problem",
+    "showStatement": "Show problem",
+    "workspaceProgress": "{current} of {total} tasks",
+    "workspaceProgressLabel": "Practice progress",
+    "elapsedTimeLabel": "Elapsed time",
+    "taskRailTitle": "Tasks",
+    "taskRailItemLabel": "Task {number}: {status}",
+    "taskDuration": "{minutes} min {seconds} sec",
+    "taskStatus": {
+      "active": "In progress",
+      "solved": "Solved",
+      "retry": "Try again",
+      "skipped": "Skipped",
+      "pending": "Not solved"
+    },
+    "workspaceTopics": {
+      "kompleksni-brojevi": "Complex numbers",
+      "kvadratna-jednacina": "Quadratic equations",
+      "logaritmi": "Logarithms",
+      "eksponencijalne": "Exponential equations",
+      "trigonometrija": "Trigonometry",
+      "vektori-analitika": "Vectors and geometry",
+      "planimetrija": "Plane geometry",
+      "stereometrija": "Solid geometry",
+      "analiza-funkcije": "Function analysis",
+      "kombinatorika": "Combinatorics"
+    },
+    "finishPractice": "Finish practice",
+    "taskOrdinal": "Task {ordinal}",
+    "conditionVisible": "Problem is visible",
+    "conditionHidden": "Problem is hidden",
+    "conditionHiddenBody": "The problem is hidden. Show it when you are ready to continue.",
+    "helpTitle": "Help",
+    "helpItemTitle": "Help {level}",
+    "available": "Available",
+    "locked": "Locked",
+    "helpAfterAttempt": "Available after an attempt",
+    "helpAfterPrevious": "Unlocks after the previous help step",
+    "solutionAvailable": "Solution is available",
+    "solutionHidden": "Solution is hidden",
+    "solutionAfterAttempt": "Available after an attempt.",
+    "taskNavigationLabel": "Task navigation",
+    "previousTask": "Previous task",
+    "previousTaskShort": "Back",
+    "skipTask": "Skip",
+    "nextTaskShort": "Next",
     "answerLabel": "Your answer",
     "checkCta": "Check",
     "checkingCta": "Checking...",
@@ -577,14 +731,29 @@
     "planimetrija": "Plane geometry",
     "stereometrija": "Solid geometry",
     "analiza-funkcije": "Function analysis and integrals",
-    "kombinatorika": "Combinatorics"
+    "kombinatorika": "Combinatorics",
+    "description": {
+      "kompleksni-brojevi": "Algebraic and trigonometric forms, modulus and argument",
+      "kvadratna-jednacina": "Roots, parameters and Vieta's formulas",
+      "logaritmi": "Equations, inequalities and domains",
+      "eksponencijalne": "Equations, inequalities and exponential functions",
+      "trigonometrija": "Identities, equations and signs of functions",
+      "vektori-analitika": "Vectors, coordinates and analytic geometry",
+      "planimetrija": "Triangles, quadrilaterals and circles",
+      "stereometrija": "Solids, surfaces and volumes",
+      "analiza-funkcije": "Derivatives, limits and integrals",
+      "kombinatorika": "Counting, permutations and combinations"
+    }
   },
   "taskBank": {
-    "favorites": "Favorites",
-    "mySets": "My sets",
-    "subjects": "Subjects",
-    "allSubjects": "All subjects",
+    "shortcuts": "Quick links",
+    "historyShortcut": "History",
+    "studyPlanShortcut": "Plan",
     "mathematics": "Mathematics",
+    "progressTabs": "Filter tasks by progress",
+    "allTasksTab": "All tasks",
+    "newTasksTab": "New",
+    "reviewTasksTab": "Review",
     "searchLabel": "Search tasks",
     "searchPlaceholder": "Search tasks",
     "filters": "Filters",
@@ -599,9 +768,10 @@
     "topicsControl": "Topics",
     "difficultyControl": "Difficulty",
     "difficultyControlShort": "Difficulty",
-    "taskTypeControl": "Task type",
-    "taskTypeControlShort": "Type",
-    "sourceControl": "Source",
+    "positionControl": "Position",
+    "positionControlShort": "Pos.",
+    "progressControl": "Progress",
+    "progressControlShort": "Progress",
     "difficulty": {
       "foundation": "Foundation · 1–2",
       "exam": "Exam level · 3",
@@ -625,10 +795,8 @@
     "clearSelection": "Clear selection",
     "startPractice": "Start selected practice",
     "selectionCount": "Selected: {count}",
-    "addToSet": "Add to a set",
     "solveSelected": "Solve",
     "selectTask": "Select task {id}",
-    "favoriteTask": "Add task to favorites",
     "difficultyShort": {
       "easy": "Easy",
       "medium": "Medium",
@@ -643,6 +811,76 @@
   "history": {
     "title": "History",
     "description": "Completed task attempts and mock exams for FTN P1 preparation.",
+    "feed": {
+      "title": "History",
+      "loading": "Loading your history...",
+      "tabsLabel": "History views",
+      "tabs": {
+        "all": "All",
+        "tasks": "Tasks",
+        "trainings": "Trainings",
+        "mocks": "Mock exams"
+      },
+      "degraded": "Account sync is not up to date. Valid activity stored on this device remains visible.",
+      "filters": {
+        "label": "History filters",
+        "subjectLabel": "Exam",
+        "allSubjects": "All exams",
+        "p1": "FTN P1 mathematics",
+        "periodLabel": "Period",
+        "period": {
+          "all": "All time",
+          "7d": "Last 7 days",
+          "30d": "Last 30 days",
+          "90d": "Last 90 days"
+        },
+        "difficultyLabel": "Difficulty",
+        "difficulty": {
+          "all": "Any difficulty",
+          "easy": "Easy · 1-2",
+          "medium": "Medium · 3-4",
+          "hard": "Hard · 5"
+        }
+      },
+      "actions": {
+        "label": "History actions",
+        "reset": "Reset filters",
+        "trend": "Score progress",
+        "retry": "Retry recent mistakes",
+        "sync": {
+          "guest": "Stored on this device",
+          "synced": "Synced to your account",
+          "degraded": "Sync needs attention"
+        }
+      },
+      "showMore": "Show more",
+      "openTask": "Open attempt for task {id}",
+      "taskTitle": "Task #{id}",
+      "withHelp": "With help",
+      "outcome": {
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "partial": "Partial",
+        "skipped": "Skipped",
+        "ungraded": "In review"
+      },
+      "trainingTitle": "Practice training",
+      "diagnosticTitle": "P1 diagnostic",
+      "trainingSubtitle": "FTN P1 · {count, plural, one {# task} other {# tasks}}",
+      "mockTitle": "P1 mock exam",
+      "mockSubtitle": "FTN P1 · {count, plural, one {# task} other {# tasks}}",
+      "openMock": "Open mock exam result",
+      "pendingScore": "In review",
+      "score": "{score} / {max}",
+      "empty": {
+        "title": "History is empty",
+        "description": "Your completed tasks, trainings, diagnostics, and P1 mock results will appear here.",
+        "filteredTitle": "No matching activity",
+        "filteredDescription": "Change the tab or reset the filters to return to your complete history.",
+        "reset": "Reset filters",
+        "tasks": "Go to tasks"
+      }
+    },
     "kicker": "P1 · Your work",
     "intro": "Return to previous answers, inspect mistakes in context and turn them into a focused practice set.",
     "syncNotice": {

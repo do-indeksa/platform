@@ -84,7 +84,14 @@ export function safeTaskHistoryReturnPath(
     ) {
       return null;
     }
-    const allowedKeys = new Set(["topic", "outcome", "period"]);
+    const allowedKeys = new Set([
+      "topic",
+      "outcome",
+      "period",
+      "tab",
+      "subject",
+      "difficulty",
+    ]);
     if (
       [...target.searchParams.keys()].some(
         (key) =>
@@ -96,12 +103,29 @@ export function safeTaskHistoryReturnPath(
     const topic = target.searchParams.get("topic");
     const outcome = target.searchParams.get("outcome");
     const period = target.searchParams.get("period");
+    const tab = target.searchParams.get("tab");
+    const subject = target.searchParams.get("subject");
+    const difficulty = target.searchParams.get("difficulty");
     if (
       (topic !== null && !validTopics.has(topic)) ||
       (outcome !== null && !isTaskHistoryOutcomeFilter(outcome)) ||
-      (period !== null && !isTaskHistoryPeriodFilter(period))
+      (period !== null && !isTaskHistoryPeriodFilter(period)) ||
+      (tab !== null &&
+        tab !== "all" &&
+        tab !== "tasks" &&
+        tab !== "trainings" &&
+        tab !== "mocks" &&
+        tab !== "variants") ||
+      (subject !== null && subject !== "p1") ||
+      (difficulty !== null &&
+        difficulty !== "easy" &&
+        difficulty !== "medium" &&
+        difficulty !== "hard")
     ) {
       return null;
+    }
+    if (tab !== null || subject !== null || difficulty !== null) {
+      return `${target.pathname}${target.search}`;
     }
     return taskHistoryHref(
       parseTaskHistoryFilters(

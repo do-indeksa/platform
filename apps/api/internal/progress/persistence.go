@@ -87,7 +87,7 @@ func loadRunCheckpoint(
 	return &RunCheckpointAggregate{Checkpoint: checkpoint, Drafts: drafts}, nil
 }
 
-func loadCompletedSimulationRuns(
+func loadRunAggregates(
 	ctx context.Context,
 	queries *Queries,
 	userID uuid.UUID,

@@ -1,8 +1,8 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const dayMs = 24 * 60 * 60 * 1_000;
 
-test("task history filters are shareable, bounded, and responsive", async ({
+test("history filters are shareable, bounded, and responsive", async ({
   page,
 }) => {
   const now = Date.now();
@@ -23,7 +23,7 @@ test("task history filters are shareable, bounded, and responsive", async ({
     ),
     storedAttempt(
       "33333333-3333-4333-8333-333333333333",
-      "trig-001",
+      "trig-002",
       6,
       "skipped",
       now - 3 * dayMs,
@@ -42,68 +42,78 @@ test("task history filters are shareable, bounded, and responsive", async ({
       JSON.stringify({ version: 2, entries: historyEntries }),
     );
   }, entries);
+  await page.route("**/api/v1/me", (route) => route.fulfill({ status: 401 }));
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/en/history");
-  await expect(page.getByText("Showing 4 of 4 attempts")).toBeVisible();
+  await expect(
+    page.getByTestId("history-feed").locator(":scope > li"),
+  ).toHaveCount(4);
 
-  const topic = page.getByLabel("Topic");
-  const outcome = page.getByLabel("Result");
+  const subject = page.getByLabel("Exam");
   const period = page.getByLabel("Period");
-  await topic.selectOption("kompleksni-brojevi");
-  await outcome.selectOption("incorrect");
-  await expect(page).toHaveURL(/topic=kompleksni-brojevi&outcome=incorrect$/);
+  const difficulty = page.getByLabel("Difficulty");
+  await subject.selectOption("p1");
+  await difficulty.selectOption("easy");
+  await expect(page).toHaveURL(/subject=p1&difficulty=easy$/);
   await expect(
     page.getByRole("link", { name: "Open attempt for task kb-001" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Open attempt for task kv-001" }),
+    page.getByRole("link", { name: "Open attempt for task trig-002" }),
   ).toHaveCount(0);
-  await expect(
-    page.getByRole("link", { name: "Start practice" }),
-  ).toHaveAttribute("href", /set=kb-001/);
 
-  await topic.selectOption("");
   await period.selectOption("7d");
-  await expect(page).toHaveURL(/outcome=incorrect&period=7d$/);
-  await expect(
-    page.getByRole("link", { name: "Open attempt for task log-001" }),
-  ).toHaveCount(0);
+  await expect(page).toHaveURL(/subject=p1&period=7d&difficulty=easy$/);
   await page.reload();
-  await expect(page.getByLabel("Result")).toHaveValue("incorrect");
+  await expect(page.getByLabel("Exam")).toHaveValue("p1");
   await expect(page.getByLabel("Period")).toHaveValue("7d");
-  await expect(page.getByText("Showing 1 of 4 attempts")).toBeVisible();
+  await expect(page.getByLabel("Difficulty")).toHaveValue("easy");
   const filteredAttempt = page.getByRole("link", {
     name: "Open attempt for task kb-001",
   });
   await expect(filteredAttempt).toHaveAttribute(
     "href",
-    /returnTo=%2Fhistory%3Foutcome%3Dincorrect%26period%3D7d/,
+    /returnTo=%2Fhistory%3Fsubject%3Dp1%26period%3D7d%26difficulty%3Deasy/,
   );
   await filteredAttempt.click();
   await page.getByRole("link", { name: "Back to history" }).click();
-  await expect(page).toHaveURL(/outcome=incorrect&period=7d$/);
+  await expect(page).toHaveURL(/subject=p1&period=7d&difficulty=easy$/);
 
-  await page.getByLabel("Topic").selectOption("logaritmi");
+  await page.getByLabel("Difficulty").selectOption("hard");
   await expect(
-    page.getByRole("heading", { name: "No attempts match these filters" }),
+    page.getByRole("heading", { name: "No matching activity" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Reset filters" }).last().click();
+  await page.getByRole("button", { name: "Reset filters" }).click();
   await expect(page).toHaveURL(/\/en\/history$/);
-  await expect(page.getByText("Showing 4 of 4 attempts")).toBeVisible();
+  await expect(
+    page.getByTestId("history-feed").locator(":scope > li"),
+  ).toHaveCount(4);
 
-  await page.setViewportSize({ width: 360, height: 800 });
-  await expect(page.getByTestId("task-history-filters")).toBeVisible();
+  await page.goto("/en/history?tab=trainings");
+  await expect(
+    page.getByRole("heading", { name: "No matching activity" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Reset filters" }).click();
+  await expect(page).toHaveURL(/\/en\/history$/);
+  await expect(
+    page.getByTestId("history-feed").locator(":scope > li"),
+  ).toHaveCount(4);
+
+  await page.setViewportSize({ width: 390, height: 1090 });
+  await expect(page.getByTestId("history-filters")).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
 
-  await page.goto("/ru/history?outcome=incorrect");
-  await expect(page.getByLabel("Результат")).toHaveValue("incorrect");
-  await page.goto("/history?outcome=incorrect");
-  await expect(page.getByLabel("Rezultat")).toHaveValue("incorrect");
+  await page.goto("/ru/history?period=7d&difficulty=easy");
+  await expect(page.getByLabel("Период")).toHaveValue("7d");
+  await expect(page.getByLabel("Сложность")).toHaveValue("easy");
+  await page.goto("/history?period=7d&difficulty=easy");
+  await expect(page.getByLabel("Period")).toHaveValue("7d");
+  await expect(page.getByLabel("Težina")).toHaveValue("easy");
 });
 
 function storedAttempt(
