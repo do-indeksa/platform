@@ -81,7 +81,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         await syncProgress(user?.id ?? null);
       } catch {}
-      if (current) await syncHistoryRuns(user?.id ?? null);
+      if (current) {
+        await syncHistoryRuns(user?.id ?? null, {
+          isCurrentOwner: () => current,
+        });
+      }
       if (!current) return;
       if (current) await syncSimulationArchive(user?.id ?? null);
     };
