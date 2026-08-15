@@ -205,6 +205,22 @@ input AbandonRunInput {
   id: ID!
 }
 
+type PrepPreferences {
+  goalPoints: Int!
+  """Calendar date in YYYY-MM-DD format."""
+  examDate: String!
+  version: Int64!
+  updatedAt: Time!
+}
+
+input SavePrepPreferencesInput {
+  """Use zero to create the first record, then the version returned by the server."""
+  expectedVersion: Int64!
+  goalPoints: Int!
+  """Calendar date in YYYY-MM-DD format."""
+  examDate: String!
+}
+
 type Query {
   run(id: ID!): Run
   runs(limit: Int! = 20): [RunSummary!]!
@@ -214,6 +230,8 @@ type Query {
   completedSimulationRuns(limit: Int! = 20): [CompletedSimulationRun!]!
   """Returns the most recent attempts in chronological order, up to a limit of 1000."""
   attempts(limit: Int! = 100): [Attempt!]!
+  """Returns the owner's complete preparation preferences, if they exist."""
+  prepPreferences: PrepPreferences
 }
 
 type Mutation {
@@ -224,4 +242,6 @@ type Mutation {
   submitRun(input: SubmitRunInput!): Run!
   """Idempotently abandon an active run and remove its mutable checkpoint."""
   abandonRun(input: AbandonRunInput!): Run!
+  """Creates or atomically replaces the owner's complete preparation preferences."""
+  savePrepPreferences(input: SavePrepPreferencesInput!): PrepPreferences!
 }

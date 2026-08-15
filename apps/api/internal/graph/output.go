@@ -182,6 +182,22 @@ func graphLatestSubmittedDiagnosticRun(
 	}, nil
 }
 
+func graphPrepPreferences(
+	preferences progress.PrepPreferences,
+) (*model.PrepPreferences, error) {
+	if preferences.GoalPoints < 1 || preferences.GoalPoints > 60 ||
+		preferences.Version < 1 || preferences.ExamDate.IsZero() ||
+		preferences.UpdatedAt.IsZero() {
+		return nil, fmt.Errorf("stored prep preferences are invalid")
+	}
+	return &model.PrepPreferences{
+		GoalPoints: int32(preferences.GoalPoints),
+		ExamDate:   preferences.ExamDate.Format(time.DateOnly),
+		Version:    preferences.Version,
+		UpdatedAt:  preferences.UpdatedAt,
+	}, nil
+}
+
 func graphCompletedSimulationRun(
 	aggregate progress.RunAggregate,
 ) (model.CompletedSimulationRun, error) {

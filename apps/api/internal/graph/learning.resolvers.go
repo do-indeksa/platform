@@ -114,6 +114,27 @@ func (r *mutationResolver) AbandonRun(ctx context.Context, input model.AbandonRu
 	return result, nil
 }
 
+// SavePrepPreferences is the resolver for the savePrepPreferences field.
+func (r *mutationResolver) SavePrepPreferences(ctx context.Context, input model.SavePrepPreferencesInput) (*model.PrepPreferences, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	domainInput, err := progressSavePrepPreferencesInput(input)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	preferences, err := r.progress.SavePrepPreferences(ctx, user.ID, domainInput)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphPrepPreferences(preferences)
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	return result, nil
+}
+
 // Run is the resolver for the run field.
 func (r *queryResolver) Run(ctx context.Context, id string) (*model.Run, error) {
 	user, err := requestUser(ctx)
@@ -214,6 +235,26 @@ func (r *queryResolver) Attempts(ctx context.Context, limit int32) ([]model.Atte
 		if err != nil {
 			return nil, presentError(ctx, err)
 		}
+	}
+	return result, nil
+}
+
+// PrepPreferences is the resolver for the prepPreferences field.
+func (r *queryResolver) PrepPreferences(ctx context.Context) (*model.PrepPreferences, error) {
+	user, err := requestUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	preferences, err := r.progress.GetPrepPreferences(ctx, user.ID)
+	if errors.Is(err, progress.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, presentError(ctx, err)
+	}
+	result, err := graphPrepPreferences(preferences)
+	if err != nil {
+		return nil, presentError(ctx, err)
 	}
 	return result, nil
 }

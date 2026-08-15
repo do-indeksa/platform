@@ -33,6 +33,15 @@ type Attempt struct {
 	TaskRevision     *string
 }
 
+type PrepPreference struct {
+	UserID     uuid.UUID
+	GoalPoints int16
+	ExamDate   pgtype.Date
+	Version    int64
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
 type Run struct {
 	ID               uuid.UUID
 	UserID           uuid.UUID
