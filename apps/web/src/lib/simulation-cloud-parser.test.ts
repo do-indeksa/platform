@@ -226,6 +226,26 @@ describe("simulation cloud parser", () => {
       (run: CloudRun) => (run.deadlineAt = "2026-08-10T13:00:00.000Z"),
     ],
     [
+      "oversized run duration",
+      (run: CloudRun) => (run.activeDurationMs = 4 * 60 * 60 * 1_000 + 1),
+    ],
+    [
+      "oversized checkpoint duration",
+      (run: CloudRun) => {
+        run.checkpoint = checkpoint(1, []);
+        run.checkpoint.activeDurationMs = 4 * 60 * 60 * 1_000 + 1;
+      },
+    ],
+    [
+      "oversized attempt duration",
+      (run: CloudRun) => {
+        run.checkpoint = checkpoint(1, [draft(run, 0, '["42"]')]);
+        addAttempt(run, 0, "CORRECT", '["42"]', 6);
+        run.items[0].recentAttempts[0].activeDurationMs =
+          4 * 60 * 60 * 1_000 + 1;
+      },
+    ],
+    [
       "attempt after a gap",
       (run: CloudRun) => addAttempt(run, 1, "SKIPPED", null, null),
     ],

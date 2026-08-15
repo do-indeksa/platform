@@ -45,7 +45,7 @@ func (s *Service) CheckpointRun(
 	if RunKind(run.Kind) != RunKindDiagnostic && RunKind(run.Kind) != RunKindSimulation {
 		return RunCheckpointAggregate{}, ErrInvalidTransition
 	}
-	if !validActiveDuration(input.ActiveDurationMs, time.Since(run.StartedAt)) {
+	if !validRunActiveDuration(RunKind(run.Kind), input.ActiveDurationMs, time.Since(run.StartedAt)) {
 		return RunCheckpointAggregate{}, invalidInput("activeDurationMs")
 	}
 

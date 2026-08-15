@@ -213,6 +213,12 @@ describe("simulation persistence", () => {
         ],
       }).history,
     ).toEqual([]);
+    expect(
+      parsePersistedSimulationState({
+        ...runningState(),
+        history: [{ ...entry, durationMs: 4 * 60 * 60 * 1_000 + 1 }],
+      }).history,
+    ).toEqual([]);
   });
 
   it("drops old active payloads but keeps bounded legacy summaries", () => {

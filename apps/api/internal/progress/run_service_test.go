@@ -204,6 +204,24 @@ func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
 	`, practice.ID, ownerID, "sha256:"+strings.Repeat("b", 64)); err != nil {
 		t.Fatal(err)
 	}
+	overlong := sampleRunInput(RunKindSimulation)
+	if _, err := service.StartRun(ctx, ownerID, overlong); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SubmitRun(ctx, ownerID, SubmitRunInput{
+		ID:          overlong.ID,
+		SubmittedAt: overlong.StartedAt.Add(20 * time.Minute),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update runs
+		set duration_ms = $3,
+		    submitted_at = submitted_at + interval '1 second'
+		where id = $1 and user_id = $2
+	`, overlong.ID, ownerID, p1SimulationDuration.Milliseconds()+1); err != nil {
+		t.Fatal(err)
+	}
 	other := sampleRunInput(RunKindSimulation)
 	if _, err := service.StartRun(ctx, otherID, other); err != nil {
 		t.Fatal(err)

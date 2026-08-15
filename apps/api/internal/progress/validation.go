@@ -51,3 +51,9 @@ func validActiveDuration(activeDurationMs *int64, elapsed time.Duration) bool {
 	return activeDurationMs == nil ||
 		(*activeDurationMs >= 0 && *activeDurationMs <= elapsed.Milliseconds()+clientClockSkew.Milliseconds())
 }
+
+func validRunActiveDuration(kind RunKind, activeDurationMs *int64, elapsed time.Duration) bool {
+	return validActiveDuration(activeDurationMs, elapsed) &&
+		(kind != RunKindSimulation || activeDurationMs == nil ||
+			*activeDurationMs <= p1SimulationDuration.Milliseconds())
+}

@@ -16,6 +16,10 @@ ordinal-to-position order, and a persisted deadline exactly four hours after
 Practice and diagnostic runs retain their existing flexible item and deadline
 contracts.
 
+Simulation checkpoints, attempts, and submitted runs cannot claim more than
+four hours of active work. A delayed submission without an explicit duration is
+clamped to that bound, while an explicitly oversized value is rejected.
+
 Web producers send the existing GraphQL `deadlineAt` field for both active and
 completed simulations. For rolling compatibility, the API derives the canonical
 deadline when an older client omits it, but rejects an explicitly conflicting

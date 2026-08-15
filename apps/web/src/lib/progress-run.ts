@@ -105,6 +105,7 @@ export function parseCompletedProgressRun(
       value.id,
       value.startedAt,
       value.submittedAt,
+      value.kind === "SIMULATION" ? FTN_P1_SIMULATION_DURATION_MS : undefined,
     );
     if (
       item === null ||
@@ -129,6 +130,8 @@ export function parseCompletedProgressRun(
       !isSimulationTaskRevision(value.contentRevision) ||
       !isCompleteFtnP1SimulationItems(items) ||
       items.some((item) => !isSimulationTaskRevision(item.taskRevision)) ||
+      (value.activeDurationMs !== undefined &&
+        value.activeDurationMs > FTN_P1_SIMULATION_DURATION_MS) ||
       (deadlineAt !== undefined && deadlineAt !== expectedDeadlineAt)
     ) {
       return null;
@@ -156,6 +159,7 @@ function parseItem(
   runId: string,
   runStartedAt: string,
   runSubmittedAt: string,
+  maximumAttemptActiveDurationMs: number | undefined,
 ): CompletedProgressItem | null {
   if (
     !isRecord(value) ||
@@ -174,6 +178,7 @@ function parseItem(
     value.maxPoints,
     runStartedAt,
     runSubmittedAt,
+    maximumAttemptActiveDurationMs,
   );
   const expectedAttemptId =
     attempt?.gradingKind === "RUBRIC_SELF"
@@ -198,6 +203,7 @@ function parseAttempt(
   maxPoints: unknown,
   runStartedAt: string,
   runSubmittedAt: string,
+  maximumActiveDurationMs: number | undefined,
 ): CompletedProgressAttempt | null {
   if (
     !isRecord(value) ||
@@ -210,6 +216,7 @@ function parseAttempt(
     !isOptionalDuration(
       value.activeDurationMs,
       Date.parse(value.submittedAt) - Date.parse(value.startedAt),
+      maximumActiveDurationMs,
     ) ||
     (value.answer !== undefined && !isAnswer(value.answer)) ||
     !isOutcome(value.outcome) ||
@@ -304,13 +311,15 @@ function isIsoTime(value: unknown): value is string {
 function isOptionalDuration(
   value: unknown,
   elapsedMs: number,
+  maximumMs?: number,
 ): value is number | undefined {
   return (
     value === undefined ||
     (typeof value === "number" &&
       Number.isInteger(value) &&
       value >= 0 &&
-      value <= elapsedMs + CLIENT_CLOCK_SKEW_MS)
+      value <= elapsedMs + CLIENT_CLOCK_SKEW_MS &&
+      (maximumMs === undefined || value <= maximumMs))
   );
 }
 

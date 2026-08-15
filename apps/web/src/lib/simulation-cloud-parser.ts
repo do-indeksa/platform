@@ -9,6 +9,7 @@ import {
   progressRubricAttemptId,
   progressRunItemId,
 } from "./progress-run";
+import { FTN_P1_SIMULATION_DURATION_MS } from "./simulation-run";
 import type {
   ProgressCloudCatalog,
   ProgressCloudTask,
@@ -553,6 +554,7 @@ function isOptionalDuration(value: unknown, startedAt: number): boolean {
     (typeof value === "number" &&
       Number.isSafeInteger(value) &&
       value >= 0 &&
+      value <= FTN_P1_SIMULATION_DURATION_MS &&
       value <= Date.now() + CLIENT_CLOCK_SKEW_MS - startedAt)
   );
 }
