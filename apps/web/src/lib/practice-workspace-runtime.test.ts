@@ -9,6 +9,7 @@ import {
 import {
   appendPracticeWorkspaceAttempt,
   changePracticeWorkspaceDraft,
+  inspectPracticeWorkspace,
   readPracticeWorkspace,
   visitPracticeWorkspace,
   type PracticeWorkspaceContext,
@@ -95,6 +96,25 @@ describe("practice workspace runtime", () => {
     expect(readPracticeWorkspace(context())?.attempts).toMatchObject([
       { id: attemptId, number: 1, outcome: "incorrect" },
     ]);
+    expect(readPracticeWorkspace(context())?.latestSubmittedAt).toBe(
+      startedAt + 10_000,
+    );
+  });
+
+  it("distinguishes an absent run from an invalid binding", () => {
+    expect(
+      inspectPracticeWorkspace({
+        ...context(),
+        runId: "7e50bc03-c5a8-458b-b90b-5c1e411b5a0e",
+      }),
+    ).toEqual({ status: "missing" });
+    expect(
+      inspectPracticeWorkspace({
+        ...context(),
+        sequence: [{ ...tasks[0], slot: 2 }, tasks[1]],
+        task: { ...tasks[0], slot: 2 },
+      }),
+    ).toEqual({ status: "mismatch" });
   });
 
   it.each([
@@ -109,6 +129,30 @@ describe("practice workspace runtime", () => {
         ...context(),
         task: { ...tasks[0], revision: revision("f") },
         sequence: [{ ...tasks[0], revision: revision("f") }, tasks[1]],
+      }),
+    ],
+    [
+      "slot",
+      () => ({
+        ...context(),
+        task: { ...tasks[0], slot: 2 },
+        sequence: [{ ...tasks[0], slot: 2 }, tasks[1]],
+      }),
+    ],
+    [
+      "topic",
+      () => ({
+        ...context(),
+        task: { ...tasks[0], topic: "logaritmi" },
+        sequence: [{ ...tasks[0], topic: "logaritmi" }, tasks[1]],
+      }),
+    ],
+    [
+      "answer shape",
+      () => ({
+        ...context(),
+        task: { ...tasks[0], answerPartCount: 1 },
+        sequence: [{ ...tasks[0], answerPartCount: 1 }, tasks[1]],
       }),
     ],
     ["index", () => ({ ...context(), currentIndex: 1 })],
