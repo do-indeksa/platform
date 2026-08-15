@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { DesktopNavigation } from "@/components/app-navigation";
 import { HeaderUser } from "@/components/header-user";
@@ -30,10 +31,15 @@ export function SiteHeader() {
         </div>
 
         <div className="ml-4 flex shrink-0 items-center gap-2 md:gap-3">
-          <span
-            aria-hidden="true"
-            data-design-status="provisional"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-subtle text-[14px] leading-normal font-medium text-ink"
+          <Image
+            aria-hidden
+            data-testid="app-header-indicator"
+            src="/app-header/indicator.svg"
+            alt=""
+            width={36}
+            height={36}
+            unoptimized
+            className="size-9 shrink-0"
           />
           <div className="md:hidden">
             <LanguageSwitcher compact />

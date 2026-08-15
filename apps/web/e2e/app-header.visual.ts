@@ -36,6 +36,22 @@ for (const locale of locales) {
         await page.goto(locale.path, { waitUntil: "networkidle" });
         const header = page.getByTestId("site-header");
         await expect(header).toBeVisible();
+        const indicator = header.getByTestId("app-header-indicator");
+        await expect(indicator).toHaveAttribute(
+          "src",
+          "/app-header/indicator.svg",
+        );
+        await expect
+          .poll(() =>
+            indicator.evaluate(
+              (element) =>
+                element instanceof HTMLImageElement &&
+                element.complete &&
+                element.naturalWidth === 36 &&
+                element.naturalHeight === 36,
+            ),
+          )
+          .toBe(true);
         if (variant.name !== "mobile") {
           const profileName = header
             .locator("summary")
