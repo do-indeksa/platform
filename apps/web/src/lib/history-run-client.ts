@@ -25,11 +25,14 @@ const HISTORY_RUNS = `
   }
 `;
 
-export async function fetchHistoryRuns(): Promise<HistoryRunSummary[]> {
+export async function fetchHistoryRuns(
+  signal?: AbortSignal,
+): Promise<HistoryRunSummary[]> {
   const response = await fetch("/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
+    signal,
     body: JSON.stringify({
       operationName: "HistoryRuns",
       query: HISTORY_RUNS,

@@ -10,11 +10,17 @@ export type HistoryRunSnapshot = {
   entries: readonly HistoryRunSummary[];
 };
 
+export type HistoryRunSyncOptions = {
+  signal?: AbortSignal;
+  isCurrentOwner?: () => boolean;
+};
+
 let authKnown = false;
 let activeOwnerId: string | null | undefined;
 let authGeneration = 0;
 let serverEntries: HistoryRunSummary[] | null = null;
 let serverUnavailable = false;
+let refreshSequence = 0;
 let snapshot: HistoryRunSnapshot | null = null;
 const listeners = new Set<() => void>();
 
@@ -36,41 +42,69 @@ export function prepareHistoryRuns(userId: string | null): void {
   activateOwner(userId);
 }
 
-export async function syncHistoryRuns(userId: string | null): Promise<void> {
-  const { ownerId, generation } = activateOwner(userId);
-  if (ownerId === null) return;
+export async function syncHistoryRuns(
+  userId: string | null,
+  options: HistoryRunSyncOptions = {},
+): Promise<boolean> {
+  if (userId === null) return authKnown && activeOwnerId === null;
+  if (
+    !isUuid(userId) ||
+    activeOwnerId !== userId ||
+    !isExternalOwnerCurrent(options)
+  ) {
+    return false;
+  }
+  const generation = authGeneration;
+  const sequence = ++refreshSequence;
 
   try {
-    const entries = await fetchHistoryRuns();
-    if (!isCurrentOwner(ownerId, generation)) return;
+    const entries = await fetchHistoryRuns(options.signal);
+    if (!isCurrentRefresh(userId, generation, sequence, options)) return false;
     serverEntries = entries;
+    serverUnavailable = false;
   } catch {
-    if (!isCurrentOwner(ownerId, generation)) return;
+    if (!isCurrentRefresh(userId, generation, sequence, options)) return false;
     serverUnavailable = true;
   }
   emit();
+  return !serverUnavailable;
 }
 
 export function useHistoryRuns(): HistoryRunSnapshot | null {
   return useSyncExternalStore(subscribe, historyRunView, () => null);
 }
 
-function activateOwner(userId: string | null): {
-  ownerId: string | null;
-  generation: number;
-} {
+function activateOwner(userId: string | null): void {
   authKnown = true;
-  const generation = ++authGeneration;
+  authGeneration += 1;
+  refreshSequence += 1;
   const ownerId = userId === null || isUuid(userId) ? userId : null;
   activeOwnerId = ownerId;
   serverEntries = null;
   serverUnavailable = false;
   emit();
-  return { ownerId, generation };
 }
 
 function isCurrentOwner(userId: string, generation: number): boolean {
   return activeOwnerId === userId && authGeneration === generation;
+}
+
+function isCurrentRefresh(
+  userId: string,
+  generation: number,
+  sequence: number,
+  options: HistoryRunSyncOptions,
+): boolean {
+  return (
+    sequence === refreshSequence &&
+    options.signal?.aborted !== true &&
+    isCurrentOwner(userId, generation) &&
+    isExternalOwnerCurrent(options)
+  );
+}
+
+function isExternalOwnerCurrent(options: HistoryRunSyncOptions): boolean {
+  return options.isCurrentOwner?.() !== false;
 }
 
 function subscribe(listener: () => void): () => void {

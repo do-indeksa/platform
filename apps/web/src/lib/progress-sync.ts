@@ -1,5 +1,6 @@
 import { validate as isUuid } from "uuid";
 import { acknowledgeGraphQLRun } from "./attempts-store";
+import { syncHistoryRuns } from "./history-run-store";
 import {
   parseCompletedProgressRun,
   type CompletedProgressAttempt,
@@ -139,6 +140,10 @@ async function flushOwner(userId: string, generation: number): Promise<void> {
 
     const acknowledged = await acknowledgeGraphQLRun(entry.run.id);
     if (!acknowledged || !isCurrentOwner(userId, generation)) return;
+    await syncHistoryRuns(userId, {
+      isCurrentOwner: () => isCurrentOwner(userId, generation),
+    });
+    if (!isCurrentOwner(userId, generation)) return;
     if (!recordReceipt(entry.run.id)) return;
 
     const pending = loadOutbox();

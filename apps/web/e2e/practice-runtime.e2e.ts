@@ -184,6 +184,8 @@ test("a completed guest run is claimed and submitted exactly once after sign-in"
   );
   const operations: string[] = [];
   const journal: Array<Record<string, unknown>> = [];
+  let submitted = false;
+  let historyReadsAfterSubmit = 0;
   let firstTask: {
     id: string;
     slot: number;
@@ -207,6 +209,9 @@ test("a completed guest run is claimed and submitted exactly once after sign-in"
       return;
     }
     if (operation === "HistoryRuns" || operation === "PracticeRunIndex") {
+      if (operation === "HistoryRuns" && submitted) {
+        historyReadsAfterSubmit += 1;
+      }
       await route.fulfill({ json: { data: { runs: [] } } });
       return;
     }
@@ -256,6 +261,7 @@ test("a completed guest run is claimed and submitted exactly once after sign-in"
       return;
     }
     if (operation === "SubmitPracticeRun") {
+      submitted = true;
       await route.fulfill({
         json: { data: { submitRun: { id: input.id, status: "SUBMITTED" } } },
       });
@@ -292,6 +298,15 @@ test("a completed guest run is claimed and submitted exactly once after sign-in"
   expect(operationCount(operations, "RecordPracticeRunAttempt")).toBe(1);
   expect(operationCount(operations, "SubmitPracticeRun")).toBe(1);
   expect(operationCount(operations, "RecordPracticeAttempt")).toBe(0);
+  const submitIndex = operations.indexOf("SubmitPracticeRun");
+  const acknowledgementIndex = operations.indexOf(
+    "AttemptJournal",
+    submitIndex + 1,
+  );
+  const historyIndex = operations.indexOf("HistoryRuns", submitIndex + 1);
+  expect(acknowledgementIndex).toBeGreaterThan(submitIndex);
+  expect(historyIndex).toBeGreaterThan(acknowledgementIndex);
+  expect(historyReadsAfterSubmit).toBeGreaterThanOrEqual(1);
   expect(journal).toMatchObject([{ id: canonicalId, mode: "PRACTICE" }]);
 });
 

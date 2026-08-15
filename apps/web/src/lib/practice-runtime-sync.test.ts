@@ -80,6 +80,14 @@ describe("practice runtime sync", () => {
       submit: vi.fn(async () => {
         calls.push("submit");
       }),
+      acknowledge: vi.fn(async () => {
+        calls.push("acknowledge");
+        return true;
+      }),
+      refreshHistory: vi.fn(async () => {
+        calls.push("history");
+        return true;
+      }),
     });
 
     await expect(
@@ -93,6 +101,8 @@ describe("practice runtime sync", () => {
       "checkpoint:2",
       "attempt:2",
       "submit",
+      "acknowledge",
+      "history",
     ]);
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
@@ -141,6 +151,7 @@ describe("practice runtime sync", () => {
     await expect(
       syncPracticeRuntimeRun(runId, ownerA, { transport }),
     ).resolves.toEqual({ status: "offline" });
+    expect(transport.refreshHistory).not.toHaveBeenCalled();
     expect(currentRun()).toMatchObject({
       phase: "abandoning",
       startedRemotely: true,
@@ -290,6 +301,7 @@ describe("practice runtime sync", () => {
       submission: { submittedAt, activeDurationMs },
       syncedAttemptCounts: [1, 0],
     });
+    expect(transport.refreshHistory).not.toHaveBeenCalled();
 
     reloadRuntime();
     await expect(
@@ -297,6 +309,7 @@ describe("practice runtime sync", () => {
     ).resolves.toEqual({ status: "synced" });
 
     expect(transport.submit).toHaveBeenCalledTimes(2);
+    expect(transport.refreshHistory).toHaveBeenCalledTimes(1);
     expect(transport.submit).toHaveBeenNthCalledWith(
       1,
       runId,
@@ -348,6 +361,27 @@ describe("practice runtime sync", () => {
 
     expect(transport.submit).toHaveBeenCalledTimes(2);
     expect(transport.acknowledge).toHaveBeenCalledTimes(2);
+    expect(transport.refreshHistory).toHaveBeenCalledTimes(1);
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
+  it("does not retain an acknowledged run when history refresh degrades", async () => {
+    startOwned();
+    appendAttempt(1, "correct", 60_000);
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, startedAt + 120_000, 90_000),
+    ).toBe(true);
+    const transport = createTransport({
+      refreshHistory: vi.fn(async () => false),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+
+    expect(transport.refreshHistory).toHaveBeenCalledTimes(1);
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
 
@@ -543,6 +577,43 @@ describe("practice runtime sync", () => {
     ]);
   });
 
+  it("does not remove a replacement run after A-B-A during history refresh", async () => {
+    startOwned();
+    appendAttempt(1, "correct", 60_000);
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, startedAt + 120_000, 90_000),
+    ).toBe(true);
+    const replacementStartedAt = startedAt + 1_000;
+    const transport = createTransport({
+      refreshHistory: vi.fn(async (_ownerId, isCurrentOwner) => {
+        syncPracticeRuntimeOwner(ownerB);
+        syncPracticeRuntimeOwner(ownerA);
+        expect(
+          usePracticeRuntime.getState().start({
+            assignment,
+            startedAt: replacementStartedAt,
+          }),
+        ).toBe(true);
+        expect(isCurrentOwner()).toBe(false);
+        return false;
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "aborted" });
+    expect(usePracticeRuntime.getState().runs).toMatchObject([
+      {
+        startedAt: replacementStartedAt,
+        runOwnerId: ownerA,
+        phase: "active",
+        items: [{ attempts: [] }, { attempts: [] }],
+      },
+    ]);
+  });
+
   it("serializes concurrent drains for the same run", async () => {
     startOwned();
     let releaseStart: (() => void) | undefined;
@@ -576,6 +647,7 @@ function createTransport(
     recordAttempt: vi.fn(async () => {}),
     submit: vi.fn(async () => {}),
     acknowledge: vi.fn(async () => true),
+    refreshHistory: vi.fn(async () => true),
     abandon: vi.fn(async () => {}),
     fetch: vi.fn(async () => null),
     ...overrides,
