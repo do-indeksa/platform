@@ -28,6 +28,7 @@ const localizedCabinets = [
     primary: "Počni prvi zadatak",
     secondary: "Pokreni dijagnostiku",
     programs: "Programi za P1",
+    height: 1636,
   },
   {
     path: "/en/cabinet",
@@ -37,6 +38,7 @@ const localizedCabinets = [
     primary: "Start the first task",
     secondary: "Start level check",
     programs: "Programs using P1",
+    height: 1657,
   },
   {
     path: "/ru/cabinet",
@@ -46,6 +48,7 @@ const localizedCabinets = [
     primary: "Начать первое задание",
     secondary: "Запустить диагностику",
     programs: "Программы с экзаменом P1",
+    height: 1657,
   },
 ] as const;
 
@@ -134,6 +137,7 @@ for (const locale of localizedCabinets) {
     await expect(
       page.getByRole("link", { name: locale.secondary, exact: true }),
     ).toHaveAttribute("href", /\/diagnostic$/);
+    await expectContinuationActionsFullyVisible(page);
     await expect(
       page.getByRole("heading", { name: locale.programs, exact: true }),
     ).toBeVisible();
@@ -142,7 +146,7 @@ for (const locale of localizedCabinets) {
     await expect(page.getByTestId("mobile-navigation")).toHaveCount(0);
     expect(await documentMetrics(page)).toEqual({
       widthFits: true,
-      height: 1636,
+      height: locale.height,
     });
     expect(browserErrors).toEqual([]);
   });
@@ -169,6 +173,7 @@ test("local attempts populate the exact cabinet slots with real progress", async
     continuation.getByText("You completed 3 of 3 tasks"),
   ).toBeVisible();
   await expect(continuation.getByText("100%", { exact: true })).toBeVisible();
+  await expectContinuationActionsFullyVisible(page);
   await expect(page.getByTestId("cabinet-position-map")).toBeVisible();
   await expect(page.getByTestId("cabinet-latest-results")).toBeVisible();
   await expect(
@@ -236,6 +241,7 @@ test("an unfinished diagnostic keeps its real resume URL in the Figma card", asy
     },
     { runId, taskIds },
   );
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/cabinet");
 
   const continuation = page.getByTestId("continue-run");
@@ -250,6 +256,7 @@ test("an unfinished diagnostic keeps its real resume URL in the Figma card", asy
   await expect(
     continuation.getByRole("link", { name: "Continue check", exact: true }),
   ).toHaveAttribute("href", new RegExp(`run=${runId}`));
+  await expectContinuationActionsFullyVisible(page);
   await expect(page.getByTestId("cabinet-dashboard")).toHaveAttribute(
     "data-state",
     "populated",
@@ -264,6 +271,7 @@ test("an authenticated cloud mock is resumable without demo timing", async ({
     startedAt: new Date(Date.now() - 60 * 60_000).toISOString(),
   });
   await installSimulationCloudRoutes(page, fixture, []);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/cabinet");
 
   const continuation = page.getByTestId("continue-run");
@@ -278,6 +286,7 @@ test("an authenticated cloud mock is resumable without demo timing", async ({
     continuation.getByRole("link", { name: "Continue exam", exact: true }),
   ).toHaveAttribute("href", new RegExp(`run=${simulationRunId}`));
   await expect(continuation.getByText(/remaining$/)).toBeVisible();
+  await expectContinuationActionsFullyVisible(page);
 });
 
 test("an authenticated cloud practice resumes the exact task and draft", async ({
@@ -307,6 +316,7 @@ test("an authenticated cloud practice resumes the exact task and draft", async (
     exact: true,
   });
   await expect(link).toHaveAttribute("href", /runtime=1$/);
+  await expectContinuationActionsFullyVisible(page);
   expect((await documentMetrics(page)).widthFits).toBe(true);
 
   const href = await link.getAttribute("href");
@@ -476,6 +486,7 @@ test("a cloud conflict is surfaced as a resolution action", async ({
       ownerId: "39ec4650-762d-437f-9917-c31ab167cb99",
     },
   );
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/cabinet");
 
   const continuation = page.getByTestId("continue-run");
@@ -491,6 +502,7 @@ test("a cloud conflict is surfaced as a resolution action", async ({
     "data-design-status",
     "provisional",
   );
+  await expectContinuationActionsFullyVisible(page);
   expect(remoteDiagnosticRunId).not.toBe(
     "11111111-1111-4111-8111-111111111111",
   );
@@ -598,4 +610,102 @@ async function documentMetrics(page: Page): Promise<{
     widthFits: document.documentElement.scrollWidth <= window.innerWidth,
     height: document.documentElement.scrollHeight,
   }));
+}
+
+async function expectContinuationActionsFullyVisible(
+  page: Page,
+): Promise<void> {
+  const card = page.getByTestId("continue-run");
+  const content = page.getByTestId("continue-run-content");
+  const artwork = page.getByTestId("continue-run-artwork");
+  const actions = card.getByRole("link");
+  await expect(actions).toHaveCount(2);
+
+  const [cardBox, contentBox, artworkBox, ...actionBoxes] = await Promise.all([
+    card.boundingBox(),
+    content.boundingBox(),
+    artwork.boundingBox(),
+    ...[0, 1].map((index) => actions.nth(index).boundingBox()),
+  ]);
+  expect(cardBox).not.toBeNull();
+  expect(contentBox).not.toBeNull();
+  expect(artworkBox).not.toBeNull();
+  for (const actionBox of actionBoxes) expect(actionBox).not.toBeNull();
+  if (
+    !cardBox ||
+    !contentBox ||
+    !artworkBox ||
+    actionBoxes.some((box) => box === null)
+  ) {
+    return;
+  }
+
+  expect(contentBox.y + contentBox.height).toBeLessThanOrEqual(artworkBox.y);
+  expect(artworkBox.y + artworkBox.height).toBeLessThanOrEqual(
+    cardBox.y + cardBox.height,
+  );
+
+  for (const actionBox of actionBoxes) {
+    if (!actionBox) continue;
+    expect(actionBox.width).toBeGreaterThan(0);
+    expect(actionBox.height).toBeGreaterThan(0);
+    expect(actionBox.x).toBeGreaterThanOrEqual(contentBox.x);
+    expect(actionBox.y).toBeGreaterThanOrEqual(contentBox.y);
+    expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(
+      contentBox.x + contentBox.width,
+    );
+    expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(
+      contentBox.y + contentBox.height,
+    );
+    expect(actionBox.x).toBeGreaterThanOrEqual(cardBox.x);
+    expect(actionBox.y).toBeGreaterThanOrEqual(cardBox.y);
+    expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(
+      cardBox.x + cardBox.width,
+    );
+    expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(
+      cardBox.y + cardBox.height,
+    );
+  }
+
+  for (let index = 0; index < 2; index += 1) {
+    const action = actions.nth(index);
+    await action.focus();
+    await expect(action).toBeFocused();
+    expect(await action.evaluate(hasClippedFocusOutline)).toBe(false);
+  }
+}
+
+function hasClippedFocusOutline(element: HTMLElement): boolean {
+  const clipsOverflow = (overflow: string) => overflow !== "visible";
+  const style = getComputedStyle(element);
+  const extent =
+    (Number.parseFloat(style.outlineWidth) || 0) +
+    (Number.parseFloat(style.outlineOffset) || 0);
+  if (style.outlineStyle === "none" || extent <= 0) return true;
+  const action = element.getBoundingClientRect();
+
+  for (
+    let parent = element.parentElement;
+    parent;
+    parent = parent.parentElement
+  ) {
+    const parentStyle = getComputedStyle(parent);
+    const parentBox = parent.getBoundingClientRect();
+    if (
+      clipsOverflow(parentStyle.overflowX) &&
+      (action.left - extent < parentBox.left ||
+        action.right + extent > parentBox.right)
+    ) {
+      return true;
+    }
+    if (
+      clipsOverflow(parentStyle.overflowY) &&
+      (action.top - extent < parentBox.top ||
+        action.bottom + extent > parentBox.bottom)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }

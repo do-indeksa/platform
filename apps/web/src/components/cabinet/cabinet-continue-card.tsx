@@ -46,12 +46,12 @@ export function CabinetContinueCard({
     <section
       data-testid="continue-run"
       data-design-status={exact}
-      className="flex h-[642px] flex-col items-center gap-[18px] overflow-hidden rounded-[20px] bg-subtle p-6 md:h-[322px] md:flex-row md:justify-between md:gap-0 md:p-7 xl:p-8"
+      className="flex min-h-[642px] flex-col items-center gap-[18px] overflow-hidden rounded-[20px] bg-subtle px-6 pt-6 pb-4 md:h-[322px] md:min-h-0 md:flex-row md:justify-between md:gap-0 md:p-7 xl:p-8"
       aria-labelledby="cabinet-continue-title"
     >
       <div
         data-testid="continue-run-content"
-        className="flex h-[394px] w-full min-w-0 flex-col items-start gap-3 overflow-hidden md:h-[242px] md:w-[520px] md:shrink-0 xl:w-[760px]"
+        className="flex min-h-[394px] w-full min-w-0 shrink-0 flex-col items-start gap-3 md:h-[242px] md:min-h-0 md:w-[520px] xl:w-[760px]"
       >
         <p className="w-full text-xs leading-[1.4] font-semibold text-brand-ink uppercase">
           {content.kicker}
