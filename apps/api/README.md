@@ -19,6 +19,14 @@ Draft answers are relationally scoped to the run items, updates use an expected
 server version, and submit or explicit abandon removes the mutable checkpoint
 transactionally. Completed attempts remain append-only.
 
+OAuth origins are parsed and compared as structured scheme/host/port values.
+`CANONICAL_WEB_ORIGIN` and every comma-separated `EXTRA_WEB_ORIGINS` entry must
+use canonical lowercase form without credentials, a path, query, fragment,
+trailing slash, or default port. Non-loopback origins require HTTPS. The optional
+`PREVIEW_ORIGIN_SUFFIX` is a scoped hostname suffix beginning with `-`, such as
+`-scope.vercel.app`; provider-wide suffixes such as `.vercel.app` are rejected.
+Invalid origin configuration stops startup before the database is contacted.
+
 The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.

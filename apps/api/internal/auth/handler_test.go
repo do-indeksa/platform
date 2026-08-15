@@ -36,6 +36,10 @@ func TestRequestOrigin(t *testing.T) {
 	}{
 		{"plain host", "api.internal", nil, "https://api.internal"},
 		{"localhost", "localhost:8080", nil, "http://localhost:8080"},
+		{"uppercase localhost", "LOCALHOST:8080", nil, "http://LOCALHOST:8080"},
+		{"IPv4 loopback", "127.0.0.1:8080", nil, "http://127.0.0.1:8080"},
+		{"IPv6 loopback", "[::1]:8080", nil, "http://[::1]:8080"},
+		{"non-loopback IP", "192.0.2.1:8080", nil, "https://192.0.2.1:8080"},
 		{
 			"behind proxy",
 			"api.internal",
@@ -109,8 +113,17 @@ func TestOriginAllowed(t *testing.T) {
 		{"https://doindeksa.rs", true},
 		{"https://test.doindeksa.rs", true},
 		{"https://do-indeksa-abc123-scope.vercel.app", true},
+		{"HTTPS://DO-INDEKSA-ABC123-SCOPE.VERCEL.APP:443/", true},
+		{"HTTPS://TEST.DOINDEKSA.RS:443/", true},
 		{"http://do-indeksa-abc123-scope.vercel.app", false},
 		{"https://evil-scope.vercel.app.evil.example", false},
+		{"https://evil.example/-scope.vercel.app", false},
+		{"https://evil.example?next=-scope.vercel.app", false},
+		{"https://evil.example#-scope.vercel.app", false},
+		{"https://user@do-indeksa-abc123-scope.vercel.app", false},
+		{"https://do-indeksa-abc123-scope.vercel.app:444/-scope.vercel.app", false},
+		{"https://do-indeksa-abc123-scope.vercel.app?", false},
+		{"https://do-indeksa-abc123-scope.vercel.app#", false},
 		{"https://evil.example", false},
 		{"", false},
 	}
