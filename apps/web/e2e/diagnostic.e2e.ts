@@ -221,6 +221,10 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       });
       return;
     }
+    if (call.operationName === "PrepPreferences") {
+      await route.fulfill({ json: { data: { prepPreferences: null } } });
+      return;
+    }
     graphQLCalls.push(call);
     const input = call.variables.input as Record<string, unknown>;
     if (call.operationName === "CheckpointRun") {

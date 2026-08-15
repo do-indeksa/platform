@@ -5,6 +5,8 @@ import {
 
 export const PREP_GOAL_MIN = 1;
 export const PREP_GOAL_MAX = 60;
+export const PREP_EXAM_DATE_MIN = "2000-01-01";
+export const PREP_EXAM_DATE_MAX = "9999-12-31";
 export const PREP_SETTINGS_STORAGE_PREFIX = "do-indeksa-prep-settings-v2:";
 
 const PREP_SETTINGS_STORAGE_VERSION = 1;
@@ -13,6 +15,11 @@ const MAX_STORAGE_CHARACTERS = 2_000;
 export type PrepPreferences = {
   goalPoints: number | null;
   examDate: string | null;
+};
+
+export type CompletePrepPreferences = {
+  goalPoints: number;
+  examDate: string;
 };
 
 export const EMPTY_PREP_PREFERENCES: Readonly<PrepPreferences> = {
@@ -91,8 +98,26 @@ export function parsePrepPreferences(value: unknown): PrepPreferences {
   return { goalPoints, examDate };
 }
 
+export function completePrepPreferences(
+  value: PrepPreferences,
+): CompletePrepPreferences | null {
+  const parsed = parsePrepPreferences(value);
+  return parsed.goalPoints === null ||
+    parsed.examDate === null ||
+    value.goalPoints !== parsed.goalPoints ||
+    value.examDate !== parsed.examDate
+    ? null
+    : { goalPoints: parsed.goalPoints, examDate: parsed.examDate };
+}
+
 function isCalendarDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+    value < PREP_EXAM_DATE_MIN ||
+    value > PREP_EXAM_DATE_MAX
+  ) {
+    return false;
+  }
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
