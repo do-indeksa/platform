@@ -4,6 +4,7 @@ import {
   installCloudRoutes,
   runId as remoteDiagnosticRunId,
   taskIds,
+  type E2EGraphQLCall,
 } from "./diagnostic-cloud-fixture";
 import {
   installSimulationCloudRoutes,
@@ -11,6 +12,12 @@ import {
   simulationRunId,
 } from "./simulation-cloud-fixture";
 import { installAuthBootstrapGate } from "./auth-bootstrap-fixture";
+import {
+  installPracticeCloudRoutes,
+  localPracticeRuntimeFixture,
+  practiceCloudFixture,
+  practiceRunId,
+} from "./practice-cloud-fixture";
 
 const localizedCabinets = [
   {
@@ -271,6 +278,147 @@ test("an authenticated cloud mock is resumable without demo timing", async ({
     continuation.getByRole("link", { name: "Continue exam", exact: true }),
   ).toHaveAttribute("href", new RegExp(`run=${simulationRunId}`));
   await expect(continuation.getByText(/remaining$/)).toBeVisible();
+});
+
+test("an authenticated cloud practice resumes the exact task and draft", async ({
+  page,
+}) => {
+  const fixture = await practiceCloudFixture();
+  expect(fixture.tasks[2]).toMatchObject({ id: "eks-001", slot: 4 });
+  const calls: E2EGraphQLCall[] = [];
+  await installPracticeCloudRoutes(page, fixture, calls);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/en/cabinet");
+
+  const continuation = page.getByTestId("continue-run");
+  await expect(continuation).toHaveAttribute("data-design-status", "figma");
+  await expect(
+    continuation.getByRole("heading", {
+      name: "Position 3 · Exponential equations and inequalities",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(continuation.getByText("0 of 3 tasks")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open position 3: Equations" }),
+  ).toHaveClass(/border-line/);
+  const link = continuation.getByRole("link", {
+    name: "Continue",
+    exact: true,
+  });
+  await expect(link).toHaveAttribute("href", /runtime=1$/);
+  expect((await documentMetrics(page)).widthFits).toBe(true);
+
+  const href = await link.getAttribute("href");
+  if (href === null) throw new Error("practice resume link is missing");
+  const resumeUrl = new URL(href, "http://localhost:3100");
+  expect(resumeUrl.pathname).toBe(
+    `/en/tasks/${fixture.tasks[2].topic}/${fixture.tasks[2].id}`,
+  );
+  expect(resumeUrl.searchParams.get("set")?.split(",")).toEqual(
+    fixture.tasks.map(({ id }) => id),
+  );
+  expect(resumeUrl.searchParams.get("practice")).toBe(practiceRunId);
+  expect(resumeUrl.searchParams.get("runtime")).toBe("1");
+
+  await link.click();
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-runtime-state",
+    "bound",
+  );
+  await expect(page.getByRole("textbox").first()).toHaveValue("cloud draft");
+  expect(calls.map(({ operationName }) => operationName)).toEqual(
+    expect.arrayContaining(["PracticeRunIndex", "PracticeCloudRun"]),
+  );
+});
+
+test("an offline practice index keeps the local task and draft resumable", async ({
+  page,
+}) => {
+  const fixture = await practiceCloudFixture();
+  const local = localPracticeRuntimeFixture(fixture, "local offline draft");
+  const calls: E2EGraphQLCall[] = [];
+  await installPracticeCloudRoutes(page, fixture, calls, {
+    practiceIndex: "offline",
+  });
+  await page.addInitScript((runtime) => {
+    localStorage.setItem(
+      "do-indeksa-practice-runtime",
+      JSON.stringify(runtime),
+    );
+  }, local);
+  await page.goto("/en/cabinet");
+
+  const continuation = page.getByTestId("continue-run");
+  await expect(continuation).toHaveAttribute("data-design-status", "figma");
+  const link = continuation.getByRole("link", {
+    name: "Continue",
+    exact: true,
+  });
+  await expect(link).toHaveAttribute(
+    "href",
+    new RegExp(`practice=${practiceRunId}.*runtime=1$`),
+  );
+
+  await link.click();
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-runtime-state",
+    "bound",
+  );
+  await expect(page.getByRole("textbox").first()).toHaveValue(
+    "local offline draft",
+  );
+  expect(calls.map(({ operationName }) => operationName)).toContain(
+    "PracticeRunIndex",
+  );
+  expect(calls.map(({ operationName }) => operationName)).not.toContain(
+    "PracticeCloudRun",
+  );
+});
+
+test("a practice checkpoint conflict keeps the local task and draft resumable", async ({
+  page,
+}) => {
+  const fixture = await practiceCloudFixture();
+  const local = localPracticeRuntimeFixture(fixture, "local conflict draft", {
+    checkpointDirty: true,
+  });
+  const calls: E2EGraphQLCall[] = [];
+  await installPracticeCloudRoutes(page, fixture, calls, {
+    checkpoint: "conflict",
+  });
+  await page.addInitScript((runtime) => {
+    localStorage.setItem(
+      "do-indeksa-practice-runtime",
+      JSON.stringify(runtime),
+    );
+  }, local);
+  await page.goto("/en/cabinet");
+
+  const continuation = page.getByTestId("continue-run");
+  const link = continuation.getByRole("link", {
+    name: "Continue",
+    exact: true,
+  });
+  await expect(link).toHaveAttribute(
+    "href",
+    new RegExp(`practice=${practiceRunId}.*runtime=1$`),
+  );
+  expect(calls.map(({ operationName }) => operationName)).toEqual(
+    expect.arrayContaining(["CheckpointPracticeRun", "PracticeCloudRun"]),
+  );
+  expect(calls.map(({ operationName }) => operationName)).not.toContain(
+    "PracticeRunIndex",
+  );
+
+  await link.click();
+  await expect(page.getByTestId("task-workspace")).toHaveAttribute(
+    "data-runtime-state",
+    "bound",
+  );
+  await expect(page.getByRole("textbox").first()).toHaveValue(
+    "local conflict draft",
+  );
 });
 
 test("a cloud conflict is surfaced as a resolution action", async ({

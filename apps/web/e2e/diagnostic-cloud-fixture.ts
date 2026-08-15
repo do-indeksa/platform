@@ -63,6 +63,10 @@ export async function installCloudRoutes(
       await route.fulfill({ json: { data: { runs: [] } } });
       return;
     }
+    if (call.operationName === "PracticeRunIndex") {
+      await route.fulfill({ json: { data: { runs: [] } } });
+      return;
+    }
     if (call.operationName === "DiagnosticRunIndex") {
       await route.fulfill({
         json: {
@@ -216,7 +220,7 @@ export async function cloudFixture({
   };
 }
 
-type FixtureTask = {
+export type FixtureTask = {
   id: string;
   revision: string;
   slot: number;
@@ -224,7 +228,7 @@ type FixtureTask = {
   answerPartCount: number;
 };
 
-async function loadFixtureTasks(): Promise<FixtureTask[]> {
+export async function loadFixtureTasks(): Promise<FixtureTask[]> {
   const tasksRoot = path.resolve(process.cwd(), "../../content/tasks");
   const topicDirectories = await fs.readdir(tasksRoot, { withFileTypes: true });
   const byId = new Map<string, FixtureTask>();
@@ -285,7 +289,7 @@ function parseTaskFrontmatter(raw: string): {
   };
 }
 
-async function loadBlueprintVersion(): Promise<string> {
+export async function loadBlueprintVersion(): Promise<string> {
   const raw = await fs.readFile(
     path.resolve(process.cwd(), "../../content/exams/ftn-p1/index.yaml"),
     "utf8",
@@ -304,7 +308,7 @@ async function loadBlueprintVersion(): Promise<string> {
   return `${value.examId}:${value.latestVersion}`;
 }
 
-function fixtureTaskSetRevision(tasks: FixtureTask[]): string {
+export function fixtureTaskSetRevision(tasks: FixtureTask[]): string {
   const hash = createHash("sha256");
   for (const task of tasks) {
     hash.update(task.id);
@@ -315,7 +319,7 @@ function fixtureTaskSetRevision(tasks: FixtureTask[]): string {
   return `sha256:${hash.digest("hex")}`;
 }
 
-function progressRunItemId(parentRunId: string, taskId: string): string {
+export function progressRunItemId(parentRunId: string, taskId: string): string {
   return fixtureUuidV5(`run-item:${taskId}`, parentRunId);
 }
 

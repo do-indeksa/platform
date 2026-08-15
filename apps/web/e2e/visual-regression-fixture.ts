@@ -56,6 +56,7 @@ export async function installCabinetVisualSession(page: Page): Promise<void> {
         return;
       case "SimulationRunIndex":
       case "DiagnosticRunIndex":
+      case "PracticeRunIndex":
         await route.fulfill({ json: { data: { runs: [] } } });
         return;
       case "SimulationCloudRun":
