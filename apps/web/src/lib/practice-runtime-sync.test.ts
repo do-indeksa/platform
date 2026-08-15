@@ -205,6 +205,58 @@ describe("practice runtime sync", () => {
     expect(transport.recordAttempt).toHaveBeenCalledTimes(2);
   });
 
+  it("retries the exact submission after its response was lost", async () => {
+    startOwned();
+    appendAttempt(1, "correct", 60_000);
+    const submittedAt = startedAt + 120_000;
+    const activeDurationMs = 90_000;
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, submittedAt, activeDurationMs),
+    ).toBe(true);
+    let submitCall = 0;
+    const transport = createTransport({
+      submit: vi.fn(async () => {
+        submitCall += 1;
+        if (submitCall === 1) throw new Error("submit response lost");
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "offline" });
+    expect(currentRun()).toMatchObject({
+      phase: "submitting",
+      submission: { submittedAt, activeDurationMs },
+      syncedAttemptCounts: [1, 0],
+    });
+
+    reloadRuntime();
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+
+    expect(transport.submit).toHaveBeenCalledTimes(2);
+    expect(transport.submit).toHaveBeenNthCalledWith(
+      1,
+      runId,
+      submittedAt,
+      activeDurationMs,
+      expect.any(Function),
+      undefined,
+    );
+    expect(transport.submit).toHaveBeenNthCalledWith(
+      2,
+      runId,
+      submittedAt,
+      activeDurationMs,
+      expect.any(Function),
+      undefined,
+    );
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
   it("recovers an exactly matching checkpoint after its response was lost", async () => {
     startOwned();
     appendAttempt(1, "incorrect", 60_000);
