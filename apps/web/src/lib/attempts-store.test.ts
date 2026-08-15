@@ -552,6 +552,35 @@ describe("GraphQL run fallback", () => {
 });
 
 describe("practice runtime canonical fallback", () => {
+  it("does not degrade the journal when an obsolete acknowledgement is aborted", async () => {
+    mockStorage();
+    let reads = 0;
+    let rejectAcknowledgement: ((reason?: unknown) => void) | undefined;
+    mockFetch(() => {
+      reads += 1;
+      if (reads === 1) return journal();
+      return new Promise<Response>((_resolve, reject) => {
+        rejectAcknowledgement = reject;
+      });
+    });
+    const store = await loadStore();
+    await store.syncAttempts(USER_A);
+    expect(store.attemptJournalView()?.status).toBe("synced");
+
+    let runtimeOwnerCurrent = true;
+    const acknowledgement = store.acknowledgePracticeRuntimeRun(
+      USER_A,
+      [ATTEMPT_ID],
+      () => runtimeOwnerCurrent,
+    );
+    await vi.waitFor(() => expect(rejectAcknowledgement).toBeDefined());
+    runtimeOwnerCurrent = false;
+    rejectAcknowledgement?.(new DOMException("aborted", "AbortError"));
+
+    expect(await acknowledgement).toBe(false);
+    expect(store.attemptJournalView()?.status).toBe("synced");
+  });
+
   it("projects the deterministic attempt once and drops its pending standalone copy", async () => {
     const map = mockStorage();
     const calls = mockFetch((call) => {

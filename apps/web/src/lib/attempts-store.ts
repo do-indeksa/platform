@@ -234,7 +234,7 @@ export async function acknowledgePracticeRuntimeRun(
   try {
     if (!(await fetchServer(userId, generation, signal))) return false;
   } catch {
-    if (isCurrentOwner(userId, generation)) {
+    if (isCurrentOwner(userId, generation) && isRuntimeOwnerCurrent()) {
       serverUnavailable = true;
       emit();
     }
