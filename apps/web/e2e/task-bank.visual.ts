@@ -19,6 +19,10 @@ for (const variant of variants) {
         page.getByRole("heading", { name: "Задания", exact: true }),
       ).toBeVisible();
       await waitForFonts(page);
+      await expectNoHorizontalOverflow(page);
+      if (variant.name !== "mobile") {
+        await expectProfileNameToFit(page);
+      }
 
       await expect(page).toHaveScreenshot(`task-bank-ru-${variant.name}.png`);
     });
@@ -75,4 +79,32 @@ async function waitForFonts(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true);
+}
+
+async function expectProfileNameToFit(page: Page) {
+  const profileName = page
+    .getByTestId("site-header")
+    .locator("summary")
+    .getByText("Полина", { exact: true })
+    .last();
+  await expect(profileName).toBeVisible();
+  await expect
+    .poll(() =>
+      profileName.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    )
+    .toBe(true);
 }
