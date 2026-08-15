@@ -53,6 +53,15 @@ export function usePracticeWorkspaceClock({
     () => clockRef.current?.clock.read() ?? 0,
     [],
   );
+  const pauseActiveClock = useCallback(
+    () => clockRef.current?.clock.pause() ?? null,
+    [],
+  );
+  const resumeActiveClock = useCallback(() => {
+    if (document.visibilityState === "visible") {
+      clockRef.current?.clock.resume();
+    }
+  }, []);
   const scheduleSync = useCallback(
     (immediate: boolean) => {
       if (context !== null && typeof context.ownerId === "string") {
@@ -135,6 +144,8 @@ export function usePracticeWorkspaceClock({
 
   return {
     activeDuration,
+    pauseActiveClock,
+    resumeActiveClock,
     scheduleSync,
     prepareAttempt,
     commitAttempt,

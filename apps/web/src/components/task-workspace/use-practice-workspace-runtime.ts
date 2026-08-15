@@ -6,8 +6,10 @@ import { usePracticeRuntime } from "@/lib/practice-runtime-store";
 import {
   appendPracticeWorkspaceAttempt,
   changePracticeWorkspaceDraft,
+  finishPracticeWorkspace,
   inspectPracticeWorkspace,
   type PracticeWorkspaceContext,
+  type PracticeWorkspaceTaskStatus,
 } from "@/lib/practice-workspace-runtime";
 import { taskDraftFromPracticeWorkspace } from "@/lib/practice-workspace-draft";
 import type { TaskDraft } from "@/lib/task-draft";
@@ -17,6 +19,10 @@ import {
   usePracticeWorkspaceClock,
   type PracticeWorkspaceRuntimeStatus,
 } from "./use-practice-workspace-clock";
+
+const EMPTY_TASK_STATUSES: Readonly<
+  Record<string, PracticeWorkspaceTaskStatus>
+> = Object.freeze({});
 
 type RecordedAttempt = {
   startedAt: number;
@@ -120,14 +126,20 @@ export function usePracticeWorkspaceRuntime({
         : undefined,
     [maxHints, snapshot, status],
   );
-  const { activeDuration, scheduleSync, prepareAttempt, commitAttempt } =
-    usePracticeWorkspaceClock({
-      status,
-      context,
-      ownerGeneration,
-      ownerId,
-      taskId,
-    });
+  const {
+    activeDuration,
+    pauseActiveClock,
+    resumeActiveClock,
+    scheduleSync,
+    prepareAttempt,
+    commitAttempt,
+  } = usePracticeWorkspaceClock({
+    status,
+    context,
+    ownerGeneration,
+    ownerId,
+    taskId,
+  });
 
   const changeDraft = useCallback(
     (draft: Pick<TaskDraft, "answers" | "hintsShown">) => {
@@ -178,5 +190,34 @@ export function usePracticeWorkspaceRuntime({
     [commitAttempt, context, prepareAttempt, scheduleSync, status],
   );
 
-  return { status, preferredDraft, changeDraft, recordAttempt };
+  const finish = useCallback(() => {
+    if (status === "legacy") return true;
+    if (status !== "bound" || context === null) return false;
+    const current = inspectPracticeWorkspace(context);
+    if (current.status !== "bound") return false;
+    const activeDurationMs =
+      pauseActiveClock() ?? current.snapshot.activeDurationMs;
+    const transition = finishPracticeWorkspace(context, {
+      submittedAt: Math.max(Date.now(), current.snapshot.latestSubmittedAt),
+      activeDurationMs,
+    });
+    if (transition === null) {
+      resumeActiveClock();
+      return false;
+    }
+    if (transition !== "removed") scheduleSync(true);
+    return true;
+  }, [context, pauseActiveClock, resumeActiveClock, scheduleSync, status]);
+
+  return {
+    status,
+    preferredDraft,
+    taskStatuses:
+      status === "bound" && snapshot !== null
+        ? snapshot.taskStatuses
+        : EMPTY_TASK_STATUSES,
+    changeDraft,
+    recordAttempt,
+    finish,
+  };
 }
