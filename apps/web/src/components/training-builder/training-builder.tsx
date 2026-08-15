@@ -106,6 +106,10 @@ export function TrainingBuilder({
     commitDraft(createDefaultTrainingBuilderDraft(positions, blueprintVersion));
     setShowAllPositions(false);
   };
+  const stopStarting = () => {
+    startingRef.current = false;
+    setStarting(false);
+  };
   const start = async () => {
     if (
       !draftReady ||
@@ -117,43 +121,45 @@ export function TrainingBuilder({
     }
     startingRef.current = true;
     setStarting(true);
-    const practiceId = crypto.randomUUID();
-    const startedAt = Date.now();
-    const selection = buildTrainingSet({
-      draft,
-      positions,
-      tasks,
-      attempts,
-      seed: practiceId,
-    });
-    const firstTask = taskById.get(selection.taskIds[0]);
-    if (!firstTask) {
-      startingRef.current = false;
-      setStarting(false);
-      return;
+    try {
+      const practiceId = crypto.randomUUID();
+      const startedAt = Date.now();
+      const selection = buildTrainingSet({
+        draft,
+        positions,
+        tasks,
+        attempts,
+        seed: practiceId,
+      });
+      const firstTask = taskById.get(selection.taskIds[0]);
+      if (!firstTask) {
+        stopStarting();
+        return;
+      }
+      const started = await beginTrainingPracticeRun({
+        ownerId,
+        runId: practiceId,
+        startedAt,
+        blueprintVersion,
+        selectedTaskIds: selection.taskIds,
+        catalog: tasks,
+      });
+      if (!started) {
+        stopStarting();
+        return;
+      }
+      if (ownerId !== null) void syncPracticeRuntimeRun(practiceId, ownerId);
+      router.push(
+        taskPracticeHref(
+          firstTask,
+          TRAINING_BUILDER_PATH,
+          selection.taskIds,
+          practiceId,
+        ),
+      );
+    } catch {
+      stopStarting();
     }
-    const started = await beginTrainingPracticeRun({
-      ownerId,
-      runId: practiceId,
-      startedAt,
-      blueprintVersion,
-      selectedTaskIds: selection.taskIds,
-      catalog: tasks,
-    });
-    if (!started) {
-      startingRef.current = false;
-      setStarting(false);
-      return;
-    }
-    if (ownerId !== null) void syncPracticeRuntimeRun(practiceId, ownerId);
-    router.push(
-      taskPracticeHref(
-        firstTask,
-        TRAINING_BUILDER_PATH,
-        selection.taskIds,
-        practiceId,
-      ),
-    );
   };
 
   const selectPreset = (preset: TrainingBuilderPreset) => {
