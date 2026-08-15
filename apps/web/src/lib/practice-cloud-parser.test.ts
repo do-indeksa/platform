@@ -115,6 +115,21 @@ describe("practice cloud parser", () => {
     });
   });
 
+  it("accepts a server checkpoint within the client clock-skew window", () => {
+    const run = cloudRun();
+    run.checkpoint = checkpoint(run, 1, []);
+    run.checkpoint.updatedAt = new Date(
+      Date.parse(startedAt) - 2 * 60_000,
+    ).toISOString();
+
+    expect(parsePracticeCloudRun(run, assignment, ownerId)).toMatchObject({
+      checkpointVersion: 3,
+      currentIndex: 0,
+      activeDurationMs: 90_000,
+      checkpointUpdatedAt: run.checkpoint.updatedAt,
+    });
+  });
+
   it.each([
     [
       "wrong content revision",
@@ -151,6 +166,22 @@ describe("practice cloud parser", () => {
       (run: CloudRun) => {
         addAttempt(run, 0, 1, "INCORRECT", ["1", "2"], 0, 120_000);
         addAttempt(run, 1, 1, "INCORRECT", ["3"], 0, 90_000);
+      },
+    ],
+    [
+      "equal global submission millisecond",
+      (run: CloudRun) => {
+        addAttempt(run, 0, 1, "INCORRECT", ["1", "2"], 0, 60_000);
+        addAttempt(run, 1, 1, "INCORRECT", ["3"], 0, 60_000);
+      },
+    ],
+    [
+      "checkpoint before the client clock-skew window",
+      (run: CloudRun) => {
+        run.checkpoint = checkpoint(run, 1, []);
+        run.checkpoint.updatedAt = new Date(
+          Date.parse(startedAt) - 5 * 60_000 - 1,
+        ).toISOString();
       },
     ],
     [

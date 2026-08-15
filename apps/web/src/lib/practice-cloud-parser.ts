@@ -209,13 +209,14 @@ function parseCheckpoint(
     !isPracticeInteger(value.version, 1, Number.MAX_SAFE_INTEGER) ||
     !isPracticeInteger(value.currentOrdinal, 1, items.length) ||
     !isPracticeRemoteTime(value.updatedAt) ||
-    Date.parse(value.updatedAt as string) < runStartedAt ||
     !Array.isArray(value.drafts) ||
     value.drafts.length > items.length
   ) {
     return null;
   }
-  const elapsedMs = Date.parse(value.updatedAt as string) - runStartedAt;
+  const updatedAt = Date.parse(value.updatedAt as string);
+  if (updatedAt < runStartedAt - PRACTICE_CLIENT_CLOCK_SKEW_MS) return null;
+  const elapsedMs = updatedAt - runStartedAt;
   const activeDurationMs = parseActiveDuration(
     value.activeDurationMs,
     elapsedMs,
@@ -306,9 +307,16 @@ function hasGlobalCausalOrder(
       left.id.localeCompare(right.id),
   );
   let previousSubmittedAt = runStartedAt;
+  let hasPrevious = false;
   for (const attempt of ordered) {
-    if (attempt.startedAt < previousSubmittedAt) return false;
+    if (
+      attempt.startedAt < previousSubmittedAt ||
+      (hasPrevious && attempt.submittedAt <= previousSubmittedAt)
+    ) {
+      return false;
+    }
     previousSubmittedAt = attempt.submittedAt;
+    hasPrevious = true;
   }
   return true;
 }
