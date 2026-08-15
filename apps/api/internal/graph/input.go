@@ -172,6 +172,20 @@ func progressAbandonRunInput(input model.AbandonRunInput) (progress.AbandonRunIn
 	return progress.AbandonRunInput{ID: id}, nil
 }
 
+func progressSavePrepPreferencesInput(
+	input model.SavePrepPreferencesInput,
+) (progress.SavePrepPreferencesInput, error) {
+	goalPoints, err := inputInt16(input.GoalPoints, "goalPoints")
+	if err != nil {
+		return progress.SavePrepPreferencesInput{}, err
+	}
+	return progress.SavePrepPreferencesInput{
+		ExpectedVersion: input.ExpectedVersion,
+		GoalPoints:      goalPoints,
+		ExamDate:        input.ExamDate,
+	}, nil
+}
+
 func progressRunKind(kind model.RunKind) (progress.RunKind, error) {
 	switch kind {
 	case model.RunKindPractice:

@@ -128,6 +128,21 @@ type RunCheckpointDraftInput struct {
 	Answer    string
 }
 
+type PrepPreferences struct {
+	UserID     uuid.UUID
+	GoalPoints int16
+	ExamDate   time.Time
+	Version    int64
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type SavePrepPreferencesInput struct {
+	ExpectedVersion int64
+	GoalPoints      int16
+	ExamDate        string
+}
+
 type AbandonRunInput struct {
 	ID uuid.UUID
 }

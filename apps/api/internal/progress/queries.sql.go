@@ -267,6 +267,33 @@ func (q *Queries) CreateAttempt(ctx context.Context, arg CreateAttemptParams) (A
 	return i, err
 }
 
+const createPrepPreferences = `-- name: CreatePrepPreferences :one
+insert into prep_preferences (user_id, goal_points, exam_date)
+values ($1, $2, $3)
+on conflict (user_id) do nothing
+returning user_id, goal_points, exam_date, version, created_at, updated_at
+`
+
+type CreatePrepPreferencesParams struct {
+	UserID     uuid.UUID
+	GoalPoints int16
+	ExamDate   pgtype.Date
+}
+
+func (q *Queries) CreatePrepPreferences(ctx context.Context, arg CreatePrepPreferencesParams) (PrepPreference, error) {
+	row := q.db.QueryRow(ctx, createPrepPreferences, arg.UserID, arg.GoalPoints, arg.ExamDate)
+	var i PrepPreference
+	err := row.Scan(
+		&i.UserID,
+		&i.GoalPoints,
+		&i.ExamDate,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createRun = `-- name: CreateRun :one
 insert into runs (
     id,
@@ -540,6 +567,26 @@ func (q *Queries) GetLatestSubmittedDiagnosticRun(ctx context.Context, userID uu
 		&i.DeadlineAt,
 		&i.SubmittedAt,
 		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPrepPreferences = `-- name: GetPrepPreferences :one
+select user_id, goal_points, exam_date, version, created_at, updated_at
+from prep_preferences
+where user_id = $1
+`
+
+func (q *Queries) GetPrepPreferences(ctx context.Context, userID uuid.UUID) (PrepPreference, error) {
+	row := q.db.QueryRow(ctx, getPrepPreferences, userID)
+	var i PrepPreference
+	err := row.Scan(
+		&i.UserID,
+		&i.GoalPoints,
+		&i.ExamDate,
+		&i.Version,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -1411,6 +1458,43 @@ type TouchRunParams struct {
 func (q *Queries) TouchRun(ctx context.Context, arg TouchRunParams) error {
 	_, err := q.db.Exec(ctx, touchRun, arg.ID, arg.UserID)
 	return err
+}
+
+const updatePrepPreferences = `-- name: UpdatePrepPreferences :one
+update prep_preferences
+set goal_points = $1,
+    exam_date = $2,
+    version = version + 1,
+    updated_at = now()
+where user_id = $3
+  and version = $4
+returning user_id, goal_points, exam_date, version, created_at, updated_at
+`
+
+type UpdatePrepPreferencesParams struct {
+	GoalPoints      int16
+	ExamDate        pgtype.Date
+	UserID          uuid.UUID
+	ExpectedVersion int64
+}
+
+func (q *Queries) UpdatePrepPreferences(ctx context.Context, arg UpdatePrepPreferencesParams) (PrepPreference, error) {
+	row := q.db.QueryRow(ctx, updatePrepPreferences,
+		arg.GoalPoints,
+		arg.ExamDate,
+		arg.UserID,
+		arg.ExpectedVersion,
+	)
+	var i PrepPreference
+	err := row.Scan(
+		&i.UserID,
+		&i.GoalPoints,
+		&i.ExamDate,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateRunCheckpoint = `-- name: UpdateRunCheckpoint :one
