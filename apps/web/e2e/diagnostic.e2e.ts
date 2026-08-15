@@ -130,18 +130,21 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
   };
   const graphQLCalls: GraphQLCall[] = [];
   const attemptMethods: string[] = [];
+  let authReads = 0;
+  let historyReads = 0;
   let submitted = false;
   let checkpointVersion = 0;
 
-  await page.route("**/api/v1/me", (route) =>
-    route.fulfill({
+  await page.route("**/api/v1/me", (route) => {
+    authReads += 1;
+    return route.fulfill({
       json: {
         id: "39ec4650-762d-437f-9917-c31ab167cb99",
         email: "portfolio@example.test",
         name: "Portfolio User",
       },
-    }),
-  );
+    });
+  });
   await page.route("**/api/v1/attempts", (route) => {
     attemptMethods.push(route.request().method());
     return route.fulfill({ status: 410 });
@@ -178,7 +181,33 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       return;
     }
     if (call.operationName === "HistoryRuns") {
-      await route.fulfill({ json: { data: { runs: [] } } });
+      historyReads += 1;
+      await route.fulfill({
+        json: {
+          data: {
+            runs: submitted
+              ? [
+                  {
+                    id: runId,
+                    kind: "DIAGNOSTIC",
+                    status: "SUBMITTED",
+                    blueprintVersion: "ftn-p1:2026.1",
+                    contentRevision: `sha256:${"a".repeat(64)}`,
+                    startedAt: "2026-08-10T10:00:00.000Z",
+                    submittedAt: "2026-08-10T10:10:00.000Z",
+                    activeDurationMs: 600_000,
+                    taskIds,
+                    itemCount: 10,
+                    completedItemCount: 10,
+                    correctItemCount: 1,
+                    earnedPoints: null,
+                    maxPoints: null,
+                  },
+                ]
+              : [],
+          },
+        },
+      });
       return;
     }
     if (call.operationName === "CompletedSimulationArchive") {
@@ -248,6 +277,7 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
       }),
     )
     .toBe(0);
+  await expect.poll(() => historyReads).toBeGreaterThanOrEqual(2);
 
   const startCalls = graphQLCalls.filter(
     (call) => call.operationName === "StartRun",
@@ -292,7 +322,22 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
   expect(attemptMethods).toEqual([]);
 
   const mutationCount = graphQLCalls.length;
-  await page.reload({ waitUntil: "networkidle" });
+  const authReadsBeforeNavigation = authReads;
+  const resultUrl = page.url();
+  await page.getByRole("link", { name: "History", exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/history$/);
+  await expect(page.getByTestId("history-page")).toHaveAttribute(
+    "data-sync-status",
+    "synced",
+  );
+  await page.getByRole("link", { name: "Trainings", exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/history\?tab=trainings$/);
+  await expect(page.getByText("P1 diagnostic", { exact: true })).toBeVisible();
+  await expect(page.getByText("1/10", { exact: true })).toBeVisible();
+  expect(authReads).toBe(authReadsBeforeNavigation);
+  expect(graphQLCalls).toHaveLength(mutationCount);
+
+  await page.goto(resultUrl, { waitUntil: "networkidle" });
   await expect(
     page.getByRole("heading", { name: "Your starting level" }),
   ).toBeVisible();

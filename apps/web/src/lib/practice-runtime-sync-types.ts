@@ -59,6 +59,11 @@ export type PracticeRuntimeTransport = {
     isCurrentOwner: () => boolean,
     signal?: AbortSignal,
   ) => Promise<boolean>;
+  refreshHistory: (
+    ownerId: string,
+    isCurrentOwner: () => boolean,
+    signal?: AbortSignal,
+  ) => Promise<boolean>;
   abandon: (
     runId: string,
     isCurrentOwner: () => boolean,

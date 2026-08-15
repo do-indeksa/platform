@@ -8,10 +8,21 @@ import {
 
 const mocks = vi.hoisted(() => ({
   acknowledgeGraphQLRun: vi.fn<(runId: string) => Promise<boolean>>(),
+  syncHistoryRuns:
+    vi.fn<
+      (
+        userId: string,
+        options: { isCurrentOwner: () => boolean },
+      ) => Promise<boolean>
+    >(),
 }));
 
 vi.mock("./attempts-store", () => ({
   acknowledgeGraphQLRun: mocks.acknowledgeGraphQLRun,
+}));
+
+vi.mock("./history-run-store", () => ({
+  syncHistoryRuns: mocks.syncHistoryRuns,
 }));
 
 const STORAGE_KEY = "do-indeksa-progress-outbox";
@@ -132,6 +143,8 @@ async function loadSync() {
 beforeEach(() => {
   mocks.acknowledgeGraphQLRun.mockReset();
   mocks.acknowledgeGraphQLRun.mockResolvedValue(true);
+  mocks.syncHistoryRuns.mockReset();
+  mocks.syncHistoryRuns.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -172,6 +185,12 @@ describe("progress outbox", () => {
     expect(calls[3].variables.input).not.toHaveProperty("answer");
     expect(JSON.stringify(calls)).not.toMatch(/expected|solution/i);
     expect(mocks.acknowledgeGraphQLRun).toHaveBeenCalledWith(runId);
+    expect(mocks.syncHistoryRuns).toHaveBeenCalledWith(userId, {
+      isCurrentOwner: expect.any(Function),
+    });
+    expect(
+      mocks.acknowledgeGraphQLRun.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocks.syncHistoryRuns.mock.invocationCallOrder[0]);
     expect(pending(map)).toHaveLength(0);
     expect(sync.isProgressRunSynced(runId)).toBe(true);
 
@@ -296,6 +315,7 @@ describe("progress outbox", () => {
     expect(await sync.queueCompletedProgressRun(completedRun())).toBe(true);
     expect(pending(map)).toHaveLength(1);
     expect(mocks.acknowledgeGraphQLRun).not.toHaveBeenCalled();
+    expect(mocks.syncHistoryRuns).not.toHaveBeenCalled();
   });
 
   it("rejects malformed GraphQL error envelopes", async () => {
@@ -315,6 +335,7 @@ describe("progress outbox", () => {
     expect(await sync.queueCompletedProgressRun(completedRun())).toBe(true);
     expect(pending(map)).toHaveLength(1);
     expect(mocks.acknowledgeGraphQLRun).not.toHaveBeenCalled();
+    expect(mocks.syncHistoryRuns).not.toHaveBeenCalled();
   });
 
   it("keeps the outbox until the compatibility view is refreshed", async () => {
@@ -328,10 +349,26 @@ describe("progress outbox", () => {
 
     await sync.queueCompletedProgressRun(completedRun());
     expect(pending(map)).toHaveLength(1);
+    expect(mocks.syncHistoryRuns).not.toHaveBeenCalled();
 
     await sync.syncProgress(userId);
     expect(calls).toHaveLength(24);
+    expect(mocks.syncHistoryRuns).toHaveBeenCalledTimes(1);
     expect(pending(map)).toHaveLength(0);
+  });
+
+  it("removes an acknowledged run when history refresh degrades", async () => {
+    const map = mockStorage();
+    mockGraphQL();
+    mocks.syncHistoryRuns.mockResolvedValueOnce(false);
+    const sync = await loadSync();
+    await sync.syncProgress(userId);
+
+    await sync.queueCompletedProgressRun(completedRun());
+
+    expect(mocks.syncHistoryRuns).toHaveBeenCalledTimes(1);
+    expect(pending(map)).toHaveLength(0);
+    expect(sync.isProgressRunSynced(runId)).toBe(true);
   });
 
   it("rejects invalid or conflicting snapshots", async () => {
@@ -416,5 +453,6 @@ describe("progress outbox", () => {
     expect(calls).toHaveLength(1);
     expect(pending(map)).toHaveLength(0);
     expect(mocks.acknowledgeGraphQLRun).not.toHaveBeenCalled();
+    expect(mocks.syncHistoryRuns).not.toHaveBeenCalled();
   });
 });

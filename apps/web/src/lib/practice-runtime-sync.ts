@@ -176,6 +176,12 @@ async function drainPracticeRun(
         );
         if (!isCurrentContext(context)) return { status: "aborted" };
         if (!acknowledged) return { status: "offline" };
+        await context.transport.refreshHistory(
+          context.ownerId,
+          () => isCurrentContext(context),
+          context.signal,
+        );
+        if (!isCurrentContext(context)) return { status: "aborted" };
         return usePracticeRuntime.getState().finishSubmission(runId)
           ? { status: "synced" }
           : { status: "aborted" };
