@@ -45,6 +45,7 @@ export type CabinetPractice = {
 
 export type CabinetPracticeResumeSummary = {
   task: CabinetTask;
+  currentPosition: number;
   completed: number;
   total: number;
   progress: number;
@@ -97,14 +98,22 @@ export function selectCabinetPractice(
 }
 
 export function summarizeCabinetPracticeResume(
-  resume: { currentTaskId: string; completed: number; total: number },
+  resume: {
+    currentTaskId: string;
+    currentPosition: number;
+    completed: number;
+    total: number;
+  },
   tasks: readonly CabinetTask[],
 ): CabinetPracticeResumeSummary | null {
   const task = tasks.find(({ id }) => id === resume.currentTaskId);
   if (
     task === undefined ||
+    !Number.isSafeInteger(resume.currentPosition) ||
     !Number.isSafeInteger(resume.completed) ||
     !Number.isSafeInteger(resume.total) ||
+    resume.currentPosition < 1 ||
+    resume.currentPosition > 10 ||
     resume.completed < 0 ||
     resume.total < 1 ||
     resume.completed > resume.total
@@ -114,6 +123,7 @@ export function summarizeCabinetPracticeResume(
 
   return {
     task,
+    currentPosition: resume.currentPosition,
     completed: resume.completed,
     total: resume.total,
     progress: Math.round((resume.completed / resume.total) * 100),

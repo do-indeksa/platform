@@ -87,6 +87,7 @@ describe("cabinet model", () => {
       summarizeCabinetPracticeResume(
         {
           currentTaskId: "exponential-3",
+          currentPosition: 4,
           completed: 2,
           total: 5,
         },
@@ -94,6 +95,7 @@ describe("cabinet model", () => {
       ),
     ).toMatchObject({
       task: { id: "exponential-3", slot: 3 },
+      currentPosition: 4,
       completed: 2,
       total: 5,
       progress: 40,
@@ -105,13 +107,23 @@ describe("cabinet model", () => {
   it("rejects inconsistent active practice summaries", () => {
     expect(
       summarizeCabinetPracticeResume(
-        { currentTaskId: "missing", completed: 0, total: 5 },
+        {
+          currentTaskId: "missing",
+          currentPosition: 1,
+          completed: 0,
+          total: 5,
+        },
         tasks,
       ),
     ).toBeNull();
     expect(
       summarizeCabinetPracticeResume(
-        { currentTaskId: "complex-1", completed: 6, total: 5 },
+        {
+          currentTaskId: "complex-1",
+          currentPosition: 1,
+          completed: 6,
+          total: 5,
+        },
         tasks,
       ),
     ).toBeNull();

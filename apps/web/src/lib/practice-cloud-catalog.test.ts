@@ -38,10 +38,23 @@ describe("practice cloud catalog", () => {
           answerPartCount: 1,
         },
       ],
+      examPositionByTaskId: new Map([
+        ["kb-001", 1],
+        ["kv-001", 2],
+      ]),
     });
   });
 
-  it("rejects conflicting duplicates, misplaced tasks, and empty catalogs", () => {
+  it("keeps legacy task slots separate from current blueprint positions", () => {
+    const projected = projectPracticeCloudCatalog(
+      progressCatalog([position(2, [task])]),
+    );
+
+    expect(projected.tasks).toEqual([task]);
+    expect(projected.examPositionByTaskId.get(task.id)).toBe(2);
+  });
+
+  it("rejects conflicting duplicates, ambiguous positions, and empty catalogs", () => {
     expect(() =>
       projectPracticeCloudCatalog(
         progressCatalog([
@@ -51,9 +64,9 @@ describe("practice cloud catalog", () => {
     ).toThrow("practice catalog has conflicting task kb-001");
     expect(() =>
       projectPracticeCloudCatalog(
-        progressCatalog([position(2, [{ ...task, slot: 1 }])]),
+        progressCatalog([position(1, [task]), position(2, [{ ...task }])]),
       ),
-    ).toThrow("practice task kb-001 is in the wrong position");
+    ).toThrow("practice task kb-001 has ambiguous exam positions");
     expect(() => projectPracticeCloudCatalog(progressCatalog([]))).toThrow(
       "practice catalog has no tasks",
     );

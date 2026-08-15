@@ -173,13 +173,17 @@ export function useCabinetResume(catalog: ProgressCloudCatalog): {
 
   if (practiceSelection.resume !== null) {
     const practice = practiceSelection.resume;
+    const currentPosition = practiceCatalog.examPositionByTaskId.get(
+      practice.currentTask.id,
+    );
+    if (currentPosition === undefined) return { ready: true, resume: null };
     return {
       ready: true,
       resume: {
         kind: "practice",
         href: practiceRuntimeResumeHref(practice, "/cabinet"),
         currentTaskId: practice.currentTask.id,
-        currentPosition: practice.currentTask.slot,
+        currentPosition,
         current: practice.current,
         total: practice.total,
         completed: practice.completed,

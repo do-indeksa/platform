@@ -205,7 +205,7 @@ function continueContent({
       return {
         kicker: t("practice.kicker"),
         title: t("practice.title", {
-          position: summary.task.slot,
+          position: summary.currentPosition,
           topic: summary.task.topicLabel,
         }),
         description: t("practice.description", {
@@ -225,7 +225,7 @@ function continueContent({
         ],
         primaryHref: resume.href,
         primaryLabel: t("practice.primary"),
-        secondaryHref: `/tasks?position=${summary.task.slot}`,
+        secondaryHref: `/tasks?position=${summary.currentPosition}`,
         secondaryLabel: t("practice.secondary"),
       };
     }
