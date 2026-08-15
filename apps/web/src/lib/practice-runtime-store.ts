@@ -185,6 +185,7 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
           const latest = item?.attempts.at(-1);
           const attemptNumber = (item?.attempts.length ?? 0) + 1;
           const lastSubmittedAt = latestRunSubmittedAt(run);
+          const hasPreviousAttempt = hasAttempts(run);
           if (
             task === undefined ||
             item === undefined ||
@@ -197,6 +198,7 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             !isClientTime(input.submittedAt) ||
             input.startedAt < lastSubmittedAt ||
             input.submittedAt < input.startedAt ||
+            (hasPreviousAttempt && input.submittedAt <= lastSubmittedAt) ||
             !isOptionalAttemptDuration(
               input.activeDurationMs,
               input.submittedAt - input.startedAt,

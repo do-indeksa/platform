@@ -140,6 +140,20 @@ describe("practice runtime persistence", () => {
     expect(appendAttempt("kb-001", 3, "incorrect", 1, 240_000)).toBeNull();
   });
 
+  it("rejects an equal submitted-time frontier that the API cannot sync", () => {
+    startOwned();
+    expect(appendAttempt("kb-001", 1, "incorrect", 0, 60_000)).not.toBeNull();
+    expect(appendAttempt("kb-002", 1, "incorrect", 0, 60_000)).toBeNull();
+
+    expect(appendAttempt("kb-002", 1, "incorrect", 0, 120_000)).not.toBeNull();
+    const malformed = structuredClone({ runs: [currentRun()] });
+    malformed.runs[0].items[1].attempts[0].startedAt = startedAt + 60_000;
+    malformed.runs[0].items[1].attempts[0].submittedAt = startedAt + 60_000;
+    expect(parsePersistedPracticeRuntimeState(malformed)).toEqual(
+      emptyPracticeRuntimeState(),
+    );
+  });
+
   it("accepts valid client clock skew without regressing updated time", () => {
     syncPracticeRuntimeOwner(ownerA);
     const futureStart = Date.now() + 60_000;

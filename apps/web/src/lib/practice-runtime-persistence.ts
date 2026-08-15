@@ -479,9 +479,16 @@ function hasCausalAttemptOrder(
   startedAt: number,
 ): boolean {
   let previousSubmittedAt = startedAt;
+  let hasPrevious = false;
   for (const attempt of attempts.toSorted(compareAttempts)) {
-    if (attempt.startedAt < previousSubmittedAt) return false;
+    if (
+      attempt.startedAt < previousSubmittedAt ||
+      (hasPrevious && attempt.submittedAt <= previousSubmittedAt)
+    ) {
+      return false;
+    }
     previousSubmittedAt = attempt.submittedAt;
+    hasPrevious = true;
   }
   return true;
 }
