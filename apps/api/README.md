@@ -26,6 +26,13 @@ attempt atomically consumes its current draft and advances the checkpoint
 ordinal without changing the client's CAS version. Rows without the snapshot
 retain the legacy contract; partial snapshots fail closed.
 
+Practice runs with the same complete snapshot marker use a bounded restorable
+contract for one to 30 immutable tasks. Exam positions may repeat, while each
+item keeps up to 20 deterministic, causally ordered AUTO attempts until a
+correct or skipped terminal outcome. Versioned exact-shape drafts identify the
+next attempt and are consumed atomically; a run may submit after at least one
+attempt. Legacy practice runs without snapshots remain permissive.
+
 OAuth origins are parsed and compared as structured scheme/host/port values.
 `CANONICAL_WEB_ORIGIN` and every comma-separated `EXTRA_WEB_ORIGINS` entry must
 use canonical lowercase form without credentials, a path, query, fragment,

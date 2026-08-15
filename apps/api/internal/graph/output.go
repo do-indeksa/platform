@@ -98,14 +98,32 @@ func graphRunSummary(aggregate progress.RunAggregate) (model.RunSummary, error) 
 	if err != nil {
 		return model.RunSummary{}, err
 	}
-	completedItemCount := int32(len(aggregate.Attempts))
+	itemIDs := make(map[uuid.UUID]struct{}, len(aggregate.Items))
+	latestAttemptByItem := make(map[uuid.UUID]progress.Attempt, len(aggregate.Items))
+	for _, item := range aggregate.Items {
+		itemIDs[item.ID] = struct{}{}
+	}
+	for _, attempt := range aggregate.Attempts {
+		if !attempt.RunItemID.Valid {
+			return model.RunSummary{}, fmt.Errorf("run attempt %s has no run item", attempt.PublicID)
+		}
+		itemID := uuid.UUID(attempt.RunItemID.Bytes)
+		if _, ok := itemIDs[itemID]; !ok {
+			return model.RunSummary{}, fmt.Errorf(
+				"run attempt %s belongs to an unknown item", attempt.PublicID,
+			)
+		}
+		latestAttemptByItem[itemID] = attempt
+	}
+
+	completedItemCount := int32(len(latestAttemptByItem))
 	correctItemCount := int32(0)
 	earnedPoints := int32(0)
 	maxPoints := int32(0)
 	taskIDs := make([]string, len(aggregate.Items))
-	hasCompleteEarnedPoints := len(aggregate.Attempts) == len(aggregate.Items)
+	hasCompleteEarnedPoints := len(latestAttemptByItem) == len(aggregate.Items)
 	hasCompleteMaxPoints := len(aggregate.Items) > 0
-	for _, attempt := range aggregate.Attempts {
+	for _, attempt := range latestAttemptByItem {
 		if attempt.Outcome != nil && *attempt.Outcome == string(progress.AttemptOutcomeCorrect) {
 			correctItemCount++
 		}

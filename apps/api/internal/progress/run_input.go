@@ -12,6 +12,7 @@ const (
 	p1SimulationDuration    = 4 * time.Hour
 	p1TaskCount             = 10
 	p1SimulationTotalPoints = int16(60)
+	maxPracticeTaskCount    = 30
 	maxAnswerPartCount      = int16(6)
 )
 
@@ -70,11 +71,13 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			snapshottedItems++
 		}
 	}
-	if (input.Kind == RunKindSimulation || input.Kind == RunKindDiagnostic) &&
+	if (input.Kind == RunKindSimulation || input.Kind == RunKindDiagnostic ||
+		input.Kind == RunKindPractice) &&
 		snapshottedItems != 0 && snapshottedItems != len(input.Items) {
 		return StartRunInput{}, invalidInput("items.answerPartCount")
 	}
 	strictDiagnostic := input.Kind == RunKindDiagnostic && snapshottedItems > 0
+	strictPractice := input.Kind == RunKindPractice && snapshottedItems > 0
 	if strictDiagnostic {
 		if len(input.Items) != p1TaskCount {
 			return StartRunInput{}, invalidInput("items")
@@ -84,6 +87,23 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 		}
 		if !snapshotRevisionPattern.MatchString(input.ContentRevision) {
 			return StartRunInput{}, invalidInput("contentRevision")
+		}
+		if input.StartedAt.UnixMilli() <= 0 {
+			return StartRunInput{}, invalidInput("startedAt")
+		}
+	}
+	if strictPractice {
+		if len(input.Items) > maxPracticeTaskCount {
+			return StartRunInput{}, invalidInput("items")
+		}
+		if !p1BlueprintPattern.MatchString(input.BlueprintVersion) {
+			return StartRunInput{}, invalidInput("blueprintVersion")
+		}
+		if !snapshotRevisionPattern.MatchString(input.ContentRevision) {
+			return StartRunInput{}, invalidInput("contentRevision")
+		}
+		if input.DeadlineAt != nil {
+			return StartRunInput{}, invalidInput("deadlineAt")
 		}
 		if input.StartedAt.UnixMilli() <= 0 {
 			return StartRunInput{}, invalidInput("startedAt")
@@ -117,26 +137,28 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 		}
 		ids[item.ID] = struct{}{}
 		taskIDs[item.TaskID] = struct{}{}
-		if input.Kind == RunKindSimulation || strictDiagnostic {
-			if item.ExamPosition != int16(index+1) {
-				return StartRunInput{}, invalidInput("items.examPosition")
-			}
+		if input.Kind == RunKindSimulation || strictDiagnostic || strictPractice {
 			if !snapshotRevisionPattern.MatchString(item.TaskRevision) {
 				return StartRunInput{}, invalidInput("items.taskRevision")
 			}
 			if input.Kind == RunKindSimulation && item.MaxPoints == nil {
 				return StartRunInput{}, invalidInput("items.maxPoints")
 			}
-			if input.Kind == RunKindDiagnostic && item.MaxPoints != nil {
+			if (input.Kind == RunKindDiagnostic || strictPractice) && item.MaxPoints != nil {
 				return StartRunInput{}, invalidInput("items.maxPoints")
 			}
 			if item.AnswerPartCount != nil && item.ID != runItemSnapshotID(input.ID, item.TaskID) {
 				return StartRunInput{}, invalidInput("items.id")
 			}
-			if _, duplicate := positions[item.ExamPosition]; duplicate {
-				return StartRunInput{}, invalidInput("items.examPosition")
+			if input.Kind == RunKindSimulation || strictDiagnostic {
+				if item.ExamPosition != int16(index+1) {
+					return StartRunInput{}, invalidInput("items.examPosition")
+				}
+				if _, duplicate := positions[item.ExamPosition]; duplicate {
+					return StartRunInput{}, invalidInput("items.examPosition")
+				}
+				positions[item.ExamPosition] = struct{}{}
 			}
-			positions[item.ExamPosition] = struct{}{}
 		}
 	}
 	if input.Kind == RunKindSimulation && totalPoints != p1SimulationTotalPoints {

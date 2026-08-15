@@ -38,7 +38,8 @@ func (s *Service) CheckpointRun(
 	if RunStatus(run.Status) != RunStatusActive {
 		return RunCheckpointAggregate{}, ErrInvalidTransition
 	}
-	if RunKind(run.Kind) != RunKindDiagnostic && RunKind(run.Kind) != RunKindSimulation {
+	if RunKind(run.Kind) != RunKindDiagnostic && RunKind(run.Kind) != RunKindSimulation &&
+		RunKind(run.Kind) != RunKindPractice {
 		return RunCheckpointAggregate{}, ErrInvalidTransition
 	}
 	if !validRunActiveDuration(RunKind(run.Kind), input.ActiveDurationMs, time.Since(run.StartedAt)) {
@@ -55,6 +56,11 @@ func (s *Service) CheckpointRun(
 		return RunCheckpointAggregate{}, err
 	}
 	if err := validateSnapshottedDiagnosticCheckpoint(
+		ctx, queries, userID, run, items, input,
+	); err != nil {
+		return RunCheckpointAggregate{}, err
+	}
+	if err := validateSnapshottedPracticeCheckpoint(
 		ctx, queries, userID, run, items, input,
 	); err != nil {
 		return RunCheckpointAggregate{}, err
