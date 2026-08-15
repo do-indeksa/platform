@@ -383,6 +383,84 @@ describe("practice runtime persistence", () => {
     expect(currentRun().phase).toBe("active");
   });
 
+  it("queues draft-only abandonment and removes it only after success", () => {
+    startOwned();
+    expect(
+      usePracticeRuntime.getState().changeDraft(runId, {
+        taskId: "kb-001",
+        answers: ["unfinished", ""],
+        helpLevel: 0,
+        currentIndex: 0,
+        activeDurationMs: 30_000,
+      }),
+    ).toBe(true);
+
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(true);
+    expect(currentRun()).toMatchObject({
+      phase: "abandoning",
+      submission: null,
+      checkpointDirty: false,
+      checkpointFlight: null,
+      items: [{ draft: { answers: ["unfinished", ""] } }, { draft: null }],
+    });
+    expect(
+      parsePersistedPracticeRuntimeState({ runs: [currentRun()] }).runs[0],
+    ).toEqual(currentRun());
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(false);
+    expect(
+      usePracticeRuntime.getState().visit(runId, {
+        currentIndex: 1,
+        activeDurationMs: 60_000,
+      }),
+    ).toBe(false);
+    expect(
+      usePracticeRuntime.getState().changeDraft(runId, {
+        taskId: "kb-001",
+        answers: ["late", ""],
+        helpLevel: 0,
+        currentIndex: 0,
+        activeDurationMs: 60_000,
+      }),
+    ).toBe(false);
+    expect(appendAttempt("kb-001", 1, "incorrect", 0, 60_000)).toBeNull();
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, startedAt + 60_000, 60_000),
+    ).toBe(false);
+    expect(usePracticeRuntime.getState().finishSubmission(runId)).toBe(false);
+    expect(usePracticeRuntime.getState().finishAbandonment(runId)).toBe(true);
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
+  it("does not abandon a run after its first attempt", () => {
+    startOwned();
+    appendAttempt("kb-001", 1, "incorrect", 0, 60_000);
+
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(false);
+    expect(currentRun().phase).toBe("active");
+  });
+
+  it("rejects a forged abandonment after an attempt", () => {
+    startOwned();
+    appendAttempt("kb-001", 1, "incorrect", 0, 60_000);
+    const malformed = {
+      runs: [
+        {
+          ...currentRun(),
+          phase: "abandoning" as const,
+          checkpointDirty: false,
+          checkpointFlight: null,
+          submission: null,
+        },
+      ],
+    };
+
+    expect(parsePersistedPracticeRuntimeState(malformed)).toEqual(
+      emptyPracticeRuntimeState(),
+    );
+  });
+
   it("keeps the retry draft dirty after an incorrect attempt is synced", () => {
     startOwned();
     expect(usePracticeRuntime.getState().markStartedRemotely(runId)).toBe(true);
@@ -548,6 +626,18 @@ describe("practice runtime persistence", () => {
       "foreign remote guest",
       (run: PersistedPracticeRun) => ({
         runs: [{ ...run, startedRemotely: true, runOwnerId: null }],
+      }),
+    ],
+    [
+      "dirty abandonment",
+      (run: PersistedPracticeRun) => ({
+        runs: [
+          {
+            ...run,
+            phase: "abandoning" as const,
+            checkpointDirty: true,
+          },
+        ],
       }),
     ],
   ])("fails closed for %s", (_name, mutate) => {

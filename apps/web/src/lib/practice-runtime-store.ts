@@ -61,6 +61,7 @@ type PracticeRuntimeState = PersistedPracticeRuntimeState & {
     submittedAt: number,
     activeDurationMs: number,
   ) => boolean;
+  beginAbandonment: (runId: string) => boolean;
   markStartedRemotely: (runId: string) => boolean;
   beginCheckpointFlight: (
     runId: string,
@@ -74,6 +75,7 @@ type PracticeRuntimeState = PersistedPracticeRuntimeState & {
   finishCheckpointFlight: (runId: string, flightId: string) => boolean;
   markAttemptSynced: (runId: string, attemptId: string) => boolean;
   finishSubmission: (runId: string) => boolean;
+  finishAbandonment: (runId: string) => boolean;
   remove: (runId: string) => void;
   reset: () => void;
 };
@@ -306,6 +308,17 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             updatedAt: nextRunUpdateTime(run),
           };
         }),
+      beginAbandonment: (runId) =>
+        updateRun(set, get, runId, (run) => {
+          if (run.phase !== "active" || hasAttempts(run)) return null;
+          return {
+            ...run,
+            phase: "abandoning",
+            checkpointDirty: false,
+            checkpointFlight: null,
+            updatedAt: nextRunUpdateTime(run),
+          };
+        }),
       markStartedRemotely: (runId) =>
         updateRun(set, get, runId, (run) =>
           run.startedRemotely
@@ -400,6 +413,15 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
         if (target?.phase !== "submitting") return false;
         set({
           runs: get().runs.filter((run) => run.assignment.runId !== runId),
+        });
+        return true;
+      },
+      finishAbandonment: (runId) => {
+        const state = get();
+        const target = state.runs.find((run) => run.assignment.runId === runId);
+        if (target?.phase !== "abandoning") return false;
+        set({
+          runs: state.runs.filter((run) => run.assignment.runId !== runId),
         });
         return true;
       },

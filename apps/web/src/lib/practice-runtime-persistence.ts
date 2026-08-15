@@ -83,7 +83,9 @@ function parseRun(value: Record<string, unknown>): PersistedPracticeRun | null {
     !Array.isArray(value.items) ||
     value.items.length !== value.assignment.tasks.length ||
     typeof value.checkpointDirty !== "boolean" ||
-    (value.phase !== "active" && value.phase !== "submitting") ||
+    (value.phase !== "active" &&
+      value.phase !== "submitting" &&
+      value.phase !== "abandoning") ||
     !isClientTime(value.updatedAt) ||
     value.updatedAt < value.startedAt
   ) {
@@ -121,7 +123,9 @@ function parseRun(value: Record<string, unknown>): PersistedPracticeRun | null {
         syncedAttemptCounts.some((count) => count > 0) ||
         checkpointFlight !== null)) ||
     (value.runOwnerId === null && value.startedRemotely) ||
-    !isValidSubmission(
+    (value.phase === "abandoning" &&
+      (value.checkpointDirty || checkpointFlight !== null)) ||
+    !isValidTerminalTransition(
       value.phase,
       value.submission,
       value.startedAt,
@@ -448,7 +452,7 @@ function nextUnsyncedAttempt(
   );
 }
 
-function isValidSubmission(
+function isValidTerminalTransition(
   phase: unknown,
   value: unknown,
   startedAt: number,
@@ -456,6 +460,7 @@ function isValidSubmission(
   attempts: readonly PracticeCloudAttempt[],
 ): boolean {
   if (phase === "active") return value === null;
+  if (phase === "abandoning") return value === null && attempts.length === 0;
   if (
     !isRecord(value) ||
     attempts.length === 0 ||
