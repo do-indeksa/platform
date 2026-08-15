@@ -311,6 +311,26 @@ describe("practice runtime persistence", () => {
     });
   });
 
+  it("does not record an attempt with less help than its current draft", () => {
+    startOwned();
+    expect(
+      usePracticeRuntime.getState().changeDraft(runId, {
+        taskId: "kb-001",
+        answers: ["1", ""],
+        helpLevel: 2,
+        currentIndex: 0,
+        activeDurationMs: 30_000,
+      }),
+    ).toBe(true);
+
+    expect(appendAttempt("kb-001", 1, "incorrect", 1, 60_000)).toBeNull();
+    expect(currentRun().items[0]).toMatchObject({
+      attempts: [],
+      draft: { answers: ["1", ""], helpLevel: 2 },
+    });
+    expect(appendAttempt("kb-001", 1, "incorrect", 2, 60_000)).not.toBeNull();
+  });
+
   it("queues submission offline and removes the run only after success", () => {
     startOwned();
     appendAttempt("kb-001", 1, "correct", 0, 60_000);

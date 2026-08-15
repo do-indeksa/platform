@@ -207,7 +207,8 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             !isAnswers(input.answers, task.answerPartCount) ||
             !isOutcome(input.outcome) ||
             !isHelpLevel(input.helpLevel) ||
-            input.helpLevel < (latest?.helpLevel ?? 0)
+            input.helpLevel <
+              Math.max(latest?.helpLevel ?? 0, item.draft?.helpLevel ?? 0)
           ) {
             return null;
           }
