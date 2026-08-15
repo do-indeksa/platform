@@ -42,6 +42,9 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	) {
 		return Attempt{}, invalidInput("activeDurationMs")
 	}
+	if target.runItemID.Valid && normalized.StartedAt.Before(target.runStartedAt) {
+		return Attempt{}, invalidInput("startedAt")
+	}
 
 	outcome := string(normalized.Outcome)
 	gradingKind := string(normalized.GradingKind)
@@ -123,6 +126,7 @@ type attemptTarget struct {
 	mode         RunKind
 	maxPoints    *int16
 	taskRevision string
+	runStartedAt time.Time
 }
 
 func resolveAttemptTarget(
@@ -147,6 +151,7 @@ func resolveAttemptTarget(
 			mode:         RunKind(row.RunKind),
 			maxPoints:    row.ItemMaxPoints,
 			taskRevision: row.TaskRevision,
+			runStartedAt: row.RunStartedAt,
 		}, nil
 	}
 	target := input.Standalone

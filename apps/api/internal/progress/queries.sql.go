@@ -528,7 +528,8 @@ select
     i.max_points as item_max_points,
     i.task_revision,
     r.kind as run_kind,
-    r.status as run_status
+    r.status as run_status,
+    r.started_at as run_started_at
 from run_items i
 join runs r on r.id = i.run_id and r.user_id = i.user_id
 where i.id = $1 and i.user_id = $2
@@ -549,6 +550,7 @@ type GetRunItemTargetRow struct {
 	TaskRevision  string
 	RunKind       string
 	RunStatus     string
+	RunStartedAt  time.Time
 }
 
 func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetParams) (GetRunItemTargetRow, error) {
@@ -563,6 +565,7 @@ func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetPara
 		&i.TaskRevision,
 		&i.RunKind,
 		&i.RunStatus,
+		&i.RunStartedAt,
 	)
 	return i, err
 }
@@ -717,6 +720,20 @@ where runs.user_id = $1
       and min(run_items.max_points) >= 1
       and sum(run_items.max_points) = 60
       and bool_and(run_items.task_revision ~ '^sha256:[a-f0-9]{64}$')
+  )
+  and not exists (
+    select 1
+    from attempts
+    join run_items on run_items.id = attempts.run_item_id
+      and run_items.user_id = attempts.user_id
+    where run_items.run_id = runs.id
+      and attempts.user_id = runs.user_id
+      and (
+        attempts.started_at is null
+        or attempts.submitted_at is null
+        or attempts.started_at < runs.started_at
+        or attempts.submitted_at > runs.submitted_at
+      )
   )
 order by runs.submitted_at desc, runs.id
 limit $2
@@ -1128,6 +1145,30 @@ func (q *Queries) ListRuns(ctx context.Context, arg ListRunsParams) ([]Run, erro
 		return nil, err
 	}
 	return items, nil
+}
+
+const runHasAttemptAfter = `-- name: RunHasAttemptAfter :one
+select exists (
+    select 1
+    from attempts a
+    join run_items i on i.id = a.run_item_id and i.user_id = a.user_id
+    where i.run_id = $1
+      and a.user_id = $2
+      and coalesce(a.submitted_at, a.created_at) > $3
+)
+`
+
+type RunHasAttemptAfterParams struct {
+	RunID       uuid.UUID
+	UserID      uuid.UUID
+	SubmittedAt pgtype.Timestamptz
+}
+
+func (q *Queries) RunHasAttemptAfter(ctx context.Context, arg RunHasAttemptAfterParams) (bool, error) {
+	row := q.db.QueryRow(ctx, runHasAttemptAfter, arg.RunID, arg.UserID, arg.SubmittedAt)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 const submitRun = `-- name: SubmitRun :one
