@@ -121,8 +121,17 @@ export function finishPracticeWorkspace(
 
   const store = usePracticeRuntime.getState();
   if (binding.run.runOwnerId === null) {
-    store.remove(context.runId);
-    return "removed";
+    if (!hasAttempts(binding.run)) {
+      store.remove(context.runId);
+      return "removed";
+    }
+    return store.beginSubmission(
+      context.runId,
+      input.submittedAt,
+      input.activeDurationMs,
+    )
+      ? "submitting"
+      : null;
   }
   if (!hasAttempts(binding.run)) {
     return store.beginAbandonment(context.runId) ? "abandoning" : null;

@@ -22,6 +22,11 @@ import {
   type StoredAttempt,
 } from "./attempt-journal";
 import { loadStoredAttempts, writeStoredAttempts } from "./attempt-storage";
+import {
+  practiceJournalFingerprint,
+  projectPracticeRuntimeAttempts,
+} from "./practice-runtime-journal";
+import { usePracticeRuntime } from "./practice-runtime-store";
 
 const LEGACY_BATCH_SIZE = 500;
 
@@ -44,6 +49,8 @@ let fetchSequence = 0;
 let view: Attempt[] | null = null;
 let journalSnapshot: AttemptJournalSnapshot | null = null;
 const listeners = new Set<() => void>();
+
+usePracticeRuntime.subscribe(() => emit());
 
 export function attemptsView(): Attempt[] | null {
   if (!authKnown) return null;
@@ -101,10 +108,14 @@ export async function syncAttempts(userId: string | null): Promise<void> {
   }
 
   localAttempts ??= loadStoredAttempts();
-  const claimed = localAttempts.map((attempt) =>
-    claimAttemptOwner(attempt, userId),
+  const claimed = removeRuntimeStandaloneDuplicates(
+    localAttempts.map((attempt) => claimAttemptOwner(attempt, userId)),
+    userId,
   );
-  if (claimed.some((attempt, index) => attempt !== localAttempts?.[index])) {
+  if (
+    claimed.length !== localAttempts.length ||
+    claimed.some((attempt, index) => attempt !== localAttempts?.[index])
+  ) {
     if (!saveLocal(claimed)) {
       serverUnavailable = true;
       emit();
@@ -203,6 +214,44 @@ export async function acknowledgeGraphQLRun(runId: string): Promise<boolean> {
   return true;
 }
 
+export async function acknowledgePracticeRuntimeRun(
+  userId: string,
+  attemptIds: readonly string[],
+  isRuntimeOwnerCurrent: () => boolean,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  const generation = authGeneration;
+  if (
+    activeOwnerId !== userId ||
+    !isUuid(userId) ||
+    attemptIds.length === 0 ||
+    new Set(attemptIds).size !== attemptIds.length ||
+    !attemptIds.every(isUuid) ||
+    !isRuntimeOwnerCurrent()
+  ) {
+    return false;
+  }
+  try {
+    if (!(await fetchServer(userId, generation, signal))) return false;
+  } catch {
+    if (isCurrentOwner(userId, generation)) {
+      serverUnavailable = true;
+      emit();
+    }
+    return false;
+  }
+  if (!isCurrentOwner(userId, generation) || !isRuntimeOwnerCurrent()) {
+    return false;
+  }
+  const serverIds = new Set(
+    (serverAttempts ?? []).flatMap((entry) =>
+      entry.id === null ? [] : [entry.id],
+    ),
+  );
+  emit();
+  return attemptIds.every((attemptId) => serverIds.has(attemptId));
+}
+
 export function clearLocalAttempts(): void {
   authGeneration += 1;
   activeOwnerId = null;
@@ -230,19 +279,31 @@ function merged(): Attempt[] {
       entry.id === null ? [] : [entry.id],
     ),
   );
+  const runtime = projectPracticeRuntimeAttempts(
+    usePracticeRuntime.getState().runs,
+    ownerId,
+  );
+  const runtimeFingerprints = new Set(
+    runtime.map(({ journal }) => practiceJournalFingerprint(journal)),
+  );
   const local = (localAttempts ?? [])
     .filter((attempt) => isAttemptVisible(attempt, ownerId))
     .filter(
       (attempt) =>
         attempt.transport !== "graphql-standalone" ||
-        !serverIds.has(attempt.input.id),
+        (!serverIds.has(attempt.input.id) &&
+          !runtimeFingerprints.has(
+            practiceJournalFingerprint(toJournalAttempt(attempt)),
+          )),
     )
     .flatMap(toMasteryAttempt);
-  if (!activeOwnerId || serverAttempts === null) return local;
   return [
-    ...serverAttempts.flatMap(({ attempt }) =>
+    ...(serverAttempts ?? []).flatMap(({ attempt }) =>
       attempt === null ? [] : [attempt],
     ),
+    ...runtime
+      .filter(({ id }) => !serverIds.has(id))
+      .flatMap(({ attempt }) => (attempt === null ? [] : [attempt])),
     ...local,
   ].toSorted((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
@@ -253,17 +314,29 @@ function mergedJournal(): JournalAttempt[] {
     journal === null ? [] : [journal],
   );
   const serverIds = new Set(serverJournal.map(({ id }) => id));
+  const runtimeJournal = projectPracticeRuntimeAttempts(
+    usePracticeRuntime.getState().runs,
+    ownerId,
+  ).map(({ journal }) => journal);
+  const runtimeFingerprints = new Set(
+    runtimeJournal.map(practiceJournalFingerprint),
+  );
   const localJournal = (localAttempts ?? [])
     .filter(
       (attempt): attempt is PendingPracticeAttempt =>
         attempt.transport === "graphql-standalone" &&
         isAttemptVisible(attempt, ownerId) &&
-        !serverIds.has(attempt.input.id),
+        !serverIds.has(attempt.input.id) &&
+        !runtimeFingerprints.has(
+          practiceJournalFingerprint(toJournalAttempt(attempt)),
+        ),
     )
     .map(toJournalAttempt);
-  return [...serverJournal, ...localJournal].toSorted(
-    (a, b) => Date.parse(a.submittedAt) - Date.parse(b.submittedAt),
-  );
+  return [
+    ...serverJournal,
+    ...runtimeJournal.filter(({ id }) => !serverIds.has(id)),
+    ...localJournal,
+  ].toSorted((a, b) => Date.parse(a.submittedAt) - Date.parse(b.submittedAt));
 }
 
 function journalStatus(): AttemptJournalSnapshot["status"] {
@@ -274,11 +347,22 @@ function journalStatus(): AttemptJournalSnapshot["status"] {
       journal === null ? [] : [journal.id],
     ),
   );
+  const runtime = projectPracticeRuntimeAttempts(
+    usePracticeRuntime.getState().runs,
+    activeOwnerId,
+  );
+  const runtimeFingerprints = new Set(
+    runtime.map(({ journal }) => practiceJournalFingerprint(journal)),
+  );
+  if (runtime.some(({ id }) => !serverIds.has(id))) return "degraded";
   return (localAttempts ?? []).some(
     (attempt) =>
       attempt.transport === "graphql-standalone" &&
       attempt.ownerId === activeOwnerId &&
-      !serverIds.has(attempt.input.id),
+      !serverIds.has(attempt.input.id) &&
+      !runtimeFingerprints.has(
+        practiceJournalFingerprint(toJournalAttempt(attempt)),
+      ),
   )
     ? "degraded"
     : "synced";
@@ -294,6 +378,13 @@ function scheduleFlush(userId: string, generation: number): Promise<void> {
 async function flushOwner(userId: string, generation: number): Promise<void> {
   while (isCurrentOwner(userId, generation)) {
     localAttempts ??= loadStoredAttempts();
+    const retained = removeRuntimeStandaloneDuplicates(localAttempts, userId);
+    if (retained.length !== localAttempts.length) {
+      if (!saveLocal(retained)) {
+        throw new Error("could not discard a duplicate standalone attempt");
+      }
+      continue;
+    }
     const legacy = localAttempts
       .filter(
         (attempt): attempt is PendingLegacyAttempt =>
@@ -344,15 +435,37 @@ async function flushOwner(userId: string, generation: number): Promise<void> {
 async function fetchServer(
   userId: string,
   generation: number,
+  signal?: AbortSignal,
 ): Promise<boolean> {
   const sequence = ++fetchSequence;
-  const parsed = await fetchAttemptJournal();
+  const parsed = await fetchAttemptJournal(signal);
   if (sequence !== fetchSequence || !isCurrentOwner(userId, generation)) {
     return false;
   }
   serverAttempts = parsed;
   serverUnavailable = false;
   return true;
+}
+
+function removeRuntimeStandaloneDuplicates(
+  attempts: readonly StoredAttempt[],
+  ownerId: string,
+): StoredAttempt[] {
+  const runtimeFingerprints = new Set(
+    projectPracticeRuntimeAttempts(
+      usePracticeRuntime.getState().runs,
+      ownerId,
+    ).map(({ journal }) => practiceJournalFingerprint(journal)),
+  );
+  if (runtimeFingerprints.size === 0) return [...attempts];
+  return attempts.filter(
+    (attempt) =>
+      attempt.transport !== "graphql-standalone" ||
+      attempt.ownerId !== ownerId ||
+      !runtimeFingerprints.has(
+        practiceJournalFingerprint(toJournalAttempt(attempt)),
+      ),
+  );
 }
 
 function appendServer(entries: ServerViewAttempt[]): void {

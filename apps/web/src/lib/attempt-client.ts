@@ -37,11 +37,14 @@ const RECORD_PRACTICE_ATTEMPT = `
   }
 `;
 
-export async function fetchAttemptJournal(): Promise<ServerAttempt[]> {
+export async function fetchAttemptJournal(
+  signal?: AbortSignal,
+): Promise<ServerAttempt[]> {
   const response = await fetch("/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
+    signal,
     body: JSON.stringify({
       operationName: "AttemptJournal",
       query: ATTEMPT_JOURNAL,

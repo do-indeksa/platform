@@ -53,6 +53,12 @@ export type PracticeRuntimeTransport = {
     isCurrentOwner: () => boolean,
     signal?: AbortSignal,
   ) => Promise<void>;
+  acknowledge: (
+    ownerId: string,
+    attemptIds: readonly string[],
+    isCurrentOwner: () => boolean,
+    signal?: AbortSignal,
+  ) => Promise<boolean>;
   abandon: (
     runId: string,
     isCurrentOwner: () => boolean,

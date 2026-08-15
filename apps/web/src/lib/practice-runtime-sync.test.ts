@@ -316,6 +316,41 @@ describe("practice runtime sync", () => {
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
 
+  it("retains a submitted run until the canonical journal acknowledges it", async () => {
+    startOwned();
+    appendAttempt(1, "correct", 60_000);
+    const submittedAt = startedAt + 120_000;
+    const activeDurationMs = 90_000;
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, submittedAt, activeDurationMs),
+    ).toBe(true);
+    let visible = false;
+    const transport = createTransport({
+      acknowledge: vi.fn(async () => visible),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "offline" });
+    expect(currentRun()).toMatchObject({
+      phase: "submitting",
+      submission: { submittedAt, activeDurationMs },
+      syncedAttemptCounts: [1, 0],
+    });
+
+    reloadRuntime();
+    visible = true;
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+
+    expect(transport.submit).toHaveBeenCalledTimes(2);
+    expect(transport.acknowledge).toHaveBeenCalledTimes(2);
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
   it("recovers an exactly matching checkpoint after its response was lost", async () => {
     startOwned();
     appendAttempt(1, "incorrect", 60_000);
@@ -471,6 +506,43 @@ describe("practice runtime sync", () => {
     });
   });
 
+  it("does not remove a replacement run after A-B-A during acknowledgement", async () => {
+    startOwned();
+    appendAttempt(1, "correct", 60_000);
+    expect(
+      usePracticeRuntime
+        .getState()
+        .beginSubmission(runId, startedAt + 120_000, 90_000),
+    ).toBe(true);
+    const replacementStartedAt = startedAt + 1_000;
+    const transport = createTransport({
+      acknowledge: vi.fn(async (_ownerId, _attemptIds, isCurrentOwner) => {
+        syncPracticeRuntimeOwner(ownerB);
+        syncPracticeRuntimeOwner(ownerA);
+        expect(
+          usePracticeRuntime.getState().start({
+            assignment,
+            startedAt: replacementStartedAt,
+          }),
+        ).toBe(true);
+        expect(isCurrentOwner()).toBe(false);
+        return true;
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "aborted" });
+    expect(usePracticeRuntime.getState().runs).toMatchObject([
+      {
+        startedAt: replacementStartedAt,
+        runOwnerId: ownerA,
+        phase: "active",
+        items: [{ attempts: [] }, { attempts: [] }],
+      },
+    ]);
+  });
+
   it("serializes concurrent drains for the same run", async () => {
     startOwned();
     let releaseStart: (() => void) | undefined;
@@ -503,6 +575,7 @@ function createTransport(
     checkpoint: vi.fn(async (_assignment, input) => input.expectedVersion + 1),
     recordAttempt: vi.fn(async () => {}),
     submit: vi.fn(async () => {}),
+    acknowledge: vi.fn(async () => true),
     abandon: vi.fn(async () => {}),
     fetch: vi.fn(async () => null),
     ...overrides,
