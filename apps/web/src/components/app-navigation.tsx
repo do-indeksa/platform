@@ -27,9 +27,9 @@ type NavigationKey =
   | "simulation"
   | "history"
   | "exams"
+  | "examsShort"
   | "faculties"
-  | "calculator"
-  | "favorites";
+  | "calculator";
 
 type NavigationItem = {
   href: string;
@@ -71,7 +71,7 @@ const headerPrimaryItems: NavigationItem[] = [
   },
 ];
 
-const headerDesktopItems: NavigationItem[] = [
+const headerSecondaryItems: NavigationItem[] = [
   {
     href: "/prep",
     key: "prep",
@@ -104,8 +104,22 @@ const headerDesktopItems: NavigationItem[] = [
   },
 ];
 
+const headerDesktopItems: NavigationItem[] = [
+  ...headerSecondaryItems,
+  {
+    href: "/exams",
+    key: "examsShort",
+    icon: LibraryBig,
+    headerWidths: {
+      sr: "w-[53px]",
+      en: "w-[57px]",
+      ru: "w-[69px]",
+    },
+  },
+];
+
 const tabletOverflowItems: NavigationItem[] = [
-  ...headerDesktopItems,
+  ...headerSecondaryItems,
   { href: "/exams", key: "exams", icon: LibraryBig },
   {
     href: "/calculator",
@@ -137,12 +151,6 @@ const mobileItems: NavigationItem[] = [
     icon: Calculator,
   },
 ];
-
-const favoritesWidths: Record<AppLocale, string> = {
-  sr: "w-[53px]",
-  en: "w-[57px]",
-  ru: "w-[69px]",
-};
 
 export function DesktopNavigation() {
   const locale = useLocale() as AppLocale;
@@ -177,20 +185,17 @@ export function DesktopNavigation() {
         />
       ))}
 
-      <span
-        aria-disabled="true"
-        data-design-status="provisional"
-        className={`hidden h-full shrink-0 items-center text-[13px] font-normal whitespace-nowrap text-ink xl:flex ${favoritesWidths[locale]}`}
-      >
-        {t("favorites")}
-      </span>
-
       <details
         ref={moreMenu}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) {
             event.currentTarget.removeAttribute("open");
           }
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          event.currentTarget.removeAttribute("open");
+          event.currentTarget.querySelector("summary")?.focus();
         }}
         className="group relative flex h-full w-[15px] shrink-0 items-center xl:hidden"
       >
@@ -219,13 +224,6 @@ export function DesktopNavigation() {
               </Link>
             );
           })}
-          <span
-            aria-disabled="true"
-            data-design-status="provisional"
-            className="flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted"
-          >
-            {t("favorites")}
-          </span>
         </div>
       </details>
     </nav>

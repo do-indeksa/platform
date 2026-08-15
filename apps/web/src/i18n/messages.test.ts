@@ -23,7 +23,7 @@ describe("user-facing terminology", () => {
     expect(sr.nav.overview).toBe("Pregled");
     expect(sr.nav.preparation).toBe("Moja priprema");
     expect(sr.nav.training).toBe("Vežbanje");
-    expect(sr.nav.favorites).toBe("Omiljeno");
+    expect(sr.nav.examsShort).toBe("Ispiti");
     expect(sr.nav.simulation).toBe("Probni ispit");
     expect(sr.taskBank.positionFilter).toContain("Pozicija");
   });

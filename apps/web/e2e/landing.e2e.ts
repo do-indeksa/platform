@@ -276,7 +276,7 @@ for (const locale of localizedLandings) {
   });
 }
 
-test("an authenticated visitor gets the Figma app header on landing", async ({
+test("an authenticated visitor keeps the inset Figma app header sticky", async ({
   page,
 }) => {
   await page.route("**/api/v1/me", async (route) => {
@@ -288,16 +288,52 @@ test("an authenticated visitor gets the Figma app header on landing", async ({
       },
     });
   });
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/en", { waitUntil: "domcontentloaded" });
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
+  );
+  const cases = [
+    {
+      viewport: { width: 390, height: 844 },
+      x: 16,
+      width: 358,
+      height: 64,
+    },
+    {
+      viewport: { width: 1024, height: 880 },
+      x: 56,
+      width: 912,
+      height: 72,
+    },
+    {
+      viewport: { width: 1440, height: 900 },
+      x: 80,
+      width: 1280,
+      height: 72,
+    },
+  ] as const;
 
-  await expect(page.getByTestId("site-header")).toBeVisible();
-  await expect(page.getByTestId("marketing-header")).toHaveCount(0);
-  const header = await page.getByTestId("site-header").boundingBox();
-  expect(header).not.toBeNull();
-  expect(Math.round(header?.x ?? -1)).toBe(80);
-  expect(Math.round(header?.width ?? -1)).toBe(1280);
-  expect(Math.round(header?.height ?? -1)).toBe(72);
+  for (const item of cases) {
+    await page.setViewportSize(item.viewport);
+    await page.goto("/en", { waitUntil: "domcontentloaded" });
+
+    const header = page.getByTestId("site-header");
+    await expect(header).toBeVisible();
+    await expect(page.getByTestId("marketing-header")).toHaveCount(0);
+    const initialBox = await header.boundingBox();
+    expect(initialBox).not.toBeNull();
+    expect(Math.round(initialBox?.x ?? -1)).toBe(item.x);
+    expect(Math.round(initialBox?.y ?? -1)).toBe(0);
+    expect(Math.round(initialBox?.width ?? -1)).toBe(item.width);
+    expect(Math.round(initialBox?.height ?? -1)).toBe(item.height);
+
+    await page.evaluate(() => window.scrollTo(0, 700));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(700);
+    await expect
+      .poll(async () => Math.round((await header.boundingBox())?.y ?? -1))
+      .toBe(0);
+  }
 });
 
 async function expectNoHorizontalOverflow(page: Page) {

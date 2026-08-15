@@ -4,7 +4,6 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AnalyticsScript } from "@/components/analytics-script";
-import { SiteHeader } from "@/components/site-header";
 import { SiteChrome } from "@/components/site-chrome";
 import { UserProvider } from "@/components/user-provider";
 import { htmlLanguage, routing } from "@/i18n/routing";
@@ -56,9 +55,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
       <body className="flex min-h-full flex-col bg-page text-ink">
         <NextIntlClientProvider>
           <UserProvider>
-            <SiteChrome>
-              <SiteHeader />
-            </SiteChrome>
+            <SiteChrome />
             {children}
           </UserProvider>
         </NextIntlClientProvider>

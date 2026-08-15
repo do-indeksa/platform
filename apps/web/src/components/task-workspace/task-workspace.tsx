@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useUser } from "@/components/user-provider";
 import { trackTaskSolved } from "@/lib/analytics";
 import { recordPracticeAttempt } from "@/lib/attempts-store";
+import { practiceWorkspaceDraftMatches } from "@/lib/practice-workspace-draft";
 import {
   markTaskHistoryHelp,
   recordTaskHistory,
@@ -130,11 +131,29 @@ export function TaskWorkspace({
 
   useEffect(() => {
     if (!workspaceReady) return;
+    if (
+      runtimeStatus === "bound" &&
+      preferredDraft !== undefined &&
+      practiceWorkspaceDraftMatches(
+        preferredDraft,
+        state.answers,
+        state.hintsShown,
+      )
+    ) {
+      return;
+    }
     changeRuntimeDraft({
       answers: state.answers,
       hintsShown: state.hintsShown,
     });
-  }, [changeRuntimeDraft, state.answers, state.hintsShown, workspaceReady]);
+  }, [
+    changeRuntimeDraft,
+    preferredDraft,
+    runtimeStatus,
+    state.answers,
+    state.hintsShown,
+    workspaceReady,
+  ]);
 
   const recordJournalAttempt = (
     outcome: "CORRECT" | "INCORRECT" | "SKIPPED",

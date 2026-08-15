@@ -118,6 +118,17 @@ Canonical SR regression frames: desktop `175:390`, tablet `176:1706`, mobile
 `177:2854`. Их размеры составляют соответственно `1440x2898`, `1024x3094` и
 `390x6120`; Linux screenshots проверяются после side-by-side и overlay review.
 
+Для авторизованного landing используются отдельные App Header instances:
+desktop `175:1360`, tablet `176:2633`, mobile `177:3704`. Header сохраняет
+Figma inset `80 / 56 / 16 px`, размеры `1280x72 / 912x72 / 358x64` и остается
+sticky относительно viewport, а не короткого layout wrapper.
+
+Визуальный desktop-slot `Omiljeno / Favorites` пока не имеет реального
+продуктового workflow. Чтобы не показывать неработающую псевдонавигацию, в той
+же позиции и ширине используется существующий маршрут `Ispiti / Exams`. Это
+явная доменная подстановка внутри исходного slot; при появлении настоящего
+избранного она пересматривается отдельным Figma/product slice.
+
 ### Cabinet / overview
 
 Figma Cabinet переносится с continue-card, картой позиций, последними

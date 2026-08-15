@@ -8,15 +8,23 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { MobileMenu } from "@/components/mobile-menu";
 import { Link, usePathname } from "@/i18n/navigation";
 
-export function SiteHeader() {
+export function SiteHeader({
+  placement = "application",
+}: {
+  placement?: "application" | "landing";
+}) {
   const locale = useLocale();
   const pathname = usePathname();
   const t = useTranslations("nav");
+  const landing = placement === "landing";
 
   return (
     <header
       data-testid="site-header"
-      className="sticky top-0 z-40 h-16 bg-surface after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-line after:content-[''] xl:h-[72px]"
+      data-placement={placement}
+      className={`sticky top-0 z-40 bg-surface after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-line after:content-[''] ${
+        landing ? "mx-4 h-16 md:mx-14 md:h-[72px] xl:mx-20" : "h-16 xl:h-[72px]"
+      }`}
     >
       <div className="relative flex h-full w-full items-center justify-between px-4 md:px-8">
         <div className="flex h-full min-w-0 items-center gap-6 overflow-hidden xl:gap-[46px]">

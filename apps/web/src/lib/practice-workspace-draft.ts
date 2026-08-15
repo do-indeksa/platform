@@ -1,6 +1,17 @@
 import type { PracticeWorkspaceSnapshot } from "./practice-workspace-runtime";
 import type { TaskDraft } from "./task-draft";
 
+export function practiceWorkspaceDraftMatches(
+  draft: TaskDraft | null,
+  answers: readonly string[],
+  hintsShown: number,
+): boolean {
+  if (draft === null) {
+    return hintsShown === 0 && answers.every((answer) => answer.length === 0);
+  }
+  return draft.hintsShown === hintsShown && sameAnswers(draft.answers, answers);
+}
+
 export function taskDraftFromPracticeWorkspace(
   snapshot: PracticeWorkspaceSnapshot,
   maxHints: number,
