@@ -8,6 +8,7 @@ import {
   latestP1Mock,
   latestPracticeAttempt,
   selectCabinetPractice,
+  summarizeCabinetPracticeResume,
   type CabinetTask,
 } from "./cabinet-model";
 
@@ -79,6 +80,41 @@ describe("cabinet model", () => {
     expect(selectCabinetPractice(positions, [], tasks)?.position.number).toBe(
       1,
     );
+  });
+
+  it("summarizes an active practice run from its exact current task", () => {
+    expect(
+      summarizeCabinetPracticeResume(
+        {
+          currentTaskId: "exponential-3",
+          completed: 2,
+          total: 5,
+        },
+        tasks,
+      ),
+    ).toMatchObject({
+      task: { id: "exponential-3", slot: 3 },
+      completed: 2,
+      total: 5,
+      progress: 40,
+      minutes: 15,
+      difficulty: "exam",
+    });
+  });
+
+  it("rejects inconsistent active practice summaries", () => {
+    expect(
+      summarizeCabinetPracticeResume(
+        { currentTaskId: "missing", completed: 0, total: 5 },
+        tasks,
+      ),
+    ).toBeNull();
+    expect(
+      summarizeCabinetPracticeResume(
+        { currentTaskId: "complex-1", completed: 6, total: 5 },
+        tasks,
+      ),
+    ).toBeNull();
   });
 
   it("selects only scored full-format P1 mock attempts", () => {

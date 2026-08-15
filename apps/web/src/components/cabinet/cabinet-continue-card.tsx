@@ -4,10 +4,11 @@ import { BookOpen, Clock, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { taskPracticeHref } from "@/lib/task-bank";
-import type {
-  CabinetExam,
-  CabinetPractice,
-  CabinetTask,
+import {
+  summarizeCabinetPracticeResume,
+  type CabinetExam,
+  type CabinetPractice,
+  type CabinetTask,
 } from "./cabinet-model";
 import { CabinetLinkButton } from "./cabinet-link-button";
 import type { CabinetResume } from "./use-cabinet-resume";
@@ -37,7 +38,9 @@ export function CabinetContinueCard({
     t,
   });
   const exact =
-    resume === null || resume.kind === "mock" ? "figma" : "provisional";
+    resume === null || resume.kind === "mock" || resume.kind === "practice"
+      ? "figma"
+      : "provisional";
 
   return (
     <section
@@ -194,6 +197,38 @@ function continueContent({
       secondaryHref: "/diagnostic",
       secondaryLabel: t("diagnostic.secondary"),
     };
+  }
+
+  if (resume?.kind === "practice") {
+    const summary = summarizeCabinetPracticeResume(resume, tasks);
+    if (summary !== null) {
+      return {
+        kicker: t("practice.kicker"),
+        title: t("practice.title", {
+          position: summary.task.slot,
+          topic: summary.task.topicLabel,
+        }),
+        description: t("practice.description", {
+          completed: summary.completed,
+          total: summary.total,
+        }),
+        progress: summary.progress,
+        meta: [
+          {
+            icon: Clock,
+            label: t("practice.minutes", { minutes: summary.minutes }),
+          },
+          {
+            icon: Sparkles,
+            label: t(`practice.difficulty.${summary.difficulty}`),
+          },
+        ],
+        primaryHref: resume.href,
+        primaryLabel: t("practice.primary"),
+        secondaryHref: `/tasks?position=${summary.task.slot}`,
+        secondaryLabel: t("practice.secondary"),
+      };
+    }
   }
 
   if (
