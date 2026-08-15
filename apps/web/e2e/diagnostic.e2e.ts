@@ -133,6 +133,7 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
   let authReads = 0;
   let historyReads = 0;
   let submitted = false;
+  let submittedAt: string | null = null;
   let checkpointVersion = 0;
 
   await page.route("**/api/v1/me", (route) => {
@@ -182,6 +183,7 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
     }
     if (call.operationName === "HistoryRuns") {
       historyReads += 1;
+      const completedAt = submittedAt ?? "2026-08-10T10:10:00.000Z";
       await route.fulfill({
         json: {
           data: {
@@ -194,7 +196,7 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
                     blueprintVersion: "ftn-p1:2026.1",
                     contentRevision: `sha256:${"a".repeat(64)}`,
                     startedAt: "2026-08-10T10:00:00.000Z",
-                    submittedAt: "2026-08-10T10:10:00.000Z",
+                    submittedAt: completedAt,
                     activeDurationMs: 600_000,
                     taskIds,
                     itemCount: 10,
@@ -205,6 +207,9 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
                   },
                 ]
               : [],
+            latestSubmittedDiagnosticRun: submitted
+              ? { id: runId, submittedAt: completedAt }
+              : null,
           },
         },
       });
@@ -239,7 +244,10 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
         : call.operationName === "RecordAttempt"
           ? "recordAttempt"
           : "submitRun";
-    if (call.operationName === "SubmitRun") submitted = true;
+    if (call.operationName === "SubmitRun") {
+      submitted = true;
+      submittedAt = String(input.submittedAt);
+    }
     await route.fulfill({
       json: {
         data: {
@@ -324,6 +332,14 @@ test("an authenticated diagnostic persists one idempotent GraphQL lifecycle", as
   const mutationCount = graphQLCalls.length;
   const authReadsBeforeNavigation = authReads;
   const resultUrl = page.url();
+  await page.getByRole("link", { name: "Study plan", exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/prep$/);
+  await expect(page.getByTestId("next-action")).toContainText(
+    "Solve 3 tasks from position 2",
+  );
+  await expect(page.getByTestId("next-action")).not.toContainText(
+    "Take the short diagnostic",
+  );
   await page.getByRole("link", { name: "History", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/history$/);
   await expect(page.getByTestId("history-page")).toHaveAttribute(

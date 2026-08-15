@@ -271,8 +271,7 @@ describe("prep plan", () => {
       dayStartMs,
       dayEndMs,
       settingsComplete: false,
-      diagnosticCompleted: true,
-      diagnosticCompletedToday: true,
+      diagnosticCompletedAtMs: dayStartMs + 60_000,
     });
 
     expect(result.todayActions[0]).toMatchObject({
@@ -306,8 +305,7 @@ describe("prep plan", () => {
       dayStartMs,
       dayEndMs,
       settingsComplete: false,
-      diagnosticCompleted: true,
-      diagnosticCompletedToday: true,
+      diagnosticCompletedAtMs: dayStartMs + 60_000,
     });
 
     expect(result.todayActions[0]).toMatchObject({
@@ -330,7 +328,7 @@ describe("prep plan", () => {
       dayStartMs,
       dayEndMs,
       settingsComplete: false,
-      diagnosticCompleted: true,
+      diagnosticCompletedAtMs: dayStartMs - 60_000,
     });
 
     expect(

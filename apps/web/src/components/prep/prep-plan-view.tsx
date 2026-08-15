@@ -6,7 +6,9 @@ import { useUser } from "@/components/user-provider";
 import { htmlLanguage, type AppLocale } from "@/i18n/routing";
 import { useAttempts } from "@/lib/attempts-store";
 import type { TaskReference } from "@/lib/content";
+import { diagnosticBaselineCompletedAt } from "@/lib/diagnostic-baseline";
 import { useDiagnostic, useDiagnosticOwnerKnown } from "@/lib/diagnostic-store";
+import { useHistoryRuns } from "@/lib/history-run-store";
 import {
   buildPrepPlan,
   prepPracticeTaskCount,
@@ -46,7 +48,8 @@ export function PrepPlanView({
   const hydrated = useHydrated();
   const diagnosticOwnerKnown = useDiagnosticOwnerKnown();
   const diagnosticPhase = useDiagnostic((state) => state.phase);
-  const diagnosticStartedAt = useDiagnostic((state) => state.startedAt);
+  const diagnosticCompletedAt = useDiagnostic((state) => state.completedAt);
+  const historyRuns = useHistoryRuns();
   const {
     preferences: { goalPoints, examDate },
     ready: preferencesReady,
@@ -74,16 +77,16 @@ export function PrepPlanView({
     examDate !== null &&
     daysUntilExam !== null &&
     daysUntilExam >= 0;
-  const diagnosticCompletedToday =
-    diagnosticPhase === "done" &&
-    diagnosticStartedAt !== null &&
-    diagnosticStartedAt >= day.startMs &&
-    diagnosticStartedAt < day.endMs;
+  const baselineCompletedAt = diagnosticBaselineCompletedAt(
+    { phase: diagnosticPhase, completedAt: diagnosticCompletedAt },
+    historyRuns?.latestSubmittedDiagnosticRun ?? null,
+  );
 
   if (
     !hydrated ||
     attempts === null ||
     !diagnosticOwnerKnown ||
+    historyRuns === null ||
     !preferencesReady
   ) {
     return <PrepPlanLoading positions={positions} />;
@@ -102,8 +105,7 @@ export function PrepPlanView({
       maxPoints,
       daysUntilExam,
     }),
-    diagnosticCompleted: diagnosticPhase === "done",
-    diagnosticCompletedToday,
+    diagnosticCompletedAtMs: baselineCompletedAt,
   });
   const taskById = new Map(taskReferences.map((task) => [task.id, task]));
   const formattedExamDate = examDate

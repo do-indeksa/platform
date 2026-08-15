@@ -32,8 +32,7 @@ type PrepPlanInput = {
   dayEndMs: number;
   settingsComplete: boolean;
   practiceTaskCount?: number;
-  diagnosticCompleted?: boolean;
-  diagnosticCompletedToday?: boolean;
+  diagnosticCompletedAtMs?: number | null;
 };
 
 export function buildPrepPlan({
@@ -45,10 +44,17 @@ export function buildPrepPlan({
   dayEndMs,
   settingsComplete,
   practiceTaskCount = PREP_DEFAULT_TASK_COUNT,
-  diagnosticCompleted = false,
-  diagnosticCompletedToday = false,
+  diagnosticCompletedAtMs = null,
 }: PrepPlanInput): PrepPlan {
   const normalizedTaskCount = normalizeTaskCount(practiceTaskCount);
+  const diagnosticCompleted =
+    typeof diagnosticCompletedAtMs === "number" &&
+    Number.isFinite(diagnosticCompletedAtMs) &&
+    diagnosticCompletedAtMs > 0;
+  const diagnosticCompletedToday =
+    diagnosticCompleted &&
+    diagnosticCompletedAtMs >= dayStartMs &&
+    diagnosticCompletedAtMs < dayEndMs;
   const mapped = mapAttemptsToPositions(
     attempts,
     positions,

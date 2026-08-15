@@ -279,7 +279,11 @@ test("a signed-in user opens a synced attempt on a clean browser", async ({
   await page.route("**/graphql", async (route) => {
     const call = route.request().postDataJSON() as { operationName?: string };
     if (call.operationName === "HistoryRuns") {
-      await route.fulfill({ json: { data: { runs: [] } } });
+      await route.fulfill({
+        json: {
+          data: { runs: [], latestSubmittedDiagnosticRun: null },
+        },
+      });
       return;
     }
     if (call.operationName === "CompletedSimulationArchive") {
@@ -479,7 +483,11 @@ test("a signed-in user opens a synced mock exam on a clean browser", async ({
       return;
     }
     if (call.operationName === "HistoryRuns") {
-      await route.fulfill({ json: { data: { runs: [] } } });
+      await route.fulfill({
+        json: {
+          data: { runs: [], latestSubmittedDiagnosticRun: null },
+        },
+      });
       return;
     }
     if (call.operationName !== "CompletedSimulationArchive") {

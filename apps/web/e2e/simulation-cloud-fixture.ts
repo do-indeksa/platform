@@ -94,7 +94,11 @@ export async function installSimulationCloudRoutes(
       return;
     }
     if (call.operationName === "HistoryRuns") {
-      await route.fulfill({ json: { data: { runs: [] } } });
+      await route.fulfill({
+        json: {
+          data: { runs: [], latestSubmittedDiagnosticRun: null },
+        },
+      });
       return;
     }
     if (call.operationName === "PracticeRunIndex") {
