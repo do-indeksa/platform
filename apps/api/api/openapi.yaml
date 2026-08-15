@@ -61,6 +61,8 @@ paths:
                 type: string
         "400":
           $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadGateway"
         "500":
           $ref: "#/components/responses/Internal"
   /v1/auth/exchange:
@@ -271,6 +273,12 @@ components:
             $ref: "#/components/schemas/Error"
     Forbidden:
       description: Session mutation did not come from the externally visible request origin
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadGateway:
+      description: OAuth provider is temporarily unavailable
       content:
         application/json:
           schema:

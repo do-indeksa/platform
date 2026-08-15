@@ -27,6 +27,13 @@ trailing slash, or default port. Non-loopback origins require HTTPS. The optiona
 `-scope.vercel.app`; provider-wide suffixes such as `.vercel.app` are rejected.
 Invalid origin configuration stops startup before the database is contacted.
 
+Token exchange and userinfo retrieval share one ten-second deadline and one
+redirect-denying HTTP client. Userinfo responses are capped at 64 KiB and must
+contain exactly one JSON value. Provider transport, status, and response details
+are reduced to a stable `502 oauth_provider_unavailable`; authorization codes,
+PKCE verifiers, access tokens, upstream URLs, headers, and bodies are never
+included in returned or logged errors.
+
 The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.

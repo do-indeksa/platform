@@ -1,11 +1,8 @@
 package auth
 
 import (
-	"cmp"
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
@@ -17,20 +14,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const callbackPath = "/api/v1/auth/google/callback"
-
-var googleEndpoint = oauth2.Endpoint{
-	AuthURL:  "https://accounts.google.com/o/oauth2/v2/auth",
-	TokenURL: "https://oauth2.googleapis.com/token",
-}
-
-const googleUserinfoURL = "https://openidconnect.googleapis.com/v1/userinfo"
-
-var (
-	ErrCodeRejected    = errors.New("authorization code rejected")
-	ErrInvalidUserinfo = errors.New("userinfo is missing sub or email")
-	ErrNoSession       = errors.New("no valid session")
-)
+var ErrNoSession = errors.New("no valid session")
 
 type Config struct {
 	ClientID            string
@@ -42,44 +26,23 @@ type Config struct {
 }
 
 type Service struct {
-	cfg         Config
-	queries     *Queries
-	endpoint    oauth2.Endpoint
-	userinfoURL string
+	cfg             Config
+	queries         *Queries
+	endpoint        oauth2.Endpoint
+	userinfoURL     string
+	upstreamClient  *http.Client
+	upstreamTimeout time.Duration
 }
 
 func NewService(pool *pgxpool.Pool, cfg Config) *Service {
 	return &Service{
-		cfg:         cfg,
-		queries:     New(pool),
-		endpoint:    googleEndpoint,
-		userinfoURL: googleUserinfoURL,
+		cfg:             cfg,
+		queries:         New(pool),
+		endpoint:        googleEndpoint,
+		userinfoURL:     googleUserinfoURL,
+		upstreamClient:  newOAuthHTTPClient(),
+		upstreamTimeout: oauthUpstreamTimeout,
 	}
-}
-
-func (s *Service) CompleteGoogleSignIn(ctx context.Context, code, verifier string) (User, error) {
-	token, err := s.oauth().Exchange(ctx, code, oauth2.VerifierOption(verifier))
-	if err != nil {
-		var retrieveErr *oauth2.RetrieveError
-		if errors.As(err, &retrieveErr) && retrieveErr.Response.StatusCode == http.StatusBadRequest {
-			return User{}, fmt.Errorf("%w: %v", ErrCodeRejected, err)
-		}
-		return User{}, err
-	}
-	info, err := s.fetchUserinfo(ctx, token)
-	if err != nil {
-		return User{}, err
-	}
-	var picture *string
-	if info.Picture != "" {
-		picture = &info.Picture
-	}
-	return s.queries.UpsertUser(ctx, UpsertUserParams{
-		GoogleSub:  info.Sub,
-		Email:      info.Email,
-		Name:       cmp.Or(info.Name, info.Email),
-		PictureUrl: picture,
-	})
 }
 
 func (s *Service) IssueSession(ctx context.Context, userID uuid.UUID) (string, error) {
@@ -162,16 +125,6 @@ func (s *Service) CleanupExpired(ctx context.Context) error {
 	return s.queries.DeleteExpiredAuthCodes(ctx)
 }
 
-func (s *Service) oauth() *oauth2.Config {
-	return &oauth2.Config{
-		ClientID:     s.cfg.ClientID,
-		ClientSecret: s.cfg.ClientSecret,
-		Endpoint:     s.endpoint,
-		RedirectURL:  s.cfg.CanonicalOrigin + callbackPath,
-		Scopes:       []string{"openid", "email", "profile"},
-	}
-}
-
 func (s *Service) originAllowed(origin string) bool {
 	_, ok := s.allowedOrigin(origin)
 	return ok
@@ -195,30 +148,4 @@ func (s *Service) allowedOrigin(raw string) (string, bool) {
 func (s *Service) secureCookies() bool {
 	origin, ok := parseOrigin(s.cfg.CanonicalOrigin)
 	return ok && origin.scheme == "https"
-}
-
-type userinfo struct {
-	Sub     string `json:"sub"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
-}
-
-func (s *Service) fetchUserinfo(ctx context.Context, token *oauth2.Token) (userinfo, error) {
-	resp, err := s.oauth().Client(ctx, token).Get(s.userinfoURL)
-	if err != nil {
-		return userinfo{}, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return userinfo{}, fmt.Errorf("userinfo status %d", resp.StatusCode)
-	}
-	var info userinfo
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return userinfo{}, err
-	}
-	if info.Sub == "" || info.Email == "" {
-		return userinfo{}, ErrInvalidUserinfo
-	}
-	return info, nil
 }

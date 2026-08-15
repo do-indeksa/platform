@@ -78,6 +78,15 @@ func (h *Handler) GoogleAuthCallback(w http.ResponseWriter, r *http.Request, par
 	case errors.Is(err, ErrInvalidUserinfo):
 		httpx.WriteError(w, http.StatusBadRequest, "userinfo_failed", "google profile is incomplete")
 		return
+	case errors.Is(err, ErrProviderUnavailable):
+		slog.Warn("sign-in provider unavailable", "error", err)
+		httpx.WriteError(
+			w,
+			http.StatusBadGateway,
+			"oauth_provider_unavailable",
+			"sign-in provider is temporarily unavailable",
+		)
+		return
 	case err != nil:
 		h.serverError(w, err, "failed to complete sign-in")
 		return
