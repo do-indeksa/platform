@@ -53,6 +53,11 @@ export type PracticeRuntimeTransport = {
     isCurrentOwner: () => boolean,
     signal?: AbortSignal,
   ) => Promise<void>;
+  abandon: (
+    runId: string,
+    isCurrentOwner: () => boolean,
+    signal?: AbortSignal,
+  ) => Promise<void>;
   fetch: (
     assignment: PracticeCloudAssignment,
     ownerId: string,

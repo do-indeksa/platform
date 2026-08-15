@@ -97,6 +97,65 @@ describe("practice runtime sync", () => {
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });
 
+  it("starts and abandons an empty run in causal order", async () => {
+    startOwned();
+    expect(
+      usePracticeRuntime.getState().changeDraft(runId, {
+        taskId: "kb-001",
+        answers: ["unfinished", ""],
+        helpLevel: 0,
+        currentIndex: 0,
+        activeDurationMs: 30_000,
+      }),
+    ).toBe(true);
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(true);
+    const calls: string[] = [];
+    const transport = createTransport({
+      start: vi.fn(async () => {
+        calls.push("start");
+      }),
+      abandon: vi.fn(async () => {
+        calls.push("abandon");
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+
+    expect(calls).toEqual(["start", "abandon"]);
+    expect(transport.checkpoint).not.toHaveBeenCalled();
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
+  it("keeps an abandonment offline and resumes it after reload", async () => {
+    startOwned();
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(true);
+    let offline = true;
+    const transport = createTransport({
+      abandon: vi.fn(async () => {
+        if (offline) throw new Error("network unavailable");
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "offline" });
+    expect(currentRun()).toMatchObject({
+      phase: "abandoning",
+      startedRemotely: true,
+    });
+
+    reloadRuntime();
+    offline = false;
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "synced" });
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+    expect(transport.start).toHaveBeenCalledTimes(1);
+    expect(transport.abandon).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps a durable flight offline and resumes it after reload", async () => {
     startOwned();
     appendAttempt(1, "incorrect", 60_000);
@@ -391,6 +450,27 @@ describe("practice runtime sync", () => {
     });
   });
 
+  it("does not finish abandonment after an A-B-A owner switch", async () => {
+    startOwned();
+    expect(usePracticeRuntime.getState().markStartedRemotely(runId)).toBe(true);
+    expect(usePracticeRuntime.getState().beginAbandonment(runId)).toBe(true);
+    const transport = createTransport({
+      abandon: vi.fn(async (_runId, isCurrentOwner) => {
+        syncPracticeRuntimeOwner(ownerB);
+        syncPracticeRuntimeOwner(ownerA);
+        expect(isCurrentOwner()).toBe(false);
+      }),
+    });
+
+    await expect(
+      syncPracticeRuntimeRun(runId, ownerA, { transport }),
+    ).resolves.toEqual({ status: "aborted" });
+    expect(usePracticeRuntime.getState()).toMatchObject({
+      authOwnerId: ownerA,
+      runs: [],
+    });
+  });
+
   it("serializes concurrent drains for the same run", async () => {
     startOwned();
     let releaseStart: (() => void) | undefined;
@@ -423,6 +503,7 @@ function createTransport(
     checkpoint: vi.fn(async (_assignment, input) => input.expectedVersion + 1),
     recordAttempt: vi.fn(async () => {}),
     submit: vi.fn(async () => {}),
+    abandon: vi.fn(async () => {}),
     fetch: vi.fn(async () => null),
     ...overrides,
   };
