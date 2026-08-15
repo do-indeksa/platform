@@ -1,10 +1,8 @@
-import type {
-  TrainingBuilderPosition,
-  TrainingBuilderTask,
-} from "@/lib/training-builder";
+import type { TrainingBuilderPosition } from "@/lib/training-builder";
+import type { TrainingPracticeTask } from "@/lib/training-practice-assignment";
 
 export type TrainingBuilderPositionView = TrainingBuilderPosition & {
   name: string;
 };
 
-export type TrainingBuilderTaskView = TrainingBuilderTask;
+export type TrainingBuilderTaskView = TrainingPracticeTask;

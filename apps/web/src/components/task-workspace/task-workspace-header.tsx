@@ -3,6 +3,7 @@
 import { Calculator, Clock3, Eye, EyeOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { handlePracticeExit } from "./practice-exit";
 import { formatElapsedTime } from "./task-session";
 
 export function TaskWorkspaceHeader({
@@ -13,6 +14,7 @@ export function TaskWorkspaceHeader({
   elapsedSeconds,
   statementVisible,
   returnTo,
+  onFinish,
   onToggleStatement,
 }: {
   slot: number;
@@ -22,6 +24,7 @@ export function TaskWorkspaceHeader({
   elapsedSeconds: number;
   statementVisible: boolean;
   returnTo: string;
+  onFinish?: () => boolean;
   onToggleStatement: () => void;
 }) {
   const t = useTranslations("tasks");
@@ -31,6 +34,7 @@ export function TaskWorkspaceHeader({
     <>
       <Link
         href={returnTo}
+        onClick={(event) => handlePracticeExit(event, onFinish)}
         className="inline-flex h-[19px] items-center text-[13px] leading-[1.45] font-medium text-muted transition-colors hover:text-ink md:w-[200px]"
       >
         {t("backToPractice")}

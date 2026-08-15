@@ -170,6 +170,17 @@ async function drainPracticeRun(
           ? { status: "synced" }
           : { status: "aborted" };
       }
+      if (current.phase === "abandoning") {
+        await context.transport.abandon(
+          runId,
+          () => isCurrentContext(context),
+          context.signal,
+        );
+        if (!isCurrentContext(context)) return { status: "aborted" };
+        return usePracticeRuntime.getState().finishAbandonment(runId)
+          ? { status: "synced" }
+          : { status: "aborted" };
+      }
       return { status: "synced" };
     }
     return { status: "conflict", code: "LOCAL_STATE" };

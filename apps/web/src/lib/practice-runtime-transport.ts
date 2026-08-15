@@ -1,4 +1,5 @@
 import {
+  abandonPracticeCloudRun,
   checkpointPracticeCloudRun,
   fetchPracticeCloudRun,
   recordPracticeCloudAttempt,
@@ -12,5 +13,6 @@ export const defaultPracticeRuntimeTransport: PracticeRuntimeTransport = {
   checkpoint: checkpointPracticeCloudRun,
   recordAttempt: recordPracticeCloudAttempt,
   submit: submitPracticeCloudRun,
+  abandon: abandonPracticeCloudRun,
   fetch: fetchPracticeCloudRun,
 };

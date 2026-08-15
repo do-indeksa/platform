@@ -225,9 +225,11 @@ export async function submitPracticeCloudRun(
 
 export async function abandonPracticeCloudRun(
   runId: string,
+  isCurrentOwner: () => boolean,
   signal?: AbortSignal,
 ): Promise<void> {
   if (!isUuid(runId)) throw new TypeError("practice run ID is invalid");
+  requireCurrentPracticeOwner(isCurrentOwner);
   const result = await requestPracticeGraphQL(
     "AbandonPracticeRun",
     ABANDON_PRACTICE_RUN_MUTATION,
@@ -235,5 +237,6 @@ export async function abandonPracticeCloudRun(
     "abandonRun",
     signal,
   );
+  requireCurrentPracticeOwner(isCurrentOwner);
   requirePracticeResult(result, runId, "ABANDONED");
 }

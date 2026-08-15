@@ -7,7 +7,7 @@ import type {
 
 export const MAX_LOCAL_PRACTICE_RUNS = 20;
 
-export type PracticeRuntimePhase = "active" | "submitting";
+export type PracticeRuntimePhase = "active" | "submitting" | "abandoning";
 
 export type PracticeRuntimeDraft = {
   nextAttempt: number;
@@ -69,6 +69,11 @@ export type PracticeRuntimeDraftChange = {
   taskId: string;
   answers: readonly string[];
   helpLevel: number;
+  currentIndex: number;
+  activeDurationMs: number;
+};
+
+export type PracticeRuntimeVisit = {
   currentIndex: number;
   activeDurationMs: number;
 };

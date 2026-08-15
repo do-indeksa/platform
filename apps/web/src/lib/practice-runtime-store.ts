@@ -39,6 +39,7 @@ import {
   type PracticeRuntimeAttemptInput,
   type PracticeRuntimeDraftChange,
   type PracticeRuntimeStart,
+  type PracticeRuntimeVisit,
 } from "./practice-runtime-types";
 
 export const PRACTICE_RUNTIME_STORE_VERSION = 1;
@@ -49,6 +50,7 @@ type PracticeRuntimeState = PersistedPracticeRuntimeState & {
   syncOwner: (userId: string | null) => void;
   start: (input: PracticeRuntimeStart) => boolean;
   restore: (remote: PracticeCloudRun) => boolean;
+  visit: (runId: string, input: PracticeRuntimeVisit) => boolean;
   changeDraft: (runId: string, input: PracticeRuntimeDraftChange) => boolean;
   appendAttempt: (
     runId: string,
@@ -59,6 +61,7 @@ type PracticeRuntimeState = PersistedPracticeRuntimeState & {
     submittedAt: number,
     activeDurationMs: number,
   ) => boolean;
+  beginAbandonment: (runId: string) => boolean;
   markStartedRemotely: (runId: string) => boolean;
   beginCheckpointFlight: (
     runId: string,
@@ -72,6 +75,7 @@ type PracticeRuntimeState = PersistedPracticeRuntimeState & {
   finishCheckpointFlight: (runId: string, flightId: string) => boolean;
   markAttemptSynced: (runId: string, attemptId: string) => boolean;
   finishSubmission: (runId: string) => boolean;
+  finishAbandonment: (runId: string) => boolean;
   remove: (runId: string) => void;
   reset: () => void;
 };
@@ -133,6 +137,33 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
         set({ runs: parsed.runs });
         return true;
       },
+      visit: (runId, input) => {
+        const current = get().runs.find(
+          (run) => run.assignment.runId === runId,
+        );
+        if (
+          current?.phase !== "active" ||
+          !isIndex(input.currentIndex, current.items.length) ||
+          !isDuration(input.activeDurationMs) ||
+          input.activeDurationMs < current.activeDurationMs
+        ) {
+          return false;
+        }
+        if (
+          input.currentIndex === current.currentIndex &&
+          input.activeDurationMs === current.activeDurationMs
+        ) {
+          return true;
+        }
+        return updateRun(set, get, runId, (run) => ({
+          ...run,
+          currentIndex: input.currentIndex,
+          activeDurationMs: input.activeDurationMs,
+          checkpointDirty: true,
+          checkpointRevision: run.checkpointRevision + 1,
+          updatedAt: nextRunUpdateTime(run),
+        }));
+      },
       changeDraft: (runId, input) =>
         updateRun(set, get, runId, (run) => {
           if (run.phase !== "active") return null;
@@ -152,9 +183,19 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             input.activeDurationMs < run.activeDurationMs ||
             !isAnswers(input.answers, task.answerPartCount) ||
             !isHelpLevel(input.helpLevel) ||
-            input.helpLevel < (latest?.helpLevel ?? 0)
+            input.helpLevel <
+              Math.max(latest?.helpLevel ?? 0, item.draft?.helpLevel ?? 0)
           ) {
             return null;
+          }
+          if (
+            run.currentIndex === input.currentIndex &&
+            run.activeDurationMs === input.activeDurationMs &&
+            item.draft !== null &&
+            item.draft.helpLevel === input.helpLevel &&
+            sameAnswers(item.draft.answers, input.answers)
+          ) {
+            return run;
           }
           return {
             ...run,
@@ -206,7 +247,8 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             !isAnswers(input.answers, task.answerPartCount) ||
             !isOutcome(input.outcome) ||
             !isHelpLevel(input.helpLevel) ||
-            input.helpLevel < (latest?.helpLevel ?? 0)
+            input.helpLevel <
+              Math.max(latest?.helpLevel ?? 0, item.draft?.helpLevel ?? 0)
           ) {
             return null;
           }
@@ -263,6 +305,17 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
             phase: "submitting",
             activeDurationMs,
             submission: { submittedAt, activeDurationMs },
+            updatedAt: nextRunUpdateTime(run),
+          };
+        }),
+      beginAbandonment: (runId) =>
+        updateRun(set, get, runId, (run) => {
+          if (run.phase !== "active" || hasAttempts(run)) return null;
+          return {
+            ...run,
+            phase: "abandoning",
+            checkpointDirty: false,
+            checkpointFlight: null,
             updatedAt: nextRunUpdateTime(run),
           };
         }),
@@ -363,6 +416,15 @@ export const usePracticeRuntime = create<PracticeRuntimeState>()(
         });
         return true;
       },
+      finishAbandonment: (runId) => {
+        const state = get();
+        const target = state.runs.find((run) => run.assignment.runId === runId);
+        if (target?.phase !== "abandoning") return false;
+        set({
+          runs: state.runs.filter((run) => run.assignment.runId !== runId),
+        });
+        return true;
+      },
       remove: (runId) =>
         set({
           runs: get().runs.filter((run) => run.assignment.runId !== runId),
@@ -399,6 +461,7 @@ function updateRun(
   if (index < 0) return false;
   const next = update(state.runs[index]);
   if (next === null) return false;
+  if (next === state.runs[index]) return true;
   const parsed = parsePersistedPracticeRuntimeState({
     runs: state.runs.with(index, next),
   });
@@ -409,6 +472,16 @@ function updateRun(
 
 function nextRunUpdateTime(run: PersistedPracticeRun): number {
   return Math.max(Date.now(), run.startedAt, run.updatedAt);
+}
+
+function sameAnswers(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((answer, index) => answer === right[index])
+  );
 }
 
 export {
@@ -425,4 +498,5 @@ export type {
   PracticeRuntimeAttemptInput,
   PracticeRuntimeDraftChange,
   PracticeRuntimeStart,
+  PracticeRuntimeVisit,
 } from "./practice-runtime-types";

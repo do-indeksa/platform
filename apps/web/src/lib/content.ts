@@ -65,14 +65,22 @@ export type TaskSummary = Pick<
 export type TaskReference = Pick<Task, "id" | "slot" | "topic">;
 
 export type TaskWorkspaceReference = TaskReference & {
+  revision: string;
   partCount: number;
   maxHints: number;
+};
+
+export type PracticeTaskReference = TaskReference & {
+  revision: string;
+  difficulty: number;
+  answerPartCount: number;
 };
 
 let taskSummariesPromise: Promise<TaskSummary[]> | undefined;
 let taskReferencesPromise: Promise<TaskReference[]> | undefined;
 let taskWorkspaceReferencesPromise:
   Promise<TaskWorkspaceReference[]> | undefined;
+let practiceTaskReferencesPromise: Promise<PracticeTaskReference[]> | undefined;
 
 export async function getTopics(): Promise<Topic[]> {
   const raw = await fs.readFile(path.join(contentDir, "topics.yaml"), "utf8");
@@ -180,6 +188,14 @@ export function getTaskWorkspaceReferences(): Promise<
   return taskWorkspaceReferencesPromise;
 }
 
+export function getPracticeTaskReferences(): Promise<PracticeTaskReference[]> {
+  if (process.env.NODE_ENV === "development") {
+    return buildPracticeTaskReferences();
+  }
+  practiceTaskReferencesPromise ??= buildPracticeTaskReferences();
+  return practiceTaskReferencesPromise;
+}
+
 async function buildTaskSummaries(): Promise<TaskSummary[]> {
   const topics = await getTopics();
   const groups = await Promise.all(
@@ -222,12 +238,32 @@ async function buildTaskWorkspaceReferences(): Promise<
   const groups = await Promise.all(
     topics.map(async (topic) =>
       (await getTasks(topic.slug)).map(
-        ({ id, slot, topic: taskTopic, check, hints }) => ({
+        ({ id, revision, slot, topic: taskTopic, check, hints }) => ({
           id,
+          revision,
           slot,
           topic: taskTopic,
           partCount: check.length,
           maxHints: hints.length,
+        }),
+      ),
+    ),
+  );
+  return groups.flat();
+}
+
+async function buildPracticeTaskReferences(): Promise<PracticeTaskReference[]> {
+  const topics = await getTopics();
+  const groups = await Promise.all(
+    topics.map(async (topic) =>
+      (await getTasks(topic.slug)).map(
+        ({ id, revision, slot, topic: taskTopic, difficulty, check }) => ({
+          id,
+          revision,
+          slot,
+          topic: taskTopic,
+          difficulty,
+          answerPartCount: check.length,
         }),
       ),
     ),
