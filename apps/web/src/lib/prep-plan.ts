@@ -154,7 +154,12 @@ export function prepPracticeTaskCount({
   maxPoints: number;
   daysUntilExam: number | null;
 }): number {
-  if (goalPoints === null || daysUntilExam === null || maxPoints <= 0) {
+  if (
+    goalPoints === null ||
+    daysUntilExam === null ||
+    daysUntilExam < 0 ||
+    maxPoints <= 0
+  ) {
     return PREP_DEFAULT_TASK_COUNT;
   }
   return goalPoints / maxPoints >= 0.75 || daysUntilExam <= 45

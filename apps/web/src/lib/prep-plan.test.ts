@@ -84,6 +84,13 @@ describe("prep plan", () => {
         daysUntilExam: 30,
       }),
     ).toBe(5);
+    expect(
+      prepPracticeTaskCount({
+        goalPoints: 30,
+        maxPoints: 60,
+        daysUntilExam: -1,
+      }),
+    ).toBe(3);
   });
 
   it("maps task topics to current exam positions instead of stale topic slots", () => {
