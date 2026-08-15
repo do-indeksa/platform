@@ -30,4 +30,5 @@ export type TaskWorkspaceProps = {
   reportHref: string;
   reportAccessibleLabel: string;
   practiceId: string | null;
+  runtimeRequired: boolean;
 };

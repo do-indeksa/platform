@@ -206,12 +206,24 @@ describe("practice navigation input", () => {
     expect(safeTaskBankReturnPath("/history?redirect=bad")).toBeNull();
   });
 
-  it("keeps a valid isolated practice identifier", () => {
+  it("keeps a valid practice identifier and explicit runtime contract", () => {
     const practiceId = "00000000-0000-4000-8000-000000000001";
     expect(parsePracticeId(practiceId)).toBe(practiceId);
     expect(parsePracticeId("not-a-uuid")).toBeNull();
     expect(
+      taskPracticeHref(tasks[0], "/history?tab=tasks", [], practiceId, {
+        requireRuntime: true,
+      }),
+    ).toBe(
+      `/tasks/complex/kb-001?returnTo=%2Fhistory%3Ftab%3Dtasks&practice=${practiceId}&runtime=1`,
+    );
+    expect(
       taskPracticeHref(tasks[0], "/history?tab=tasks", [], practiceId),
-    ).toContain(`practice=${practiceId}`);
+    ).not.toContain("runtime=");
+    expect(
+      taskPracticeHref(tasks[0], "/tasks", [], "not-a-uuid", {
+        requireRuntime: true,
+      }),
+    ).toBe("/tasks/complex/kb-001?returnTo=%2Ftasks");
   });
 });
