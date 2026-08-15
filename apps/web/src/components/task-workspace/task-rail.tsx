@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { handlePracticeExit } from "./practice-exit";
 import type { TaskWorkspaceItem, TaskWorkspaceStatus } from "./types";
 
 export function TaskRail({
@@ -10,12 +11,14 @@ export function TaskRail({
   statuses,
   durations,
   returnTo,
+  onFinish,
 }: {
   items: readonly TaskWorkspaceItem[];
   currentTaskId: string;
   statuses: Readonly<Record<string, TaskWorkspaceStatus>>;
   durations: Readonly<Record<string, number>>;
   returnTo: string;
+  onFinish?: () => boolean;
 }) {
   const t = useTranslations("tasks");
 
@@ -83,6 +86,7 @@ export function TaskRail({
       </nav>
       <Link
         href={returnTo}
+        onClick={(event) => handlePracticeExit(event, onFinish)}
         className="mt-auto hidden h-[46px] w-[214px] shrink-0 items-center justify-center rounded-[11px] border border-line bg-surface px-3 text-[13px] leading-[1.45] font-medium text-ink transition-colors hover:bg-page xl:inline-flex"
       >
         {t("finishPractice")}
