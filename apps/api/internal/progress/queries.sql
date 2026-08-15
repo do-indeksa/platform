@@ -79,13 +79,51 @@ order by started_at desc, id
 limit $2;
 
 -- name: ListCompletedSimulationRuns :many
-select *
+select runs.*
 from runs
-where user_id = $1
-  and kind = 'simulation'
-  and status = 'submitted'
-order by submitted_at desc, id
+where runs.user_id = $1
+  and runs.kind = 'simulation'
+  and runs.status = 'submitted'
+  and runs.blueprint_version ~ '^ftn-p1:[0-9]{4}[.][0-9]+$'
+  and runs.content_revision ~ '^sha256:[a-f0-9]{64}$'
+  and (
+    runs.deadline_at is null
+    or runs.deadline_at = runs.started_at + interval '4 hours'
+  )
+  and exists (
+    select 1
+    from run_items
+    where run_items.run_id = runs.id
+      and run_items.user_id = runs.user_id
+    group by run_items.run_id, run_items.user_id
+    having count(*) = 10
+      and count(run_items.max_points) = 10
+      and min(run_items.ordinal) = 1
+      and max(run_items.ordinal) = 10
+      and count(distinct run_items.exam_position) = 10
+      and bool_and(run_items.ordinal = run_items.exam_position)
+      and min(run_items.max_points) >= 1
+      and sum(run_items.max_points) = 60
+      and bool_and(run_items.task_revision ~ '^sha256:[a-f0-9]{64}$')
+  )
+order by runs.submitted_at desc, runs.id
 limit $2;
+
+-- name: CanonicalizeSimulationDeadline :one
+update runs
+set deadline_at = sqlc.arg(deadline_at),
+    updated_at = case
+      when runs.deadline_at is null then now()
+      else runs.updated_at
+    end
+where runs.id = sqlc.arg(id)
+  and runs.user_id = sqlc.arg(user_id)
+  and runs.kind = 'simulation'
+  and (
+    runs.deadline_at is null
+    or runs.deadline_at = sqlc.arg(deadline_at)
+  )
+returning *;
 
 -- name: CreateRunItem :one
 insert into run_items (

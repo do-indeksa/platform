@@ -2,6 +2,7 @@ package graph
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -283,7 +284,18 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 	other := seedGraphSession(t, "-other")
 	startedAt := time.Now().Add(-time.Hour).UTC().Truncate(time.Microsecond)
 	runID := uuid.New().String()
-	itemID := uuid.New().String()
+	items := make([]map[string]any, 10)
+	for index := range items {
+		items[index] = map[string]any{
+			"id":           uuid.New().String(),
+			"taskId":       fmt.Sprintf("task-%d", index+1),
+			"examPosition": index + 1,
+			"topic":        fmt.Sprintf("topic-%d", index+1),
+			"maxPoints":    6,
+			"taskRevision": "sha256:" + strings.Repeat("b", 64),
+		}
+	}
+	itemID := items[0]["id"].(string)
 	_, payload := graphRequest(t, startRunMutation, map[string]any{"input": map[string]any{
 		"id":               runID,
 		"kind":             "SIMULATION",
@@ -291,14 +303,7 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 		"contentRevision":  "sha256:" + strings.Repeat("a", 64),
 		"startedAt":        startedAt,
 		"deadlineAt":       startedAt.Add(4 * time.Hour),
-		"items": []map[string]any{{
-			"id":           itemID,
-			"taskId":       "log-001",
-			"examPosition": 1,
-			"topic":        "logaritmi",
-			"maxPoints":    6,
-			"taskRevision": "sha256:" + strings.Repeat("b", 64),
-		}},
+		"items":            items,
 	}}, owner)
 	requireGraphSuccess(t, payload)
 
@@ -361,8 +366,8 @@ func TestGraphQLCompletedSimulationArchive(t *testing.T) {
 	}
 	if len(queried.Runs) != 1 || queried.Runs[0].ID != runID ||
 		queried.Runs[0].BlueprintVersion != "ftn-p1:2026.1" ||
-		queried.Runs[0].ActiveDurationMs != 18*60_000 || len(queried.Runs[0].Items) != 1 ||
-		queried.Runs[0].Items[0].TaskID != "log-001" || queried.Runs[0].Items[0].Answer != "[\"41\"]" ||
+		queried.Runs[0].ActiveDurationMs != 18*60_000 || len(queried.Runs[0].Items) != 10 ||
+		queried.Runs[0].Items[0].TaskID != "task-1" || queried.Runs[0].Items[0].Answer != "[\"41\"]" ||
 		queried.Runs[0].Items[0].Outcome != "PARTIAL" ||
 		queried.Runs[0].Items[0].GradingKind != "RUBRIC_SELF" || queried.Runs[0].Items[0].EarnedPoints != 4 {
 		t.Fatalf("unexpected completed simulation GraphQL payload: %+v", queried.Runs)

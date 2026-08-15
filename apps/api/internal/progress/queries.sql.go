@@ -46,6 +46,49 @@ func (q *Queries) AbandonRun(ctx context.Context, arg AbandonRunParams) (Run, er
 	return i, err
 }
 
+const canonicalizeSimulationDeadline = `-- name: CanonicalizeSimulationDeadline :one
+update runs
+set deadline_at = $1,
+    updated_at = case
+      when runs.deadline_at is null then now()
+      else runs.updated_at
+    end
+where runs.id = $2
+  and runs.user_id = $3
+  and runs.kind = 'simulation'
+  and (
+    runs.deadline_at is null
+    or runs.deadline_at = $1
+  )
+returning id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+`
+
+type CanonicalizeSimulationDeadlineParams struct {
+	DeadlineAt pgtype.Timestamptz
+	ID         uuid.UUID
+	UserID     uuid.UUID
+}
+
+func (q *Queries) CanonicalizeSimulationDeadline(ctx context.Context, arg CanonicalizeSimulationDeadlineParams) (Run, error) {
+	row := q.db.QueryRow(ctx, canonicalizeSimulationDeadline, arg.DeadlineAt, arg.ID, arg.UserID)
+	var i Run
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.Status,
+		&i.BlueprintVersion,
+		&i.ContentRevision,
+		&i.StartedAt,
+		&i.DeadlineAt,
+		&i.SubmittedAt,
+		&i.DurationMs,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createAttempt = `-- name: CreateAttempt :one
 insert into attempts (
     public_id,
@@ -647,12 +690,34 @@ func (q *Queries) ListAttempts(ctx context.Context, userID uuid.UUID) ([]ListAtt
 }
 
 const listCompletedSimulationRuns = `-- name: ListCompletedSimulationRuns :many
-select id, user_id, kind, status, blueprint_version, content_revision, started_at, deadline_at, submitted_at, duration_ms, created_at, updated_at
+select runs.id, runs.user_id, runs.kind, runs.status, runs.blueprint_version, runs.content_revision, runs.started_at, runs.deadline_at, runs.submitted_at, runs.duration_ms, runs.created_at, runs.updated_at
 from runs
-where user_id = $1
-  and kind = 'simulation'
-  and status = 'submitted'
-order by submitted_at desc, id
+where runs.user_id = $1
+  and runs.kind = 'simulation'
+  and runs.status = 'submitted'
+  and runs.blueprint_version ~ '^ftn-p1:[0-9]{4}[.][0-9]+$'
+  and runs.content_revision ~ '^sha256:[a-f0-9]{64}$'
+  and (
+    runs.deadline_at is null
+    or runs.deadline_at = runs.started_at + interval '4 hours'
+  )
+  and exists (
+    select 1
+    from run_items
+    where run_items.run_id = runs.id
+      and run_items.user_id = runs.user_id
+    group by run_items.run_id, run_items.user_id
+    having count(*) = 10
+      and count(run_items.max_points) = 10
+      and min(run_items.ordinal) = 1
+      and max(run_items.ordinal) = 10
+      and count(distinct run_items.exam_position) = 10
+      and bool_and(run_items.ordinal = run_items.exam_position)
+      and min(run_items.max_points) >= 1
+      and sum(run_items.max_points) = 60
+      and bool_and(run_items.task_revision ~ '^sha256:[a-f0-9]{64}$')
+  )
+order by runs.submitted_at desc, runs.id
 limit $2
 `
 

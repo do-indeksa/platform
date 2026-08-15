@@ -1,4 +1,10 @@
 import { validate as isUuid, v5 as uuidV5 } from "uuid";
+import {
+  FTN_P1_SIMULATION_DURATION_MS,
+  isCompleteFtnP1SimulationItems,
+  isFtnP1SimulationBlueprintVersion,
+  isSimulationTaskRevision,
+} from "./simulation-run";
 
 const TASK_ID_PATTERN = /^[a-z0-9-]{1,64}$/;
 const MAX_BLUEPRINT_LENGTH = 64;
@@ -41,6 +47,7 @@ export type CompletedProgressRun = {
   blueprintVersion: string;
   contentRevision: string;
   startedAt: string;
+  deadlineAt?: string;
   submittedAt: string;
   activeDurationMs?: number;
   items: CompletedProgressItem[];
@@ -72,7 +79,10 @@ export function parseCompletedProgressRun(
     !isBoundedString(value.blueprintVersion, MAX_BLUEPRINT_LENGTH) ||
     !isBoundedString(value.contentRevision, MAX_REVISION_LENGTH) ||
     !isIsoTime(value.startedAt) ||
+    (value.deadlineAt !== undefined && !isIsoTime(value.deadlineAt)) ||
     !isIsoTime(value.submittedAt) ||
+    (value.deadlineAt !== undefined &&
+      Date.parse(value.deadlineAt) < Date.parse(value.startedAt)) ||
     Date.parse(value.submittedAt) < Date.parse(value.startedAt) ||
     !isOptionalDuration(
       value.activeDurationMs,
@@ -89,7 +99,6 @@ export function parseCompletedProgressRun(
   const itemIds = new Set<string>();
   const taskIds = new Set<string>();
   const positions = new Set<number>();
-  let totalPoints = 0;
   for (const candidate of value.items) {
     const item = parseItem(
       candidate,
@@ -108,14 +117,23 @@ export function parseCompletedProgressRun(
     itemIds.add(item.id);
     taskIds.add(item.taskId);
     positions.add(item.examPosition);
-    totalPoints += item.maxPoints ?? 0;
     items.push(item);
   }
-  if (
-    value.kind === "SIMULATION" &&
-    (items.some((item) => item.maxPoints === undefined) || totalPoints > 60)
-  ) {
-    return null;
+  let deadlineAt = value.deadlineAt;
+  if (value.kind === "SIMULATION") {
+    const expectedDeadlineAt = new Date(
+      Date.parse(value.startedAt) + FTN_P1_SIMULATION_DURATION_MS,
+    ).toISOString();
+    if (
+      !isFtnP1SimulationBlueprintVersion(value.blueprintVersion) ||
+      !isSimulationTaskRevision(value.contentRevision) ||
+      !isCompleteFtnP1SimulationItems(items) ||
+      items.some((item) => !isSimulationTaskRevision(item.taskRevision)) ||
+      (deadlineAt !== undefined && deadlineAt !== expectedDeadlineAt)
+    ) {
+      return null;
+    }
+    deadlineAt = expectedDeadlineAt;
   }
 
   return {
@@ -124,6 +142,7 @@ export function parseCompletedProgressRun(
     blueprintVersion: value.blueprintVersion,
     contentRevision: value.contentRevision,
     startedAt: value.startedAt,
+    ...(deadlineAt === undefined ? {} : { deadlineAt }),
     submittedAt: value.submittedAt,
     ...(value.activeDurationMs === undefined
       ? {}

@@ -12,6 +12,10 @@ import {
   progressRunItemId,
   type CompletedProgressRun,
 } from "./progress-run";
+import {
+  FTN_P1_SIMULATION_DURATION_MS,
+  isCompleteFtnP1SimulationItems,
+} from "./simulation-run";
 import type { ProgressCloudCatalog } from "./progress-cloud-types";
 import type { SimulationProgressItem } from "./simulation-types";
 
@@ -177,6 +181,7 @@ export async function uploadSimulationCloudRun(
         blueprintVersion: upload.blueprintVersion,
         contentRevision: upload.contentRevision,
         startedAt: new Date(state.startedAt as number).toISOString(),
+        deadlineAt: new Date(state.endsAt as number).toISOString(),
         items: upload.tasks.map((task) => ({
           id: progressRunItemId(runId, task.taskId),
           taskId: task.taskId,
@@ -249,6 +254,7 @@ export async function uploadSimulationAutoGradeRun(
   if (
     run === null ||
     run.kind !== "SIMULATION" ||
+    run.deadlineAt === undefined ||
     run.items.some((item) => item.attempt.gradingKind !== "AUTO")
   ) {
     throw new TypeError("simulation auto grade is inconsistent");
@@ -264,6 +270,7 @@ export async function uploadSimulationAutoGradeRun(
         blueprintVersion: run.blueprintVersion,
         contentRevision: run.contentRevision,
         startedAt: run.startedAt,
+        deadlineAt: run.deadlineAt,
         items: run.items.map((item) => ({
           id: item.id,
           taskId: item.taskId,
@@ -332,8 +339,10 @@ function matchesUpload(
     state.runId !== null &&
     state.startedAt !== null &&
     state.endsAt !== null &&
+    state.endsAt - state.startedAt === FTN_P1_SIMULATION_DURATION_MS &&
     state.contentRevision === upload.contentRevision &&
-    upload.blueprintVersion.endsWith(`:${state.blueprintVersion}`) &&
+    upload.blueprintVersion === `ftn-p1:${state.blueprintVersion}` &&
+    isCompleteFtnP1SimulationItems(upload.tasks) &&
     upload.tasks.length === state.tasks.length &&
     upload.tasks.every((task, index) => {
       const local = state.tasks[index];

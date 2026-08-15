@@ -94,6 +94,7 @@ export function buildSimulationAutoGradeRun(
       blueprintVersion: `ftn-p1:${state.blueprintVersion}`,
       contentRevision: state.contentRevision,
       startedAt,
+      deadlineAt: new Date(state.endsAt).toISOString(),
       submittedAt,
       activeDurationMs: Math.max(
         0,

@@ -183,8 +183,25 @@ func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
 	}
 	if _, err := service.SubmitRun(ctx, ownerID, SubmitRunInput{
 		ID:          practice.ID,
-		SubmittedAt: practice.StartedAt.Add(20 * time.Minute),
+		SubmittedAt: practice.StartedAt.Add(30 * time.Minute),
 	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update runs
+		set kind = 'simulation',
+		    blueprint_version = 'ftn-p1:2026.1',
+		    content_revision = $3,
+		    deadline_at = null
+		where id = $1 and user_id = $2
+	`, practice.ID, ownerID, "sha256:"+strings.Repeat("a", 64)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update run_items
+		set task_revision = $3
+		where run_id = $1 and user_id = $2
+	`, practice.ID, ownerID, "sha256:"+strings.Repeat("b", 64)); err != nil {
 		t.Fatal(err)
 	}
 	other := sampleRunInput(RunKindSimulation)
@@ -198,17 +215,47 @@ func TestCompletedSimulationArchiveIsFilteredAndOwnerScoped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runs, err := service.ListCompletedSimulationRuns(ctx, ownerID, MaxCompletedSimulationRuns)
+	runs, err := service.ListCompletedSimulationRuns(ctx, ownerID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(runs) != 1 || runs[0].Run.ID != archived.ID || len(runs[0].Items) != 2 ||
+	if len(runs) != 1 || runs[0].Run.ID != archived.ID || len(runs[0].Items) != p1SimulationTaskCount ||
 		len(runs[0].Attempts) != 1 || runs[0].Attempts[0].Answer == nil ||
 		*runs[0].Attempts[0].Answer != latestAnswer {
 		t.Fatalf("unexpected completed simulation archive: %+v", runs)
 	}
 	if _, err := service.ListCompletedSimulationRuns(ctx, ownerID, MaxCompletedSimulationRuns+1); !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("oversized archive limit: got %v", err)
+	}
+}
+
+func TestStartRunCanonicalizesLegacySimulationDeadline(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := sampleRunInput(RunKindSimulation)
+	if _, err := service.StartRun(ctx, userID, run); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := testPool.Exec(ctx, `
+		update runs set deadline_at = null where id = $1 and user_id = $2
+	`, run.ID, userID); err != nil {
+		t.Fatal(err)
+	}
+
+	retried, err := service.StartRun(ctx, userID, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !retried.Run.DeadlineAt.Valid || !retried.Run.DeadlineAt.Time.Equal(*run.DeadlineAt) {
+		t.Fatalf("legacy simulation deadline was not canonicalized: %+v", retried.Run.DeadlineAt)
+	}
+	loaded, err := service.GetRun(ctx, userID, run.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !loaded.Run.DeadlineAt.Valid || !loaded.Run.DeadlineAt.Time.Equal(*run.DeadlineAt) {
+		t.Fatalf("canonical deadline was not persisted: %+v", loaded.Run.DeadlineAt)
 	}
 }
 
@@ -304,10 +351,29 @@ func TestRunInputValidation(t *testing.T) {
 	}{
 		{"missing id", func(input *StartRunInput) { input.ID = uuid.Nil }},
 		{"unknown kind", func(input *StartRunInput) { input.Kind = "quiz" }},
+		{"wrong simulation blueprint", func(input *StartRunInput) { input.BlueprintVersion = "ftn-p1-2026.1" }},
+		{"mutable content revision", func(input *StartRunInput) { input.ContentRevision = "mutable" }},
+		{"wrong simulation deadline", func(input *StartRunInput) {
+			deadline := input.StartedAt.Add(p1SimulationDuration - time.Second)
+			input.DeadlineAt = &deadline
+		}},
 		{"no items", func(input *StartRunInput) { input.Items = nil }},
+		{"incomplete simulation", func(input *StartRunInput) { input.Items = input.Items[:len(input.Items)-1] }},
 		{"duplicate task", func(input *StartRunInput) { input.Items[1].TaskID = input.Items[0].TaskID }},
 		{"duplicate position", func(input *StartRunInput) { input.Items[1].ExamPosition = input.Items[0].ExamPosition }},
+		{"permuted position", func(input *StartRunInput) {
+			input.Items[0].ExamPosition, input.Items[1].ExamPosition = input.Items[1].ExamPosition, input.Items[0].ExamPosition
+		}},
+		{"mutable task revision", func(input *StartRunInput) { input.Items[0].TaskRevision = "mutable" }},
 		{"missing simulation points", func(input *StartRunInput) { input.Items[0].MaxPoints = nil }},
+		{"incomplete point ceiling", func(input *StartRunInput) {
+			points := int16(5)
+			input.Items[0].MaxPoints = &points
+		}},
+		{"excessive point ceiling", func(input *StartRunInput) {
+			points := int16(7)
+			input.Items[0].MaxPoints = &points
+		}},
 		{"zero point ceiling", func(input *StartRunInput) {
 			zero := int16(0)
 			input.Items[0].MaxPoints = &zero
@@ -324,6 +390,23 @@ func TestRunInputValidation(t *testing.T) {
 				t.Fatalf("got %v", err)
 			}
 		})
+	}
+}
+
+func TestStartRunDerivesMissingSimulationDeadline(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	userID := seedProgressUser(t, "")
+	run := sampleRunInput(RunKindSimulation)
+	run.DeadlineAt = nil
+
+	started, err := service.StartRun(ctx, userID, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := run.StartedAt.Add(p1SimulationDuration)
+	if !started.Run.DeadlineAt.Valid || !started.Run.DeadlineAt.Time.Equal(expected) {
+		t.Fatalf("missing simulation deadline was not derived: %+v", started.Run.DeadlineAt)
 	}
 }
 
@@ -345,10 +428,10 @@ func sampleRunInput(kind RunKind) StartRunInput {
 	deadline := startedAt.Add(4 * time.Hour)
 	firstPoints := int16(6)
 	secondPoints := int16(6)
-	return StartRunInput{
+	input := StartRunInput{
 		ID:               uuid.New(),
 		Kind:             kind,
-		BlueprintVersion: "ftn-p1-2026.1",
+		BlueprintVersion: "diagnostic-v1",
 		ContentRevision:  "content-revision",
 		StartedAt:        startedAt,
 		DeadlineAt:       &deadline,
@@ -371,6 +454,24 @@ func sampleRunInput(kind RunKind) StartRunInput {
 			},
 		},
 	}
+	if kind != RunKindSimulation {
+		return input
+	}
+	input.BlueprintVersion = "ftn-p1:2026.1"
+	input.ContentRevision = "sha256:" + strings.Repeat("a", 64)
+	input.Items = make([]NewRunItem, p1SimulationTaskCount)
+	for index := range input.Items {
+		points := int16(6)
+		input.Items[index] = NewRunItem{
+			ID:           uuid.New(),
+			TaskID:       fmt.Sprintf("task-%d", index+1),
+			ExamPosition: int16(index + 1),
+			Topic:        fmt.Sprintf("topic-%d", index+1),
+			MaxPoints:    &points,
+			TaskRevision: "sha256:" + strings.Repeat(fmt.Sprintf("%x", index), 64),
+		}
+	}
+	return input
 }
 
 func sampleAttemptInput(runItemID uuid.UUID, startedAt time.Time) RecordAttemptInput {

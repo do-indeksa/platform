@@ -57,6 +57,38 @@ function completedRun(): CompletedProgressRun {
   };
 }
 
+function completedSimulationRun(): CompletedProgressRun {
+  const startedAt = Date.UTC(2026, 7, 10, 10);
+  return {
+    id: runId,
+    kind: "SIMULATION",
+    blueprintVersion: "ftn-p1:2026.1",
+    contentRevision: `sha256:${"a".repeat(64)}`,
+    startedAt: new Date(startedAt).toISOString(),
+    submittedAt: new Date(startedAt + 10 * 60_000).toISOString(),
+    items: Array.from({ length: 10 }, (_, index) => {
+      const taskId = `task-${index + 1}`;
+      const itemId = progressRunItemId(runId, taskId);
+      return {
+        id: itemId,
+        taskId,
+        examPosition: index + 1,
+        topic: `topic-${index + 1}`,
+        maxPoints: 6,
+        taskRevision: `sha256:${String(index).repeat(64)}`,
+        attempt: {
+          id: progressAttemptId(itemId),
+          startedAt: new Date(startedAt).toISOString(),
+          submittedAt: new Date(startedAt + 10 * 60_000).toISOString(),
+          outcome: "SKIPPED" as const,
+          helpLevel: 0,
+          gradingKind: "AUTO" as const,
+        },
+      };
+    }),
+  };
+}
+
 describe("completed progress runs", () => {
   it("accepts a bounded completed diagnostic snapshot", () => {
     const run = completedRun();
@@ -141,20 +173,71 @@ describe("completed progress runs", () => {
     expect(parseCompletedProgressRun(run)).toBeNull();
   });
 
-  it("enforces simulation position and point invariants", () => {
-    const run = completedRun();
-    run.kind = "SIMULATION";
-    run.items[0].maxPoints = 30;
-    run.items[0].attempt.earnedPoints = 30;
-    run.items[1].maxPoints = 31;
+  it("upgrades a complete legacy simulation with its canonical deadline", () => {
+    const run = completedSimulationRun();
+
+    expect(parseCompletedProgressRun(run)).toEqual({
+      ...run,
+      deadlineAt: "2026-08-10T14:00:00.000Z",
+    });
+  });
+
+  it.each([
+    [
+      "an unqualified blueprint",
+      (run: CompletedProgressRun) => {
+        run.blueprintVersion = "2026.1";
+      },
+    ],
+    [
+      "an incomplete task set",
+      (run: CompletedProgressRun) => {
+        run.items.pop();
+      },
+    ],
+    [
+      "a mutable content revision",
+      (run: CompletedProgressRun) => {
+        run.contentRevision = "mutable";
+      },
+    ],
+    [
+      "a mutable task revision",
+      (run: CompletedProgressRun) => {
+        run.items[0].taskRevision = "mutable";
+      },
+    ],
+    [
+      "a duplicate position",
+      (run: CompletedProgressRun) => {
+        run.items[1].examPosition = run.items[0].examPosition;
+      },
+    ],
+    [
+      "permuted positions",
+      (run: CompletedProgressRun) => {
+        [run.items[0].examPosition, run.items[1].examPosition] = [
+          run.items[1].examPosition,
+          run.items[0].examPosition,
+        ];
+      },
+    ],
+    [
+      "a 59-point ceiling",
+      (run: CompletedProgressRun) => {
+        run.items[0].maxPoints = 5;
+      },
+    ],
+    [
+      "a conflicting deadline",
+      (run: CompletedProgressRun) => {
+        run.deadlineAt = "2026-08-10T13:59:59.000Z";
+      },
+    ],
+  ])("rejects a simulation with %s", (_name, mutate) => {
+    const run = completedSimulationRun();
+    mutate(run);
 
     expect(parseCompletedProgressRun(run)).toBeNull();
-
-    run.items[1].maxPoints = 30;
-    run.items[1].examPosition = run.items[0].examPosition;
-    expect(parseCompletedProgressRun(run)).toBeNull();
-
-    run.items[1].examPosition = 2;
-    expect(parseCompletedProgressRun(run)).toEqual(run);
   });
 });

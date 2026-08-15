@@ -66,6 +66,7 @@ describe("simulation progress projection", () => {
       kind: "SIMULATION",
       blueprintVersion: "ftn-p1:2026.1",
       contentRevision: entry.progress?.contentRevision,
+      deadlineAt: "2026-08-10T14:00:00.000Z",
       activeDurationMs: 8 * 60_000,
     });
     expect(run?.items).toHaveLength(10);
@@ -123,42 +124,43 @@ describe("simulation progress projection", () => {
       earnedPoints: 4,
     });
 
-    const task = {
-      id: "task-1",
-      revision: `sha256:${"0".repeat(64)}`,
-      slot: 1,
-      examPosition: 1,
+    const tasks = Array.from({ length: 10 }, (_, index) => ({
+      id: `task-${index + 1}`,
+      revision: `sha256:${String(index).repeat(64)}`,
+      slot: index + 1,
+      examPosition: index + 1,
       maxPoints: 6,
-      topic: "topic-1",
-      topicName: "Topic 1",
+      topic: `topic-${index + 1}`,
+      topicName: `Topic ${index + 1}`,
       statementHtml: "<p>Task</p>",
       fields: [{ kind: "value" as const }],
-    };
+    }));
     const state = {
       ...emptySimulationState(),
       runId,
       runOwnerId: null,
       blueprintVersion: "2026.1",
       contentRevision: `sha256:${"a".repeat(64)}`,
-      tasks: [task],
-      answers: [["wrong"]],
-      skipped: [false],
+      tasks,
+      answers: [["wrong"], ...Array.from({ length: 9 }, () => [""])],
+      skipped: Array(10).fill(false),
       phase: "submitting" as const,
       startedAt,
       endsAt: startedAt + 240 * 60_000,
       submittedAt: startedAt + 10 * 60_000,
     };
     expect(
-      buildSimulationAutoGradeRun(state, [
-        {
+      buildSimulationAutoGradeRun(
+        state,
+        tasks.map((task) => ({
           taskId: task.id,
-          outcome: "incorrect",
+          outcome: "incorrect" as const,
           earnedPoints: 0,
           maxPoints: 6,
-        },
-      ])?.items[0].attempt,
+        })),
+      )?.items[0].attempt,
     ).toMatchObject({
-      id: progressAttemptId(progressRunItemId(runId, task.id)),
+      id: progressAttemptId(progressRunItemId(runId, tasks[0].id)),
       outcome: "INCORRECT",
       gradingKind: "AUTO",
     });
