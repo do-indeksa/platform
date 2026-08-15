@@ -206,6 +206,7 @@ function parseItem(
           value.maxPoints,
           runStartedAt,
           runSubmittedAt,
+          maximumAttemptActiveDurationMs,
         );
   const expectedAttemptId =
     attempt?.gradingKind === "RUBRIC_SELF"

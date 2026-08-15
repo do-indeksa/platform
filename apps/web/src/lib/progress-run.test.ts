@@ -223,6 +223,31 @@ describe("completed progress runs", () => {
     expect(parseCompletedProgressRun(layeredLegacy)).toBeNull();
   });
 
+  it("rejects an overlong previous simulation attempt", () => {
+    const run = completedSimulationRun();
+    run.submittedAt = "2026-08-10T14:00:00.000Z";
+    for (const item of run.items) item.attempt.submittedAt = run.submittedAt;
+
+    const item = run.items[0];
+    item.previousAttempt = {
+      ...item.attempt,
+      outcome: "INCORRECT",
+      answer: '["42"]',
+      earnedPoints: 0,
+      activeDurationMs: 4 * 60 * 60 * 1_000 + 1,
+    };
+    item.attempt = {
+      ...item.attempt,
+      id: progressRubricAttemptId(item.id),
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      answer: '["42"]',
+      earnedPoints: 3,
+    };
+
+    expect(parseCompletedProgressRun(run)).toBeNull();
+  });
+
   it.each([
     [
       "an unqualified blueprint",
