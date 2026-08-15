@@ -166,6 +166,16 @@ async function drainPracticeRun(
           context.signal,
         );
         if (!isCurrentContext(context)) return { status: "aborted" };
+        const acknowledged = await context.transport.acknowledge(
+          context.ownerId,
+          current.items.flatMap((item) =>
+            item.attempts.map((attempt) => attempt.id),
+          ),
+          () => isCurrentContext(context),
+          context.signal,
+        );
+        if (!isCurrentContext(context)) return { status: "aborted" };
+        if (!acknowledged) return { status: "offline" };
         return usePracticeRuntime.getState().finishSubmission(runId)
           ? { status: "synced" }
           : { status: "aborted" };

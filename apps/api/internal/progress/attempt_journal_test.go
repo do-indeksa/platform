@@ -92,3 +92,61 @@ func TestAttemptJournalPreservesRichAndLegacyRows(t *testing.T) {
 		}
 	}
 }
+
+func TestAttemptJournalSuppressesOnlyExactStandalonePracticeDuplicates(t *testing.T) {
+	ctx := context.Background()
+	service := NewService(testPool)
+	ownerID := seedProgressUser(t, "-canonical")
+	run := startPracticeRun(t, service, ownerID, 1)
+	canonical := practiceAttempt(
+		run, 0, 1, run.StartedAt, run.StartedAt.Add(time.Minute),
+		AttemptOutcomeIncorrect, 1,
+	)
+	exactStandalone := canonical
+	exactStandalone.ID = uuid.New()
+	exactStandalone.RunItemID = nil
+	exactStandalone.Standalone = &StandaloneAttemptTarget{
+		TaskID:       run.Items[0].TaskID,
+		ExamPosition: run.Items[0].ExamPosition,
+		TaskRevision: run.Items[0].TaskRevision,
+	}
+	unrelatedRetry := exactStandalone
+	unrelatedRetry.ID = uuid.New()
+	unrelatedRetry.StartedAt = canonical.SubmittedAt
+	unrelatedRetry.SubmittedAt = canonical.SubmittedAt.Add(time.Minute)
+	unrelatedRetry.ActiveDurationMs = int64Pointer(time.Minute.Milliseconds())
+
+	for _, input := range []RecordAttemptInput{
+		exactStandalone,
+		unrelatedRetry,
+		canonical,
+	} {
+		if _, err := service.RecordAttempt(ctx, ownerID, input); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	journal, err := service.ListAttemptJournal(ctx, ownerID, 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(journal) != 2 || journal[0].PublicID != canonical.ID ||
+		journal[1].PublicID != unrelatedRetry.ID {
+		t.Fatalf("exact duplicate was retained or retry was dropped: %+v", journal)
+	}
+	limited, err := service.ListAttemptJournal(ctx, ownerID, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(limited) != 2 || limited[0].PublicID != canonical.ID ||
+		limited[1].PublicID != unrelatedRetry.ID {
+		t.Fatalf("exact duplicate consumed the journal limit: %+v", limited)
+	}
+	mastery, err := service.List(ctx, ownerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(mastery) != 2 {
+		t.Fatalf("mastery counted an exact standalone duplicate: %+v", mastery)
+	}
+}

@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { PracticeCloudAssignment } from "./practice-cloud-types";
-import { emptyPracticeRuntimeState } from "./practice-runtime-persistence";
+import {
+  emptyPracticeRuntimeState,
+  parsePersistedPracticeRuntimeState,
+} from "./practice-runtime-persistence";
 import { progressPracticeAttemptId, progressRunItemId } from "./progress-run";
 import {
   syncPracticeRuntimeOwner,
@@ -148,7 +151,7 @@ describe("practice workspace runtime", () => {
     });
   });
 
-  it("removes a guest run locally", () => {
+  it("persists a completed guest run for one later owner claim", () => {
     syncPracticeRuntimeOwner(null);
     const guestRunId = crypto.randomUUID();
     expect(
@@ -162,12 +165,67 @@ describe("practice workspace runtime", () => {
       runId: guestRunId,
       ownerId: null,
     };
+    const attemptId = appendPracticeWorkspaceAttempt(guestContext, {
+      startedAt,
+      submittedAt: startedAt + 10_000,
+      activeDurationMs: 10_000,
+      answers: ["1", "2"],
+      outcome: "correct",
+      helpLevel: 0,
+      runActiveDurationMs: 10_000,
+    });
+    expect(attemptId).not.toBeNull();
 
     expect(
       finishPracticeWorkspace(guestContext, {
         submittedAt: startedAt + 12_000,
         activeDurationMs: 12_000,
       }),
+    ).toBe("submitting");
+    expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
+      runOwnerId: null,
+      phase: "submitting",
+      items: [{ attempts: [{ id: attemptId }] }, { attempts: [] }],
+    });
+
+    const reloaded = parsePersistedPracticeRuntimeState({
+      runs: structuredClone(usePracticeRuntime.getState().runs),
+    });
+    usePracticeRuntime.setState({
+      ...reloaded,
+      authOwnerId: undefined,
+      authOwnerGeneration: 0,
+    });
+    syncPracticeRuntimeOwner(ownerA);
+    expect(usePracticeRuntime.getState().runs[0]).toMatchObject({
+      runOwnerId: ownerA,
+      phase: "submitting",
+      items: [{ attempts: [{ id: attemptId }] }, { attempts: [] }],
+    });
+
+    syncPracticeRuntimeOwner(ownerB);
+    syncPracticeRuntimeOwner(ownerA);
+    expect(usePracticeRuntime.getState().runs).toEqual([]);
+  });
+
+  it("removes a guest run without attempts", () => {
+    syncPracticeRuntimeOwner(null);
+    const guestRunId = crypto.randomUUID();
+    expect(
+      usePracticeRuntime.getState().start({
+        assignment: { ...assignment, runId: guestRunId },
+        startedAt,
+      }),
+    ).toBe(true);
+
+    expect(
+      finishPracticeWorkspace(
+        { ...context(), runId: guestRunId, ownerId: null },
+        {
+          submittedAt: startedAt + 12_000,
+          activeDurationMs: 12_000,
+        },
+      ),
     ).toBe("removed");
     expect(usePracticeRuntime.getState().runs).toEqual([]);
   });

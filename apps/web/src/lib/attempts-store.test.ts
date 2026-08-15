@@ -551,6 +551,165 @@ describe("GraphQL run fallback", () => {
   });
 });
 
+describe("practice runtime canonical fallback", () => {
+  it("does not degrade the journal when an obsolete acknowledgement is aborted", async () => {
+    mockStorage();
+    let reads = 0;
+    let rejectAcknowledgement: ((reason?: unknown) => void) | undefined;
+    mockFetch(() => {
+      reads += 1;
+      if (reads === 1) return journal();
+      return new Promise<Response>((_resolve, reject) => {
+        rejectAcknowledgement = reject;
+      });
+    });
+    const store = await loadStore();
+    await store.syncAttempts(USER_A);
+    expect(store.attemptJournalView()?.status).toBe("synced");
+
+    let runtimeOwnerCurrent = true;
+    const acknowledgement = store.acknowledgePracticeRuntimeRun(
+      USER_A,
+      [ATTEMPT_ID],
+      () => runtimeOwnerCurrent,
+    );
+    await vi.waitFor(() => expect(rejectAcknowledgement).toBeDefined());
+    runtimeOwnerCurrent = false;
+    rejectAcknowledgement?.(new DOMException("aborted", "AbortError"));
+
+    expect(await acknowledgement).toBe(false);
+    expect(store.attemptJournalView()?.status).toBe("synced");
+  });
+
+  it("projects the deterministic attempt once and drops its pending standalone copy", async () => {
+    const map = mockStorage();
+    const calls = mockFetch((call) => {
+      if (operation(call) === "RecordPracticeAttempt") {
+        const input = (body(call).variables as { input: { id: string } }).input;
+        return recorded(input.id);
+      }
+      return journal();
+    });
+    const store = await loadStore();
+    const runtime = await import("./practice-runtime-store");
+    await store.syncAttempts(null);
+    runtime.syncPracticeRuntimeOwner(null);
+    expect(
+      runtime.usePracticeRuntime.getState().start({
+        assignment: {
+          runId: RUN_ID,
+          blueprintVersion: "ftn-p1:2026.1",
+          contentRevision: `sha256:${"b".repeat(64)}`,
+          tasks: [
+            {
+              id: "kb-001",
+              revision: REVISION,
+              slot: 1,
+              topic: "kompleksni-brojevi",
+              answerPartCount: 2,
+            },
+          ],
+        },
+        startedAt: Date.parse("2026-07-12T09:59:00.000Z"),
+      }),
+    ).toBe(true);
+    expect(store.recordPracticeAttempt(practiceInput())).toBe(true);
+    const canonicalId = runtime.usePracticeRuntime
+      .getState()
+      .appendAttempt(RUN_ID, {
+        taskId: "kb-001",
+        startedAt: Date.parse("2026-07-12T09:59:50.000Z"),
+        submittedAt: Date.parse("2026-07-12T10:00:00.000Z"),
+        activeDurationMs: 10_000,
+        answers: ["2", "3"],
+        outcome: "correct",
+        helpLevel: 1,
+        currentIndex: 0,
+        runActiveDurationMs: 10_000,
+      });
+    expect(canonicalId).not.toBeNull();
+
+    expect(store.attemptsView()).toEqual([attempt("kb-001", { helpLevel: 1 })]);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "guest",
+      entries: [
+        {
+          id: canonicalId,
+          runItemId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          taskId: "kb-001",
+          answer: '["2","3"]',
+          outcome: "CORRECT",
+          taskRevision: REVISION,
+        },
+      ],
+    });
+
+    runtime.syncPracticeRuntimeOwner(USER_A);
+    await store.syncAttempts(USER_A);
+
+    expect(
+      calls.filter((call) => operation(call) === "RecordPracticeAttempt"),
+    ).toHaveLength(0);
+    expect(stored(map)).toEqual([]);
+    expect(store.attemptJournalView()).toMatchObject({
+      status: "degraded",
+      entries: [{ id: canonicalId }],
+    });
+  });
+
+  it("fails closed across an A-B-A runtime owner transition", async () => {
+    mockStorage();
+    mockFetch(() => journal());
+    const store = await loadStore();
+    const runtime = await import("./practice-runtime-store");
+    runtime.syncPracticeRuntimeOwner(null);
+    expect(
+      runtime.usePracticeRuntime.getState().start({
+        assignment: {
+          runId: RUN_ID,
+          blueprintVersion: "ftn-p1:2026.1",
+          contentRevision: `sha256:${"b".repeat(64)}`,
+          tasks: [
+            {
+              id: "kb-001",
+              revision: REVISION,
+              slot: 1,
+              topic: "kompleksni-brojevi",
+              answerPartCount: 2,
+            },
+          ],
+        },
+        startedAt: Date.parse("2026-07-12T09:59:00.000Z"),
+      }),
+    ).toBe(true);
+    expect(
+      runtime.usePracticeRuntime.getState().appendAttempt(RUN_ID, {
+        taskId: "kb-001",
+        startedAt: Date.parse("2026-07-12T09:59:50.000Z"),
+        submittedAt: Date.parse("2026-07-12T10:00:00.000Z"),
+        activeDurationMs: 10_000,
+        answers: ["2", "3"],
+        outcome: "correct",
+        helpLevel: 1,
+        currentIndex: 0,
+        runActiveDurationMs: 10_000,
+      }),
+    ).not.toBeNull();
+
+    runtime.syncPracticeRuntimeOwner(USER_A);
+    await store.syncAttempts(USER_A);
+    expect(store.attemptJournalView()?.entries).toHaveLength(1);
+
+    runtime.syncPracticeRuntimeOwner(USER_B);
+    await store.syncAttempts(USER_B);
+    runtime.syncPracticeRuntimeOwner(USER_A);
+    await store.syncAttempts(USER_A);
+
+    expect(store.attemptsView()).toEqual([]);
+    expect(store.attemptJournalView()?.entries).toEqual([]);
+  });
+});
+
 describe("clearLocalAttempts", () => {
   it("empties the journal and invalidates the signed-in view", async () => {
     const map = mockStorage([pendingAttempt(USER_A)]);

@@ -693,6 +693,30 @@ with recent_attempt_ids as (
     select id
     from attempts
     where attempts.user_id = $1
+      and (
+          attempts.run_item_id is not null
+          or not exists (
+              select 1
+              from attempts canonical
+              where canonical.user_id = attempts.user_id
+                and canonical.run_item_id is not null
+                and canonical.task_id = attempts.task_id
+                and canonical.slot = attempts.slot
+                and canonical.correct = attempts.correct
+                and canonical.source = attempts.source
+                and canonical.help_level = attempts.help_level
+                and canonical.created_at = attempts.created_at
+                and canonical.started_at is not distinct from attempts.started_at
+                and canonical.submitted_at is not distinct from attempts.submitted_at
+                and canonical.active_duration_ms is not distinct from attempts.active_duration_ms
+                and canonical.answer is not distinct from attempts.answer
+                and canonical.outcome is not distinct from attempts.outcome
+                and canonical.grading_kind is not distinct from attempts.grading_kind
+                and canonical.earned_points is not distinct from attempts.earned_points
+                and canonical.max_points is not distinct from attempts.max_points
+                and canonical.task_revision is not distinct from attempts.task_revision
+          )
+      )
     order by coalesce(submitted_at, created_at) desc, id desc
     limit $2
 )
@@ -750,11 +774,35 @@ func (q *Queries) ListAttemptJournal(ctx context.Context, arg ListAttemptJournal
 const listAttempts = `-- name: ListAttempts :many
 select task_id, slot, correct, source, help_level, created_at
 from (
-    select id, task_id, slot, correct, source, help_level, created_at
-    from attempts
-    where user_id = $1
-      and (outcome is null or outcome in ('correct', 'incorrect'))
-    order by created_at desc, id desc
+    select a.id, a.task_id, a.slot, a.correct, a.source, a.help_level, a.created_at
+    from attempts a
+    where a.user_id = $1
+      and (a.outcome is null or a.outcome in ('correct', 'incorrect'))
+      and (
+          a.run_item_id is not null
+          or not exists (
+              select 1
+              from attempts canonical
+              where canonical.user_id = a.user_id
+                and canonical.run_item_id is not null
+                and canonical.task_id = a.task_id
+                and canonical.slot = a.slot
+                and canonical.correct = a.correct
+                and canonical.source = a.source
+                and canonical.help_level = a.help_level
+                and canonical.created_at = a.created_at
+                and canonical.started_at is not distinct from a.started_at
+                and canonical.submitted_at is not distinct from a.submitted_at
+                and canonical.active_duration_ms is not distinct from a.active_duration_ms
+                and canonical.answer is not distinct from a.answer
+                and canonical.outcome is not distinct from a.outcome
+                and canonical.grading_kind is not distinct from a.grading_kind
+                and canonical.earned_points is not distinct from a.earned_points
+                and canonical.max_points is not distinct from a.max_points
+                and canonical.task_revision is not distinct from a.task_revision
+          )
+      )
+    order by a.created_at desc, a.id desc
     limit 1000
 ) recent
 order by created_at, id

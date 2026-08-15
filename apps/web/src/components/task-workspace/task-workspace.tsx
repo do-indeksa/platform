@@ -146,17 +146,19 @@ export function TaskWorkspace({
       helpLevel,
     );
     if (timing === null) return null;
-    recordPracticeAttempt({
-      taskId,
-      slot,
-      taskRevision,
-      startedAt: new Date(timing.startedAt).toISOString(),
-      submittedAt: new Date(timing.submittedAt).toISOString(),
-      activeDurationMs: timing.activeDurationMs,
-      answer: JSON.stringify(state.answers),
-      outcome,
-      helpLevel,
-    });
+    if (runtimeStatus === "legacy") {
+      recordPracticeAttempt({
+        taskId,
+        slot,
+        taskRevision,
+        startedAt: new Date(timing.startedAt).toISOString(),
+        submittedAt: new Date(timing.submittedAt).toISOString(),
+        activeDurationMs: timing.activeDurationMs,
+        answer: JSON.stringify(state.answers),
+        outcome,
+        helpLevel,
+      });
+    }
     return timing.activeDurationMs;
   };
 
