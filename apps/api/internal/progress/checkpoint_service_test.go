@@ -186,6 +186,12 @@ func TestRunCheckpointRejectsInvalidDrafts(t *testing.T) {
 				{RunItemID: run.Items[0].ID, Answer: "before\x00after"},
 			}},
 		},
+		{
+			name: "invalid utf8",
+			input: CheckpointRunInput{ID: run.ID, CurrentOrdinal: 1, Drafts: []RunCheckpointDraftInput{
+				{RunItemID: run.Items[0].ID, Answer: string([]byte{'b', 'a', 'd', 0xff})},
+			}},
+		},
 		{name: "unknown ordinal", input: CheckpointRunInput{ID: run.ID, CurrentOrdinal: 3}},
 		{name: "negative version", input: CheckpointRunInput{ID: run.ID, ExpectedVersion: -1, CurrentOrdinal: 1}},
 	}

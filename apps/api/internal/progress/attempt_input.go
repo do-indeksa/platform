@@ -10,6 +10,9 @@ func normalizeAttempt(input RecordAttemptInput, now time.Time) (RecordAttemptInp
 	if input.ID == uuid.Nil || (input.RunItemID == nil) == (input.Standalone == nil) {
 		return RecordAttemptInput{}, invalidInput("target")
 	}
+	if input.Standalone != nil && !validStandaloneAttemptTarget(*input.Standalone) {
+		return RecordAttemptInput{}, invalidInput("standalone")
+	}
 	if !validOutcome(input.Outcome) || !validClientGradingKind(input.GradingKind) {
 		return RecordAttemptInput{}, invalidInput("grading")
 	}
@@ -36,6 +39,12 @@ func normalizeAttempt(input RecordAttemptInput, now time.Time) (RecordAttemptInp
 	input.StartedAt = startedAt
 	input.SubmittedAt = submittedAt
 	return input, nil
+}
+
+func validStandaloneAttemptTarget(target StandaloneAttemptTarget) bool {
+	return validTaskID(target.TaskID) && target.ExamPosition >= 1 && target.ExamPosition <= 10 &&
+		validRevision(target.TaskRevision) &&
+		(target.MaxPoints == nil || (*target.MaxPoints >= 1 && *target.MaxPoints <= 60))
 }
 
 func validateAttemptScore(outcome AttemptOutcome, earned, maximum *int16) error {

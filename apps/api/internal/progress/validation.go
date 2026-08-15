@@ -3,6 +3,7 @@ package progress
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 	"unicode/utf8"
 )
@@ -21,6 +22,14 @@ func validTaskID(taskID string) bool {
 	return taskID != "" && len(taskID) <= maxTaskIDSize && taskIDPattern.MatchString(taskID)
 }
 
+func validMetadataText(value string, maxBytes int) bool {
+	return value != "" && len(value) <= maxBytes && validDatabaseText(value)
+}
+
+func validDatabaseText(value string) bool {
+	return utf8.ValidString(value) && !strings.ContainsRune(value, '\x00')
+}
+
 func validRunKind(kind RunKind) bool {
 	return kind == RunKindPractice || kind == RunKindDiagnostic || kind == RunKindSimulation
 }
@@ -36,7 +45,7 @@ func validClientGradingKind(kind GradingKind) bool {
 }
 
 func validRevision(revision string) bool {
-	return revision != "" && len(revision) <= maxRevisionSize
+	return validMetadataText(revision, maxRevisionSize)
 }
 
 func invalidInput(field string) error {
@@ -44,7 +53,11 @@ func invalidInput(field string) error {
 }
 
 func validAnswer(answer *string) bool {
-	return answer == nil || utf8.RuneCountInString(*answer) <= maxAnswerCharacters
+	return answer == nil || validAnswerText(*answer)
+}
+
+func validAnswerText(answer string) bool {
+	return validDatabaseText(answer) && utf8.RuneCountInString(answer) <= maxAnswerCharacters
 }
 
 func validActiveDuration(activeDurationMs *int64, elapsed time.Duration) bool {
