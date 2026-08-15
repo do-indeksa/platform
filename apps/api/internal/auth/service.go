@@ -159,7 +159,7 @@ func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, er
 }
 
 func (s *Service) RequestUser(r *http.Request) (User, error) {
-	cookie, err := r.Cookie(SessionCookieName)
+	cookie, err := s.requestSessionCookie(r)
 	if err != nil {
 		return User{}, ErrNoSession
 	}

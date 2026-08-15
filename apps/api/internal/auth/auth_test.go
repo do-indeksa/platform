@@ -132,7 +132,7 @@ func do(t *testing.T, app http.Handler, method, target, host string, cookies ...
 func sessionFromResponse(t *testing.T, res *http.Response) *http.Cookie {
 	t.Helper()
 	for _, cookie := range res.Cookies() {
-		if cookie.Name == SessionCookieName {
+		if cookie.Name == SessionCookieName || cookie.Name == localSessionCookieName {
 			return cookie
 		}
 	}
@@ -143,7 +143,8 @@ func sessionFromResponse(t *testing.T, res *http.Response) *http.Cookie {
 func assertNoSessionCookie(t *testing.T, res *http.Response) {
 	t.Helper()
 	for _, cookie := range res.Cookies() {
-		if cookie.Name == SessionCookieName && cookie.MaxAge >= 0 {
+		if (cookie.Name == SessionCookieName || cookie.Name == localSessionCookieName) &&
+			cookie.MaxAge >= 0 {
 			t.Fatal("unexpected session cookie in response")
 		}
 	}
@@ -281,7 +282,7 @@ func seedSession(t *testing.T, expiresAt time.Time) *http.Cookie {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &http.Cookie{Name: SessionCookieName, Value: token}
+	return &http.Cookie{Name: localSessionCookieName, Value: token}
 }
 
 func TestCanonicalSignInFlow(t *testing.T) {
@@ -306,7 +307,8 @@ func TestCanonicalSignInFlow(t *testing.T) {
 	}
 	session := sessionFromResponse(t, res)
 	if !session.HttpOnly || session.SameSite != http.SameSiteLaxMode ||
-		session.Path != "/" || session.MaxAge != int(sessionTTL.Seconds()) || session.Secure {
+		session.Name != localSessionCookieName || session.Path != "/" ||
+		session.MaxAge != int(sessionTTL.Seconds()) || session.Secure {
 		t.Fatalf("cookie attributes: %+v", session)
 	}
 

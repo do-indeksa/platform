@@ -152,7 +152,7 @@ func TestCookieMutationOriginMiddleware(t *testing.T) {
 				request.Header.Set(name, value)
 			}
 			if tt.cookie {
-				request.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "session"})
+				request.AddCookie(&http.Cookie{Name: service.sessionCookieName(), Value: "session"})
 			}
 			response := httptest.NewRecorder()
 
@@ -165,6 +165,24 @@ func TestCookieMutationOriginMiddleware(t *testing.T) {
 				t.Fatalf("missing security response headers: %+v", response.Header())
 			}
 		})
+	}
+}
+
+func TestCookieMutationOriginMiddlewareIgnoresLegacyCookieOnHTTPS(t *testing.T) {
+	service := &Service{cfg: Config{CanonicalOrigin: "https://doindeksa.rs"}}
+	nextCalled := false
+	handler := CookieMutationOriginMiddleware(service)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		nextCalled = true
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	request := httptest.NewRequest(http.MethodPost, "https://doindeksa.rs/resource", nil)
+	request.AddCookie(&http.Cookie{Name: localSessionCookieName, Value: "injected"})
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent || !nextCalled {
+		t.Fatalf("legacy cookie was treated as a session: status=%d next=%v", response.Code, nextCalled)
 	}
 }
 

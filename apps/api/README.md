@@ -41,6 +41,11 @@ over 2 KiB fall back to `/` before state is sealed. Callback state and preview
 handoff rows are validated again before token exchange, session issue, or any
 redirect.
 
+HTTPS sessions use the host-prefixed `__Host-di_session` cookie with `Secure`,
+`HttpOnly`, `SameSite=Lax`, `Path=/`, and no `Domain` attribute. Explicit HTTP
+loopback development uses `di_session`; production does not accept that legacy
+name as a fallback.
+
 The generated HTTP API is registered at `/api/v1/*` for canonical same-origin
 traffic and at `/v1/*` for internal compatibility. Production edge routing sends
 `/api/v1/*` directly to this service without a Next.js proxy or path rewrite.

@@ -16,7 +16,7 @@ import (
 func CookieMutationOriginMiddleware(service *Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if safeMethod(r.Method) || !hasSessionCookie(r) {
+			if safeMethod(r.Method) || !hasSessionCookie(service, r) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -44,8 +44,8 @@ func safeMethod(method string) bool {
 	return method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
 }
 
-func hasSessionCookie(r *http.Request) bool {
-	_, err := r.Cookie(SessionCookieName)
+func hasSessionCookie(service *Service, r *http.Request) bool {
+	_, err := service.requestSessionCookie(r)
 	return err == nil
 }
 
