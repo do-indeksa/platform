@@ -8,7 +8,7 @@ import {
   Target,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "@/i18n/navigation";
 import { persistCompletedDiagnosticRun } from "@/lib/diagnostic-progress";
 import { diagnosticPracticeSet } from "@/lib/diagnostic-result";
@@ -36,6 +36,18 @@ export function DiagnosticResult({
   const hydrated = useHydrated();
   const ownerKnown = useDiagnosticOwnerKnown();
   const state = useDiagnostic();
+  const progressTasks = useMemo(
+    () =>
+      tasks.map((task) => ({
+        id: task.id,
+        revision: task.revision,
+        slot: task.slot,
+        examPosition: task.examPosition,
+        topic: task.topic,
+        answerPartCount: task.answerPartCount,
+      })),
+    [tasks],
+  );
   const matchingRun =
     state.runId === runId &&
     state.taskIds.length === tasks.length &&
@@ -45,7 +57,7 @@ export function DiagnosticResult({
     if (hydrated && ownerKnown && matchingRun && state.phase === "done") {
       persistCompletedDiagnosticRun(
         state,
-        tasks,
+        progressTasks,
         blueprintVersion,
         contentRevision,
       );
@@ -57,7 +69,7 @@ export function DiagnosticResult({
     matchingRun,
     ownerKnown,
     state,
-    tasks,
+    progressTasks,
   ]);
 
   if (!hydrated || !ownerKnown) {

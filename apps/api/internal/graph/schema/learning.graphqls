@@ -58,6 +58,7 @@ type RunItem {
   examPosition: Int!
   topic: ID!
   maxPoints: Int
+  answerPartCount: Int
   taskRevision: String!
   """Returns the latest attempts in chronological order, up to a limit of 20."""
   recentAttempts(limit: Int! = 5): [Attempt!]!
@@ -114,6 +115,7 @@ type CompletedSimulationRunItem {
   examPosition: Int!
   topic: ID!
   maxPoints: Int
+  answerPartCount: Int
   taskRevision: String!
   answer: String
   outcome: AttemptOutcome
@@ -138,6 +140,7 @@ input NewRunItemInput {
   examPosition: Int!
   topic: ID!
   maxPoints: Int
+  answerPartCount: Int
   taskRevision: String!
 }
 

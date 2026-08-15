@@ -197,6 +197,7 @@ function upload(state: PersistedSimulationState): SimulationCloudUpload {
       examPosition: task.examPosition,
       topic: task.topic,
       maxPoints: task.maxPoints,
+      answerPartCount: task.fields.length,
     })),
     blueprintVersion: "ftn-p1:2026.1",
     contentRevision: revision("f"),

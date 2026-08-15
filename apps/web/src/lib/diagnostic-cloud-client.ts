@@ -41,6 +41,7 @@ const DIAGNOSTIC_CLOUD_RUN = `
         ordinal
         examPosition
         topic
+        answerPartCount
         taskRevision
         recentAttempts(limit: 2) {
           id
@@ -171,6 +172,7 @@ export async function uploadDiagnosticCloudRun(
           taskId: task.id,
           examPosition: task.examPosition,
           topic: task.topic,
+          answerPartCount: task.answerPartCount,
           taskRevision: task.revision,
         })),
       },

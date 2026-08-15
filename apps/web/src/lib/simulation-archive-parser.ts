@@ -157,6 +157,9 @@ function parseItem(
     typeof value.topic !== "string" ||
     !TOPIC_PATTERN.test(value.topic) ||
     !integer(value.maxPoints, 1, 60) ||
+    (value.answerPartCount !== null &&
+      value.answerPartCount !== undefined &&
+      !integer(value.answerPartCount, 1, SIMULATION_MAX_ANSWER_PARTS)) ||
     typeof value.taskRevision !== "string" ||
     !REVISION_PATTERN.test(value.taskRevision)
   ) {
@@ -173,7 +176,7 @@ function parseItem(
           ...base,
           outcome: "unanswered",
           earnedPoints: 0,
-          answers: [""],
+          answers: emptyStoredAnswers(value.answerPartCount),
           rubricScore: null,
           reviewable: true,
         }
@@ -181,7 +184,9 @@ function parseItem(
   }
 
   const answers =
-    value.answer === null ? null : parseStoredAnswers(value.answer);
+    value.answer === null
+      ? null
+      : parseStoredAnswers(value.answer, value.answerPartCount);
   if (value.answer !== null && answers === null) return null;
   const gradingKind = value.gradingKind ?? null;
   if (
@@ -199,7 +204,7 @@ function parseItem(
             ...base,
             outcome: "correct",
             earnedPoints: value.maxPoints,
-            answers: answers ?? [""],
+            answers: answers ?? emptyStoredAnswers(value.answerPartCount),
             rubricScore: null,
             reviewable: answers !== null,
           }
@@ -210,7 +215,7 @@ function parseItem(
             ...base,
             outcome: "incorrect",
             earnedPoints: 0,
-            answers: answers ?? [""],
+            answers: answers ?? emptyStoredAnswers(value.answerPartCount),
             rubricScore: gradingKind === "RUBRIC_SELF" ? 0 : null,
             reviewable: answers !== null,
           }
@@ -222,7 +227,7 @@ function parseItem(
             ...base,
             outcome: "partial",
             earnedPoints: value.earnedPoints,
-            answers: answers ?? [""],
+            answers: answers ?? emptyStoredAnswers(value.answerPartCount),
             rubricScore: value.earnedPoints,
             reviewable: answers !== null,
           }
@@ -234,7 +239,7 @@ function parseItem(
             ...base,
             outcome: "unanswered",
             earnedPoints: 0,
-            answers: answers ?? [""],
+            answers: answers ?? emptyStoredAnswers(value.answerPartCount),
             rubricScore: gradingKind === "RUBRIC_SELF" ? 0 : null,
             reviewable: true,
           }
@@ -245,7 +250,7 @@ function parseItem(
             ...base,
             outcome: "ungraded",
             earnedPoints: null,
-            answers: answers ?? [""],
+            answers: answers ?? emptyStoredAnswers(value.answerPartCount),
             rubricScore: null,
             reviewable: false,
           }
@@ -253,6 +258,12 @@ function parseItem(
     default:
       return null;
   }
+}
+
+function emptyStoredAnswers(answerPartCount: unknown): string[] {
+  return Array<string>(
+    typeof answerPartCount === "number" ? answerPartCount : 1,
+  ).fill("");
 }
 
 function buildHistoryEntry(
@@ -303,7 +314,10 @@ function buildHistoryEntry(
   };
 }
 
-function parseStoredAnswers(value: unknown): string[] | null {
+function parseStoredAnswers(
+  value: unknown,
+  answerPartCount: unknown,
+): string[] | null {
   if (typeof value !== "string" || value.length > 50_000) return null;
   try {
     const answers: unknown = JSON.parse(value);
@@ -311,6 +325,8 @@ function parseStoredAnswers(value: unknown): string[] | null {
       !Array.isArray(answers) ||
       answers.length < 1 ||
       answers.length > SIMULATION_MAX_ANSWER_PARTS ||
+      (typeof answerPartCount === "number" &&
+        answers.length !== answerPartCount) ||
       !answers.every(
         (answer) =>
           typeof answer === "string" && answer.length <= MAX_ANSWER_LENGTH,

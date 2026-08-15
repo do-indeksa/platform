@@ -12,6 +12,7 @@ const (
 	p1SimulationDuration    = 4 * time.Hour
 	p1SimulationTaskCount   = 10
 	p1SimulationTotalPoints = int16(60)
+	maxAnswerPartCount      = int16(6)
 )
 
 var (
@@ -67,6 +68,7 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 	taskIDs := make(map[string]struct{}, len(input.Items))
 	positions := make(map[int16]struct{}, len(input.Items))
 	var totalPoints int16
+	snapshottedItems := 0
 	for index, item := range input.Items {
 		if item.ID == uuid.Nil || !validTaskID(item.TaskID) || !validTaskID(item.Topic) ||
 			item.ExamPosition < 1 || item.ExamPosition > 10 || !validRevision(item.TaskRevision) {
@@ -77,6 +79,12 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 				return StartRunInput{}, invalidInput("items.maxPoints")
 			}
 			totalPoints += *item.MaxPoints
+		}
+		if item.AnswerPartCount != nil {
+			if *item.AnswerPartCount < 1 || *item.AnswerPartCount > maxAnswerPartCount {
+				return StartRunInput{}, invalidInput("items.answerPartCount")
+			}
+			snapshottedItems++
 		}
 		if _, duplicate := ids[item.ID]; duplicate {
 			return StartRunInput{}, invalidInput("items.id")
@@ -96,16 +104,26 @@ func normalizeStartRun(input StartRunInput, now time.Time) (StartRunInput, error
 			if item.MaxPoints == nil {
 				return StartRunInput{}, invalidInput("items.maxPoints")
 			}
+			if item.AnswerPartCount != nil && item.ID != runItemSnapshotID(input.ID, item.TaskID) {
+				return StartRunInput{}, invalidInput("items.id")
+			}
 			if _, duplicate := positions[item.ExamPosition]; duplicate {
 				return StartRunInput{}, invalidInput("items.examPosition")
 			}
 			positions[item.ExamPosition] = struct{}{}
 		}
 	}
+	if input.Kind == RunKindSimulation && snapshottedItems != 0 && snapshottedItems != len(input.Items) {
+		return StartRunInput{}, invalidInput("items.answerPartCount")
+	}
 	if input.Kind == RunKindSimulation && totalPoints != p1SimulationTotalPoints {
 		return StartRunInput{}, invalidInput("items.maxPoints")
 	}
 	return input, nil
+}
+
+func runItemSnapshotID(runID uuid.UUID, taskID string) uuid.UUID {
+	return uuid.NewSHA1(runID, []byte("run-item:"+taskID))
 }
 
 func normalizeClientTime(value, now time.Time, field string) (time.Time, error) {

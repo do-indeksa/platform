@@ -5,12 +5,27 @@ const RUN_ID = "5ff78318-3436-4b4e-99b8-77ef34366ad3";
 const REVISION_A = `sha256:${"a".repeat(64)}`;
 const REVISION_B = `sha256:${"b".repeat(64)}`;
 
-function item(position: number, overrides: Record<string, unknown> = {}) {
+function item(
+  position: number,
+  overrides: Record<string, unknown> = {},
+): {
+  taskId: string;
+  examPosition: number;
+  topic: string;
+  maxPoints: number;
+  answerPartCount: number | null;
+  taskRevision: string;
+  answer: string | null;
+  outcome: string | null;
+  gradingKind: string | null;
+  earnedPoints: number | null;
+} {
   return {
     taskId: `task-${position}`,
     examPosition: position,
     topic: `topic-${position}`,
     maxPoints: 6,
+    answerPartCount: 1,
     taskRevision: REVISION_B,
     answer: JSON.stringify([String(position)]),
     outcome: "INCORRECT",
@@ -222,5 +237,35 @@ describe("simulation archive parser", () => {
       timedOut: false,
       historyEntry: { timedOut: false },
     });
+  });
+
+  it("accepts a nullable legacy answer shape and rejects a conflicting snapshot", () => {
+    const legacy = response();
+    for (const item of legacy.data.completedSimulationRuns[0].items) {
+      item.answerPartCount = null;
+    }
+    expect(parseSimulationArchiveResponse(legacy, 20)).toHaveLength(1);
+
+    const conflicting = response();
+    conflicting.data.completedSimulationRuns[0].items[0].answerPartCount = 2;
+    expect(parseSimulationArchiveResponse(conflicting, 20)).toBeNull();
+  });
+
+  it("restores the snapshotted shape of a skipped multipart answer", () => {
+    const archived = response(
+      completeItems({
+        2: {
+          answerPartCount: 2,
+          answer: null,
+          outcome: "SKIPPED",
+          earnedPoints: null,
+        },
+      }),
+    );
+
+    expect(
+      parseSimulationArchiveResponse(archived, 20)?.[0].historyEntry
+        ?.answers[1],
+    ).toEqual(["", ""]);
   });
 });

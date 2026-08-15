@@ -293,6 +293,7 @@ function uploadFingerprint(
       task.examPosition,
       task.topic,
       task.maxPoints,
+      task.answerPartCount,
     ]),
   });
 }

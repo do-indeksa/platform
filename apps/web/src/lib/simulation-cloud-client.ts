@@ -53,6 +53,7 @@ const SIMULATION_CLOUD_RUN = `
         examPosition
         topic
         maxPoints
+        answerPartCount
         taskRevision
         recentAttempts(limit: 2) {
           id
@@ -112,7 +113,7 @@ export class SimulationGraphQLError extends Error {
 
 export type SimulationCloudUpload = {
   state: PersistedSimulationState;
-  tasks: readonly SimulationProgressItem[];
+  tasks: readonly (SimulationProgressItem & { answerPartCount: number })[];
   blueprintVersion: string;
   contentRevision: string;
 };
@@ -188,6 +189,7 @@ export async function uploadSimulationCloudRun(
           examPosition: task.examPosition,
           topic: task.topic,
           maxPoints: task.maxPoints,
+          answerPartCount: task.answerPartCount,
           taskRevision: task.taskRevision,
         })),
       },
@@ -277,6 +279,9 @@ export async function uploadSimulationAutoGradeRun(
           examPosition: item.examPosition,
           topic: item.topic,
           maxPoints: item.maxPoints,
+          ...(item.answerPartCount === undefined
+            ? {}
+            : { answerPartCount: item.answerPartCount }),
           taskRevision: item.taskRevision,
         })),
       },
@@ -352,7 +357,8 @@ function matchesUpload(
         task.slot === local.slot &&
         task.examPosition === local.examPosition &&
         task.topic === local.topic &&
-        task.maxPoints === local.maxPoints
+        task.maxPoints === local.maxPoints &&
+        task.answerPartCount === local.fields.length
       );
     })
   );

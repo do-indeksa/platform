@@ -92,6 +92,7 @@ export type SimulationProgressItem = {
   examPosition: number;
   topic: string;
   maxPoints: number;
+  answerPartCount?: number;
 };
 
 export type SimulationResultTaskView = SimulationTaskView & {

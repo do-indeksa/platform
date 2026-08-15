@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   progressAttemptId,
+  progressRubricAttemptId,
   progressRunItemId,
   type CompletedProgressRun,
 } from "./progress-run";
@@ -52,6 +53,7 @@ function completedRun(id = runId): CompletedProgressRun {
         taskId,
         examPosition: index + 1,
         topic: `topic-${index + 1}`,
+        answerPartCount: 1,
         taskRevision: `sha256:${String(index).repeat(64)}`,
         attempt: {
           id: progressAttemptId(itemId),
@@ -163,6 +165,9 @@ describe("progress outbox", () => {
       blueprintVersion: "diagnostic-v1",
       contentRevision: expect.stringMatching(/^sha256:/),
     });
+    expect(calls[0].variables.input.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ answerPartCount: 1 })]),
+    );
     expect(calls[3].variables.input).toMatchObject({ outcome: "SKIPPED" });
     expect(calls[3].variables.input).not.toHaveProperty("answer");
     expect(JSON.stringify(calls)).not.toMatch(/expected|solution/i);
@@ -183,6 +188,7 @@ describe("progress outbox", () => {
     run.kind = "SIMULATION";
     run.blueprintVersion = "ftn-p1:2026.1";
     for (const item of run.items) {
+      delete item.answerPartCount;
       item.maxPoints = 6;
       if (item.attempt.outcome === "CORRECT") item.attempt.earnedPoints = 6;
     }
@@ -196,6 +202,67 @@ describe("progress outbox", () => {
         input: { deadlineAt: "2026-08-10T14:00:00.000Z" },
       },
     });
+  });
+
+  it("uploads a legacy queued run without inventing answer shape", async () => {
+    mockStorage();
+    const calls = mockGraphQL();
+    const sync = await loadSync();
+    const run = completedRun();
+    for (const item of run.items) delete item.answerPartCount;
+
+    expect(await sync.queueCompletedProgressRun(run)).toBe(true);
+    await sync.syncProgress(userId);
+
+    expect(calls[0].variables.input.items).toEqual(
+      expect.arrayContaining([
+        expect.not.objectContaining({ answerPartCount: expect.anything() }),
+      ]),
+    );
+  });
+
+  it("uploads the auto layer before a final rubric attempt", async () => {
+    mockStorage();
+    const calls = mockGraphQL();
+    const sync = await loadSync();
+    const run = completedRun();
+    run.kind = "SIMULATION";
+    run.blueprintVersion = "ftn-p1:2026.1";
+    for (const candidate of run.items) {
+      candidate.maxPoints = 6;
+      candidate.answerPartCount = 1;
+      candidate.attempt.startedAt = run.startedAt;
+      candidate.attempt.submittedAt = run.submittedAt;
+      if (candidate.attempt.outcome === "CORRECT") {
+        candidate.attempt.earnedPoints = 6;
+      }
+    }
+    const item = run.items[0];
+    item.previousAttempt = {
+      ...item.attempt,
+      id: progressAttemptId(item.id),
+      answer: '["wrong"]',
+      outcome: "INCORRECT",
+      gradingKind: "AUTO",
+      earnedPoints: 0,
+    };
+    item.attempt = {
+      ...item.previousAttempt,
+      id: progressRubricAttemptId(item.id),
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      earnedPoints: 3,
+    };
+
+    expect(await sync.queueCompletedProgressRun(run)).toBe(true);
+    await sync.syncProgress(userId);
+
+    expect(calls.slice(1, 3).map((call) => call.variables.input)).toMatchObject(
+      [
+        { id: progressAttemptId(item.id), gradingKind: "AUTO" },
+        { id: progressRubricAttemptId(item.id), gradingKind: "RUBRIC_SELF" },
+      ],
+    );
   });
 
   it("retains a failed run and retries it idempotently", async () => {

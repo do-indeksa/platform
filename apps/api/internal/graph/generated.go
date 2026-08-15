@@ -69,15 +69,16 @@ type ComplexityRoot struct {
 	}
 
 	CompletedSimulationRunItem struct {
-		Answer       func(childComplexity int) int
-		EarnedPoints func(childComplexity int) int
-		ExamPosition func(childComplexity int) int
-		GradingKind  func(childComplexity int) int
-		MaxPoints    func(childComplexity int) int
-		Outcome      func(childComplexity int) int
-		TaskID       func(childComplexity int) int
-		TaskRevision func(childComplexity int) int
-		Topic        func(childComplexity int) int
+		Answer          func(childComplexity int) int
+		AnswerPartCount func(childComplexity int) int
+		EarnedPoints    func(childComplexity int) int
+		ExamPosition    func(childComplexity int) int
+		GradingKind     func(childComplexity int) int
+		MaxPoints       func(childComplexity int) int
+		Outcome         func(childComplexity int) int
+		TaskID          func(childComplexity int) int
+		TaskRevision    func(childComplexity int) int
+		Topic           func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -123,14 +124,15 @@ type ComplexityRoot struct {
 	}
 
 	RunItem struct {
-		ExamPosition   func(childComplexity int) int
-		ID             func(childComplexity int) int
-		MaxPoints      func(childComplexity int) int
-		Ordinal        func(childComplexity int) int
-		RecentAttempts func(childComplexity int, limit int32) int
-		TaskID         func(childComplexity int) int
-		TaskRevision   func(childComplexity int) int
-		Topic          func(childComplexity int) int
+		AnswerPartCount func(childComplexity int) int
+		ExamPosition    func(childComplexity int) int
+		ID              func(childComplexity int) int
+		MaxPoints       func(childComplexity int) int
+		Ordinal         func(childComplexity int) int
+		RecentAttempts  func(childComplexity int, limit int32) int
+		TaskID          func(childComplexity int) int
+		TaskRevision    func(childComplexity int) int
+		Topic           func(childComplexity int) int
 	}
 
 	RunSummary struct {
@@ -337,6 +339,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.CompletedSimulationRunItem.Answer(childComplexity), true
+	case "CompletedSimulationRunItem.answerPartCount":
+		if e.ComplexityRoot.CompletedSimulationRunItem.AnswerPartCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.CompletedSimulationRunItem.AnswerPartCount(childComplexity), true
 	case "CompletedSimulationRunItem.earnedPoints":
 		if e.ComplexityRoot.CompletedSimulationRunItem.EarnedPoints == nil {
 			break
@@ -599,6 +607,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.RunCheckpointDraft.RunItemID(childComplexity), true
 
+	case "RunItem.answerPartCount":
+		if e.ComplexityRoot.RunItem.AnswerPartCount == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RunItem.AnswerPartCount(childComplexity), true
 	case "RunItem.examPosition":
 		if e.ComplexityRoot.RunItem.ExamPosition == nil {
 			break
@@ -922,6 +936,8 @@ func (ec *executionContext) childFields_CompletedSimulationRunItem(ctx context.C
 		return ec.fieldContext_CompletedSimulationRunItem_topic(ctx, field)
 	case "maxPoints":
 		return ec.fieldContext_CompletedSimulationRunItem_maxPoints(ctx, field)
+	case "answerPartCount":
+		return ec.fieldContext_CompletedSimulationRunItem_answerPartCount(ctx, field)
 	case "taskRevision":
 		return ec.fieldContext_CompletedSimulationRunItem_taskRevision(ctx, field)
 	case "answer":
@@ -1004,6 +1020,8 @@ func (ec *executionContext) childFields_RunItem(ctx context.Context, field graph
 		return ec.fieldContext_RunItem_topic(ctx, field)
 	case "maxPoints":
 		return ec.fieldContext_RunItem_maxPoints(ctx, field)
+	case "answerPartCount":
+		return ec.fieldContext_RunItem_answerPartCount(ctx, field)
 	case "taskRevision":
 		return ec.fieldContext_RunItem_taskRevision(ctx, field)
 	case "recentAttempts":
@@ -2005,6 +2023,29 @@ func (ec *executionContext) _CompletedSimulationRunItem_maxPoints(ctx context.Co
 	)
 }
 func (ec *executionContext) fieldContext_CompletedSimulationRunItem_maxPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _CompletedSimulationRunItem_answerPartCount(ctx context.Context, field graphql.CollectedField, obj *model.CompletedSimulationRunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_CompletedSimulationRunItem_answerPartCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AnswerPartCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_CompletedSimulationRunItem_answerPartCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("CompletedSimulationRunItem", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
@@ -3171,6 +3212,29 @@ func (ec *executionContext) _RunItem_maxPoints(ctx context.Context, field graphq
 	)
 }
 func (ec *executionContext) fieldContext_RunItem_maxPoints(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RunItem", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RunItem_answerPartCount(ctx context.Context, field graphql.CollectedField, obj *model.RunItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RunItem_answerPartCount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AnswerPartCount, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RunItem_answerPartCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("RunItem", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
@@ -4748,7 +4812,7 @@ func (ec *executionContext) unmarshalInputNewRunItemInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "taskId", "examPosition", "topic", "maxPoints", "taskRevision"}
+	fieldsInOrder := [...]string{"id", "taskId", "examPosition", "topic", "maxPoints", "answerPartCount", "taskRevision"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -4790,6 +4854,13 @@ func (ec *executionContext) unmarshalInputNewRunItemInput(ctx context.Context, o
 				return it, err
 			}
 			it.MaxPoints = data
+		case "answerPartCount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("answerPartCount"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AnswerPartCount = data
 		case "taskRevision":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("taskRevision"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -5331,6 +5402,11 @@ func (ec *executionContext) _CompletedSimulationRunItem(ctx context.Context, sel
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "answerPartCount":
+			out.Values[i] = ec._CompletedSimulationRunItem_answerPartCount(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "taskRevision":
 			out.Values[i] = ec._CompletedSimulationRunItem_taskRevision(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5824,6 +5900,11 @@ func (ec *executionContext) _RunItem(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "maxPoints":
 			out.Values[i] = ec._RunItem_maxPoints(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "answerPartCount":
+			out.Values[i] = ec._RunItem_answerPartCount(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				atomic.AddUint32(&out.Invalids, 1)
 			}

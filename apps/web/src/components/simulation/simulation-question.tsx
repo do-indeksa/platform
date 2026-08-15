@@ -28,7 +28,9 @@ export function SimulationQuestion({
   contentRevision,
 }: {
   onSubmit: (timedOut: boolean) => void;
-  syncTasks: readonly SimulationProgressItem[];
+  syncTasks: readonly (SimulationProgressItem & {
+    answerPartCount: number;
+  })[];
   blueprintVersion: string;
   contentRevision: string;
 }) {

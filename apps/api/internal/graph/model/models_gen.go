@@ -54,27 +54,29 @@ type CompletedSimulationRun struct {
 }
 
 type CompletedSimulationRunItem struct {
-	TaskID       string          `json:"taskId"`
-	ExamPosition int32           `json:"examPosition"`
-	Topic        string          `json:"topic"`
-	MaxPoints    *int32          `json:"maxPoints,omitempty"`
-	TaskRevision string          `json:"taskRevision"`
-	Answer       *string         `json:"answer,omitempty"`
-	Outcome      *AttemptOutcome `json:"outcome,omitempty"`
-	GradingKind  *GradingKind    `json:"gradingKind,omitempty"`
-	EarnedPoints *int32          `json:"earnedPoints,omitempty"`
+	TaskID          string          `json:"taskId"`
+	ExamPosition    int32           `json:"examPosition"`
+	Topic           string          `json:"topic"`
+	MaxPoints       *int32          `json:"maxPoints,omitempty"`
+	AnswerPartCount *int32          `json:"answerPartCount,omitempty"`
+	TaskRevision    string          `json:"taskRevision"`
+	Answer          *string         `json:"answer,omitempty"`
+	Outcome         *AttemptOutcome `json:"outcome,omitempty"`
+	GradingKind     *GradingKind    `json:"gradingKind,omitempty"`
+	EarnedPoints    *int32          `json:"earnedPoints,omitempty"`
 }
 
 type Mutation struct {
 }
 
 type NewRunItemInput struct {
-	ID           string `json:"id"`
-	TaskID       string `json:"taskId"`
-	ExamPosition int32  `json:"examPosition"`
-	Topic        string `json:"topic"`
-	MaxPoints    *int32 `json:"maxPoints,omitempty"`
-	TaskRevision string `json:"taskRevision"`
+	ID              string `json:"id"`
+	TaskID          string `json:"taskId"`
+	ExamPosition    int32  `json:"examPosition"`
+	Topic           string `json:"topic"`
+	MaxPoints       *int32 `json:"maxPoints,omitempty"`
+	AnswerPartCount *int32 `json:"answerPartCount,omitempty"`
+	TaskRevision    string `json:"taskRevision"`
 }
 
 type Query struct {
@@ -128,13 +130,14 @@ type RunCheckpointDraftInput struct {
 }
 
 type RunItem struct {
-	ID           string `json:"id"`
-	TaskID       string `json:"taskId"`
-	Ordinal      int32  `json:"ordinal"`
-	ExamPosition int32  `json:"examPosition"`
-	Topic        string `json:"topic"`
-	MaxPoints    *int32 `json:"maxPoints,omitempty"`
-	TaskRevision string `json:"taskRevision"`
+	ID              string `json:"id"`
+	TaskID          string `json:"taskId"`
+	Ordinal         int32  `json:"ordinal"`
+	ExamPosition    int32  `json:"examPosition"`
+	Topic           string `json:"topic"`
+	MaxPoints       *int32 `json:"maxPoints,omitempty"`
+	AnswerPartCount *int32 `json:"answerPartCount,omitempty"`
+	TaskRevision    string `json:"taskRevision"`
 	// Returns the latest attempts in chronological order, up to a limit of 20.
 	RecentAttempts []Attempt `json:"recentAttempts"`
 }

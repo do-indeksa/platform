@@ -2,6 +2,7 @@ import { validate as isUuid } from "uuid";
 import { acknowledgeGraphQLRun } from "./attempts-store";
 import {
   parseCompletedProgressRun,
+  type CompletedProgressAttempt,
   type CompletedProgressRun,
 } from "./progress-run";
 import { withRunSyncLock } from "./run-sync-lock";
@@ -182,6 +183,9 @@ async function sendRun(
         examPosition: item.examPosition,
         topic: item.topic,
         ...(item.maxPoints === undefined ? {} : { maxPoints: item.maxPoints }),
+        ...(item.answerPartCount === undefined
+          ? {}
+          : { answerPartCount: item.answerPartCount }),
         taskRevision: item.taskRevision,
       })),
     },
@@ -189,30 +193,12 @@ async function sendRun(
   );
 
   for (const item of run.items) {
-    requireCurrentOwner(isCurrent);
-    const attempt = item.attempt;
-    await mutate(
-      "RecordAttempt",
-      RECORD_ATTEMPT,
-      "recordAttempt",
-      {
-        id: attempt.id,
-        runItemId: item.id,
-        startedAt: attempt.startedAt,
-        submittedAt: attempt.submittedAt,
-        ...(attempt.activeDurationMs === undefined
-          ? {}
-          : { activeDurationMs: attempt.activeDurationMs }),
-        ...(attempt.answer === undefined ? {} : { answer: attempt.answer }),
-        outcome: attempt.outcome,
-        helpLevel: attempt.helpLevel,
-        gradingKind: attempt.gradingKind,
-        ...(attempt.earnedPoints === undefined
-          ? {}
-          : { earnedPoints: attempt.earnedPoints }),
-      },
-      attempt.id,
-    );
+    for (const attempt of item.previousAttempt === undefined
+      ? [item.attempt]
+      : [item.previousAttempt, item.attempt]) {
+      requireCurrentOwner(isCurrent);
+      await sendAttempt(item.id, attempt, isCurrent);
+    }
   }
 
   requireCurrentOwner(isCurrent);
@@ -232,6 +218,36 @@ async function sendRun(
   if (submitted.status !== "SUBMITTED") {
     throw new Error("progress run was not submitted");
   }
+}
+
+async function sendAttempt(
+  runItemId: string,
+  attempt: CompletedProgressAttempt,
+  isCurrent: () => boolean,
+): Promise<void> {
+  requireCurrentOwner(isCurrent);
+  await mutate(
+    "RecordAttempt",
+    RECORD_ATTEMPT,
+    "recordAttempt",
+    {
+      id: attempt.id,
+      runItemId,
+      startedAt: attempt.startedAt,
+      submittedAt: attempt.submittedAt,
+      ...(attempt.activeDurationMs === undefined
+        ? {}
+        : { activeDurationMs: attempt.activeDurationMs }),
+      ...(attempt.answer === undefined ? {} : { answer: attempt.answer }),
+      outcome: attempt.outcome,
+      helpLevel: attempt.helpLevel,
+      gradingKind: attempt.gradingKind,
+      ...(attempt.earnedPoints === undefined
+        ? {}
+        : { earnedPoints: attempt.earnedPoints }),
+    },
+    attempt.id,
+  );
 }
 
 function requireCurrentOwner(isCurrent: () => boolean): void {

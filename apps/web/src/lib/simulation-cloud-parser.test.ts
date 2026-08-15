@@ -222,6 +222,10 @@ describe("simulation cloud parser", () => {
     ["terminal run", (run: CloudRun) => (run.status = "SUBMITTED")],
     ["wrong points", (run: CloudRun) => (run.items[0].maxPoints = 5)],
     [
+      "wrong answer part snapshot",
+      (run: CloudRun) => (run.items[0].answerPartCount = 2),
+    ],
+    [
       "wrong deadline",
       (run: CloudRun) => (run.deadlineAt = "2026-08-10T13:00:00.000Z"),
     ],
@@ -353,6 +357,7 @@ type CloudRun = {
     examPosition: number;
     topic: string;
     maxPoints: number;
+    answerPartCount: number | null;
     taskRevision: string;
     recentAttempts: Record<string, unknown>[];
   }[];
@@ -379,6 +384,7 @@ function cloudRun(): CloudRun {
         examPosition: position.examPosition,
         topic: task.topic,
         maxPoints: position.maxPoints,
+        answerPartCount: task.answerPartCount,
         taskRevision: task.revision,
         recentAttempts: [],
       };

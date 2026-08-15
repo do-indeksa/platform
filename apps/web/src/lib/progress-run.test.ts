@@ -75,6 +75,7 @@ function completedSimulationRun(): CompletedProgressRun {
         examPosition: index + 1,
         topic: `topic-${index + 1}`,
         maxPoints: 6,
+        answerPartCount: 1,
         taskRevision: `sha256:${String(index).repeat(64)}`,
         attempt: {
           id: progressAttemptId(itemId),
@@ -180,6 +181,71 @@ describe("completed progress runs", () => {
       ...run,
       deadlineAt: "2026-08-10T14:00:00.000Z",
     });
+  });
+
+  it("keeps legacy items without answer shape and rejects invalid snapshots", () => {
+    const legacy = completedSimulationRun();
+    for (const item of legacy.items) delete item.answerPartCount;
+    expect(parseCompletedProgressRun(legacy)).toMatchObject({ id: runId });
+
+    const invalid = completedSimulationRun();
+    invalid.items[0].answerPartCount = 7;
+    expect(parseCompletedProgressRun(invalid)).toBeNull();
+
+    const mismatched = completedSimulationRun();
+    mismatched.items[0].answerPartCount = 2;
+    mismatched.items[0].attempt = {
+      ...mismatched.items[0].attempt,
+      outcome: "INCORRECT",
+      answer: '["42"]',
+      earnedPoints: 0,
+    };
+    expect(parseCompletedProgressRun(mismatched)).toBeNull();
+
+    const partial = completedSimulationRun();
+    delete partial.items[0].answerPartCount;
+    expect(parseCompletedProgressRun(partial)).toBeNull();
+
+    const layeredLegacy = completedSimulationRun();
+    for (const item of layeredLegacy.items) delete item.answerPartCount;
+    layeredLegacy.items[0].previousAttempt = {
+      ...layeredLegacy.items[0].attempt,
+      id: progressAttemptId(layeredLegacy.items[0].id),
+    };
+    layeredLegacy.items[0].attempt = {
+      ...layeredLegacy.items[0].attempt,
+      id: progressRubricAttemptId(layeredLegacy.items[0].id),
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      earnedPoints: 3,
+      answer: '["42"]',
+    };
+    expect(parseCompletedProgressRun(layeredLegacy)).toBeNull();
+  });
+
+  it("rejects an overlong previous simulation attempt", () => {
+    const run = completedSimulationRun();
+    run.submittedAt = "2026-08-10T14:00:00.000Z";
+    for (const item of run.items) item.attempt.submittedAt = run.submittedAt;
+
+    const item = run.items[0];
+    item.previousAttempt = {
+      ...item.attempt,
+      outcome: "INCORRECT",
+      answer: '["42"]',
+      earnedPoints: 0,
+      activeDurationMs: 4 * 60 * 60 * 1_000 + 1,
+    };
+    item.attempt = {
+      ...item.attempt,
+      id: progressRubricAttemptId(item.id),
+      outcome: "PARTIAL",
+      gradingKind: "RUBRIC_SELF",
+      answer: '["42"]',
+      earnedPoints: 3,
+    };
+
+    expect(parseCompletedProgressRun(run)).toBeNull();
   });
 
   it.each([

@@ -37,13 +37,18 @@ func progressStartRunInput(input model.StartRunInput) (progress.StartRunInput, e
 		if err != nil {
 			return progress.StartRunInput{}, err
 		}
+		answerPartCount, err := optionalInputInt16(item.AnswerPartCount, "items.answerPartCount")
+		if err != nil {
+			return progress.StartRunInput{}, err
+		}
 		items[i] = progress.NewRunItem{
-			ID:           itemID,
-			TaskID:       item.TaskID,
-			ExamPosition: examPosition,
-			Topic:        item.Topic,
-			MaxPoints:    maxPoints,
-			TaskRevision: item.TaskRevision,
+			ID:              itemID,
+			TaskID:          item.TaskID,
+			ExamPosition:    examPosition,
+			Topic:           item.Topic,
+			MaxPoints:       maxPoints,
+			AnswerPartCount: answerPartCount,
+			TaskRevision:    item.TaskRevision,
 		}
 	}
 	return progress.StartRunInput{

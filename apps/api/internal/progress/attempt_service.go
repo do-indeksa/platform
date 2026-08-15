@@ -35,6 +35,14 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	if err := validateAttemptScore(normalized.Outcome, normalized.EarnedPoints, target.maxPoints); err != nil {
 		return Attempt{}, err
 	}
+	if err := validateSnapshottedSimulationAttempt(normalized, target); err != nil {
+		return Attempt{}, err
+	}
+	if err := validateSnapshottedSimulationRubricPredecessor(
+		ctx, queries, userID, normalized, target,
+	); err != nil {
+		return Attempt{}, err
+	}
 	if !validRunActiveDuration(
 		target.mode,
 		normalized.ActiveDurationMs,
@@ -119,14 +127,15 @@ func (s *Service) ListAttemptJournal(ctx context.Context, userID uuid.UUID, limi
 }
 
 type attemptTarget struct {
-	runItemID    pgtype.UUID
-	runStatus    RunStatus
-	taskID       string
-	examPosition int16
-	mode         RunKind
-	maxPoints    *int16
-	taskRevision string
-	runStartedAt time.Time
+	runItemID       pgtype.UUID
+	runStatus       RunStatus
+	taskID          string
+	examPosition    int16
+	mode            RunKind
+	maxPoints       *int16
+	answerPartCount *int16
+	taskRevision    string
+	runStartedAt    time.Time
 }
 
 func resolveAttemptTarget(
@@ -144,14 +153,15 @@ func resolveAttemptTarget(
 			return attemptTarget{}, err
 		}
 		return attemptTarget{
-			runItemID:    pgtype.UUID{Bytes: *input.RunItemID, Valid: true},
-			runStatus:    RunStatus(row.RunStatus),
-			taskID:       row.TaskID,
-			examPosition: row.ExamPosition,
-			mode:         RunKind(row.RunKind),
-			maxPoints:    row.ItemMaxPoints,
-			taskRevision: row.TaskRevision,
-			runStartedAt: row.RunStartedAt,
+			runItemID:       pgtype.UUID{Bytes: *input.RunItemID, Valid: true},
+			runStatus:       RunStatus(row.RunStatus),
+			taskID:          row.TaskID,
+			examPosition:    row.ExamPosition,
+			mode:            RunKind(row.RunKind),
+			maxPoints:       row.ItemMaxPoints,
+			answerPartCount: row.AnswerPartCount,
+			taskRevision:    row.TaskRevision,
+			runStartedAt:    row.RunStartedAt,
 		}, nil
 	}
 	target := input.Standalone

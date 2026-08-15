@@ -149,6 +149,7 @@ function upload(state: PersistedDiagnosticState): DiagnosticCloudUpload {
       slot: index + 1,
       examPosition: index + 1,
       topic: `topic-${index + 1}`,
+      answerPartCount: 1,
     })),
     blueprintVersion: "ftn-p1:2026.1",
     contentRevision: `sha256:${"f".repeat(64)}`,

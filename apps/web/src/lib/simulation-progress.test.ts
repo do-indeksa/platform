@@ -123,6 +123,12 @@ describe("simulation progress projection", () => {
       gradingKind: "RUBRIC_SELF",
       earnedPoints: 4,
     });
+    expect(completed?.items[1].previousAttempt).toMatchObject({
+      id: progressAttemptId(secondItemId),
+      outcome: "INCORRECT",
+      gradingKind: "AUTO",
+      earnedPoints: 0,
+    });
 
     const tasks = Array.from({ length: 10 }, (_, index) => ({
       id: `task-${index + 1}`,
@@ -152,9 +158,10 @@ describe("simulation progress projection", () => {
     expect(
       buildSimulationAutoGradeRun(
         state,
-        tasks.map((task) => ({
+        tasks.map((task, index) => ({
           taskId: task.id,
-          outcome: "incorrect" as const,
+          outcome:
+            index === 0 ? ("incorrect" as const) : ("unanswered" as const),
           earnedPoints: 0,
           maxPoints: 6,
         })),
@@ -181,6 +188,27 @@ describe("simulation progress projection", () => {
       outcome: "PARTIAL",
       gradingKind: "RUBRIC_SELF",
       earnedPoints: 3,
+      answer: '[""]',
+    });
+  });
+
+  it("canonicalizes whitespace-only rubric answers as an empty auto layer", () => {
+    const entry = historyEntry();
+    entry.answers[2] = ["   "];
+    entry.results[2] = {
+      ...entry.results[2],
+      outcome: "partial",
+      earnedPoints: 3,
+    };
+    entry.score = 9;
+    entry.answeredCount = 3;
+    entry.rubricScores = [null, null, 3, ...Array<null>(7).fill(null)];
+
+    const item = buildCompletedSimulationRun(entry)?.items[2];
+    expect(item?.previousAttempt).toMatchObject({ outcome: "SKIPPED" });
+    expect(item?.previousAttempt).not.toHaveProperty("answer");
+    expect(item?.attempt).toMatchObject({
+      outcome: "PARTIAL",
       answer: '[""]',
     });
   });

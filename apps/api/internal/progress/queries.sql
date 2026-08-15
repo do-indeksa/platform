@@ -160,9 +160,10 @@ insert into run_items (
     exam_position,
     topic,
     max_points,
+    answer_part_count,
     task_revision
 )
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 returning *;
 
 -- name: ListRunItems :many
@@ -259,6 +260,7 @@ select
     i.task_id,
     i.exam_position,
     i.max_points as item_max_points,
+    i.answer_part_count,
     i.task_revision,
     r.kind as run_kind,
     r.status as run_status,

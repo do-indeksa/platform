@@ -142,6 +142,9 @@ export function parseSimulationCloudRun(
       seenTasks.has(task.id) ||
       rawItem.id !== runItemId ||
       rawItem.topic !== task.topic ||
+      (rawItem.answerPartCount !== null &&
+        rawItem.answerPartCount !== undefined &&
+        rawItem.answerPartCount !== task.answerPartCount) ||
       rawItem.taskRevision !== task.revision ||
       !Array.isArray(rawItem.recentAttempts) ||
       rawItem.recentAttempts.length > 2

@@ -466,6 +466,7 @@ function buildHistoryEntry(
         examPosition: task.examPosition,
         topic: task.topic,
         maxPoints: task.maxPoints,
+        answerPartCount: task.fields.length,
       })),
     },
   };

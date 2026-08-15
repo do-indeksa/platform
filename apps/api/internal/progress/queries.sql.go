@@ -316,22 +316,24 @@ insert into run_items (
     exam_position,
     topic,
     max_points,
+    answer_part_count,
     task_revision
 )
-values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-returning id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
+values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+returning id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at, answer_part_count
 `
 
 type CreateRunItemParams struct {
-	ID           uuid.UUID
-	RunID        uuid.UUID
-	UserID       uuid.UUID
-	TaskID       string
-	Ordinal      int16
-	ExamPosition int16
-	Topic        string
-	MaxPoints    *int16
-	TaskRevision string
+	ID              uuid.UUID
+	RunID           uuid.UUID
+	UserID          uuid.UUID
+	TaskID          string
+	Ordinal         int16
+	ExamPosition    int16
+	Topic           string
+	MaxPoints       *int16
+	AnswerPartCount *int16
+	TaskRevision    string
 }
 
 func (q *Queries) CreateRunItem(ctx context.Context, arg CreateRunItemParams) (RunItem, error) {
@@ -344,6 +346,7 @@ func (q *Queries) CreateRunItem(ctx context.Context, arg CreateRunItemParams) (R
 		arg.ExamPosition,
 		arg.Topic,
 		arg.MaxPoints,
+		arg.AnswerPartCount,
 		arg.TaskRevision,
 	)
 	var i RunItem
@@ -358,6 +361,7 @@ func (q *Queries) CreateRunItem(ctx context.Context, arg CreateRunItemParams) (R
 		&i.MaxPoints,
 		&i.TaskRevision,
 		&i.CreatedAt,
+		&i.AnswerPartCount,
 	)
 	return i, err
 }
@@ -526,6 +530,7 @@ select
     i.task_id,
     i.exam_position,
     i.max_points as item_max_points,
+    i.answer_part_count,
     i.task_revision,
     r.kind as run_kind,
     r.status as run_status,
@@ -542,15 +547,16 @@ type GetRunItemTargetParams struct {
 }
 
 type GetRunItemTargetRow struct {
-	ID            uuid.UUID
-	RunID         uuid.UUID
-	TaskID        string
-	ExamPosition  int16
-	ItemMaxPoints *int16
-	TaskRevision  string
-	RunKind       string
-	RunStatus     string
-	RunStartedAt  time.Time
+	ID              uuid.UUID
+	RunID           uuid.UUID
+	TaskID          string
+	ExamPosition    int16
+	ItemMaxPoints   *int16
+	AnswerPartCount *int16
+	TaskRevision    string
+	RunKind         string
+	RunStatus       string
+	RunStartedAt    time.Time
 }
 
 func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetParams) (GetRunItemTargetRow, error) {
@@ -562,6 +568,7 @@ func (q *Queries) GetRunItemTarget(ctx context.Context, arg GetRunItemTargetPara
 		&i.TaskID,
 		&i.ExamPosition,
 		&i.ItemMaxPoints,
+		&i.AnswerPartCount,
 		&i.TaskRevision,
 		&i.RunKind,
 		&i.RunStatus,
@@ -1015,7 +1022,7 @@ func (q *Queries) ListRunCheckpointRows(ctx context.Context, arg ListRunCheckpoi
 }
 
 const listRunItems = `-- name: ListRunItems :many
-select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
+select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at, answer_part_count
 from run_items
 where run_id = $1 and user_id = $2
 order by ordinal
@@ -1046,6 +1053,7 @@ func (q *Queries) ListRunItems(ctx context.Context, arg ListRunItemsParams) ([]R
 			&i.MaxPoints,
 			&i.TaskRevision,
 			&i.CreatedAt,
+			&i.AnswerPartCount,
 		); err != nil {
 			return nil, err
 		}
@@ -1058,7 +1066,7 @@ func (q *Queries) ListRunItems(ctx context.Context, arg ListRunItemsParams) ([]R
 }
 
 const listRunItemsByRunIDs = `-- name: ListRunItemsByRunIDs :many
-select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at
+select id, run_id, user_id, task_id, ordinal, exam_position, topic, max_points, task_revision, created_at, answer_part_count
 from run_items
 where user_id = $1
   and run_id = any($2::uuid[])
@@ -1090,6 +1098,7 @@ func (q *Queries) ListRunItemsByRunIDs(ctx context.Context, arg ListRunItemsByRu
 			&i.MaxPoints,
 			&i.TaskRevision,
 			&i.CreatedAt,
+			&i.AnswerPartCount,
 		); err != nil {
 			return nil, err
 		}

@@ -277,6 +277,7 @@ function upload(state: PersistedSimulationState) {
       examPosition: task.examPosition,
       topic: task.topic,
       maxPoints: task.maxPoints,
+      answerPartCount: task.fields.length,
     })),
     blueprintVersion: catalog.blueprintVersion,
     contentRevision: revision("f"),

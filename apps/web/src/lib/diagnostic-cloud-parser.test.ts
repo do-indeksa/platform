@@ -122,6 +122,10 @@ describe("diagnostic cloud parser", () => {
       (run: CloudRun) => (run.items[0].taskRevision = revision("e")),
     ],
     [
+      "wrong answer part snapshot",
+      (run: CloudRun) => (run.items[0].answerPartCount = 2),
+    ],
+    [
       "wrong deterministic item id",
       (run: CloudRun) => (run.items[0].id = crypto.randomUUID()),
     ],
@@ -216,6 +220,7 @@ type CloudRun = {
     ordinal: number;
     examPosition: number;
     topic: string;
+    answerPartCount: number | null;
     taskRevision: string;
     recentAttempts: Record<string, unknown>[];
   }[];
@@ -238,6 +243,7 @@ function cloudRun(): CloudRun {
         ordinal: position.ordinal,
         examPosition: position.examPosition,
         topic: task.topic,
+        answerPartCount: task.answerPartCount,
         taskRevision: task.revision,
         recentAttempts: [] as Record<string, unknown>[],
       };
