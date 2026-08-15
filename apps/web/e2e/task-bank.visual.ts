@@ -20,6 +20,7 @@ for (const variant of variants) {
       ).toBeVisible();
       await waitForFonts(page);
       await expectNoHorizontalOverflow(page);
+      await expectTaskNavigationIndicator(page, variant.name);
       if (variant.name !== "mobile") {
         await expectProfileNameToFit(page);
       }
@@ -107,4 +108,22 @@ async function expectProfileNameToFit(page: Page) {
       ),
     )
     .toBe(true);
+}
+
+async function expectTaskNavigationIndicator(
+  page: Page,
+  viewport: (typeof variants)[number]["name"],
+) {
+  const indicator = page.getByTestId("task-navigation-indicator");
+  if (viewport === "mobile") {
+    await expect(indicator).toBeHidden();
+    return;
+  }
+
+  await expect(indicator).toBeVisible();
+  const expected =
+    viewport === "desktop"
+      ? { x: 319, y: 70, width: 64, height: 2 }
+      : { x: 281, y: 62, width: 56, height: 2 };
+  await expect.poll(() => indicator.boundingBox()).toEqual(expected);
 }
