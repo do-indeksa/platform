@@ -5,6 +5,8 @@ import type {
   PracticeCloudTask,
 } from "./practice-cloud-types";
 
+const PLACEHOLDER_CONTENT_REVISION = `sha256:${"0".repeat(64)}`;
+
 export type TrainingPracticeTask = PracticeCloudTask & {
   difficulty: number;
 };
@@ -38,8 +40,12 @@ export async function createTrainingPracticeAssignment(
   const assignment: PracticeCloudAssignment = {
     runId,
     blueprintVersion: `ftn-p1:${blueprintVersion}`,
-    contentRevision: await practiceTaskSetRevision(tasks),
+    contentRevision: PLACEHOLDER_CONTENT_REVISION,
     tasks,
   };
-  return isPracticeCloudAssignment(assignment) ? assignment : null;
+  if (!isPracticeCloudAssignment(assignment)) return null;
+  return {
+    ...assignment,
+    contentRevision: await practiceTaskSetRevision(tasks),
+  };
 }
