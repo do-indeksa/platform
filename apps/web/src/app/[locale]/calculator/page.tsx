@@ -12,7 +12,7 @@ export default async function CalculatorPage() {
   const t = await getTranslations("calculator");
   const { source, programs } = await getFtnCutoffs();
   return (
-    <main className="mx-auto max-w-3xl p-8">
+    <main className="mx-auto w-full min-w-0 max-w-3xl p-8">
       <h1 className="mb-2 text-3xl font-bold">{t("heading")}</h1>
       <p className="mb-1 text-zinc-600">{t("formula")}</p>
       <p className="mb-8 text-zinc-600">{t("minimums")}</p>
