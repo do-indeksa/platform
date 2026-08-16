@@ -70,6 +70,9 @@ for (const locale of locales) {
             await page.goto(`${locale.prefix}${path}`, {
               waitUntil: "networkidle",
             });
+            expect(new URL(page.url()).pathname).toBe(
+              `${locale.prefix}${path.split("?")[0]}`,
+            );
             const header = page.getByTestId("site-header");
             await expectCanonicalHeader(
               header,
@@ -87,6 +90,9 @@ for (const locale of locales) {
             await page.goto(`${locale.prefix}${path}`, {
               waitUntil: "networkidle",
             });
+            expect(new URL(page.url()).pathname).toBe(
+              `${locale.prefix}${path}`,
+            );
             const taskHeader = page.getByTestId("site-header");
             await expectCanonicalHeader(
               taskHeader,
