@@ -36,10 +36,17 @@ const canonicalApplicationPaths = [
   "/training/new",
 ] as const;
 
-const taskApplicationPaths = [
-  "/tasks",
-  "/tasks/kompleksni-brojevi",
-  "/tasks/kompleksni-brojevi/kb-001",
+const taskApplicationRoutes = [
+  { path: "/tasks", expectedPath: "/tasks" },
+  {
+    path: "/tasks/kompleksni-brojevi",
+    expectedPath: "/tasks",
+    expectedTopic: "kompleksni-brojevi",
+  },
+  {
+    path: "/tasks/kompleksni-brojevi/kb-001",
+    expectedPath: "/tasks/kompleksni-brojevi/kb-001",
+  },
 ] as const;
 
 const immersivePaths = ["/diagnostic/new", "/simulation/new"] as const;
@@ -85,14 +92,19 @@ for (const locale of locales) {
           });
         }
 
-        for (const path of taskApplicationPaths) {
-          await test.step(path, async () => {
-            await page.goto(`${locale.prefix}${path}`, {
+        for (const route of taskApplicationRoutes) {
+          await test.step(route.path, async () => {
+            await page.goto(`${locale.prefix}${route.path}`, {
               waitUntil: "networkidle",
             });
             expect(new URL(page.url()).pathname).toBe(
-              `${locale.prefix}${path}`,
+              `${locale.prefix}${route.expectedPath}`,
             );
+            if ("expectedTopic" in route) {
+              expect(new URL(page.url()).searchParams.get("topic")).toBe(
+                route.expectedTopic,
+              );
+            }
             const taskHeader = page.getByTestId("site-header");
             await expectCanonicalHeader(
               taskHeader,
