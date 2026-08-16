@@ -27,7 +27,7 @@ export function SiteHeader({
       }`}
     >
       <div className="relative flex h-full w-full items-center justify-between px-4 md:px-8">
-        <div className="flex h-full min-w-0 items-center gap-6 overflow-hidden xl:gap-[46px]">
+        <div className="flex h-full min-w-0 items-center gap-6 xl:gap-[46px]">
           <Link
             href="/"
             aria-label={t("brandHome")}

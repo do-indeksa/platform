@@ -43,7 +43,7 @@ export function MarketingHeader() {
 
         <nav
           aria-label={t("navigation")}
-          className="hidden shrink-0 items-center gap-7 overflow-hidden text-sm leading-5 text-ink md:flex xl:gap-10"
+          className="hidden shrink-0 items-center gap-7 text-sm leading-5 text-ink md:flex xl:gap-10"
         >
           <MarketingNavLink item={items[0]} width="w-[68px]" />
           <MarketingNavLink item={items[1]} width="w-[90px]" />
