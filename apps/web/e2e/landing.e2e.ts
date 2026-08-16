@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "./test";
+import { expectCenterToReceivePointer } from "./hit-target";
 
 const localizedLandings = [
   {
@@ -219,7 +220,9 @@ for (const locale of localizedLandings) {
           await page.locator("header nav > details > summary").click();
         }
 
-        await page.locator(`header nav a[href$="#${section}"]:visible`).click();
+        const link = page.locator(`header nav a[href$="#${section}"]:visible`);
+        await expectCenterToReceivePointer(link);
+        await link.click();
 
         await expect(page).toHaveURL(new RegExp(`#${section}$`));
         await expect(page.locator(`#${section}`)).toBeInViewport();

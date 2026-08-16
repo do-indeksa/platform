@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "./test";
 import { analyticsEvents, installAnalyticsSpy } from "./analytics-spy";
+import { expectCenterToReceivePointer } from "./hit-target";
 
 const desktopDestinations = [
   { label: "My preparation", path: "/en/cabinet" },
@@ -30,6 +31,20 @@ const mobileDestinations = [
   { label: "Faculties", path: "/en/faculties/ftn" },
   { label: "Calculator", path: "/en/calculator" },
 ] as const;
+
+const mobileApplicationPaths = [
+  "/cabinet",
+  "/tasks",
+  "/training/new",
+  "/prep",
+  "/simulation",
+  "/history",
+  "/exams",
+  "/faculties/ftn",
+  "/calculator",
+] as const;
+
+const localePrefixes = ["", "/en", "/ru"] as const;
 
 const locales = [
   {
@@ -159,12 +174,36 @@ test("tablet overflow navigation exposes secondary routes and closes", async ({
     const more = page.getByTitle("More");
     const menu = more.locator("..");
     await more.click();
-    await menu
-      .getByRole("link", { name: destination.label, exact: true })
-      .click();
+    const link = menu.getByRole("link", {
+      name: destination.label,
+      exact: true,
+    });
+    await expectCenterToReceivePointer(link);
+    await link.click();
 
     await expect(page).toHaveURL(new RegExp(`${destination.path}$`));
     await expect(menu).not.toHaveAttribute("open", "");
+  }
+});
+
+test("every exposed app destination keeps the mobile document in bounds", async ({
+  page,
+}) => {
+  await installShellFixture(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const localePrefix of localePrefixes) {
+    for (const path of mobileApplicationPaths) {
+      const route = `${localePrefix}${path}`;
+      await page.goto(route);
+      await expect(page.getByTestId("site-header")).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        `${route} expands the mobile document`,
+      ).toBe(true);
+    }
   }
 });
 
