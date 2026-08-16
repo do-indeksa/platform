@@ -123,6 +123,22 @@ desktop `175:1360`, tablet `176:2633`, mobile `177:3704`. Header сохраня�
 Figma inset `80 / 56 / 16 px`, размеры `1280x72 / 912x72 / 358x64` и остается
 sticky относительно viewport, а не короткого layout wrapper.
 
+Навигационный shell выбирается по route family, а не отдельной страницей:
+
+| Route family                                                                                                              | Навигационный контракт                                                                         | Figma authority                                |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `/` для guest                                                                                                             | Marketing Header                                                                               | component set `172:750`                        |
+| `/` для session hint и подтвержденного пользователя                                                                       | inset App Header; auth bootstrap не меняет геометрию                                           | instances `175:1360` / `176:2633` / `177:3704` |
+| `/cabinet`, `/calculator`, `/diagnostic`, `/exams`, `/faculties/ftn`, `/history`, `/prep`, `/simulation`, `/training/new` | один full-width App Header для locale и viewport                                               | component set `144:170`                        |
+| `/diagnostic/result`, `/simulation/result`, `/exams/[examId]`, `/history/tasks/[topic]/[id]`                              | тот же App Header; provisional content не создает собственную навигацию                        | component set `144:170`                        |
+| `/tasks`, `/tasks/[topic]`, `/tasks/[topic]/[id]`                                                                         | тот же App Header с единственным task-active indicator                                         | App Header `144:170`, task state `195:168`     |
+| `/diagnostic/new`, `/simulation/new`                                                                                      | global chrome скрыт на время focused timed run; управление и выход принадлежат самому workflow | tracked focused-flow contract                  |
+
+Стандартный App Header проверяется как один и тот же screenshot на
+`390 / 1024 / 1440 px` для `sr-Latn / en / ru` на entry, detail и result
+семействах. Допустимые различия ограничены inset landing placement,
+task-active indicator и отсутствием global chrome в timed run.
+
 Визуальный desktop-slot `Omiljeno / Favorites` пока не имеет реального
 продуктового workflow. Чтобы не показывать неработающую псевдонавигацию, в той
 же позиции и ширине используется существующий маршрут `Ispiti / Exams`. Это

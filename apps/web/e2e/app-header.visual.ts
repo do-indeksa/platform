@@ -1,4 +1,9 @@
 import { expect, test, type Locator } from "./test";
+import {
+  runId as diagnosticRunId,
+  taskIds as diagnosticTaskIds,
+} from "./diagnostic-cloud-fixture";
+import { simulationRunId, simulationTaskIds } from "./simulation-cloud-fixture";
 
 const variants = [
   { name: "mobile", width: 390, height: 844 },
@@ -12,15 +17,32 @@ const locales = [
   { locale: "ru", prefix: "/ru", profileName: "Полина" },
 ] as const;
 
+const diagnosticResultPath = `/diagnostic/result?run=${diagnosticRunId}&set=${diagnosticTaskIds.join("%2C")}`;
+const simulationResultPath = `/simulation/result?run=${simulationRunId}&version=2026.1&set=${simulationTaskIds.join("%2C")}`;
+
 const canonicalApplicationPaths = [
   "/cabinet",
   "/calculator",
+  "/diagnostic",
+  diagnosticResultPath,
   "/exams",
+  "/exams/ftn-p3",
   "/faculties/ftn",
   "/history",
+  "/history/tasks/kompleksni-brojevi/kb-001",
   "/prep",
+  "/simulation",
+  simulationResultPath,
   "/training/new",
 ] as const;
+
+const taskApplicationPaths = [
+  "/tasks",
+  "/tasks/kompleksni-brojevi",
+  "/tasks/kompleksni-brojevi/kb-001",
+] as const;
+
+const immersivePaths = ["/diagnostic/new", "/simulation/new"] as const;
 
 for (const locale of locales) {
   for (const variant of variants) {
@@ -44,30 +66,47 @@ for (const locale of locales) {
         );
 
         for (const path of canonicalApplicationPaths) {
-          await page.goto(`${locale.prefix}${path}`, {
-            waitUntil: "networkidle",
+          await test.step(path, async () => {
+            await page.goto(`${locale.prefix}${path}`, {
+              waitUntil: "networkidle",
+            });
+            const header = page.getByTestId("site-header");
+            await expectCanonicalHeader(
+              header,
+              locale.profileName,
+              variant.name,
+            );
+            await expect(header).toHaveScreenshot(
+              `app-header-${locale.locale}-${variant.name}.png`,
+            );
           });
-          const header = page.getByTestId("site-header");
-          await expectCanonicalHeader(header, locale.profileName, variant.name);
-          await expect(header).toHaveScreenshot(
-            `app-header-${locale.locale}-${variant.name}.png`,
-          );
         }
 
-        await page.goto(`${locale.prefix}/tasks`, {
-          waitUntil: "networkidle",
-        });
-        const taskHeader = page.getByTestId("site-header");
-        await expectCanonicalHeader(
-          taskHeader,
-          locale.profileName,
-          variant.name,
-        );
-        await expect(taskHeader).toHaveScreenshot(
-          variant.name === "mobile"
-            ? `app-header-${locale.locale}-${variant.name}.png`
-            : `app-header-${locale.locale}-tasks-${variant.name}.png`,
-        );
+        for (const path of taskApplicationPaths) {
+          await test.step(path, async () => {
+            await page.goto(`${locale.prefix}${path}`, {
+              waitUntil: "networkidle",
+            });
+            const taskHeader = page.getByTestId("site-header");
+            await expectCanonicalHeader(
+              taskHeader,
+              locale.profileName,
+              variant.name,
+            );
+            await expect(taskHeader).toHaveScreenshot(
+              variant.name === "mobile"
+                ? `app-header-${locale.locale}-${variant.name}.png`
+                : `app-header-${locale.locale}-tasks-${variant.name}.png`,
+            );
+          });
+        }
+
+        for (const path of immersivePaths) {
+          await test.step(path, async () => {
+            await page.goto(`${locale.prefix}${path}`);
+            await expect(page.getByTestId("site-header")).toHaveCount(0);
+          });
+        }
       });
     });
   }
