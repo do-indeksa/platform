@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
 
@@ -33,6 +33,14 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
   const searchParams = useSearchParams();
   const t = useTranslations("nav");
   const query = searchParams.toString();
+  const [currentHash, setCurrentHash] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateHash = () => setCurrentHash(window.location.hash);
+    updateHash();
+    window.addEventListener("hashchange", updateHash);
+    return () => window.removeEventListener("hashchange", updateHash);
+  }, []);
 
   const localeHref = (nextLocale: AppLocale) => {
     const suffix = pathname === "/" ? "" : pathname;
@@ -42,6 +50,9 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
         : `/${nextLocale}${suffix}`;
     return query ? `${localizedPath}?${query}` : localizedPath;
   };
+
+  const localeHrefWithHash = (nextLocale: AppLocale) =>
+    `${localeHref(nextLocale)}${currentHash ?? ""}`;
 
   const replaceLocale = (nextLocale: AppLocale) => {
     // A document navigation avoids stale concurrent RSC responses on locale changes.
@@ -65,6 +76,7 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
         <select
           aria-label={t("language")}
           value={locale}
+          disabled={currentHash === null}
           onChange={(event) => replaceLocale(event.target.value as AppLocale)}
           className="absolute inset-0 cursor-pointer appearance-none opacity-0"
         >
@@ -82,6 +94,7 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
     <div
       role="group"
       aria-label={t("language")}
+      aria-busy={currentHash === null ? true : undefined}
       className="flex h-[39px] w-[139px] items-start gap-0.5 rounded-xl bg-surface p-1 shadow-[inset_0_0_0_1px_var(--di-color-border-default)]"
     >
       {languageOrder.map((item) => {
@@ -89,13 +102,15 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
         return (
           <a
             key={item}
-            href={localeHref(item)}
+            href={localeHrefWithHash(item)}
             onClick={(event) => {
               event.preventDefault();
               replaceLocale(item);
             }}
+            aria-disabled={currentHash === null ? true : undefined}
             aria-current={active ? "page" : undefined}
-            className={`flex h-[31px] ${fullSegmentWidths[item]} shrink-0 items-center justify-center rounded-lg px-3 text-[13px] leading-normal font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+            tabIndex={currentHash === null ? -1 : undefined}
+            className={`flex h-[31px] ${fullSegmentWidths[item]} shrink-0 items-center justify-center rounded-lg px-3 text-[13px] leading-normal font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${currentHash === null ? "pointer-events-none" : ""} ${
               active
                 ? "bg-brand text-on-brand"
                 : "text-muted hover:bg-page hover:text-ink"

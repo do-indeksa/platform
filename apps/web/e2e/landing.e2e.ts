@@ -136,9 +136,105 @@ test("a session-hinted landing never paints guest navigation", async ({
     releaseAuth?.();
   }
 
+  const profile = page
+    .getByTestId("site-header")
+    .locator("summary:not([title])");
+  await expect(profile).toBeVisible();
+  await expect(profile).toContainText("Student");
+});
+
+test("a session-hinted landing keeps its app header during auth recovery", async ({
+  context,
+  page,
+}) => {
+  await context.addCookies([
+    {
+      name: "di_session",
+      value: "opaque-session-hint",
+      url: "http://localhost:3100",
+    },
+  ]);
+
+  let available = false;
+  await page.route("**/api/v1/me", (route) =>
+    available
+      ? route.fulfill({
+          json: {
+            id: "11111111-1111-4111-8111-111111111111",
+            email: "student@example.test",
+            name: "Student",
+          },
+        })
+      : route.fulfill({ status: 503 }),
+  );
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
+  );
+
+  await page.goto("/en", { waitUntil: "domcontentloaded" });
+
+  const header = page.getByTestId("site-header");
+  await expect(header).toBeVisible();
   await expect(
-    page.getByTestId("site-header").getByText("Student", { exact: true }),
+    page.getByRole("heading", {
+      name: "Master FTN P1 before exam day",
+      exact: true,
+    }),
   ).toBeVisible();
+  await expect(page.getByTestId("auth-bootstrap-error")).toBeVisible();
+  await expect(page.getByTestId("marketing-header")).toHaveCount(0);
+  await header.evaluate((element) => {
+    element.setAttribute("data-persistence-probe", "mounted");
+  });
+
+  available = true;
+  await page.getByRole("button", { name: "Try again" }).click();
+
+  await expect(page.getByTestId("auth-bootstrap-error")).toHaveCount(0);
+  await expect(header).toHaveAttribute("data-persistence-probe", "mounted");
+  await expect(header).toContainText("Student");
+  await expect(page.getByTestId("marketing-header")).toHaveCount(0);
+});
+
+test("a stale session hint reconciles to guest navigation", async ({
+  context,
+  page,
+}) => {
+  await context.addCookies([
+    {
+      name: "di_session",
+      value: "stale-session-hint",
+      url: "http://localhost:3100",
+    },
+  ]);
+
+  let releaseAuth: (() => void) | undefined;
+  const authGate = new Promise<void>((resolve) => {
+    releaseAuth = resolve;
+  });
+  await page.route("**/api/v1/me", async (route) => {
+    await authGate;
+    await route.fulfill({ status: 401, body: "" });
+  });
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
+  );
+
+  await page.goto("/en", { waitUntil: "domcontentloaded" });
+
+  try {
+    await expect(page.getByTestId("site-header")).toBeVisible();
+    await expect(page.getByTestId("marketing-header")).toHaveCount(0);
+  } finally {
+    releaseAuth?.();
+  }
+
+  await expect(page.getByTestId("marketing-header")).toBeVisible();
+  await expect(page.getByTestId("site-header")).toHaveCount(0);
 });
 
 test("a session-selected landing response cannot be shared", async ({
@@ -340,8 +436,16 @@ for (const locale of localizedLandings) {
 }
 
 test("an authenticated visitor keeps the inset Figma app header sticky", async ({
+  context,
   page,
 }) => {
+  await context.addCookies([
+    {
+      name: "di_session",
+      value: "opaque-session-hint",
+      url: "http://localhost:3100",
+    },
+  ]);
   await page.route("**/api/v1/me", async (route) => {
     await route.fulfill({
       json: {

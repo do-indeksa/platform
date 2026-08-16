@@ -60,6 +60,33 @@ for (const viewport of viewports) {
       await expect(dashboard).toHaveAttribute("data-state", "empty");
     });
 
+    test("auth bootstrap failure keeps the application shell visible", async ({
+      page,
+    }) => {
+      await page.route("**/api/v1/me", (route) =>
+        route.fulfill({ status: 503 }),
+      );
+      await page.goto("/tasks", { waitUntil: "domcontentloaded" });
+
+      await expect(page.getByTestId("site-header")).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Zadaci", exact: true }),
+      ).toBeVisible();
+      const error = page.getByTestId("auth-bootstrap-error");
+      await expect(error).toBeVisible();
+      await expect(error).toHaveAttribute("data-design-status", "provisional");
+      await expect(
+        error.getByRole("button", { name: "Pokušaj ponovo", exact: true }),
+      ).toBeVisible();
+      await assertInside(error, page.locator("body"));
+      await assertNoPageOverflow(page);
+      await stabilize(page);
+
+      await expect(page).toHaveScreenshot(
+        `auth-bootstrap-error-${viewport.name}.png`,
+      );
+    });
+
     test("cabinet cloud conflict remains usable", async ({ page }) => {
       await installCabinetConflictVisualFixture(page);
       await page.goto("/cabinet", { waitUntil: "networkidle" });

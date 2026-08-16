@@ -128,22 +128,19 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [router]);
 
-  if (auth.status === "error") {
-    return <AuthBootstrapError retry={retryBootstrap} />;
-  }
-
   const user = auth.status === "ready" ? auth.user : null;
 
   return (
     <UserContext
       value={{
         user: user ?? null,
-        loading: auth.status === "loading",
+        loading: auth.status !== "ready",
         signingOut,
         signOut,
       }}
     >
       {children}
+      {auth.status === "error" && <AuthBootstrapError retry={retryBootstrap} />}
     </UserContext>
   );
 }
