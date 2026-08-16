@@ -93,6 +93,66 @@ for (const locale of localizedLandings) {
   });
 }
 
+test("a session-hinted landing never paints guest navigation", async ({
+  context,
+  page,
+}) => {
+  await context.addCookies([
+    {
+      name: "di_session",
+      value: "opaque-session-hint",
+      url: "http://localhost:3100",
+    },
+  ]);
+
+  let releaseAuth: (() => void) | undefined;
+  const authGate = new Promise<void>((resolve) => {
+    releaseAuth = resolve;
+  });
+  await page.route("**/api/v1/me", async (route) => {
+    await authGate;
+    await route.fulfill({
+      json: {
+        id: "11111111-1111-4111-8111-111111111111",
+        email: "student@example.test",
+        name: "Student",
+      },
+    });
+  });
+  await page.route("**/graphql", (route) =>
+    route.fulfill({
+      json: { data: { attempts: [], completedSimulationRuns: [] } },
+    }),
+  );
+
+  try {
+    await page.goto("/en", { waitUntil: "domcontentloaded" });
+
+    const header = page.getByTestId("site-header");
+    await expect(header).toBeVisible();
+    await expect(header).toHaveAttribute("data-placement", "landing");
+    await expect(page.getByTestId("marketing-header")).toHaveCount(0);
+  } finally {
+    releaseAuth?.();
+  }
+
+  await expect(
+    page.getByTestId("site-header").getByText("Student", { exact: true }),
+  ).toBeVisible();
+});
+
+test("a session-selected landing response cannot be shared", async ({
+  request,
+}) => {
+  const response = await request.get("/en", {
+    headers: { cookie: "di_session=opaque-session-hint" },
+  });
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()["cache-control"]).toContain("private");
+  expect(response.headers()["cache-control"]).toContain("no-store");
+});
+
 test("SR landing follows the exact Figma section geometry", async ({
   page,
 }) => {

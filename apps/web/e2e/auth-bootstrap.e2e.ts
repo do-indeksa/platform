@@ -4,6 +4,36 @@ import { simulationRunUrl } from "./simulation-cloud-fixture";
 
 const USER_ID = "39ec4650-762d-437f-9917-c31ab167cb99";
 
+test("a transient auth failure keeps the application shell mounted", async ({
+  page,
+}) => {
+  let available = false;
+  await page.route("**/api/v1/me", (route) =>
+    available
+      ? route.fulfill({ status: 401, body: "" })
+      : route.fulfill({ status: 503 }),
+  );
+
+  await page.goto("/en/tasks");
+
+  const header = page.getByTestId("site-header");
+  await expect(header).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Tasks", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByTestId("auth-bootstrap-error")).toBeVisible();
+  await header.evaluate((element) => {
+    element.setAttribute("data-persistence-probe", "mounted");
+  });
+
+  available = true;
+  await page.getByRole("button", { name: "Try again" }).click();
+
+  await expect(page.getByTestId("auth-bootstrap-error")).toHaveCount(0);
+  await expect(header).toHaveAttribute("data-persistence-probe", "mounted");
+  await expect(header.locator('a[href^="/api/v1/auth/google"]')).toBeVisible();
+});
+
 test("a transient auth failure preserves an active diagnostic", async ({
   page,
 }) => {
