@@ -114,7 +114,14 @@ for (const variant of variants) {
   test.describe(`sr-landing-${variant.name}`, () => {
     test.use({ viewport: variant });
 
-    test("authenticated landing app header", async ({ page }) => {
+    test("authenticated landing app header", async ({ context, page }) => {
+      await context.addCookies([
+        {
+          name: "di_session",
+          value: "opaque-session-hint",
+          url: "http://localhost:3100",
+        },
+      ]);
       await page.route("**/api/v1/me", (route) =>
         route.fulfill({
           json: {
