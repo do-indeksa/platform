@@ -72,10 +72,16 @@ func TestCleanupLoopLogsDeadlineOnce(t *testing.T) {
 	if got := calls.Load(); got != 1 {
 		t.Fatalf("cleanup calls = %d, want one after shutdown with an accumulated tick", got)
 	}
-	for _, fragment := range []string{"cleanup expired auth rows", "context deadline exceeded"} {
+	for _, fragment := range []string{
+		"cleanup expired auth rows",
+		`"error":{"kind":"deadline_exceeded"}`,
+	} {
 		if !strings.Contains(writer.String(), fragment) {
 			t.Errorf("cleanup log %q does not contain %q", writer.String(), fragment)
 		}
+	}
+	if strings.Contains(writer.String(), "context deadline exceeded") {
+		t.Fatalf("cleanup log contains raw error text: %s", writer.String())
 	}
 }
 

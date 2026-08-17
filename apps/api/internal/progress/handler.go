@@ -12,6 +12,7 @@ import (
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 )
 
 const (
@@ -165,6 +166,6 @@ func (h *Handler) requestUser(w http.ResponseWriter, r *http.Request) (auth.User
 }
 
 func (h *Handler) serverError(w http.ResponseWriter, err error, message string) {
-	slog.Error(message, "error", err)
+	slog.Error(message, safelog.Error(err))
 	httpx.WriteError(w, http.StatusInternalServerError, "internal", message)
 }
