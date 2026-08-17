@@ -157,10 +157,24 @@ for (const locale of locales) {
 
 test("language switch keeps the current route", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/tasks?source=official");
+  await page.goto("/tasks?source=official#task-list");
   await page.getByRole("link", { name: "EN", exact: true }).click();
 
-  await expect(page).toHaveURL(/\/en\/tasks\?source=official$/);
+  await expect(page).toHaveURL(/\/en\/tasks\?source=official#task-list$/);
+  await expect(
+    page.getByRole("heading", { name: "Tasks", exact: true }),
+  ).toBeVisible();
+});
+
+test("compact language switch keeps query and hash", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/tasks?source=official#task-list");
+  const language = page.locator('select[aria-label="Jezik"]:visible');
+
+  await expect(language).toBeEnabled();
+  await language.selectOption("en");
+
+  await expect(page).toHaveURL(/\/en\/tasks\?source=official#task-list$/);
   await expect(
     page.getByRole("heading", { name: "Tasks", exact: true }),
   ).toBeVisible();
