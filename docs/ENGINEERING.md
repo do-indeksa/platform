@@ -34,6 +34,7 @@ apps/api/
 - Keep graceful shutdown longer than request execution and deployment termination grace longer than both
 - Log requests through the fixed JSON allowlist; use only server-owned request IDs and route templates
 - Pass operational errors through `safelog.Error`; never log raw error text, types, dependency details, or request data
+- Treat preformatted standard-library or dependency log messages as untrusted input; discard them instead of parsing or redacting them
 - No interfaces until a second implementation exists
 - Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
 - GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints

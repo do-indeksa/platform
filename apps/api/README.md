@@ -51,6 +51,11 @@ internal. A PostgreSQL server error may also retain a validated five-character
 uppercase alphanumeric `error.sqlstate`. Raw error text, wrapper text, concrete
 types, database message/detail/configuration, query data, and network addresses
 are never passed to the logger.
+The HTTP server has an explicit standard-library error logger. It discards each
+preformatted message and emits only the fixed `http server error` event with
+`error.kind=internal`. Failures that occur before routing have no application
+request ID, and their message, remote address, request metadata, and stack are
+not retained.
 It applies embedded goose migrations before accepting traffic. Startup creates
 an instance-scoped goose Provider and coordinates replicas with a renewable
 PostgreSQL table lease instead of session-level advisory state. The lease lasts
