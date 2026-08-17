@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
+	"github.com/do-indeksa/platform/apps/api/internal/httpx"
 )
 
 func TestRouterAppliesSecurityHeaders(t *testing.T) {
@@ -33,6 +37,7 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 				api.Unimplemented{},
 				http.NotFoundHandler(),
 				func(context.Context) error { return nil },
+				slog.New(slog.NewTextHandler(io.Discard, nil)),
 				tt.secure,
 			)
 			for _, endpoint := range []struct {
@@ -45,6 +50,7 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 			} {
 				response := httptest.NewRecorder()
 				request := httptest.NewRequest(http.MethodGet, endpoint.path, nil)
+				request.Header.Set(httpx.RequestIDHeader, "caller-request-id")
 				router.ServeHTTP(response, request)
 
 				if response.Code != endpoint.wantStatus {
@@ -58,6 +64,13 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 				}
 				if got := response.Header().Get("Strict-Transport-Security"); got != tt.wantHSTS {
 					t.Errorf("%s HSTS = %q, want %q", endpoint.path, got, tt.wantHSTS)
+				}
+				requestID := response.Header().Get(httpx.RequestIDHeader)
+				if _, err := uuid.Parse(requestID); err != nil {
+					t.Errorf("%s request ID %q is not a UUID: %v", endpoint.path, requestID, err)
+				}
+				if requestID == "caller-request-id" {
+					t.Errorf("%s retained the caller request ID", endpoint.path)
 				}
 			}
 		})

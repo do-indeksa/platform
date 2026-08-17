@@ -32,6 +32,7 @@ type apiServer struct {
 var _ api.ServerInterface = apiServer{}
 
 func main() {
+	slog.SetDefault(newApplicationLogger(os.Stdout))
 	if err := run(); err != nil {
 		slog.Error("api exited", "error", err)
 		os.Exit(1)
@@ -43,6 +44,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	logger := slog.Default()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -65,7 +67,7 @@ func run() error {
 
 	progressService := progress.NewService(pool)
 	trainingService := training.NewService(pool)
-	go cleanupLoop(ctx, authService.CleanupExpired, slog.Default())
+	go cleanupLoop(ctx, authService.CleanupExpired, logger)
 
 	srv := apiServer{
 		authHandler:     auth.NewHandler(authService),
@@ -80,6 +82,7 @@ func run() error {
 			trainingService,
 		)),
 		pool.Ping,
+		logger,
 		strings.HasPrefix(cfg.auth.CanonicalOrigin, "https://"),
 	)
 
@@ -87,7 +90,7 @@ func run() error {
 
 	errCh := make(chan error, 1)
 	go func() {
-		slog.Info("api listening", "addr", server.Addr)
+		logger.Info("api listening", "addr", server.Addr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}
