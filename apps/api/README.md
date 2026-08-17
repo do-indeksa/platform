@@ -19,6 +19,12 @@ larger value fails configuration with a fixed, credential-free error. Embedded
 migrations and initial expired-auth cleanup then share one signal-derived
 two-minute startup deadline. The HTTP listener opens only after both phases
 succeed.
+The per-process connection pool defaults to 10 connections, independent of the
+available CPU count. An explicit `pool_max_conns` from 1 through 50 is
+preserved. `pool_min_conns` and `pool_min_idle_conns` must each stay between
+zero and the effective maximum. URL and keyword/value connection strings are
+both supported, and invalid bounds fail before pool creation with fixed errors
+that do not render the DSN.
 After startup, expired sessions and OAuth handoff codes are removed once per
 hour under one 30-second operation deadline. Migration 11 gives both
 `expires_at <= now()` predicates a dedicated B-tree index; scheduled runs stay

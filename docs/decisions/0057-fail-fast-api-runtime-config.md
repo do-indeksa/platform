@@ -1,7 +1,8 @@
 # 0057 - Fail-fast API runtime configuration
 
 **Status:** accepted - 2026-08-14; connection-timeout defaults amended by
-[0063](0063-bounded-postgres-startup.md).
+[0063](0063-bounded-postgres-startup.md), and pool sizing amended by
+[0071](0071-bound-postgres-connection-pool.md).
 
 ## Context
 
@@ -23,11 +24,13 @@ Required auth values are checked in a deterministic order.
 
 `DATABASE_URL` must be present and parse successfully with pgx. Missing and
 invalid values return fixed errors; the parser error and raw connection string
-are intentionally not wrapped. Runtime wiring passes the parsed pool
-configuration to `pgxpool.NewWithConfig`, so there is no second parse or
-ambient-only fallback when the variable is empty. Pgx keeps its standard
-libpq-compatible behavior for fields omitted from a non-empty connection
-string, except for the bounded connection-timeout policy added by ADR 0063.
+are intentionally not wrapped. Runtime wiring passes the validated pool
+configuration to `pgxpool.NewWithConfig`, so pool construction does not parse
+the connection string again or permit an ambient-only fallback when the
+variable is empty. Pgx keeps its standard libpq-compatible behavior for fields
+omitted from a non-empty connection string, except for the bounded
+connection-timeout policy added by ADR 0063 and the deterministic pool-sizing
+policy added by ADR 0071.
 
 `PORT` defaults to `8080`. An explicit value must contain only decimal digits
 and resolve to a port from 1 through 65535. The validated value is normalized
@@ -36,9 +39,9 @@ before it becomes the HTTP listen address.
 ## Consequences
 
 Invalid deployments stop before database or background side effects and log
-only the failing variable contract, not its value. Existing valid URLs, pgx
-pool query parameters, defaults for omitted fields, and the default listen port
-keep their behavior.
+only the failing variable contract, not its value. Existing valid URLs,
+in-bounds pgx pool parameters, defaults for unrelated omitted fields, and the
+default listen port keep their behavior.
 
 Configuration parsing does not claim that PostgreSQL is reachable. Migrations
 still prove startup access, while `/healthz` remains a process-liveness endpoint
