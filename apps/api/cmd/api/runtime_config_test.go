@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoadRuntimeConfigAcceptsValidEnvironment(t *testing.T) {
@@ -32,15 +33,23 @@ func TestLoadRuntimeConfigAcceptsValidEnvironment(t *testing.T) {
 			if cfg.database == nil || cfg.database.ConnConfig.Host != "db.internal" {
 				t.Fatal("database config was not parsed as expected")
 			}
+			if cfg.database.ConnConfig.ConnectTimeout != defaultDatabaseConnectTimeout {
+				t.Fatalf(
+					"connect timeout = %v, want %v",
+					cfg.database.ConnConfig.ConnectTimeout,
+					defaultDatabaseConnectTimeout,
+				)
+			}
 		})
 	}
 }
 
 func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 	tests := []struct {
-		name        string
-		databaseURL string
-		wantError   string
+		name             string
+		databaseURL      string
+		pgConnectTimeout string
+		wantError        string
 	}{
 		{name: "missing", wantError: "DATABASE_URL is required"},
 		{name: "whitespace", databaseURL: " \t", wantError: "DATABASE_URL is required"},
@@ -49,12 +58,30 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 			databaseURL: "postgresql://api:do-not-log@db.internal:invalid/do_indeksa",
 			wantError:   "DATABASE_URL is invalid",
 		},
+		{
+			name:        "excessive URL connection timeout",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?connect_timeout=31",
+			wantError:   "DATABASE_URL connect_timeout must not exceed 30 seconds",
+		},
+		{
+			name: "excessive keyword connection timeout",
+			databaseURL: "host=db.internal user=api password=do-not-log " +
+				"dbname=do_indeksa connect_timeout=31",
+			wantError: "DATABASE_URL connect_timeout must not exceed 30 seconds",
+		},
+		{
+			name:             "excessive ambient connection timeout",
+			databaseURL:      "postgresql://api:do-not-log@db.internal/do_indeksa",
+			pgConnectTimeout: "31",
+			wantError:        "DATABASE_URL connect_timeout must not exceed 30 seconds",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			setValidRuntimeEnvironment(t)
 			t.Setenv("DATABASE_URL", tt.databaseURL)
+			t.Setenv("PGCONNECT_TIMEOUT", tt.pgConnectTimeout)
 
 			_, err := loadRuntimeConfig()
 			if err == nil || err.Error() != tt.wantError {
@@ -64,6 +91,73 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 				if sensitive != "" && strings.Contains(err.Error(), sensitive) {
 					t.Errorf("configuration error disclosed %q", sensitive)
 				}
+			}
+		})
+	}
+}
+
+func TestDatabaseConfigBoundsConnectionAttempts(t *testing.T) {
+	tests := []struct {
+		name             string
+		databaseURL      string
+		pgConnectTimeout string
+		wantTimeout      time.Duration
+	}{
+		{
+			name:        "URL application default",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?sslmode=require",
+			wantTimeout: 5 * time.Second,
+		},
+		{
+			name:        "keyword application default",
+			databaseURL: "host=db.internal user=api password=password dbname=do_indeksa sslmode=require",
+			wantTimeout: 5 * time.Second,
+		},
+		{
+			name:        "explicit zero uses application default",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?connect_timeout=0",
+			wantTimeout: 5 * time.Second,
+		},
+		{
+			name:        "positive URL timeout",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?connect_timeout=1",
+			wantTimeout: time.Second,
+		},
+		{
+			name:        "positive keyword timeout",
+			databaseURL: "host=db.internal user=api password=password dbname=do_indeksa connect_timeout=9",
+			wantTimeout: 9 * time.Second,
+		},
+		{
+			name:        "maximum URL timeout",
+			databaseURL: "postgresql://api:password@db.internal/do_indeksa?connect_timeout=30",
+			wantTimeout: 30 * time.Second,
+		},
+		{
+			name:             "bounded ambient timeout",
+			databaseURL:      "postgresql://api:password@db.internal/do_indeksa",
+			pgConnectTimeout: "7",
+			wantTimeout:      7 * time.Second,
+		},
+		{
+			name:             "connection string overrides ambient timeout",
+			databaseURL:      "postgresql://api:password@db.internal/do_indeksa?connect_timeout=8",
+			pgConnectTimeout: "31",
+			wantTimeout:      8 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("DATABASE_URL", tt.databaseURL)
+			t.Setenv("PGCONNECT_TIMEOUT", tt.pgConnectTimeout)
+
+			cfg, err := databaseConfig()
+			if err != nil {
+				t.Fatalf("databaseConfig() error = %v", err)
+			}
+			if got := cfg.ConnConfig.ConnectTimeout; got != tt.wantTimeout {
+				t.Fatalf("connect timeout = %v, want %v", got, tt.wantTimeout)
 			}
 		})
 	}
@@ -148,4 +242,5 @@ func setValidRuntimeEnvironment(t *testing.T) {
 	t.Setenv("CANONICAL_WEB_ORIGIN", "https://doindeksa.rs")
 	t.Setenv("EXTRA_WEB_ORIGINS", "")
 	t.Setenv("PREVIEW_ORIGIN_SUFFIX", "")
+	t.Setenv("PGCONNECT_TIMEOUT", "")
 }
