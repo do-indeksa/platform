@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Suspense, useEffect, useState } from "react";
 import { usePathname } from "@/i18n/navigation";
-import { routing, type AppLocale } from "@/i18n/routing";
+import type { AppLocale } from "@/i18n/routing";
+import { buildLocaleHref, buildLocalePathname } from "@/lib/locale-navigation";
 
 const localeLabels: Record<AppLocale, string> = {
   sr: "SR",
@@ -18,6 +19,19 @@ const fullSegmentWidths: Record<AppLocale, string> = {
   en: "w-[42px]",
   sr: "w-[42px]",
 };
+
+function appLocale(value: string): AppLocale | null {
+  switch (value) {
+    case "sr":
+      return "sr";
+    case "en":
+      return "en";
+    case "ru":
+      return "ru";
+    default:
+      return null;
+  }
+}
 
 export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   return (
@@ -42,22 +56,12 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
     return () => window.removeEventListener("hashchange", updateHash);
   }, []);
 
-  const localeHref = (nextLocale: AppLocale) => {
-    const suffix = pathname === "/" ? "" : pathname;
-    const localizedPath =
-      nextLocale === routing.defaultLocale
-        ? pathname
-        : `/${nextLocale}${suffix}`;
-    return query ? `${localizedPath}?${query}` : localizedPath;
-  };
-
-  const localeHrefWithHash = (nextLocale: AppLocale) =>
-    `${localeHref(nextLocale)}${currentHash ?? ""}`;
+  const localeHref = (nextLocale: AppLocale) =>
+    buildLocaleHref(pathname, nextLocale, query, currentHash ?? "");
 
   const replaceLocale = (nextLocale: AppLocale) => {
-    // A document navigation avoids stale concurrent RSC responses on locale changes.
-    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-    window.location.assign(`${localeHref(nextLocale)}${window.location.hash}`);
+    // Updating only pathname keeps search and hash while forcing a document navigation.
+    window.location.pathname = buildLocalePathname(pathname, nextLocale);
   };
 
   if (compact) {
@@ -77,7 +81,10 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
           aria-label={t("language")}
           value={locale}
           disabled={currentHash === null}
-          onChange={(event) => replaceLocale(event.target.value as AppLocale)}
+          onChange={(event) => {
+            const nextLocale = appLocale(event.target.value);
+            if (nextLocale) replaceLocale(nextLocale);
+          }}
           className="absolute inset-0 cursor-pointer appearance-none opacity-0"
         >
           {languageOrder.map((item) => (
@@ -102,11 +109,7 @@ function LanguageSwitcherContent({ compact }: { compact: boolean }) {
         return (
           <a
             key={item}
-            href={localeHrefWithHash(item)}
-            onClick={(event) => {
-              event.preventDefault();
-              replaceLocale(item);
-            }}
+            href={localeHref(item)}
             aria-disabled={currentHash === null ? true : undefined}
             aria-current={active ? "page" : undefined}
             tabIndex={currentHash === null ? -1 : undefined}
