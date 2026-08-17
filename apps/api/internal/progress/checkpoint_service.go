@@ -205,7 +205,7 @@ func validateCheckpointItems(input CheckpointRunInput, items []RunItem) error {
 
 func validateCheckpointInput(input CheckpointRunInput) error {
 	if input.ID == uuid.Nil || input.ExpectedVersion < 0 ||
-		input.CurrentOrdinal < 1 || input.CurrentOrdinal > maxRunItems ||
+		input.CurrentOrdinal < 1 || input.CurrentOrdinal > MaxRunItems ||
 		len(input.Drafts) > int(MaxRunCheckpointDrafts) {
 		return invalidInput("checkpoint")
 	}

@@ -21,7 +21,7 @@ func TestGraphQLRejectsTransportAndProtocolInputBeforeSessionLookup(t *testing.T
 		"query { prepPreferences { version } }",
 		maxGraphQLDocumentBytes+1,
 	)
-	complexityFields := make([]string, 25)
+	complexityFields := make([]string, 2)
 	for index := range complexityFields {
 		complexityFields[index] = fmt.Sprintf("runs%d: runs(limit: 100) { id }", index)
 	}

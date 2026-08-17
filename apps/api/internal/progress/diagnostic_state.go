@@ -109,7 +109,7 @@ func classifySnapshottedDiagnosticAssignment(run Run, items []RunItem) (bool, er
 }
 
 func validSnapshottedDiagnosticRun(run Run, items []RunItem) bool {
-	if len(items) != p1TaskCount || !p1BlueprintPattern.MatchString(run.BlueprintVersion) ||
+	if len(items) != P1TaskCount || !p1BlueprintPattern.MatchString(run.BlueprintVersion) ||
 		!snapshotRevisionPattern.MatchString(run.ContentRevision) || run.StartedAt.UnixMilli() <= 0 {
 		return false
 	}

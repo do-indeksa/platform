@@ -18,7 +18,7 @@ func snapshottedDiagnosticRun() StartRunInput {
 		BlueprintVersion: "ftn-p1:2026.1",
 		ContentRevision:  "sha256:" + strings.Repeat("a", 64),
 		StartedAt:        startedAt,
-		Items:            make([]NewRunItem, p1TaskCount),
+		Items:            make([]NewRunItem, P1TaskCount),
 	}
 	for index := range run.Items {
 		taskID := fmt.Sprintf("task-%d", index+1)

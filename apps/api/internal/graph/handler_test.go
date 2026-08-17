@@ -101,7 +101,7 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 		t.Fatalf("non-JSON POST returned status %d", recorder.Code)
 	}
 
-	aliases := make([]string, 25)
+	aliases := make([]string, 2)
 	for i := range aliases {
 		aliases[i] = fmt.Sprintf("r%d: runs(limit: 100) { id }", i)
 	}
@@ -110,14 +110,19 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 		t.Fatalf("complex query was accepted: %+v", payload)
 	}
 
+	attemptQuery := `attempts(limit: 1000) {
+		id taskId examPosition mode startedAt submittedAt activeDurationMs answer
+		outcome helpLevel gradingKind earnedPoints maxPoints taskRevision
+	}`
+	_, payload = graphRequest(t, "query {"+attemptQuery+"}", nil, session)
+	requireGraphSuccess(t, payload)
 	_, payload = graphRequest(t, `query {
-		attempts(limit: 1000) {
-			id taskId examPosition mode startedAt submittedAt activeDurationMs answer
-			outcome helpLevel gradingKind earnedPoints maxPoints taskRevision
-		}
+		first: `+attemptQuery+`
+		second: `+attemptQuery+`
+		third: `+attemptQuery+`
 	}`, nil, session)
 	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
-		t.Fatalf("wide attempt journal was accepted: %+v", payload)
+		t.Fatalf("repeated maximum attempt journals were accepted: %+v", payload)
 	}
 
 	archiveQuery := `completedSimulationRuns(limit: 20) {
@@ -126,9 +131,13 @@ func TestGraphQLTransportSurfaceIsBounded(t *testing.T) {
 	}`
 	_, payload = graphRequest(t, "query {"+archiveQuery+"}", nil, session)
 	requireGraphSuccess(t, payload)
-	_, payload = graphRequest(t, "query { first:"+archiveQuery+" second:"+archiveQuery+"}", nil, session)
+	archiveAliases := make([]string, 16)
+	for i := range archiveAliases {
+		archiveAliases[i] = fmt.Sprintf("a%d: %s", i, archiveQuery)
+	}
+	_, payload = graphRequest(t, "query {"+strings.Join(archiveAliases, "\n")+"}", nil, session)
 	if len(payload.Errors) == 0 || !strings.Contains(strings.ToLower(payload.Errors[0].Message), "complexity") {
-		t.Fatalf("duplicated archive query was accepted: %+v", payload)
+		t.Fatalf("repeated maximum archives were accepted: %+v", payload)
 	}
 
 	_, payload = graphRequest(t, `query { __schema { queryType { name } } }`, nil, session)
