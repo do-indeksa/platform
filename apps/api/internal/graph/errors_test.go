@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"strings"
 	"testing"
@@ -45,6 +46,33 @@ func TestGraphQLRecoveryDoesNotLogPanicValue(t *testing.T) {
 	for key := range entry {
 		if !allowed[key] {
 			t.Errorf("recovery entry contains unexpected field %q: %#v", key, entry)
+		}
+	}
+}
+
+func TestGraphQLOperationErrorDoesNotLogDetails(t *testing.T) {
+	var output bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&output, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	ctx := context.WithValue(context.Background(), middleware.RequestIDKey, "request-id")
+	err := presentError(ctx, errors.New("graphql-operation-error-secret"))
+	if !strings.Contains(err.Error(), "internal server error") {
+		t.Fatalf("presented error = %q", err)
+	}
+
+	logs := output.String()
+	if strings.Contains(logs, "graphql-operation-error-secret") {
+		t.Fatalf("logs contain GraphQL operation error details: %s", logs)
+	}
+	for _, fragment := range []string{
+		`"msg":"graphql operation failed"`,
+		`"request_id":"request-id"`,
+		`"error":{"kind":"internal"}`,
+	} {
+		if !strings.Contains(logs, fragment) {
+			t.Errorf("GraphQL error log %q does not contain %q", logs, fragment)
 		}
 	}
 }

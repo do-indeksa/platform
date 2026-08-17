@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/oauth2"
+
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 )
 
 var (
@@ -194,7 +196,7 @@ func (s *Service) SessionUser(ctx context.Context, token string) (User, bool, er
 		ExpiresAt: time.Now().Add(sessionTTL),
 	})
 	if err != nil {
-		slog.Warn("session extension failed", "error", err)
+		slog.Warn("session extension failed", safelog.Error(err))
 		return row.User, false, nil
 	}
 	if updated != 1 {

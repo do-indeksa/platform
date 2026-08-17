@@ -10,6 +10,7 @@ import (
 
 	"github.com/do-indeksa/platform/apps/api/internal/api"
 	"github.com/do-indeksa/platform/apps/api/internal/httpx"
+	"github.com/do-indeksa/platform/apps/api/internal/safelog"
 )
 
 type Handler struct {
@@ -27,7 +28,7 @@ func ParamErrorHandler(w http.ResponseWriter, _ *http.Request, err error) {
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	if cookie, err := h.service.requestSessionCookie(r); err == nil {
 		if err := h.service.Logout(r.Context(), cookie.Value); err != nil {
-			slog.Warn("logout session delete failed", "error", err)
+			slog.Warn("logout session delete failed", safelog.Error(err))
 		}
 	}
 	http.SetCookie(w, h.service.sessionCookie("", -1))
@@ -84,7 +85,7 @@ func (h *Handler) setSessionCookie(w http.ResponseWriter, r *http.Request, user 
 }
 
 func (h *Handler) serverError(w http.ResponseWriter, err error, message string) {
-	slog.Error(message, "error", err)
+	slog.Error(message, safelog.Error(err))
 	httpx.WriteError(w, http.StatusInternalServerError, "internal", message)
 }
 
