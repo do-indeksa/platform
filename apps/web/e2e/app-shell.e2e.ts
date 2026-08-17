@@ -84,23 +84,80 @@ test("health check bypasses locale routing", async ({ request }) => {
   expect(response.headers()["cache-control"]).toContain("no-store");
 });
 
-test("analytics bootstrap fails closed without runtime config", async ({
+test("analytics endpoints fail closed without runtime config", async ({
   request,
 }) => {
-  const response = await request.get("/analytics/bootstrap.js");
+  const bootstrap = await request.get("/analytics/bootstrap.js");
 
-  expect(response.status()).toBe(200);
-  expect(response.headers()["cache-control"]).toContain("no-store");
-  expect(response.headers()["content-type"]).toContain(
+  expect(bootstrap.status()).toBe(200);
+  expect(bootstrap.headers()["cache-control"]).toContain("no-store");
+  expect(bootstrap.headers()["content-type"]).toContain(
     "application/javascript",
   );
-  expect(response.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(bootstrap.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(await bootstrap.text()).toContain("/analytics/config.json");
+
+  const config = await request.get("/analytics/config.json");
+  expect(config.status()).toBe(204);
+  expect(config.headers()["cache-control"]).toContain("no-store");
+  expect(config.headers()["content-type"]).toContain("application/json");
+  expect(config.headers()["x-content-type-options"]).toBe("nosniff");
+  expect(await config.text()).toBe("");
+});
+
+test("analytics bootstrap applies runtime data once", async ({ page }) => {
+  let configRequests = 0;
+  await page.route("**/analytics/config.json", async (route) => {
+    configRequests += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        scriptUrl: "https://analytics.example.com/script.js",
+        websiteId: "94db1cb1-74f4-4a40-ad6c-962362670409",
+        domains: "do-indeksa.rs,www.do-indeksa.rs",
+      }),
+    });
+  });
+  await page.route("https://analytics.example.com/script.js", (route) =>
+    route.fulfill({ contentType: "application/javascript", body: "" }),
+  );
+
+  await page.goto("/en/tasks");
+
+  const tracker = page.locator("#umami-analytics");
+  await expect(tracker).toHaveCount(1);
+  await expect(tracker).toHaveAttribute(
+    "src",
+    "https://analytics.example.com/script.js",
+  );
+  await expect(tracker).toHaveAttribute(
+    "data-website-id",
+    "94db1cb1-74f4-4a40-ad6c-962362670409",
+  );
+  await expect(tracker).toHaveAttribute(
+    "data-domains",
+    "do-indeksa.rs,www.do-indeksa.rs",
+  );
+  await expect(tracker).toHaveAttribute("data-do-not-track", "true");
+  await expect(tracker).toHaveAttribute("data-exclude-search", "true");
+  await expect(tracker).toHaveAttribute("data-exclude-hash", "true");
+
+  await page.addScriptTag({ url: "/analytics/bootstrap.js" });
+
+  await expect(tracker).toHaveCount(1);
+  expect(configRequests).toBe(1);
 });
 
 test("web responses enforce the browser security baseline", async ({
   request,
 }) => {
-  for (const path of ["/en/tasks", "/healthz", "/analytics/bootstrap.js"]) {
+  for (const path of [
+    "/en/tasks",
+    "/healthz",
+    "/analytics/bootstrap.js",
+    "/analytics/config.json",
+  ]) {
     const response = await request.get(path);
     const headers = response.headers();
 
