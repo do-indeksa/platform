@@ -51,12 +51,20 @@ jobs:
           status=$?
           set -e
 
-          if [[ "${status}" -ne 1 ]] ||
-            ! grep --fixed-strings --quiet 'github-pat' <<< "${output}" ||
-            ! grep --fixed-strings --quiet 'REDACTED' <<< "${output}" ||
-            grep --fixed-strings --quiet "${canary}" <<< "${output}"; then
-            printf '%s\n' "${output}" >&2
-            echo "gitleaks failed its synthetic finding control" >&2
+          if [[ "${status}" -ne 1 ]]; then
+            printf 'gitleaks returned status %s; expected finding status 1\n' "${status}" >&2
+            exit 1
+          fi
+          if grep --fixed-strings --quiet "${canary}" <<< "${output}"; then
+            echo "gitleaks exposed the synthetic canary" >&2
+            exit 1
+          fi
+          if ! grep --fixed-strings --quiet 'github-pat' <<< "${output}"; then
+            echo "gitleaks did not identify the github-pat rule" >&2
+            exit 1
+          fi
+          if ! grep --fixed-strings --quiet 'REDACTED' <<< "${output}"; then
+            echo "gitleaks did not redact the synthetic finding" >&2
             exit 1
           fi
       - name: Scan Git history
