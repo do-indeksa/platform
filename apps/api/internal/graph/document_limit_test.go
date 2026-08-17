@@ -36,7 +36,11 @@ func TestGraphQLDocumentByteBoundary(t *testing.T) {
 			session := seedGraphTransportSession(t, "-document-byte-boundary")
 			query := paddedGraphQLDocument(t, savePrepPreferencesMutation, tt.queryBytes)
 			body := graphEnvelope(t, query, map[string]any{
-				"input": prepPreferencesInput(0, 42, "2028-02-29"),
+				"input": map[string]any{
+					"expectedVersion": int64(0),
+					"goalPoints":      42,
+					"examDate":        "2028-02-29",
+				},
 			})
 			request := graphTransportRequest(t, bytes.NewReader(body), "application/json", session)
 			response := httptest.NewRecorder()
@@ -47,7 +51,7 @@ func TestGraphQLDocumentByteBoundary(t *testing.T) {
 				if response.Code != tt.wantStatus {
 					t.Fatalf("mutation returned %d: %s", response.Code, response.Body.String())
 				}
-				assertGraphPrepPreferences(t, session, &prepPreferencesPayload{
+				assertTransportPrepPreferences(t, session, &prepPreferencesPayload{
 					GoalPoints: 42,
 					ExamDate:   "2028-02-29",
 					Version:    1,
@@ -55,7 +59,7 @@ func TestGraphQLDocumentByteBoundary(t *testing.T) {
 				return
 			}
 			assertGraphTransportError(t, response.Result(), tt.wantStatus, tt.wantCode)
-			assertGraphPrepPreferences(t, session, nil)
+			assertTransportPrepPreferences(t, session, nil)
 		})
 	}
 }
@@ -69,7 +73,11 @@ func TestGraphQLDocumentTokenLimitRejectsBeforeMutation(t *testing.T) {
 		t.Fatalf("token-limit query = %d bytes, want at most %d", len(query), maxGraphQLDocumentBytes)
 	}
 	body := graphEnvelope(t, query, map[string]any{
-		"input": prepPreferencesInput(0, 42, "2028-02-29"),
+		"input": map[string]any{
+			"expectedVersion": int64(0),
+			"goalPoints":      42,
+			"examDate":        "2028-02-29",
+		},
 	})
 	request := graphTransportRequest(t, bytes.NewReader(body), "application/json", session)
 	response := httptest.NewRecorder()
@@ -82,7 +90,7 @@ func TestGraphQLDocumentTokenLimitRejectsBeforeMutation(t *testing.T) {
 		http.StatusUnprocessableEntity,
 		"GRAPHQL_PARSE_FAILED",
 	)
-	assertGraphPrepPreferences(t, session, nil)
+	assertTransportPrepPreferences(t, session, nil)
 }
 
 func paddedGraphQLDocument(t *testing.T, query string, size int) string {
