@@ -384,4 +384,5 @@ func setValidRuntimeEnvironment(t *testing.T) {
 	t.Setenv("EXTRA_WEB_ORIGINS", "")
 	t.Setenv("PREVIEW_ORIGIN_SUFFIX", "")
 	t.Setenv("PGCONNECT_TIMEOUT", "")
+	t.Setenv("MAX_IN_FLIGHT_REQUESTS", "")
 }
