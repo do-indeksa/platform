@@ -13,7 +13,8 @@ without the `application/json` media type declared by OpenAPI.
 require an `application/json` media type. Parameters such as `charset=utf-8` are
 allowed. A known content length above 256 KiB is rejected before reading, and a
 streaming `MaxBytesReader` enforces the same limit when length is absent or
-incorrect.
+incorrect. The bounded read completes before JSON decoding so a streamed size
+violation remains `request_too_large` even when the payload is also malformed.
 
 The decoder must read exactly one non-null top-level attempt array followed only
 by JSON whitespace and EOF. Empty arrays retain the existing `invalid_batch`

@@ -1,6 +1,7 @@
 package progress
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -72,7 +73,12 @@ func (h *Handler) RecordAttempts(w http.ResponseWriter, r *http.Request) {
 	}
 	var body []api.NewAttempt
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-	decoder := json.NewDecoder(r.Body)
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeAttemptBodyError(w, err)
+		return
+	}
+	decoder := json.NewDecoder(bytes.NewReader(payload))
 	if err := decoder.Decode(&body); err != nil {
 		writeAttemptBodyError(w, err)
 		return

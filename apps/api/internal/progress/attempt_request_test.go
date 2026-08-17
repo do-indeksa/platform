@@ -65,6 +65,7 @@ func TestRecordAttemptsRejectsInvalidJSONFramingWithoutWrites(t *testing.T) {
 		contentType string
 		status      int
 		code        string
+		streamed    bool
 	}{
 		{
 			name:   "missing media type",
@@ -116,6 +117,18 @@ func TestRecordAttemptsRejectsInvalidJSONFramingWithoutWrites(t *testing.T) {
 			contentType: "application/json",
 			status:      http.StatusRequestEntityTooLarge,
 			code:        "request_too_large",
+			streamed:    true,
+		},
+		{
+			name: "malformed streamed oversized body",
+			body: io.MultiReader(
+				strings.NewReader("!"),
+				strings.NewReader(strings.Repeat(" ", maxBodyBytes)),
+			),
+			contentType: "application/json",
+			status:      http.StatusRequestEntityTooLarge,
+			code:        "request_too_large",
+			streamed:    true,
 		},
 	}
 	for _, tt := range tests {
@@ -123,7 +136,7 @@ func TestRecordAttemptsRejectsInvalidJSONFramingWithoutWrites(t *testing.T) {
 			app := newTestApp(t)
 			user, session := seedUserSession(t, "-strict-failure-"+uuid.NewString())
 			request := attemptRequest(t, "/v1/attempts", tt.body, tt.contentType, session)
-			if tt.name == "streamed oversized body" && request.ContentLength != -1 {
+			if tt.streamed && request.ContentLength != -1 {
 				t.Fatalf("streamed body content length = %d, want -1", request.ContentLength)
 			}
 			response := httptest.NewRecorder()
