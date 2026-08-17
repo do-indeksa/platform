@@ -7,6 +7,7 @@ on:
       - apps/api/**
       - apps/web/**
       - content/**
+      - .github/scripts/select-images.sh
       - .github/workflows/images.yml
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - apps/api/**
       - apps/web/**
       - content/**
+      - .github/scripts/select-images.sh
       - .github/workflows/images.yml
 
 permissions:
@@ -25,20 +27,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  select-images:
+    name: select
+    runs-on: ubuntu-24.04
+    outputs:
+      images: ${{ steps.images.outputs.images }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select images
+        id: images
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          changed_paths=()
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            changed_file="$(mktemp)"
+            trap 'rm -f "${changed_file}"' EXIT
+            git diff --name-only --no-renames -z "${BASE_SHA}" "${HEAD_SHA}" > "${changed_file}"
+            mapfile -d '' -t changed_paths < "${changed_file}"
+          fi
+          images="$(.github/scripts/select-images.sh "${EVENT_NAME}" "${changed_paths[@]}")"
+          printf 'images=%s\n' "${images}" >> "${GITHUB_OUTPUT}"
+
   build:
     name: ${{ matrix.image }}
+    needs: select-images
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: api
-            context: ./apps/api
-            file: ./apps/api/Dockerfile
-          - image: web
-            context: .
-            file: ./apps/web/Dockerfile
+        image: ${{ fromJSON(needs.select-images.outputs.images) }}
     env:
+      IMAGE_CONTEXT: ${{ matrix.image == 'api' && './apps/api' || '.' }}
+      IMAGE_FILE: ${{ matrix.image == 'api' && './apps/api/Dockerfile' || './apps/web/Dockerfile' }}
       LOCAL_IMAGE: do-indeksa-${{ matrix.image }}:ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -59,8 +88,8 @@ jobs:
       - name: Build test image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
+          context: ${{ env.IMAGE_CONTEXT }}
+          file: ${{ env.IMAGE_FILE }}
           platforms: linux/amd64
           load: true
           push: false
