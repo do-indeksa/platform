@@ -31,3 +31,5 @@ sliding expiries aligned. Transport and GraphQL validation failures remain
 independent of session persistence, and rejected cross-origin requests cannot
 refresh a cookie. Session duration, token format, OAuth flows, and the existing
 host-prefixed HTTPS and local-development cookie policies do not change.
+ADR 0077 later moved the persisted expiry and refresh-window calculation to the
+PostgreSQL clock without changing this request-scoped cookie contract.

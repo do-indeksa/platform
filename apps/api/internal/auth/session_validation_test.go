@@ -11,12 +11,12 @@ import (
 )
 
 func TestSessionExtensionDoesNotReviveExpiredRow(t *testing.T) {
-	expiredAt := time.Now().Add(-time.Hour)
+	expiredAt := databaseClock(t).Add(-time.Hour)
 	session := seedSession(t, expiredAt)
 
 	updated, err := New(testPool).ExtendSession(t.Context(), ExtendSessionParams{
-		TokenHash: hashSecret(session.Value),
-		ExpiresAt: time.Now().Add(sessionTTL),
+		TokenHash:  hashSecret(session.Value),
+		TtlSeconds: sessionTTLSeconds,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestSessionExtensionDoesNotReviveExpiredRow(t *testing.T) {
 	).Scan(&storedExpiry); err != nil {
 		t.Fatal(err)
 	}
-	if !storedExpiry.Before(time.Now()) {
+	if !storedExpiry.Before(databaseClock(t)) {
 		t.Fatalf("expired session was revived until %v", storedExpiry)
 	}
 }

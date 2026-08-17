@@ -7,7 +7,6 @@ package auth
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -56,7 +55,15 @@ insert into auth_codes (
     browser_binding_hash,
     expires_at
 )
-values ($1, $2, $3, $4, $5, $6, $7)
+values (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    now() + ($7::integer * interval '1 second')
+)
 `
 
 type CreateAuthCodeParams struct {
@@ -66,7 +73,7 @@ type CreateAuthCodeParams struct {
 	Redirect           string
 	BrowserBindingID   *string
 	BrowserBindingHash []byte
-	ExpiresAt          time.Time
+	TtlSeconds         int32
 }
 
 func (q *Queries) CreateAuthCode(ctx context.Context, arg CreateAuthCodeParams) error {
@@ -77,24 +84,28 @@ func (q *Queries) CreateAuthCode(ctx context.Context, arg CreateAuthCodeParams) 
 		arg.Redirect,
 		arg.BrowserBindingID,
 		arg.BrowserBindingHash,
-		arg.ExpiresAt,
+		arg.TtlSeconds,
 	)
 	return err
 }
 
 const createSession = `-- name: CreateSession :exec
 insert into sessions (token_hash, user_id, expires_at)
-values ($1, $2, $3)
+values (
+    $1,
+    $2,
+    now() + ($3::integer * interval '1 second')
+)
 `
 
 type CreateSessionParams struct {
-	TokenHash []byte
-	UserID    uuid.UUID
-	ExpiresAt time.Time
+	TokenHash  []byte
+	UserID     uuid.UUID
+	TtlSeconds int32
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) error {
-	_, err := q.db.Exec(ctx, createSession, arg.TokenHash, arg.UserID, arg.ExpiresAt)
+	_, err := q.db.Exec(ctx, createSession, arg.TokenHash, arg.UserID, arg.TtlSeconds)
 	return err
 }
 
@@ -172,17 +183,21 @@ func (q *Queries) DeleteSession(ctx context.Context, tokenHash []byte) error {
 
 const extendSession = `-- name: ExtendSession :execrows
 update sessions
-set expires_at = $2
-where token_hash = $1 and expires_at > now()
+set expires_at = greatest(
+    expires_at,
+    now() + ($1::integer * interval '1 second')
+)
+where token_hash = $2
+    and expires_at > now()
 `
 
 type ExtendSessionParams struct {
-	TokenHash []byte
-	ExpiresAt time.Time
+	TtlSeconds int32
+	TokenHash  []byte
 }
 
 func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) (int64, error) {
-	result, err := q.db.Exec(ctx, extendSession, arg.TokenHash, arg.ExpiresAt)
+	result, err := q.db.Exec(ctx, extendSession, arg.TtlSeconds, arg.TokenHash)
 	if err != nil {
 		return 0, err
 	}
@@ -190,19 +205,27 @@ func (q *Queries) ExtendSession(ctx context.Context, arg ExtendSessionParams) (i
 }
 
 const getSessionUser = `-- name: GetSessionUser :one
-select users.id, users.google_sub, users.email, users.name, users.picture_url, users.created_at, sessions.expires_at
+select users.id, users.google_sub, users.email, users.name, users.picture_url, users.created_at,
+       sessions.expires_at <
+         now() + ($1::integer * interval '1 second') as refresh_due
 from sessions
 join users on users.id = sessions.user_id
-where sessions.token_hash = $1 and sessions.expires_at > now()
+where sessions.token_hash = $2
+    and sessions.expires_at > now()
 `
 
-type GetSessionUserRow struct {
-	User      User
-	ExpiresAt time.Time
+type GetSessionUserParams struct {
+	RefreshWindowSeconds int32
+	TokenHash            []byte
 }
 
-func (q *Queries) GetSessionUser(ctx context.Context, tokenHash []byte) (GetSessionUserRow, error) {
-	row := q.db.QueryRow(ctx, getSessionUser, tokenHash)
+type GetSessionUserRow struct {
+	User       User
+	RefreshDue bool
+}
+
+func (q *Queries) GetSessionUser(ctx context.Context, arg GetSessionUserParams) (GetSessionUserRow, error) {
+	row := q.db.QueryRow(ctx, getSessionUser, arg.RefreshWindowSeconds, arg.TokenHash)
 	var i GetSessionUserRow
 	err := row.Scan(
 		&i.User.ID,
@@ -211,7 +234,7 @@ func (q *Queries) GetSessionUser(ctx context.Context, tokenHash []byte) (GetSess
 		&i.User.Name,
 		&i.User.PictureUrl,
 		&i.User.CreatedAt,
-		&i.ExpiresAt,
+		&i.RefreshDue,
 	)
 	return i, err
 }

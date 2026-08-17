@@ -143,6 +143,14 @@ HTTPS sessions use the host-prefixed `__Host-di_session` cookie with `Secure`,
 loopback development uses `di_session`; production does not accept that legacy
 name as a fallback.
 
+PostgreSQL is the clock authority for persisted authentication lifetimes. New
+sessions and preview handoff codes store database `now()` plus their declared
+30-day or 30-second TTL, and the database also decides when a session enters its
+15-day refresh window. A live session extension keeps the later of its current
+expiry and database `now()` plus 30 days, so delayed concurrent refreshes cannot
+move it backward. Browser cookie duration is unchanged; stateless OAuth tokens
+retain their explicit process-clock skew allowance.
+
 Every unsafe API request requires an exact configured browser `Origin`, or an
 equivalent `Referer` origin when `Origin` is unavailable, before endpoint
 authentication runs. This also applies when `SameSite=Lax` omits the session

@@ -23,3 +23,5 @@ resolved identity before concurrent revocation may still finish, as it could
 before this decision, but it cannot prolong that identity unless PostgreSQL
 confirms one live-row update. Session duration, refresh threshold, cookie
 policy, and logout behavior remain unchanged.
+ADR 0077 later made that live-row update database-clocked and monotonic so an
+older delayed refresh cannot replace a newer expiry.

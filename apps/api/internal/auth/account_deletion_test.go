@@ -55,13 +55,7 @@ func seedAccountFixture(t *testing.T, sessionExpiries ...time.Time) accountFixtu
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := queries.CreateSession(ctx, CreateSessionParams{
-			TokenHash: tokenHash,
-			UserID:    user.ID,
-			ExpiresAt: expiresAt,
-		}); err != nil {
-			t.Fatal(err)
-		}
+		insertSessionFixture(t, tokenHash, user.ID, expiresAt)
 		sessions = append(sessions, &http.Cookie{Name: localSessionCookieName, Value: token})
 	}
 
