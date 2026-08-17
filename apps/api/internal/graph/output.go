@@ -52,6 +52,7 @@ func graphTrainingDifficulty(
 		return "", fmt.Errorf("unknown training difficulty %q", difficulty)
 	}
 }
+
 func graphRun(aggregate progress.RunAggregate) (*model.Run, error) {
 	kind, err := graphRunKind(aggregate.Run.Kind)
 	if err != nil {
