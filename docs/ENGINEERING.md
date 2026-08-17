@@ -53,6 +53,7 @@ apps/api/
 - Web: ESLint (`next/core-web-vitals`) + Prettier
 - Repository: actionlint for workflows and gitleaks across complete Git history
 - Code scanning: CodeQL for Go, JavaScript/TypeScript, and GitHub Actions on code changes and weekly
+- Runtime: every workflow job has an explicit timeout based on observed duration with cold-cache headroom
 
 ## Testing policy
 
