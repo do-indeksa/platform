@@ -33,29 +33,21 @@ func TestSessionInsertFailureRollsBackHandoffConsumption(t *testing.T) {
 		BrowserBindingID:   ptr(binding.ID),
 		BrowserBindingHash: bindingHash,
 	}
-	if err := service.queries.CreateAuthCode(ctx, CreateAuthCodeParams{
-		CodeHash:           params.CodeHash,
-		UserID:             user.ID,
-		Origin:             params.Origin,
-		Redirect:           "/prep",
-		BrowserBindingID:   params.BrowserBindingID,
-		BrowserBindingHash: params.BrowserBindingHash,
-		ExpiresAt:          time.Now().Add(codeTTL),
-	}); err != nil {
-		t.Fatal(err)
-	}
+	insertAuthCodeFixture(t, authCodeFixture{
+		codeHash:           params.CodeHash,
+		userID:             user.ID,
+		origin:             params.Origin,
+		redirect:           "/prep",
+		browserBindingID:   params.BrowserBindingID,
+		browserBindingHash: params.BrowserBindingHash,
+		expiresAt:          time.Now().Add(codeTTL),
+	})
 
 	conflictingToken, conflictingHash, err := newSecret()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := service.queries.CreateSession(ctx, CreateSessionParams{
-		TokenHash: conflictingHash,
-		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(sessionTTL),
-	}); err != nil {
-		t.Fatal(err)
-	}
+	insertSessionFixture(t, conflictingHash, user.ID, time.Now().Add(sessionTTL))
 
 	_, err = service.exchangeHandoffCode(
 		ctx,
@@ -107,17 +99,15 @@ func TestConcurrentHandoffExchangeCreatesOneSession(t *testing.T) {
 		t.Fatal("test binding is invalid")
 	}
 	codeHash := hashHandoffCode(code)
-	if err := service.queries.CreateAuthCode(ctx, CreateAuthCodeParams{
-		CodeHash:           codeHash,
-		UserID:             user.ID,
-		Origin:             ptr(testPreviewOrigin),
-		Redirect:           "/prep",
-		BrowserBindingID:   ptr(binding.ID),
-		BrowserBindingHash: bindingHash,
-		ExpiresAt:          time.Now().Add(codeTTL),
-	}); err != nil {
-		t.Fatal(err)
-	}
+	insertAuthCodeFixture(t, authCodeFixture{
+		codeHash:           codeHash,
+		userID:             user.ID,
+		origin:             ptr(testPreviewOrigin),
+		redirect:           "/prep",
+		browserBindingID:   ptr(binding.ID),
+		browserBindingHash: bindingHash,
+		expiresAt:          time.Now().Add(codeTTL),
+	})
 
 	type result struct {
 		exchange HandoffExchange

@@ -9,11 +9,14 @@ import (
 )
 
 const (
-	SessionCookieName      = "__Host-di_session"
-	localSessionCookieName = "di_session"
-	sessionTTL             = 30 * 24 * time.Hour
-	stateTTL               = 10 * time.Minute
-	codeTTL                = 30 * time.Second
+	SessionCookieName           = "__Host-di_session"
+	localSessionCookieName      = "di_session"
+	sessionTTL                  = 30 * 24 * time.Hour
+	stateTTL                    = 10 * time.Minute
+	codeTTL                     = 30 * time.Second
+	sessionTTLSeconds           = int32(sessionTTL / time.Second)
+	sessionRefreshWindowSeconds = sessionTTLSeconds / 2
+	codeTTLSeconds              = int32(codeTTL / time.Second)
 )
 
 func newSecret() (string, []byte, error) {
