@@ -98,6 +98,10 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
    replicas concurrently through the configured connection mode. Confirm each
    migration version is applied once, the table lease is released, and user and
    attempt persistence work without logging credentials or session values.
+   Before applying migration 11 to non-empty production auth tables, inspect
+   their size and confirm the normal index-build lock fits the rollout window;
+   use a separately reviewed non-transactional concurrent migration if it does
+   not.
 6. Verify current backup health and perform a disposable restore proof before
    promotion. Record the prior image SHAs and tested rollback command.
 7. Scan rendered private manifests, public tracked files, response headers,

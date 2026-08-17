@@ -29,6 +29,7 @@ apps/api/
 - Thin gqlgen resolver or HTTP handler → service → **sqlc** (type-safe SQL, no ORM)
 - Postgres via pgx; migrations via goose
 - Bound every Postgres connection attempt and all pre-listen database startup work
+- Give scheduled database maintenance an operation deadline and matching query indexes
 - No interfaces until a second implementation exists
 - Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
 - GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints
