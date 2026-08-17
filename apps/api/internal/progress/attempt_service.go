@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+
+	"github.com/do-indeksa/platform/apps/api/internal/dbx"
 )
 
 func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input RecordAttemptInput) (Attempt, error) {
@@ -20,7 +22,7 @@ func (s *Service) RecordAttempt(ctx context.Context, userID uuid.UUID, input Rec
 	if err != nil {
 		return Attempt{}, err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	defer func() { _ = dbx.Rollback(ctx, tx) }()
 	queries := s.queries.WithTx(tx)
 
 	target, err := resolveAttemptTarget(ctx, queries, userID, normalized)
