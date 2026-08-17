@@ -1,5 +1,4 @@
-import { buildAnalyticsBootstrap } from "../../../lib/analytics-bootstrap";
-import { parseAnalyticsConfig } from "../../../lib/analytics-config";
+import { analyticsBootstrap } from "../../../lib/analytics-bootstrap";
 
 export const dynamic = "force-dynamic";
 
@@ -10,16 +9,7 @@ const baseHeaders = {
 };
 
 export function GET() {
-  const config = parseAnalyticsConfig({
-    scriptUrl: process.env.UMAMI_SCRIPT_URL,
-    websiteId: process.env.UMAMI_WEBSITE_ID,
-    domains: process.env.UMAMI_DOMAINS,
-  });
-  if (!config) {
-    return new Response("", { status: 200, headers: baseHeaders });
-  }
-
-  return new Response(buildAnalyticsBootstrap(config), {
+  return new Response(analyticsBootstrap, {
     status: 200,
     headers: baseHeaders,
   });

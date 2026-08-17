@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { analyticsBootstrap } from "../../../lib/analytics-bootstrap";
 import { GET } from "./route";
 
 afterEach(() => {
@@ -6,34 +7,28 @@ afterEach(() => {
 });
 
 describe("analytics bootstrap route", () => {
-  it("fails closed when runtime configuration is incomplete", async () => {
-    vi.stubEnv("UMAMI_SCRIPT_URL", "");
-    vi.stubEnv("UMAMI_WEBSITE_ID", "");
-    vi.stubEnv("UMAMI_DOMAINS", "");
-
+  it("serves fixed JavaScript with no-store security headers", async () => {
     const response = GET();
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(response.headers.get("content-type")).toContain(
-      "application/javascript",
+    expect(response.headers.get("content-type")).toBe(
+      "application/javascript; charset=utf-8",
     );
-    expect(await response.text()).toBe("");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(await response.text()).toBe(analyticsBootstrap);
   });
 
-  it("renders a validated runtime configuration", async () => {
-    vi.stubEnv("UMAMI_SCRIPT_URL", "https://analytics.example.com/script.js");
-    vi.stubEnv("UMAMI_WEBSITE_ID", "94DB1CB1-74F4-4A40-AD6C-962362670409");
-    vi.stubEnv("UMAMI_DOMAINS", "do-indeksa.example.com");
+  it("never interpolates runtime configuration into executable source", async () => {
+    const codeShapedValue = '</script><script>alert("injected")</script>';
+    vi.stubEnv("UMAMI_SCRIPT_URL", codeShapedValue);
+    vi.stubEnv("UMAMI_WEBSITE_ID", codeShapedValue);
+    vi.stubEnv("UMAMI_DOMAINS", codeShapedValue);
 
     const response = GET();
     const body = await response.text();
 
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toContain(
-      "application/javascript",
-    );
-    expect(body).toContain("94db1cb1-74f4-4a40-ad6c-962362670409");
-    expect(body).toContain("doNotTrack");
+    expect(body).toBe(analyticsBootstrap);
+    expect(body).not.toContain(codeShapedValue);
   });
 });
