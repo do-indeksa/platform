@@ -82,6 +82,14 @@ base retry interval with a 60-retry threshold and respects earlier caller
 cancellation; release uses a one-second base interval with a ten-retry
 threshold. OAuth redirects, callbacks, logout, and health use HTTP; product
 reads and writes use GraphQL.
+GraphQL accepts selected operations up to 33,500 weighted work units. The cost
+model shares the server's cardinality bounds and includes mandatory resolver
+work: run items, checkpoint drafts, summary task IDs, recent attempts, and
+aggregate loading are not treated as single fields. Every database-backed query
+root has a fixed minimum weight. One maximum bounded product operation fits,
+while repeated heavy roots are rejected before session storage is accessed.
+This execution budget is independent of the request-body, document-byte,
+parser-token, query-cache, request-timeout, and in-flight-request limits.
 The bounded `completedSimulationRuns` projection reconstructs the latest 20
 submitted mock exams with three owner-scoped batch reads, independent of the
 number of returned runs.

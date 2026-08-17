@@ -40,6 +40,7 @@ apps/api/
 - No interfaces until a second implementation exists
 - Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
 - GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints
+- GraphQL complexity shares authoritative product bounds, prices mandatory resolver I/O, and boundary-tests exact client operations plus amplified aliases
 
 ## Frontend (Next.js)
 

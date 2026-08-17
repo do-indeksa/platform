@@ -2,6 +2,10 @@
 
 **Status:** accepted - 2026-08-14.
 
+**Execution-budget update.** ADR 0074 supersedes this record's 2,000-unit
+selected-operation ceiling. The document, parser-token, and query-cache bounds
+defined here remain current.
+
 **Context.** The shared `/graphql` endpoint already limits the complete JSON
 envelope to 256 KiB and rejects selected operations above complexity 2,000.
 Those controls do not bound document parsing. In the pinned gqlgen runtime, a
@@ -22,7 +26,7 @@ The limits are intentionally independent:
 - 256 KiB bounds the complete JSON envelope, including variables and extensions;
 - 16 KiB bounds the document text and each query-cache key;
 - 4,096 tokens bounds parser work for compact documents;
-- complexity 2,000 bounds execution of the selected operation;
+- selected-operation complexity bounds execution (33,500 under ADR 0074);
 - 1,000 entries bound the number of parsed documents retained in the LRU.
 
 The byte boundary is inclusive. `query: null`, `variables: null`, unknown

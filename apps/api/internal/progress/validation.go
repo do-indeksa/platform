@@ -12,7 +12,6 @@ const (
 	maxTaskIDSize       = 64
 	maxRevisionSize     = 128
 	maxBlueprintSize    = 64
-	maxRunItems         = 100
 	maxAnswerCharacters = 8192
 )
 

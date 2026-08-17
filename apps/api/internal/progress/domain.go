@@ -31,6 +31,9 @@ const (
 )
 
 const (
+	P1TaskCount                      = 10
+	MaxRunItems                      = 100
+	MaxRunSummaries            int32 = 100
 	MaxRecentRunItemAttempts   int32 = 20
 	MaxAttemptJournalEntries   int32 = 1000
 	MaxCompletedSimulationRuns int32 = 20
