@@ -12,15 +12,15 @@ func TestGraphQLRejectsMultipleMutationCommandsBeforeWriting(t *testing.T) {
 		second: savePrepPreferences(input: $second) { version }
 	}`
 	response, payload := graphRequest(t, mutation, map[string]any{
-		"first":  prepPreferencesInput(0, 42, "2028-02-29"),
-		"second": prepPreferencesInput(0, 55, "2029-06-28"),
+		"first":  singleCommandPrepPreferencesInput(42, "2028-02-29"),
+		"second": singleCommandPrepPreferencesInput(55, "2029-06-28"),
 	}, session)
 
 	if response.StatusCode != http.StatusUnprocessableEntity {
 		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusUnprocessableEntity)
 	}
 	requireSingleCommandMutationError(t, payload)
-	assertGraphPrepPreferences(t, session, nil)
+	assertTransportPrepPreferences(t, session, nil)
 }
 
 func TestGraphQLCountsConditionalFragmentMutationCommandsPerRequest(t *testing.T) {
@@ -42,8 +42,8 @@ func TestGraphQLCountsConditionalFragmentMutationCommandsPerRequest(t *testing.T
 		return map[string]any{
 			"firstEnabled":  firstEnabled,
 			"secondSkipped": secondSkipped,
-			"first":         prepPreferencesInput(0, 42, "2028-02-29"),
-			"second":        prepPreferencesInput(0, 55, "2029-06-28"),
+			"first":         singleCommandPrepPreferencesInput(42, "2028-02-29"),
+			"second":        singleCommandPrepPreferencesInput(55, "2029-06-28"),
 		}
 	}
 
@@ -54,7 +54,7 @@ func TestGraphQLCountsConditionalFragmentMutationCommandsPerRequest(t *testing.T
 			t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
 		}
 		requireGraphSuccess(t, payload)
-		assertGraphPrepPreferences(t, session, &prepPreferencesPayload{
+		assertTransportPrepPreferences(t, session, &prepPreferencesPayload{
 			GoalPoints: 42,
 			ExamDate:   "2028-02-29",
 			Version:    1,
@@ -68,7 +68,7 @@ func TestGraphQLCountsConditionalFragmentMutationCommandsPerRequest(t *testing.T
 			t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
 		}
 		requireGraphSuccess(t, payload)
-		assertGraphPrepPreferences(t, session, nil)
+		assertTransportPrepPreferences(t, session, nil)
 	})
 
 	t.Run("second command", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestGraphQLCountsConditionalFragmentMutationCommandsPerRequest(t *testing.T
 			t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
 		}
 		requireGraphSuccess(t, payload)
-		assertGraphPrepPreferences(t, session, &prepPreferencesPayload{
+		assertTransportPrepPreferences(t, session, &prepPreferencesPayload{
 			GoalPoints: 55,
 			ExamDate:   "2029-06-28",
 			Version:    1,
@@ -92,7 +92,7 @@ func TestGraphQLCountsConditionalFragmentMutationCommandsPerRequest(t *testing.T
 			t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusUnprocessableEntity)
 		}
 		requireSingleCommandMutationError(t, payload)
-		assertGraphPrepPreferences(t, session, nil)
+		assertTransportPrepPreferences(t, session, nil)
 	})
 }
 
@@ -115,5 +115,13 @@ func requireSingleCommandMutationError(t *testing.T, payload graphResponse) {
 		payload.Errors[0].Message != "mutation must contain at most one top-level command" ||
 		payload.Errors[0].Extensions["code"] != "GRAPHQL_VALIDATION_FAILED" {
 		t.Fatalf("unexpected mutation command errors: %+v", payload.Errors)
+	}
+}
+
+func singleCommandPrepPreferencesInput(goalPoints int32, examDate string) map[string]any {
+	return map[string]any{
+		"expectedVersion": int64(0),
+		"goalPoints":      goalPoints,
+		"examDate":        examDate,
 	}
 }
