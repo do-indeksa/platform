@@ -241,13 +241,6 @@ func (s *Service) DeleteAccount(ctx context.Context, token string) (bool, error)
 	return deleted == 1, err
 }
 
-func (s *Service) CleanupExpired(ctx context.Context) error {
-	if err := s.queries.DeleteExpiredSessions(ctx); err != nil {
-		return err
-	}
-	return s.queries.DeleteExpiredAuthCodes(ctx)
-}
-
 func (s *Service) originAllowed(origin string) bool {
 	_, ok := s.allowedOrigin(origin)
 	return ok

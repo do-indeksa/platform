@@ -31,11 +31,33 @@ where id = (
     where token_hash = $1 and expires_at > now()
 );
 
--- name: DeleteExpiredSessions :exec
-delete from sessions where expires_at <= now();
+-- name: DeleteExpiredSessionsBatch :execrows
+with expired as (
+    select token_hash
+    from sessions
+    where expires_at <= now()
+    order by expires_at, token_hash
+    limit sqlc.arg(batch_size)
+    for update skip locked
+)
+delete from sessions
+using expired
+where sessions.token_hash = expired.token_hash
+    and sessions.expires_at <= now();
 
--- name: DeleteExpiredAuthCodes :exec
-delete from auth_codes where expires_at <= now();
+-- name: DeleteExpiredAuthCodesBatch :execrows
+with expired as (
+    select code_hash
+    from auth_codes
+    where expires_at <= now()
+    order by expires_at, code_hash
+    limit sqlc.arg(batch_size)
+    for update skip locked
+)
+delete from auth_codes
+using expired
+where auth_codes.code_hash = expired.code_hash
+    and auth_codes.expires_at <= now();
 
 -- name: CreateAuthCode :exec
 insert into auth_codes (
