@@ -30,6 +30,7 @@ jobs:
   select-images:
     name: select
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       images: ${{ steps.images.outputs.images }}
     steps:
@@ -61,6 +62,7 @@ jobs:
     name: ${{ matrix.image }}
     needs: select-images
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
