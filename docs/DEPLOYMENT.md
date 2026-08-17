@@ -117,7 +117,10 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
    headers, an inbound request ID, the host, and a recovered panic value in a
    disposable environment. Confirm none appears in API logs. Each response must
    carry a new UUID request ID that correlates with its route-template access
-   record and any HTTP or GraphQL recovery record.
+   record and any HTTP or GraphQL recovery record. Also inject canaries into
+   PostgreSQL error message/detail fields and connection user, database, host,
+   wrapped, and network-address values. Operational records may retain only
+   `error.kind` and a validated PostgreSQL `error.sqlstate`.
 
 ## Rollback
 
