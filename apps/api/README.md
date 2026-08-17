@@ -20,8 +20,14 @@ The HTTP server accepts at most 128 KiB for the request line and request
 headers, matching the intended Cloudflare edge budget instead of Go's 1 MiB
 default. Oversized metadata is rejected before routing; GraphQL and legacy REST
 request-body limits remain separate.
-It applies embedded goose migrations before accepting traffic. OAuth redirects,
-callbacks, logout, and health use HTTP; product reads and writes use GraphQL.
+It applies embedded goose migrations before accepting traffic. Startup creates
+an instance-scoped goose Provider and coordinates replicas with a renewable
+PostgreSQL table lease instead of session-level advisory state. The lease lasts
+30 seconds and is renewed every five seconds. Acquisition uses a one-second
+base retry interval with a 60-retry threshold and respects earlier caller
+cancellation; release uses a one-second base interval with a ten-retry
+threshold. OAuth redirects, callbacks, logout, and health use HTTP; product
+reads and writes use GraphQL.
 The bounded `completedSimulationRuns` projection reconstructs the latest 20
 submitted mock exams with three owner-scoped batch reads, independent of the
 number of returned runs.
