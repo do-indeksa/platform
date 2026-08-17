@@ -49,31 +49,41 @@ func TestPreviewSignInPreservesNormalizedReturnPath(t *testing.T) {
 }
 
 func TestStartSanitizesAmbiguousReturnPathBeforeSealingState(t *testing.T) {
-	google := newFakeGoogle(t, userinfo{})
-	app := newTestApp(t, google)
-	request := httptest.NewRequest(
-		http.MethodGet,
-		"/v1/auth/google?redirect="+url.QueryEscape(`/\evil.example`),
-		nil,
-	)
-	request.Host = "localhost:3000"
-	response := httptest.NewRecorder()
+	for _, tt := range []struct {
+		name      string
+		requested string
+	}{
+		{name: "slash in second byte", requested: "//evil.example"},
+		{name: "backslash in second byte", requested: `/\evil.example`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			google := newFakeGoogle(t, userinfo{})
+			app := newTestApp(t, google)
+			request := httptest.NewRequest(
+				http.MethodGet,
+				"/v1/auth/google?redirect="+url.QueryEscape(tt.requested),
+				nil,
+			)
+			request.Host = "localhost:3000"
+			response := httptest.NewRecorder()
 
-	app.ServeHTTP(response, request)
+			app.ServeHTTP(response, request)
 
-	if response.Code != http.StatusFound {
-		t.Fatalf("start returned %d: %s", response.Code, response.Body.String())
-	}
-	authURL, err := url.Parse(response.Header().Get("Location"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	st, err := openState(testKey, authURL.Query().Get("state"), time.Now())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if st.Redirect != "/" {
-		t.Fatalf("sealed redirect = %q, want root", st.Redirect)
+			if response.Code != http.StatusFound {
+				t.Fatalf("start returned %d: %s", response.Code, response.Body.String())
+			}
+			authURL, err := url.Parse(response.Header().Get("Location"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			st, err := openState(testKey, authURL.Query().Get("state"), time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if st.Redirect != "/" {
+				t.Fatalf("sealed redirect = %q, want root", st.Redirect)
+			}
+		})
 	}
 }
 
