@@ -37,7 +37,7 @@ func TestGraphQLAcceptsOneBoundedJSONObject(t *testing.T) {
 		t.Fatal(err)
 	}
 	requireGraphSuccess(t, payload)
-	assertGraphPrepPreferences(t, session, &prepPreferencesPayload{
+	assertTransportPrepPreferences(t, session, &prepPreferencesPayload{
 		GoalPoints: 42,
 		ExamDate:   "2028-02-29",
 		Version:    1,
@@ -122,13 +122,20 @@ func TestGraphQLRejectsInvalidFramingBeforeMutation(t *testing.T) {
 			status:      http.StatusRequestEntityTooLarge,
 			code:        "PAYLOAD_TOO_LARGE",
 		},
+		{
+			name:        "streamed oversized malformed body",
+			body:        io.MultiReader(strings.NewReader(`{"query":`), strings.NewReader(strings.Repeat(" ", maxGraphQLBodyBytes))),
+			contentType: "application/json",
+			status:      http.StatusRequestEntityTooLarge,
+			code:        "PAYLOAD_TOO_LARGE",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			session := seedGraphTransportSession(t, "-strict-failure")
 			request := graphTransportRequest(t, tt.body, tt.contentType, session)
-			if tt.name == "streamed oversized body" && request.ContentLength != -1 {
+			if strings.HasPrefix(tt.name, "streamed oversized") && request.ContentLength != -1 {
 				t.Fatalf("streamed content length = %d, want -1", request.ContentLength)
 			}
 			response := httptest.NewRecorder()
@@ -136,7 +143,7 @@ func TestGraphQLRejectsInvalidFramingBeforeMutation(t *testing.T) {
 			graphApp.ServeHTTP(response, request)
 
 			assertGraphTransportError(t, response.Result(), tt.status, tt.code)
-			assertGraphPrepPreferences(t, session, nil)
+			assertTransportPrepPreferences(t, session, nil)
 		})
 	}
 }
@@ -166,7 +173,7 @@ func TestGraphQLRejectsInvalidEnvelopeTypesWithoutReflectingBody(t *testing.T) {
 				t.Fatalf("response reflected request marker: %s", response.Body.String())
 			}
 			assertGraphTransportError(t, response.Result(), http.StatusBadRequest, "BAD_REQUEST")
-			assertGraphPrepPreferences(t, session, nil)
+			assertTransportPrepPreferences(t, session, nil)
 		})
 	}
 }
@@ -182,7 +189,7 @@ func TestGraphQLRejectsTrailingDocumentBeforeUpdatingExistingState(t *testing.T)
 	graphApp.ServeHTTP(response, request)
 
 	assertGraphTransportError(t, response.Result(), http.StatusBadRequest, "BAD_REQUEST")
-	assertGraphPrepPreferences(t, session, &created)
+	assertTransportPrepPreferences(t, session, &created)
 }
 
 func TestGraphQLAdvertisesOnlyConfiguredMethods(t *testing.T) {
@@ -230,7 +237,7 @@ func TestGraphQLSanitizesReadFailuresAndClosesTheBody(t *testing.T) {
 	if !body.closed {
 		t.Fatal("failed inbound request body was not closed")
 	}
-	assertGraphPrepPreferences(t, session, nil)
+	assertTransportPrepPreferences(t, session, nil)
 }
 
 func TestGraphQLRejectsDeclaredOversizeWithoutReading(t *testing.T) {
@@ -247,7 +254,7 @@ func TestGraphQLRejectsDeclaredOversizeWithoutReading(t *testing.T) {
 		http.StatusRequestEntityTooLarge,
 		"PAYLOAD_TOO_LARGE",
 	)
-	assertGraphPrepPreferences(t, session, nil)
+	assertTransportPrepPreferences(t, session, nil)
 }
 
 func prepPreferencesRequestBody(t *testing.T, goalPoints int32) []byte {
@@ -264,13 +271,46 @@ func prepPreferencesRequestBodyForVersion(
 	body, err := json.Marshal(map[string]any{
 		"query": savePrepPreferencesMutation,
 		"variables": map[string]any{
-			"input": prepPreferencesInput(expectedVersion, goalPoints, "2028-02-29"),
+			"input": map[string]any{
+				"expectedVersion": expectedVersion,
+				"goalPoints":      goalPoints,
+				"examDate":        "2028-02-29",
+			},
 		},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return body
+}
+
+func assertTransportPrepPreferences(
+	t *testing.T,
+	session *http.Cookie,
+	want *prepPreferencesPayload,
+) {
+	t.Helper()
+	_, payload := graphRequest(t, prepPreferencesQuery, nil, session)
+	requireGraphSuccess(t, payload)
+	var data struct {
+		Preferences *prepPreferencesPayload `json:"prepPreferences"`
+	}
+	if err := json.Unmarshal(payload.Data, &data); err != nil {
+		t.Fatal(err)
+	}
+	if want == nil {
+		if data.Preferences != nil {
+			t.Fatalf("unexpected preferences: %+v", data.Preferences)
+		}
+		return
+	}
+	if data.Preferences == nil ||
+		data.Preferences.GoalPoints != want.GoalPoints ||
+		data.Preferences.ExamDate != want.ExamDate ||
+		data.Preferences.Version != want.Version ||
+		data.Preferences.UpdatedAt == "" {
+		t.Fatalf("preferences = %+v, want %+v", data.Preferences, want)
+	}
 }
 
 func seedGraphTransportSession(t *testing.T, suffix string) *http.Cookie {
