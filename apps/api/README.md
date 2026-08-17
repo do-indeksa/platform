@@ -38,6 +38,13 @@ graceful shutdown waits for active connections for up to 30 seconds. Handlers
 and downstream calls must honor request cancellation; the server does not
 forcibly terminate arbitrary handler code or synthesize a generic timeout
 response.
+The process logger writes JSON to stdout. Each routed request receives a new
+server-owned UUID in `X-Request-ID`; inbound values are ignored. Access records
+contain only that ID, a normalized method, the matched route template, status,
+response byte count, and integer duration in milliseconds. HTTP and GraphQL
+recovery records retain the request ID and a stack but never the recovered
+panic value. URLs, concrete paths, query strings, headers, bodies, host and
+remote-address values are outside the request-log contract.
 It applies embedded goose migrations before accepting traffic. Startup creates
 an instance-scoped goose Provider and coordinates replicas with a renewable
 PostgreSQL table lease instead of session-level advisory state. The lease lasts

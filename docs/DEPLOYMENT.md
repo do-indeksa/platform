@@ -112,6 +112,12 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
    source maps, and browser network requests for origin-identifying values.
 8. Verify internal API liveness remains healthy while readiness returns `503`
    during a controlled database outage.
+9. Send unique canary values through OAuth callback query parameters, GraphQL
+   query and body data, matched and unmatched paths, authorization and cookie
+   headers, an inbound request ID, the host, and a recovered panic value in a
+   disposable environment. Confirm none appears in API logs. Each response must
+   carry a new UUID request ID that correlates with its route-template access
+   record and any HTTP or GraphQL recovery record.
 
 ## Rollback
 

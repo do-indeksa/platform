@@ -32,6 +32,7 @@ apps/api/
 - Give scheduled database maintenance an operation deadline and matching query indexes
 - Propagate each request context through external I/O; keep execution below the socket write timeout
 - Keep graceful shutdown longer than request execution and deployment termination grace longer than both
+- Log requests through the fixed JSON allowlist; use only server-owned request IDs and route templates
 - No interfaces until a second implementation exists
 - Ubiquitous language everywhere: topic, exam position, blueprint, task, run, attempt, knowledge map
 - GraphQL owns product reads and mutations; OAuth redirects, callbacks, logout, and health remain HTTP endpoints
