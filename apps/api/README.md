@@ -30,6 +30,14 @@ The HTTP server accepts at most 128 KiB for the request line and request
 headers, matching the intended Cloudflare edge budget instead of Go's 1 MiB
 default. Oversized metadata is rejected before routing; GraphQL and legacy REST
 request-body limits remain separate.
+Every routed request receives a 20-second execution context. An earlier client
+disconnect or parent cancellation still wins, and shorter local budgets such as
+the ten-second OAuth provider call and two-second readiness ping remain in
+force. The request budget is below the server's 30-second write timeout, while
+graceful shutdown waits for active connections for up to 30 seconds. Handlers
+and downstream calls must honor request cancellation; the server does not
+forcibly terminate arbitrary handler code or synthesize a generic timeout
+response.
 It applies embedded goose migrations before accepting traffic. Startup creates
 an instance-scoped goose Provider and coordinates replicas with a renewable
 PostgreSQL table lease instead of session-level advisory state. The lease lasts
