@@ -79,6 +79,8 @@ and [firewall model](https://developers.cloudflare.com/cloudflare-one/networks/c
   public CI logs, or this repository.
 - App CI publishes immutable commit-SHA images only. Kargo promotion and ArgoCD
   reconciliation remain the sole production mutation path.
+- Pull requests validate only affected runtime images. Every push to `main`
+  still builds and publishes both images from the same commit.
 - Keep the effective database `connect_timeout` at 30 seconds or less. The
   application supplies five seconds when it is omitted or zero and rejects a
   larger value before opening a pool.
