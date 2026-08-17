@@ -8,8 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -38,15 +36,8 @@ func TestRunItemAnswerPartsMigrationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	database := stdlib.OpenDBFromPool(pool)
-	t.Cleanup(func() { _ = database.Close() })
-	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		t.Fatal(err)
-	}
-	if err := goose.UpTo(database, "migrations", 6); err != nil {
-		t.Fatal(err)
-	}
+	provider := newTestMigrationProvider(t, pool)
+	applyMigrationsThrough(t, ctx, provider, 6)
 
 	userID := uuid.New()
 	runID := uuid.New()
@@ -74,9 +65,7 @@ func TestRunItemAnswerPartsMigrationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := goose.UpTo(database, "migrations", 7); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 7)
 	var legacy sql.NullInt16
 	if err := pool.QueryRow(ctx,
 		"select answer_part_count from run_items where id = $1", itemID,
@@ -101,13 +90,9 @@ func TestRunItemAnswerPartsMigrationRoundTrip(t *testing.T) {
 		}
 	}
 
-	if err := goose.DownTo(database, "migrations", 6); err != nil {
-		t.Fatal(err)
-	}
+	rollbackMigrationsTo(t, ctx, provider, 6)
 	assertAnswerPartCountColumn(t, ctx, pool, false)
-	if err := goose.UpTo(database, "migrations", 7); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 7)
 	assertAnswerPartCountColumn(t, ctx, pool, true)
 	if err := pool.QueryRow(ctx,
 		"select answer_part_count from run_items where id = $1", itemID,

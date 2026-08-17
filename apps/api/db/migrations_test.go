@@ -2,13 +2,11 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -39,15 +37,8 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 
-	database := stdlib.OpenDBFromPool(pool)
-	t.Cleanup(func() { _ = database.Close() })
-	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		t.Fatal(err)
-	}
-	if err := goose.UpTo(database, "migrations", 3); err != nil {
-		t.Fatal(err)
-	}
+	provider := newTestMigrationProvider(t, pool)
+	applyMigrationsThrough(t, ctx, provider, 3)
 
 	userID := uuid.New()
 	createdAt := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
@@ -62,10 +53,8 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assertLearningRunBackfill(t, ctx, database, pool, createdAt)
-	if err := goose.DownTo(database, "migrations", 3); err != nil {
-		t.Fatal(err)
-	}
+	assertLearningRunBackfill(t, ctx, provider, pool, createdAt)
+	rollbackMigrationsTo(t, ctx, provider, 3)
 
 	var taskID string
 	var correct bool
@@ -77,21 +66,19 @@ func TestLearningRunMigrationRoundTrip(t *testing.T) {
 		t.Fatalf("legacy attempt changed after rollback: %q %v", taskID, correct)
 	}
 
-	assertLearningRunBackfill(t, ctx, database, pool, createdAt)
-	assertRunCheckpointMigrationRoundTrip(t, ctx, database, pool, userID, createdAt)
+	assertLearningRunBackfill(t, ctx, provider, pool, createdAt)
+	assertRunCheckpointMigrationRoundTrip(t, ctx, provider, pool, userID, createdAt)
 }
 
 func assertLearningRunBackfill(
 	t *testing.T,
 	ctx context.Context,
-	database *sql.DB,
+	provider *goose.Provider,
 	pool *pgxpool.Pool,
 	createdAt time.Time,
 ) {
 	t.Helper()
-	if err := goose.UpTo(database, "migrations", 4); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 4)
 
 	var publicID uuid.UUID
 	var outcome, gradingKind string
@@ -110,7 +97,7 @@ func assertLearningRunBackfill(
 func assertRunCheckpointMigrationRoundTrip(
 	t *testing.T,
 	ctx context.Context,
-	database *sql.DB,
+	provider *goose.Provider,
 	pool *pgxpool.Pool,
 	userID uuid.UUID,
 	startedAt time.Time,
@@ -130,9 +117,7 @@ func assertRunCheckpointMigrationRoundTrip(
 		itemID, runID, userID); err != nil {
 		t.Fatal(err)
 	}
-	if err := goose.UpTo(database, "migrations", 5); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 5)
 	if _, err := pool.Exec(ctx, `
 		insert into run_checkpoints (run_id, user_id, version, current_ordinal)
 		values ($1, $2, 1, 1)`, runID, userID); err != nil {
@@ -163,9 +148,7 @@ func assertRunCheckpointMigrationRoundTrip(
 		t.Fatal("checkpoint accepted a draft from another run")
 	}
 
-	if err := goose.DownTo(database, "migrations", 4); err != nil {
-		t.Fatal(err)
-	}
+	rollbackMigrationsTo(t, ctx, provider, 4)
 	var storedItem uuid.UUID
 	if err := pool.QueryRow(ctx, "select id from run_items where run_id = $1", runID).Scan(&storedItem); err != nil {
 		t.Fatal(err)
@@ -173,9 +156,7 @@ func assertRunCheckpointMigrationRoundTrip(
 	if storedItem != itemID {
 		t.Fatalf("rollback changed run item: %s", storedItem)
 	}
-	if err := goose.UpTo(database, "migrations", 5); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 5)
 	var checkpoints int
 	if err := pool.QueryRow(ctx, "select count(*) from run_checkpoints where run_id = $1", runID).
 		Scan(&checkpoints); err != nil {

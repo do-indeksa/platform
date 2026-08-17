@@ -54,7 +54,7 @@ func run() error {
 	}
 	defer pool.Close()
 
-	if err := db.Migrate(pool); err != nil {
+	if err := db.Migrate(ctx, pool); err != nil {
 		return err
 	}
 

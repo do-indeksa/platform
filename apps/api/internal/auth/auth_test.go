@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := db.Migrate(testPool); err != nil {
+	if err := db.Migrate(ctx, testPool); err != nil {
 		log.Fatal(err)
 	}
 	code := m.Run()

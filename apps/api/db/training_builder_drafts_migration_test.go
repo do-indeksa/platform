@@ -7,8 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/pressly/goose/v3"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -37,19 +35,10 @@ func TestTrainingBuilderDraftsMigrationRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
-	database := stdlib.OpenDBFromPool(pool)
-	t.Cleanup(func() { _ = database.Close() })
-	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		t.Fatal(err)
-	}
-	if err := goose.UpTo(database, "migrations", 9); err != nil {
-		t.Fatal(err)
-	}
+	provider := newTestMigrationProvider(t, pool)
+	applyMigrationsThrough(t, ctx, provider, 9)
 	assertTrainingBuilderDraftsTable(t, ctx, pool, false)
-	if err := goose.UpTo(database, "migrations", 10); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 10)
 	assertTrainingBuilderDraftsTable(t, ctx, pool, true)
 
 	userID := uuid.New()
@@ -91,13 +80,9 @@ func TestTrainingBuilderDraftsMigrationRoundTrip(t *testing.T) {
 		t.Fatalf("draft survived owner deletion: %d", count)
 	}
 
-	if err := goose.DownTo(database, "migrations", 9); err != nil {
-		t.Fatal(err)
-	}
+	rollbackMigrationsTo(t, ctx, provider, 9)
 	assertTrainingBuilderDraftsTable(t, ctx, pool, false)
-	if err := goose.UpTo(database, "migrations", 10); err != nil {
-		t.Fatal(err)
-	}
+	applyMigrationsThrough(t, ctx, provider, 10)
 	assertTrainingBuilderDraftsTable(t, ctx, pool, true)
 }
 
