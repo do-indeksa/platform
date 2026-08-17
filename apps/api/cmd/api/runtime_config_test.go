@@ -30,7 +30,7 @@ func TestLoadRuntimeConfigAcceptsValidEnvironment(t *testing.T) {
 				t.Errorf("listen address = %q, want %q", cfg.listenAddress, tt.wantAddress)
 			}
 			if cfg.database == nil || cfg.database.ConnConfig.Host != "db.internal" {
-				t.Fatalf("database config was not parsed: %#v", cfg.database)
+				t.Fatal("database config was not parsed as expected")
 			}
 		})
 	}
