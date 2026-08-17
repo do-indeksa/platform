@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/do-indeksa/platform/apps/api/internal/auth"
@@ -18,6 +19,8 @@ const (
 	defaultPort                   = "8080"
 	defaultDatabaseConnectTimeout = 5 * time.Second
 	maxDatabaseConnectTimeout     = 30 * time.Second
+	defaultDatabasePoolMaxConns   = int32(10)
+	maxDatabasePoolMaxConns       = int32(50)
 )
 
 var (
@@ -25,6 +28,15 @@ var (
 	errDatabaseURLInvalid            = errors.New("DATABASE_URL is invalid")
 	errDatabaseConnectTimeoutInvalid = errors.New(
 		"DATABASE_URL connect_timeout must not exceed 30 seconds",
+	)
+	errDatabasePoolMaxConnsInvalid = errors.New(
+		"DATABASE_URL pool_max_conns must not exceed 50",
+	)
+	errDatabasePoolMinConnsInvalid = errors.New(
+		"DATABASE_URL pool_min_conns must be between 0 and pool_max_conns",
+	)
+	errDatabasePoolMinIdleConnsInvalid = errors.New(
+		"DATABASE_URL pool_min_idle_conns must be between 0 and pool_max_conns",
 	)
 	errPortInvalid = errors.New("PORT must be a decimal number from 1 to 65535")
 )
@@ -95,6 +107,13 @@ func databaseConfig() (*pgxpool.Config, error) {
 	if strings.TrimSpace(raw) == "" {
 		return nil, errDatabaseURLRequired
 	}
+	// Pgxpool consumes pool parameters while parsing, so inspect a separate
+	// connection config to distinguish an explicit maximum from its CPU default.
+	parsed, err := pgx.ParseConfig(raw)
+	if err != nil {
+		return nil, errDatabaseURLInvalid
+	}
+	_, explicitPoolMaximum := parsed.RuntimeParams["pool_max_conns"]
 	cfg, err := pgxpool.ParseConfig(raw)
 	if err != nil {
 		return nil, errDatabaseURLInvalid
@@ -107,6 +126,18 @@ func databaseConfig() (*pgxpool.Config, error) {
 	}
 	if cfg.ConnConfig.ConnectTimeout > maxDatabaseConnectTimeout {
 		return nil, errDatabaseConnectTimeoutInvalid
+	}
+	if !explicitPoolMaximum {
+		cfg.MaxConns = defaultDatabasePoolMaxConns
+	}
+	if cfg.MaxConns > maxDatabasePoolMaxConns {
+		return nil, errDatabasePoolMaxConnsInvalid
+	}
+	if cfg.MinConns < 0 || cfg.MinConns > cfg.MaxConns {
+		return nil, errDatabasePoolMinConnsInvalid
+	}
+	if cfg.MinIdleConns < 0 || cfg.MinIdleConns > cfg.MaxConns {
+		return nil, errDatabasePoolMinIdleConnsInvalid
 	}
 	return cfg, nil
 }
