@@ -45,6 +45,12 @@ response byte count, and integer duration in milliseconds. HTTP and GraphQL
 recovery records retain the request ID and a stack but never the recovered
 panic value. URLs, concrete paths, query strings, headers, bodies, host and
 remote-address values are outside the request-log contract.
+Operational failures are reduced to one structured `error.kind`: cancellation,
+deadline, PostgreSQL server/connect/closed-connection, network/timeout, or
+internal. A PostgreSQL server error may also retain a validated five-character
+uppercase alphanumeric `error.sqlstate`. Raw error text, wrapper text, concrete
+types, database message/detail/configuration, query data, and network addresses
+are never passed to the logger.
 It applies embedded goose migrations before accepting traffic. Startup creates
 an instance-scoped goose Provider and coordinates replicas with a renewable
 PostgreSQL table lease instead of session-level advisory state. The lease lasts
