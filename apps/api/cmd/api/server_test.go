@@ -237,6 +237,59 @@ func TestHTTPServerRejectsOversizedHeadersBeforeHandler(t *testing.T) {
 	}
 }
 
+func TestHTTPServerRejectsOversizedRequestTargetsBeforeHandler(t *testing.T) {
+	const requestTargetBudget = 16 << 10
+
+	var handlerCalls atomic.Int32
+	handler := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		handlerCalls.Add(1)
+		w.WriteHeader(http.StatusNoContent)
+	})
+	baseURL := startTestHTTPServer(t, handler)
+	client := &http.Client{Timeout: 2 * time.Second}
+
+	acceptedTargets := []string{
+		"/healthz",
+		"/api/v1/auth/google/callback?code=" + strings.Repeat("c", 4096) +
+			"&state=" + strings.Repeat("s", 4096),
+		"/" + strings.Repeat("x", requestTargetBudget-1),
+	}
+	for _, target := range acceptedTargets {
+		response, err := client.Get(baseURL + target)
+		if err != nil {
+			t.Fatalf("GET accepted target of %d bytes: %v", len(target), err)
+		}
+		closeResponse(t, response)
+		if response.StatusCode != http.StatusNoContent {
+			t.Fatalf(
+				"accepted target of %d bytes returned %d, want 204",
+				len(target),
+				response.StatusCode,
+			)
+		}
+	}
+
+	acceptedCalls := int32(len(acceptedTargets))
+	if handlerCalls.Load() != acceptedCalls {
+		t.Fatalf("accepted targets made %d handler calls, want %d", handlerCalls.Load(), acceptedCalls)
+	}
+
+	oversizedPrefix := "/healthz?value="
+	oversizedTarget := oversizedPrefix +
+		strings.Repeat("x", requestTargetBudget-len(oversizedPrefix)+1)
+	response, err := client.Get(baseURL + oversizedTarget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	closeResponse(t, response)
+	if response.StatusCode != http.StatusRequestURITooLong {
+		t.Errorf("oversized request target returned %d, want 414", response.StatusCode)
+	}
+	if handlerCalls.Load() != acceptedCalls {
+		t.Errorf("oversized request target reached handler; calls = %d", handlerCalls.Load())
+	}
+}
+
 func startTestHTTPServer(t *testing.T, handler http.Handler) string {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
