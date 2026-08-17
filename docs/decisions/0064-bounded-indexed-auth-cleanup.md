@@ -1,6 +1,7 @@
 # 0064 - Bound and index expired authentication cleanup
 
-**Status:** accepted - 2026-08-17
+**Status:** accepted - 2026-08-17; batch execution refined by
+[0076](0076-batch-expired-auth-cleanup.md)
 
 ## Context
 
@@ -43,9 +44,8 @@ most rows are expired; the indexes provide an access path rather than forcing a
 plan.
 
 The indexes add storage and write maintenance, including when a sliding session
-extends its expiry. Cleanup remains one delete per table rather than a batched
-retention job. If either delete regularly reaches 30 seconds, issue 347 must
-introduce bounded non-overlapping batches rather than raising the deadline.
+extends its expiry. ADR 0076 later replaced each unbounded delete with short,
+non-overlapping batches while retaining this deadline and both indexes.
 
 The migration uses normal transactional `CREATE INDEX`, which can block writes
 while each index is built. This is appropriate while the auth tables are small.
