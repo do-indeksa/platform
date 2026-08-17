@@ -2,6 +2,7 @@ package graph
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,6 +11,16 @@ import (
 
 func TestGraphQLRejectsTransportAndProtocolInputBeforeSessionLookup(t *testing.T) {
 	session := seedGraphTransportSession(t, "-preflight-session")
+	oversizedDocument := paddedGraphQLDocument(
+		t,
+		"query { prepPreferences { version } }",
+		maxGraphQLDocumentBytes+1,
+	)
+	complexityFields := make([]string, 25)
+	for index := range complexityFields {
+		complexityFields[index] = fmt.Sprintf("runs%d: runs(limit: 100) { id }", index)
+	}
+	overComplexDocument := "query {" + strings.Join(complexityFields, "\n") + "}"
 	tests := []struct {
 		name        string
 		body        string
@@ -32,6 +43,13 @@ func TestGraphQLRejectsTransportAndProtocolInputBeforeSessionLookup(t *testing.T
 			code:        "BAD_REQUEST",
 		},
 		{
+			name:        "noncanonical envelope field",
+			body:        `{"Query":"query { runs { id } }"}`,
+			contentType: "application/json",
+			status:      http.StatusBadRequest,
+			code:        "BAD_REQUEST",
+		},
+		{
 			name:        "oversized body",
 			body:        strings.Repeat(" ", maxGraphQLBodyBytes+1),
 			contentType: "application/json",
@@ -44,6 +62,27 @@ func TestGraphQLRejectsTransportAndProtocolInputBeforeSessionLookup(t *testing.T
 			contentType: "application/json",
 			status:      http.StatusUnprocessableEntity,
 			code:        "GRAPHQL_PARSE_FAILED",
+		},
+		{
+			name:        "oversized GraphQL document",
+			body:        `{"query":` + quotedJSON(t, oversizedDocument) + `}`,
+			contentType: "application/json",
+			status:      http.StatusUnprocessableEntity,
+			code:        "GRAPHQL_PARSE_FAILED",
+		},
+		{
+			name:        "schema validation failure",
+			body:        `{"query":"query { unknownField }"}`,
+			contentType: "application/json",
+			status:      http.StatusUnprocessableEntity,
+			code:        "GRAPHQL_VALIDATION_FAILED",
+		},
+		{
+			name:        "complexity limit",
+			body:        `{"query":` + quotedJSON(t, overComplexDocument) + `}`,
+			contentType: "application/json",
+			status:      http.StatusOK,
+			code:        "COMPLEXITY_LIMIT_EXCEEDED",
 		},
 		{
 			name:        "multiple mutation commands",
