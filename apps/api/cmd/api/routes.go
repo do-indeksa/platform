@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -16,12 +17,13 @@ func newRouter(
 	srv api.ServerInterface,
 	graphHandler http.Handler,
 	readyCheck readinessCheck,
+	logger *slog.Logger,
 	secureTransport bool,
 ) http.Handler {
 	r := chi.NewRouter()
 	r.Use(
-		middleware.RequestID,
-		middleware.Logger,
+		httpx.RequestID,
+		httpx.RequestLogger(logger),
 		middleware.Recoverer,
 		middleware.NoCache,
 		httpx.SecurityHeaders(secureTransport),
