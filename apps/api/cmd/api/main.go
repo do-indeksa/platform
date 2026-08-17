@@ -87,7 +87,7 @@ func run() error {
 		strings.HasPrefix(cfg.auth.CanonicalOrigin, "https://"),
 	)
 
-	server := newHTTPServer(cfg.listenAddress, r)
+	server := newHTTPServer(cfg.listenAddress, r, logger)
 
 	errCh := make(chan error, 1)
 	go func() {

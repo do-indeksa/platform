@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -13,10 +14,11 @@ const (
 	gracefulShutdownTimeout = 30 * time.Second
 )
 
-func newHTTPServer(address string, handler http.Handler) *http.Server {
+func newHTTPServer(address string, handler http.Handler, logger *slog.Logger) *http.Server {
 	return &http.Server{
 		Addr:              address,
 		Handler:           withRequestDeadline(handler, requestExecutionTimeout),
+		ErrorLog:          newHTTPServerErrorLog(logger),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      serverWriteTimeout,
