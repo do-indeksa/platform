@@ -33,6 +33,7 @@ apps/api/
 - Bound admitted application requests per process, reject excess work without a queue, and reserve health and readiness probes
 - Give scheduled database maintenance an operation deadline and matching query indexes
 - Propagate each request context through external I/O; keep execution below the socket write timeout
+- Finalize request-path transactions with the shared bounded rollback context after caller cancellation
 - Keep graceful shutdown longer than request execution and deployment termination grace longer than both
 - Log requests through the fixed JSON allowlist; use only server-owned request IDs and route templates
 - Pass operational errors through `safelog.Error`; never log raw error text, types, dependency details, or request data

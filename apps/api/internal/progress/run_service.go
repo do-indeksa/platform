@@ -7,6 +7,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+
+	"github.com/do-indeksa/platform/apps/api/internal/dbx"
 )
 
 func (s *Service) StartRun(ctx context.Context, userID uuid.UUID, input StartRunInput) (RunAggregate, error) {
@@ -19,7 +21,7 @@ func (s *Service) StartRun(ctx context.Context, userID uuid.UUID, input StartRun
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	defer func() { _ = dbx.Rollback(ctx, tx) }()
 	queries := s.queries.WithTx(tx)
 
 	run, err := queries.CreateRun(ctx, CreateRunParams{
@@ -104,7 +106,7 @@ func (s *Service) GetRun(ctx context.Context, userID, runID uuid.UUID) (RunAggre
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	defer func() { _ = dbx.Rollback(ctx, tx) }()
 	aggregate, err := loadRun(ctx, s.queries.WithTx(tx), userID, runID)
 	if err != nil {
 		return RunAggregate{}, err
@@ -164,7 +166,7 @@ func (s *Service) SubmitRun(ctx context.Context, userID uuid.UUID, input SubmitR
 	if err != nil {
 		return RunAggregate{}, err
 	}
-	defer func() { _ = tx.Rollback(ctx) }()
+	defer func() { _ = dbx.Rollback(ctx, tx) }()
 	queries := s.queries.WithTx(tx)
 
 	run, err := queries.GetRunForUpdate(ctx, GetRunForUpdateParams{ID: input.ID, UserID: userID})
