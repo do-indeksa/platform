@@ -15,6 +15,7 @@ func newRouter(
 	authService *auth.Service,
 	srv api.ServerInterface,
 	graphHandler http.Handler,
+	readyCheck readinessCheck,
 	secureTransport bool,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -27,6 +28,7 @@ func newRouter(
 		auth.UnsafeRequestOriginMiddleware(authService),
 	)
 	r.Get("/healthz", handleHealth)
+	r.Get("/readyz", handleReadiness(readyCheck, readinessTimeout))
 	r.With(auth.RequestUserMiddleware(authService)).Handle("/graphql", graphHandler)
 	registerHTTPRoutes(r, srv)
 	return r

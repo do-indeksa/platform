@@ -78,6 +78,7 @@ func run() error {
 			progressService,
 			trainingService,
 		)),
+		pool.Ping,
 		strings.HasPrefix(cfg.auth.CanonicalOrigin, "https://"),
 	)
 
@@ -115,9 +116,4 @@ func cleanupLoop(ctx context.Context, service *auth.Service) {
 			}
 		}
 	}
-}
-
-func handleHealth(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
 }
