@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,6 +32,7 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 				authService,
 				api.Unimplemented{},
 				http.NotFoundHandler(),
+				func(context.Context) error { return nil },
 				tt.secure,
 			)
 			for _, endpoint := range []struct {
@@ -38,6 +40,7 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 				wantStatus int
 			}{
 				{path: "/healthz", wantStatus: http.StatusOK},
+				{path: "/readyz", wantStatus: http.StatusOK},
 				{path: "/unknown", wantStatus: http.StatusNotFound},
 			} {
 				response := httptest.NewRecorder()
