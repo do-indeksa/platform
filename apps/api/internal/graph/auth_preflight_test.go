@@ -185,6 +185,27 @@ func TestGraphQLRejectsMalformedSessionBeforeDatabaseLookup(t *testing.T) {
 	}
 }
 
+func TestGraphQLDoesNotRefreshUnknownSession(t *testing.T) {
+	session := &http.Cookie{
+		Name:  auth.SessionCookieName,
+		Value: strings.Repeat("A", 43),
+	}
+	before := graphTestPool.Stat().AcquireCount()
+
+	response, payload := graphRequest(t, `query { prepPreferences { version } }`, nil, session)
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", response.StatusCode, http.StatusOK)
+	}
+	requireGraphCode(t, payload, "UNAUTHENTICATED")
+	if cookies := response.Cookies(); len(cookies) != 0 {
+		t.Fatalf("unknown session emitted cookies: %+v", cookies)
+	}
+	if after := graphTestPool.Stat().AcquireCount(); after != before+1 {
+		t.Fatalf("pool acquire count = %d, want %d", after, before+1)
+	}
+}
+
 func setGraphSessionExpiry(t *testing.T, session *http.Cookie, expiresAt time.Time) {
 	t.Helper()
 	tokenHash := sha256.Sum256([]byte(session.Value))

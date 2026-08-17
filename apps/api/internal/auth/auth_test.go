@@ -421,7 +421,11 @@ func TestSessionSlides(t *testing.T) {
 		t.Fatalf("me: got status %d", res.StatusCode)
 	}
 	refreshed := sessionFromResponse(t, res)
-	if refreshed.Value != session.Value || refreshed.MaxAge != int(sessionTTL.Seconds()) {
+	if refreshed.Name != localSessionCookieName || refreshed.Value != session.Value ||
+		refreshed.Path != "/" || refreshed.Domain != "" ||
+		refreshed.MaxAge != int(sessionTTL.Seconds()) ||
+		!refreshed.HttpOnly || refreshed.Secure ||
+		refreshed.SameSite != http.SameSiteLaxMode {
 		t.Fatalf("cookie not refreshed: %+v", refreshed)
 	}
 	row, err := New(testPool).GetSessionUser(context.Background(), hashSecret(session.Value))
