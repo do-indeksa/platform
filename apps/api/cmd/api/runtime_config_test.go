@@ -59,6 +59,23 @@ func TestLoadRuntimeConfigRejectsDatabaseConfigurationSafely(t *testing.T) {
 			wantError:   "DATABASE_URL is invalid",
 		},
 		{
+			name:        "negative URL connection timeout",
+			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?connect_timeout=-1",
+			wantError:   "DATABASE_URL is invalid",
+		},
+		{
+			name: "negative keyword connection timeout",
+			databaseURL: "host=db.internal user=api password=do-not-log " +
+				"dbname=do_indeksa connect_timeout=-1",
+			wantError: "DATABASE_URL is invalid",
+		},
+		{
+			name:             "negative ambient connection timeout",
+			databaseURL:      "postgresql://api:do-not-log@db.internal/do_indeksa",
+			pgConnectTimeout: "-1",
+			wantError:        "DATABASE_URL is invalid",
+		},
+		{
 			name:        "excessive URL connection timeout",
 			databaseURL: "postgresql://api:do-not-log@db.internal/do_indeksa?connect_timeout=31",
 			wantError:   "DATABASE_URL connect_timeout must not exceed 30 seconds",
