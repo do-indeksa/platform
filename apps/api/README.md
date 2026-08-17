@@ -28,8 +28,10 @@ serial and process cancellation stops them without an error log.
 prove startup database access before the server listens.
 The HTTP server accepts at most 128 KiB for the request line and request
 headers, matching the intended Cloudflare edge budget instead of Go's 1 MiB
-default. Oversized metadata is rejected before routing; GraphQL and legacy REST
-request-body limits remain separate.
+default. Within that parser budget, the raw request target is independently
+limited to 16 KiB; a larger escaped path and query receives `414` before the
+request deadline and application router. GraphQL and legacy REST request-body
+limits remain separate.
 Every routed request receives a 20-second execution context. An earlier client
 disconnect or parent cancellation still wins, and shorter local budgets such as
 the ten-second OAuth provider call and two-second readiness ping remain in
