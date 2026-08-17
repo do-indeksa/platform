@@ -35,6 +35,7 @@ jobs:
         run: |
           shellcheck .github/scripts/*.sh
           bash .github/scripts/select-images_test.sh
+          ruby .github/scripts/workflow_policy_test.rb
       - name: Verify secret scanner
         shell: bash
         run: |
