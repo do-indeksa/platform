@@ -30,6 +30,7 @@ apps/api/
 - Postgres via pgx; migrations via goose
 - Bound every Postgres connection attempt and all pre-listen database startup work
 - Give every API process a deterministic Postgres pool maximum and validate its minimums before creating the pool
+- Bound admitted application requests per process, reject excess work without a queue, and reserve health and readiness probes
 - Give scheduled database maintenance an operation deadline and matching query indexes
 - Propagate each request context through external I/O; keep execution below the socket write timeout
 - Keep graceful shutdown longer than request execution and deployment termination grace longer than both
