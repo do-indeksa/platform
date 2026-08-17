@@ -78,7 +78,7 @@ func TestGraphQLRejectsAmbiguousEnvelopeFieldsBeforeMutation(t *testing.T) {
 				t.Fatalf("response reflected request marker: %s", response.Body.String())
 			}
 			assertGraphTransportError(t, response.Result(), http.StatusBadRequest, "BAD_REQUEST")
-			assertGraphPrepPreferences(t, session, nil)
+			assertTransportPrepPreferences(t, session, nil)
 		})
 	}
 }
