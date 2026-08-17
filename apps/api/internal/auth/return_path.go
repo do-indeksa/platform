@@ -23,7 +23,7 @@ func sanitizeReturnPath(raw *string) string {
 
 func normalizeReturnPath(raw string) (string, bool) {
 	if raw == "" || len(raw) > maxReturnPathBytes || !utf8.ValidString(raw) || raw[0] != '/' ||
-		(len(raw) > 1 && raw[1] == '/') {
+		(len(raw) > 1 && (raw[1] == '/' || raw[1] == '\\')) {
 		return "", false
 	}
 	pathEnd := len(raw)
