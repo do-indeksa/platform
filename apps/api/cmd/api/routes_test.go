@@ -37,6 +37,7 @@ func TestRouterAppliesSecurityHeaders(t *testing.T) {
 				api.Unimplemented{},
 				http.NotFoundHandler(),
 				func(context.Context) error { return nil },
+				64,
 				slog.New(slog.NewTextHandler(io.Discard, nil)),
 				tt.secure,
 			)
