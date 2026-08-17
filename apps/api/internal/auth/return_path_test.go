@@ -63,6 +63,7 @@ func FuzzNormalizeReturnPath(f *testing.F) {
 	for _, seed := range []string{
 		"/",
 		"/sr/tasks?tab=practice#task-2",
+		"//evil.example",
 		`/\evil.example`,
 		"/%2f%2fevil.example",
 		"/tasks/../prep/",
@@ -75,7 +76,8 @@ func FuzzNormalizeReturnPath(f *testing.F) {
 			return
 		}
 		if len(normalized) > maxReturnPathBytes || normalized == "" || normalized[0] != '/' ||
-			(len(normalized) > 1 && normalized[1] == '/') || strings.ContainsRune(normalized, '\\') {
+			(len(normalized) > 1 && (normalized[1] == '/' || normalized[1] == '\\')) ||
+			strings.ContainsRune(normalized, '\\') {
 			t.Fatalf("unsafe normalized return path %q from %q", normalized, raw)
 		}
 		second, secondOK := normalizeReturnPath(normalized)
