@@ -4,7 +4,7 @@ go 1.25.13
 
 require (
 	github.com/99designs/gqlgen v0.17.94
-	github.com/go-chi/chi/v5 v5.3.1
+	github.com/go-chi/chi/v5 v5.4.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/oapi-codegen/runtime v1.4.2
